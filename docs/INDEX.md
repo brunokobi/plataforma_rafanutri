@@ -7,6 +7,9 @@
 ## Módulos
 - [UAN e Qualidade](modulos/uan.md): plano do módulo, entregas U0 a U7 e MVP do módulo (Qualidade BPF).
 
+## Pesquisa
+- [Benchmark clínico](pesquisa/benchmark-clinico.md): concorrentes, diferenciais e lacunas incorporadas ao plano.
+
 ## Técnica
 - [03 — Arquitetura](03-arquitetura.md): stack, visão de componentes, multi-tenant, integrações e ambientes.
 - [04 — Modelo de dados](04-modelo-dados.md): entidades do MVP e regras de acesso.

@@ -663,6 +663,7 @@ P = peso (kg), A = altura (cm), I = idade (anos), MLG = massa livre de gordura (
   - [ ] Aplicar modelo: escolher, opção de escalar quantidades para a meta calórica do paciente
   - [ ] Duplicar plano do mesmo paciente (nova versão a partir da anterior)
   - [ ] Tela de modelos com busca e tags
+  - [ ] Biblioteca de **métodos de prescrição** (seed com 15 a 20 modelos validados pela nutricionista: low carb, cetogênica, mediterrânea, DASH, vegetariana, vegana, hiperproteica, jejum intermitente 16:8 etc.), cada um com distribuição de macros e plano exemplo (ver [benchmark](../pesquisa/benchmark-clinico.md))
 - **Arquivos/áreas:** `apps/web/app/(app)/[orgSlug]/modelos/planos`
 - **Critérios de aceite:**
   - Dado um modelo de 2.000 kcal, quando aplico para meta de 1.600 kcal com escala, então as quantidades são reduzidas proporcionalmente e arredondadas.
