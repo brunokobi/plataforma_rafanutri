@@ -1,5 +1,7 @@
 # 03 — Arquitetura
 
+> **Backend: Directus** ([ADR 0008](adr/0008-backend-directus.md)). Onde este documento cita Supabase, RLS, `auth.uid()`, Storage ou Edge Functions, leia pela tabela de equivalência do ADR 0008.
+
 ## Visão geral
 
 ```

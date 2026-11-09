@@ -1,5 +1,7 @@
 # 04 — Modelo de dados inicial (MVP)
 
+> **Backend: Directus** ([ADR 0008](adr/0008-backend-directus.md)). Onde este documento cita Supabase, RLS, `auth.uid()`, Storage ou Edge Functions, leia pela tabela de equivalência do ADR 0008.
+
 Escopo: núcleo comum + Módulo Clínico. Nomes de tabelas e colunas em inglês. Todas as tabelas têm `id uuid`, `created_at`, `updated_at`; as de negócio têm `organization_id`.
 
 ## Diagrama

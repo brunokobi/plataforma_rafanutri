@@ -1,6 +1,6 @@
 # ADR 0004 — Infraestrutura do MVP na VPS existente
 
-- **Status:** aceito
+- **Status:** aceito; a parte de banco e backend foi substituída pelo [ADR 0008](0008-backend-directus.md) (Directus no lugar do Supabase self-hosted)
 - **Data:** 2026-11-09
 
 ## Contexto

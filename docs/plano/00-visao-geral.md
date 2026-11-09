@@ -1,5 +1,7 @@
 # Plano de implementação — Visão geral
 
+> **Backend: Directus** ([ADR 0008](../adr/0008-backend-directus.md)). Onde os documentos de fase citam Supabase, RLS, `auth.uid()`, Storage ou Edge Functions, leia pela tabela de equivalência do ADR 0008.
+
 Este é o plano detalhado da Rafanutri. O resumo executivo está em [../06-plano-implementacao.md](../06-plano-implementacao.md); aqui ficam o cronograma, as regras de trabalho e o link para cada fase.
 
 ## Documentos por fase

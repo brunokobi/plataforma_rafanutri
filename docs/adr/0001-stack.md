@@ -1,6 +1,6 @@
 # ADR 0001 — Stack inicial
 
-- **Status:** proposto
+- **Status:** substituído em parte pelo [ADR 0008](0008-backend-directus.md) (backend Directus)
 - **Data:** 2026-11-09
 
 ## Contexto

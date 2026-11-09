@@ -1,5 +1,7 @@
 # 05 — Segurança, LGPD e requisitos regulatórios
 
+> **Backend: Directus** ([ADR 0008](adr/0008-backend-directus.md)). Onde este documento cita Supabase, RLS, `auth.uid()`, Storage ou Edge Functions, leia pela tabela de equivalência do ADR 0008.
+
 A Rafanutri trata **dados pessoais sensíveis de saúde** (LGPD, art. 5º, II, e art. 11). Isso define requisitos desde o primeiro dia, não como melhoria posterior.
 
 > **MVP:** a adequação à LGPD está **fora do escopo inicial** (decisão em [ADR 0004](adr/0004-infraestrutura-hospedagem.md)). No MVP valem só os itens marcados como "MVP" na tabela abaixo. O restante deste documento é o alvo para quando um gatilho de revisão do ADR ocorrer. Itens adiados no backlog: RN-016, RN-021, RN-059 e RN-081.

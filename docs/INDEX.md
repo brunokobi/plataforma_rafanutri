@@ -33,6 +33,7 @@
 - [ADR 0002 — Multi-tenant com RLS](adr/0002-multi-tenant-rls.md)
 - [ADR 0003 — App do paciente como PWA primeiro](adr/0003-app-paciente-pwa.md)
 - [ADR 0004 — Infraestrutura do MVP na VPS existente](adr/0004-infraestrutura-hospedagem.md)
+- [ADR 0008 — Backend com Directus](adr/0008-backend-directus.md)
 - ADRs 0005 (provedor de WhatsApp), 0006 (provedor de LLM) e 0007 (estratégia offline do PWA) serão escritos nas Fases 2 e 3.
 
 ## Convenções

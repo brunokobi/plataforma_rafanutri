@@ -78,25 +78,28 @@ Ver [docs/01-visao-produto.md](docs/01-visao-produto.md).
 | Camada | Tecnologia |
 |---|---|
 | Web | Next.js (App Router), TypeScript, Tailwind CSS, shadcn/ui, React Hook Form + Zod, TanStack Query, Recharts |
-| Backend | Supabase: Postgres com Row Level Security, Auth, Storage, Edge Functions, Realtime, pgvector |
+| Backend | **Directus** sobre Postgres (com pgvector): autenticação, permissões por organização, API, arquivos, extensões e Flows ([ADR 0008](docs/adr/0008-backend-directus.md)) |
 | Automação | n8n (self-hosted): WhatsApp, e-mail, lembretes e rotinas |
 | IA | API de LLM com saída estruturada + RAG em pgvector |
 | App do paciente | PWA (primeira versão) → Expo/React Native |
 | Qualidade | Vitest, Playwright, pgTAP, ESLint, Prettier |
-| Infra | MVP inteiro na VPS existente (Oracle ARM + Coolify/Traefik): app web, Supabase self-hosted e n8n; backup diário externo; Sentry ([ADR 0004](docs/adr/0004-infraestrutura-hospedagem.md)) |
+| Infra | MVP inteiro na VPS existente (Oracle ARM + Coolify/Traefik): app web, Directus e n8n; backup diário externo; Sentry ([ADR 0004](docs/adr/0004-infraestrutura-hospedagem.md)) |
 
 Decisões registradas em [docs/adr/](docs/adr/).
 
 ## Arquitetura
 
 ```
- Nutricionista ─▶ Web (Next.js) ─┐             ┌─▶ n8n ─▶ WhatsApp / e-mail
-                                 ├─▶ Supabase ─┤
- Paciente ──────▶ PWA ───────────┘  (Postgres  └─▶ LLM (sugestões, RAG)
-                                     + RLS)
+ Nutricionista ─▶ Web (Next.js) ─┐              ┌─▶ n8n ─▶ WhatsApp / e-mail
+                                 ├─▶ Directus ──┤
+ Paciente ──────▶ PWA ───────────┘  (Postgres)  └─▶ LLM (sugestões, RAG)
 ```
 
-- **Multi-tenant:** todas as tabelas de negócio têm `organization_id` e são isoladas por RLS ([ADR 0002](docs/adr/0002-multi-tenant-rls.md)).
+- **Backend:** Directus sobre Postgres ([ADR 0008](docs/adr/0008-backend-directus.md)).
+- **Multi-tenant:** todas as tabelas de negócio têm `organization_id`. O isolamento combina três camadas:
+  - permissões do Directus filtradas pela organização do usuário;
+  - ganchos que validam a organização na gravação;
+  - gatilhos no banco para as regras invioláveis.
 - **Cálculos nutricionais** ficam no pacote `nutrition-core`, como funções puras testadas contra a literatura. O LLM nunca calcula nutrientes.
 - Detalhes em [docs/03-arquitetura.md](docs/03-arquitetura.md) e modelo de dados em [docs/04-modelo-dados.md](docs/04-modelo-dados.md).
 
@@ -106,39 +109,37 @@ Estrutura prevista a partir da Fase 0:
 
 ```
 apps/
-  web/                 # Next.js: painel do profissional + PWA do paciente
+  web/                 # Next.js: painel do profissional + área do paciente
 packages/
   nutrition-core/      # fórmulas e cálculos nutricionais (TS puro)
-  db/                  # tipos gerados do Supabase e acesso a dados
   ui/                  # componentes compartilhados
-  config/              # eslint, tsconfig, tailwind
-supabase/
-  migrations/          # SQL versionado
-  functions/           # Edge Functions
-  tests/               # testes de RLS (pgTAP)
-  seed/                # bases de alimentos e dados de demonstração
-scripts/               # importadores (TACO, TBCA, OMS)
+  config/              # tsconfig e presets
+db/
+  migrations/          # SQL versionado (tabelas, funções e gatilhos)
+infra/
+  directus/            # docker-compose do Postgres + Directus e extensões (endpoints e ganchos)
+scripts/               # migrações, bootstrap do Directus (papéis e permissões), importadores (TACO, TBCA, OMS)
 n8n/workflows/         # fluxos de automação exportados
 docs/                  # produto, arquitetura, plano e ADRs
 ```
 
 ## Como rodar localmente
 
-> Disponível após a Fase 0 (RN-001 a RN-003). Os comandos abaixo são os previstos.
+> Disponível a partir da Fase 0. Os comandos abaixo são os previstos.
 
-**Pré-requisitos:** Node.js LTS (ver `.nvmrc`), pnpm, Docker e Supabase CLI.
+**Pré-requisitos:** Node.js LTS (ver `.nvmrc`), pnpm e Docker.
 
 ```bash
 git clone https://github.com/brunokobi/plataforma_rafanutri.git
 cd plataforma_rafanutri
 pnpm install
-cp .env.example apps/web/.env.local   # preencher com os valores locais
-pnpm db:start                          # sobe o Supabase local e aplica migrações
-pnpm db:seed:demo                      # dados fictícios para desenvolvimento
-pnpm dev                               # http://localhost:3000
+cp infra/directus/.env.example infra/directus/.env   # gerar senhas próprias
+cp apps/web/.env.example apps/web/.env.local
+pnpm directus:up          # sobe Postgres + Directus (http://localhost:8055)
+pnpm db:migrate           # cria as tabelas da Rafanutri
+pnpm directus:bootstrap   # papéis, permissões e relações no Directus
+pnpm dev                  # http://localhost:3000
 ```
-
-O Supabase Studio local fica em `http://localhost:54323` e os e-mails de teste em `http://localhost:54324`.
 
 ## Scripts
 
@@ -148,23 +149,24 @@ O Supabase Studio local fica em `http://localhost:54323` e os e-mails de teste e
 | `pnpm build` | Build de todos os pacotes |
 | `pnpm lint` / `pnpm typecheck` | Qualidade de código |
 | `pnpm test` | Testes unitários (Vitest) |
+| `pnpm test:api` | Testes de isolamento entre organizações pela API do Directus |
 | `pnpm test:e2e` | Testes end-to-end (Playwright) |
-| `pnpm db:start` / `pnpm db:stop` | Supabase local |
-| `pnpm db:reset` | Recria o banco local a partir das migrações |
-| `pnpm db:test` | Testes de RLS (pgTAP) |
-| `pnpm db:types` | Gera os tipos TypeScript do banco |
+| `pnpm directus:up` / `pnpm directus:down` | Postgres + Directus locais |
+| `pnpm db:migrate` | Aplica as migrações SQL pendentes |
+| `pnpm directus:bootstrap` | Configura papéis, permissões e relações no Directus (idempotente) |
 | `pnpm db:seed:demo` | Carrega dados fictícios |
 | `pnpm import:taco` | Importa a tabela TACO |
 
 ## Variáveis de ambiente
 
-A lista completa, sem valores reais, fica em `.env.example`. Principais:
+A lista completa, sem valores reais, fica nos arquivos `.env.example`. Principais:
 
 | Variável | Onde | Uso |
 |---|---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | Cliente | URL do projeto Supabase |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Cliente | Chave pública (protegida por RLS) |
-| `SUPABASE_SERVICE_ROLE_KEY` | **Somente servidor** | Operações administrativas controladas |
+| `DIRECTUS_URL` | Servidor do app web | URL da API do Directus |
+| `DIRECTUS_KEY` / `DIRECTUS_SECRET` | Directus | Chaves da instância |
+| `DIRECTUS_ADMIN_EMAIL` / `DIRECTUS_ADMIN_PASSWORD` | Scripts de manutenção | Bootstrap e migrações; **nunca** no app web |
+| `DB_PASSWORD` | Directus e scripts | Senha do Postgres |
 | `RESEND_API_KEY` | Servidor | E-mail transacional |
 | `LLM_API_KEY` | Servidor | Provedor de IA (Fase 3) |
 | `N8N_WEBHOOK_SECRET` | Servidor | Assinatura dos webhooks com o n8n (Fase 2) |
