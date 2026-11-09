@@ -202,6 +202,7 @@ Ver [docs/05-seguranca-lgpd.md](docs/05-seguranca-lgpd.md).
 | [docs/INDEX.md](docs/INDEX.md) | Índice geral |
 | [docs/01-visao-produto.md](docs/01-visao-produto.md) | Visão, público, modelo de negócio, métricas |
 | [docs/02-modulos.md](docs/02-modulos.md) | Módulos e prioridades |
+| [docs/modulos/uan.md](docs/modulos/uan.md) | Plano do módulo UAN e Qualidade |
 | [docs/03-arquitetura.md](docs/03-arquitetura.md) | Arquitetura e integrações |
 | [docs/04-modelo-dados.md](docs/04-modelo-dados.md) | Modelo de dados |
 | [docs/05-seguranca-lgpd.md](docs/05-seguranca-lgpd.md) | Segurança, LGPD e regulatório |

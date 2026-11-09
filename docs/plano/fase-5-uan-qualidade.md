@@ -1,5 +1,7 @@
 # Fase 5 — UAN e Gestão de Qualidade (Enterprise)
 
+> **Plano do módulo:** visão, personas, encaixe na plataforma, entregas U0 a U7 (com a U1 de Qualidade BPF como MVP do módulo), modelo comercial e reaproveitamento do BPF Check estão em [docs/modulos/uan.md](../modulos/uan.md). A ordem de entregas de lá prevalece sobre a "Sequência semanal" deste documento.
+
 ## Objetivo
 
 Entregar a versão **Enterprise** da Rafanutri para empresas de alimentação: restaurantes industriais, cozinhas hospitalares, escolas, hotéis e catering. O objetivo é que uma unidade produtora opere sem planilha e sem papel: ficha técnica, cardápio, compras, estoque, checklists de Boas Práticas, temperatura, não conformidades e documentação para a fiscalização sanitária.

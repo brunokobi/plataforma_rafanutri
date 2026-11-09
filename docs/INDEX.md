@@ -4,6 +4,9 @@
 - [01 — Visão do produto](01-visao-produto.md): problema, público, proposta de valor, modelo de negócio e métricas.
 - [02 — Módulos](02-modulos.md): os cinco módulos, os diferenciais (IA e app do paciente) e a prioridade de cada funcionalidade.
 
+## Módulos
+- [UAN e Qualidade](modulos/uan.md): plano do módulo, entregas U0 a U7 e MVP do módulo (Qualidade BPF).
+
 ## Técnica
 - [03 — Arquitetura](03-arquitetura.md): stack, visão de componentes, multi-tenant, integrações e ambientes.
 - [04 — Modelo de dados](04-modelo-dados.md): entidades do MVP e regras de acesso.

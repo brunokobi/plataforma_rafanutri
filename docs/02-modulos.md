@@ -55,6 +55,8 @@ Legenda de prioridade: **P0** = MVP, **P1** = logo após o MVP, **P2** = fase po
 
 ## 4. UAN e Gestão de Qualidade — **prioridade comercial nº 2 (Enterprise)**
 
+Plano completo do módulo em [modulos/uan.md](modulos/uan.md).
+
 | Funcionalidade | Prioridade |
 |---|---|
 | Ficha Técnica de Preparação: ingredientes, peso bruto/líquido, fator de correção, índice de cocção, rendimento, custo, informação nutricional | P1 (Enterprise) |
