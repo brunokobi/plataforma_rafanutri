@@ -44,13 +44,20 @@ O dev decidiu usar o **Directus** da infraestrutura da VPS como backend da Rafan
 | RN-014 | O CI sobe Postgres + Directus em contêiner para rodar migrações, bootstrap e testes de API |
 | RN-018 | Variáveis do Directus no `.env.example`; token de administrador só em scripts |
 
+## Decisões de instalação (09/11/2026)
+
+| Ponto | Decisão |
+|---|---|
+| Onde | **vpsrafa**, instalada pelo dev, conforme o roteiro [docs/runbooks/directus-vpsrafa.md](../runbooks/directus-vpsrafa.md) |
+| Instância | **Nova e só da Rafanutri**, com Postgres próprio |
+| Versão | **Mais nova da linha 12** (12.6.1 em 09/11/2026), com a tag fixada no compose. Atualizações de versão só de forma deliberada, com backup antes |
+
 ## Pontos em aberto
 
 | Ponto | Por que importa | Quem decide |
 |---|---|---|
-| Em qual VPS está o Directus a ser usado e com que URL | No README da infraestrutura, o Directus aparece na vpsbruno, que está fora do ar desde 20/09/2026 | Dev |
-| Instância existente ou nova só da Rafanutri | Isolamento de dados e de permissões | Dev (recomendação: nova) |
-| Versão: linha 11 (11.17.4) ou 12 | A 12 saiu em 06/2026 com mudanças; confirmar a versão da instância atual | Dev, na Fase 0 |
+| URL pública do Directus (ex.: subdomínio em `brunokobi.tech`) | Configuração do app web e do CORS | Dev, na instalação |
+| Mudanças da linha 12 em relação à 11 | O planejamento foi pensado com a API de papéis, políticas e permissões da linha 11. Na Fase 0, conferir as notas de versão da 12 e ajustar o bootstrap de permissões e as extensões | Fase 0 (RN-003, RN-008) |
 | Licença | O Directus usa BSL 1.1: gratuito para organizações com receita anual abaixo de US$ 5 milhões. Reavaliar se a Rafanutri passar disso | Dev |
 | Link mágico para o paciente (Fase 1B) | O Directus não tem login sem senha pronto; precisa de endpoint próprio ou de senha simples | Fase 1B |
 

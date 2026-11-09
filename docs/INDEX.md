@@ -36,6 +36,9 @@
 - [ADR 0008 — Backend com Directus](adr/0008-backend-directus.md)
 - ADRs 0005 (provedor de WhatsApp), 0006 (provedor de LLM) e 0007 (estratégia offline do PWA) serão escritos nas Fases 2 e 3.
 
+## Runbooks
+- [Instalar o Directus na vpsrafa](runbooks/directus-vpsrafa.md)
+
 ## Convenções
 - Documentação em português do Brasil; código, identificadores, tabelas e colunas em inglês.
 - IDs de backlog no formato `RN-<número>` (ex.: `RN-012`). Faixas por fase em [plano/00-visao-geral.md](plano/00-visao-geral.md); a Fase 1B usa RN-200 a RN-214.
