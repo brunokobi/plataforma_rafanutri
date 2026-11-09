@@ -18,13 +18,14 @@ Estimativas consideram **1 a 2 desenvolvedores full-stack** e são referência p
 |---|---|---|---|
 | 0 | Fundação | 3 semanas | Projeto rodando com login, organizações, RLS, CI e base TACO importada |
 | 1 | MVP Clínico | 8 semanas | Nutricionista atende um paciente do cadastro ao plano alimentar em PDF |
+| 1B | Plano gratuito e área do paciente | 3 semanas | Até 20 pacientes grátis por nutricionista; paciente vê plano, receitas e recomendações |
 | 2 | Gestão do consultório | 4 semanas | Lembretes por WhatsApp, financeiro, CRM e assinatura do SaaS |
 | 3 | App do paciente + IA | 6 semanas | PWA do paciente e sugestões de cardápio por IA |
 | 4 | Materno-infantil | 4 semanas | Curvas OMS, gestantes |
 | 5 | UAN e Qualidade (Enterprise) | 10 semanas | Ficha técnica, cardápio cíclico, compras, checklists BPF |
 | 6 | Saúde pública e avançados | contínuo | Triagens, programas, RAG, integrações |
 
-Marco comercial: **beta fechado ao fim da Fase 1** com 5 a 10 nutricionistas; **lançamento pago ao fim da Fase 2**.
+Marco comercial: **beta com plano gratuito ao fim da Fase 1B** com 5 a 10 nutricionistas; **lançamento pago ao fim da Fase 2**.
 
 ---
 
@@ -59,6 +60,13 @@ Entregas:
 | 8 | PDF do plano alimentar com a marca do profissional, ajustes do beta, testes e2e do fluxo completo |
 
 **Pronto quando:** em menos de 10 minutos um nutricionista cadastra o paciente, registra a avaliação, calcula o GET, monta o plano e gera o PDF; testes de cálculo no `nutrition-core` validados contra exemplos de referência.
+
+## Fase 1B — Plano gratuito e área do paciente (3 semanas)
+
+- Plano `free` permanente: até 20 pacientes ativos por nutricionista, limite aplicado no banco.
+- Convite do paciente, login por link mágico e área do paciente com a marca do nutricionista.
+- Paciente vê o plano publicado, receitas (enviadas e as do plano), recomendações e PDFs.
+- Detalhes em [plano/fase-1b-freemium-area-paciente.md](plano/fase-1b-freemium-area-paciente.md).
 
 ## Fase 2 — Gestão do consultório (4 semanas)
 

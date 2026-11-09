@@ -8,6 +8,7 @@ Este é o plano detalhado da Rafanutri. O resumo executivo está em [../06-plano
 |---|---|---|---|
 | 0 | [Fundação](fase-0-fundacao.md) | RN-001 a RN-019 | 3 semanas |
 | 1 | [MVP Clínico](fase-1-mvp-clinico.md) | RN-020 a RN-049 | 8 semanas |
+| 1B | [Plano gratuito e área do paciente](fase-1b-freemium-area-paciente.md) | RN-200 a RN-214 | 3 semanas |
 | 2 | [Gestão do consultório](fase-2-gestao.md) | RN-050 a RN-069 | 4 semanas |
 | 3 | [App do paciente + IA](fase-3-app-paciente-ia.md) | RN-070 a RN-099 | 6 semanas |
 | 4 | [Materno-infantil](fase-4-materno-infantil.md) | RN-100 a RN-119 | 4 semanas |
@@ -26,21 +27,25 @@ O MVP roda inteiro na vpsrafa e deixa a LGPD para depois ([ADR 0004](../adr/0004
 | Reduzidos | RN-063 (sem aprovação de templates da Meta), RN-067 e RN-089 (só documentação técnica) |
 | Trocados | WhatsApp pela Evolution API; IA pelo OpenRouter `:free`; Supabase self-hosted |
 | Mantidos mesmo no MVP | RLS (RN-008), backup externo (RN-003), segurança básica (RN-049) |
+| Antecipados | Plano gratuito com 20 pacientes ativos e área do paciente com plano, receitas e recomendações (Fase 1B) |
+
+**Convenção de rotas:** a área do profissional usa `/[orgSlug]/...` com nomes em português (Fases 0, 1 e 1B), e a do paciente usa `/p/...`. Onde os documentos das Fases 2 a 6 citam `/app/...`, leia como `/[orgSlug]/...`.
 
 ## Cronograma macro (2 desenvolvedores)
 
 Considerando início na semana 1 (a definir):
 
 ```
-Semana      1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35
+Semana      1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38
 Fase 0     ███████
 Fase 1              ████████████████████████
-Fase 2                                      ████████████
-Fase 3                                                  ██████████████████
-Fase 4                                                                    ████████████
-Fase 5                                                                    ██████████████████████████████
-Fase 6                                                                                                 ███ →
-Marcos                           ▲Beta                   ▲Lançamento pago     ▲App       ▲Piloto UAN
+Fase 1B                                     █████████
+Fase 2                                               ████████████
+Fase 3                                                           ██████████████████
+Fase 4                                                                             ████████████
+Fase 5                                                                             ██████████████████████████████
+Fase 6                                                                                                          ███ →
+Marcos                                              ▲Beta (gratuito)  ▲Lançamento pago  ▲App   ▲Piloto UAN
 ```
 
 O gráfico mostra as fases 4 e 5 em paralelo, com 1 desenvolvedor em cada. Nesse arranjo a Fase 5 se estende (ver "Conferência de capacidade"). A alternativa é fazê-las em sequência, com os 2 desenvolvedores juntos em cada uma. A ordem entre elas depende de haver um cliente piloto Enterprise fechado: se houver, a Fase 5 vem antes.
@@ -50,7 +55,7 @@ O gráfico mostra as fases 4 e 5 em paralelo, com 1 desenvolvedor em cada. Nesse
 | Marco | Quando | Critério | Decisão de negócio |
 |---|---|---|---|
 | M0 — Base pronta | Fim da Fase 0 | Login, organizações, RLS testada, TACO importada | Seguir para o MVP |
-| M1 — Beta fechado | Fim da Fase 1 | Consulta completa com PDF em menos de 10 minutos | Recrutar 5 a 10 nutricionistas beta |
+| M1 — Beta com plano gratuito | Fim da Fase 1B | Consulta completa com PDF em menos de 10 minutos; paciente vê plano, receitas e recomendações; limite de 20 pacientes ativo | Abrir o plano gratuito para 5 a 10 nutricionistas e depois para todos |
 | M2 — Lançamento pago | Fim da Fase 2 | Cobrança automática e lembretes funcionando | Abrir vendas; validar preços |
 | M3 — App do paciente | Fim da Fase 3 | PWA em uso pelos pacientes dos beta | Medir retenção; decidir app nativo |
 | M4 — Piloto Enterprise | Fim da Fase 5 | Uma unidade operando sem planilha | Precificar e vender Enterprise |
@@ -60,6 +65,9 @@ O gráfico mostra as fases 4 e 5 em paralelo, com 1 desenvolvedor em cada. Nesse
 ```mermaid
 flowchart LR
   F0[Fase 0 Fundação] --> F1[Fase 1 MVP Clínico]
+  F1 --> F1B[Fase 1B Gratuito + área do paciente]
+  F1B --> F2
+  F1B --> F3
   F1 --> F2[Fase 2 Gestão]
   F1 --> F3[Fase 3 App + IA]
   F2 --> F3
@@ -94,8 +102,9 @@ Cada item do backlog, nos documentos de fase, segue:
 |---|---|---|---|
 | 0 | 58 | 3 × 2 | 9,7 |
 | 1 | 119 | 8 × 2 | 7,4 |
+| 1B | 47 | 3 × 2 | 7,8 |
 | 2 | 64 | 4 × 2 | 8,0 |
-| 3 | 71 | 6 × 2 | 5,9 |
+| 3 | 63 | 6 × 2 | 5,3 |
 | 4 | 65 | 4 × 2 | 8,1 |
 | 5 | 209 | 10 × 2 | 10,5 (no limite) |
 | 6 | 134 | contínuo | — |

@@ -14,7 +14,7 @@ Duração estimada: **4 semanas** (1 a 2 devs full-stack). Ao final da fase come
 - Preferências de comunicação e opt-out (LGPD), log de todas as mensagens enviadas.
 - Financeiro do consultório: recebimentos, despesas simples, fluxo de caixa mensal, pacotes de consultas, recibo em PDF.
 - CRM: funil de pacientes e lista de retornos atrasados.
-- Planos do SaaS (Essencial, Profissional, Clínica), trial, cobrança recorrente via gateway, régua de cobrança e bloqueio por inadimplência.
+- Planos do SaaS (Essencial, Profissional, Clínica) acima do plano gratuito, cobrança recorrente via gateway, régua de cobrança e bloqueio por inadimplência.
 - Sincronização opcional com Google Calendar (sentido Rafanutri → Google).
 
 **Fora de escopo**
@@ -229,6 +229,7 @@ create table crm_events (
 -- =========================================================
 create type subscription_status as enum ('trialing', 'active', 'past_due', 'suspended', 'canceled');
 
+-- Estende as tabelas criadas no RN-200 (Fase 1B); o esboço abaixo mostra o formato final.
 create table plans (
   code                text primary key,       -- essencial | profissional | clinica
   name                text not null,
@@ -244,9 +245,9 @@ create table subscriptions (
   id                       uuid primary key default gen_random_uuid(),
   organization_id          uuid not null unique references organizations(id) on delete cascade,
   plan_code                text not null references plans(code),
-  status                   subscription_status not null default 'trialing',
+  status                   subscription_status not null default 'active',
   billing_cycle            text not null default 'monthly', -- monthly | yearly
-  trial_ends_at            timestamptz,
+  -- sem trial: o plano gratuito é permanente (Fase 1B)
   current_period_end       timestamptz,
   past_due_since           timestamptz,
   provider                 text not null default 'asaas',
@@ -343,7 +344,7 @@ $$;
 | `/app/settings/messages` | Modelos de mensagem (visualizar/editar variáveis) | owner |
 | `/app/settings/integrations/whatsapp` | Status da conexão WhatsApp e número remetente | owner |
 | `/app/settings/integrations/google-calendar` | Conectar/desconectar Google Calendar | owner, nutritionist (próprio calendário) |
-| `/app/settings/billing` | Plano atual, trial, faturas, troca de plano, cancelamento | owner |
+| `/app/settings/billing` | Plano atual, uso, faturas, troca de plano, cancelamento | owner |
 | `/app/settings/billing/checkout` | Escolha de plano e meio de pagamento | owner |
 | `/app/messages` | Log de mensagens com filtros e status de entrega | owner, nutritionist, assistant |
 | `/app/finance` | Resumo do mês, fluxo de caixa, a receber | owner, nutritionist, assistant |
@@ -578,14 +579,14 @@ Usar a **WhatsApp Business Platform (Cloud API da Meta)** via provedor/BSP brasi
   - Dado um lead arrastado para "Perdido", quando confirmo, então o motivo é salvo em `crm_events.note`.
 - **Testes:** pgTAP das transições; e2e do kanban; RLS.
 
-### RN-057 — Planos do SaaS, trial e cobrança recorrente
+### RN-057 — Planos pagos do SaaS e cobrança recorrente
 - **Tipo:** feature
 - **Pontos:** 8
 - **Depende de:** RN-004, RN-062
-- **Descrição:** Planos, trial de 14 dias sem cartão, checkout e assinatura recorrente via Asaas (Pix, boleto, cartão), troca e cancelamento de plano, e aplicação de limites por plano.
+- **Descrição:** Planos pagos, checkout e assinatura recorrente via Asaas (Pix, boleto, cartão), troca e cancelamento de plano. A base (`plans`, `subscriptions`, plano `free` com 20 pacientes ativos, `getEntitlements` e o limite no banco) já existe desde a [Fase 1B](fase-1b-freemium-area-paciente.md) (RN-200 e RN-201). **Não há trial**: o plano gratuito é permanente, e o upgrade parte dele. Quem está na `plan_waitlist` recebe o convite para assinar.
 - **Tarefas técnicas:**
-  - [ ] Migração `plans`, `subscriptions` + seed dos planos
-  - [ ] Criar `subscriptions` em `trialing` ao criar a organização (trigger)
+  - [ ] Migração que estende `plans` (preços) e `subscriptions` (status de cobrança, ids do Asaas, período) + seed dos planos pagos
+  - [ ] Downgrade para `free` quando há mais de 20 pacientes ativos: manter os pacientes, bloquear novos cadastros e reativações até ficar dentro do limite
   - [ ] Interface `BillingProvider` e implementação `AsaasProvider` (criar cliente, assinatura, trocar plano, cancelar, buscar faturas)
   - [ ] Checkout em `/app/settings/billing/checkout` (dados de cobrança, CPF/CNPJ, meio de pagamento)
   - [ ] Tela de faturas com link de pagamento (Pix/boleto)
@@ -594,11 +595,11 @@ Usar a **WhatsApp Business Platform (Cloud API da Meta)** via provedor/BSP brasi
   - [ ] Sandbox Asaas em staging
 - **Arquivos/áreas:** `packages/billing/`, `apps/web/app/app/settings/billing/`, `supabase/migrations/*_billing.sql`
 - **Critérios de aceite:**
-  - Dado uma nova organização, quando é criada, então está em `trialing` com `trial_ends_at = +14 dias`.
+  - Dado uma nova organização, quando é criada, então está no plano `free` (comportamento da Fase 1B, mantido).
   - Dado o plano Essencial com limite de pacientes ativos, quando o limite é atingido, então o cadastro de novo paciente mostra aviso de upgrade.
   - Dado pagamento confirmado no sandbox, quando o webhook chega, então a assinatura fica `active`.
   - Dado o cancelamento, quando confirmado, então o acesso continua até o fim do período pago.
-- **Testes:** unidade de `getEntitlements`; integração com sandbox Asaas; e2e trial → checkout → ativo.
+- **Testes:** unidade de `getEntitlements`; integração com sandbox Asaas; e2e free → checkout → ativo.
 
 ### RN-058 — Sincronização com Google Calendar
 - **Tipo:** feature
@@ -777,7 +778,7 @@ Usar a **WhatsApp Business Platform (Cloud API da Meta)** via provedor/BSP brasi
 
 ## Critério de pronto da fase
 
-- Uma organização nova entra em trial, assina pelo checkout (sandbox e depois produção) e tem a assinatura renovada e suspensa automaticamente conforme os webhooks.
+- Uma organização nova começa no plano gratuito, assina pelo checkout (sandbox e depois produção) e tem a assinatura renovada e suspensa automaticamente conforme os webhooks.
 - Lembretes de consulta, retorno e anamnese chegam sem ação manual, sem duplicidade e respeitando opt-out e horário de silêncio.
 - O nutricionista vê faturamento do mês, a receber, pacotes e retornos atrasados.
 - Todas as tabelas novas têm RLS e testes de isolamento passando no CI.
@@ -803,7 +804,7 @@ Usar a **WhatsApp Business Platform (Cloud API da Meta)** via provedor/BSP brasi
 | Taxa de faltas (no-show) antes × depois dos lembretes | redução de 30% |
 | % de consultas confirmadas pelo paciente | > 50% |
 | % de anamneses respondidas antes da 1ª consulta | > 60% |
-| Conversão trial → pago | > 20% |
+| Conversão gratuito → pago (entre quem atinge o limite) | > 20% |
 | Churn involuntário (falha de pagamento) | < 1% ao mês |
 | Opt-out de WhatsApp | < 3% dos pacientes |
 | Custo de mensageria por organização/mês | acompanhar vs. preço do plano |

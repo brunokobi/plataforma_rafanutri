@@ -45,15 +45,16 @@ A Rafanutri reúne as áreas da nutrição em um só lugar: atendimento clínico
 | **4. UAN e Qualidade** | Restaurantes, hospitais, escolas, hotéis | Ficha técnica, cardápio cíclico, compras, estoque, checklists BPF, POPs, APPCC, rotulagem |
 | **5. Gestão do consultório** | Profissionais e clínicas | Lembretes por WhatsApp, CRM, financeiro, pacotes, conteúdo de marketing |
 | **IA** | Nutricionista | Sugestão de plano, resumo de anamnese, assistente sobre diretrizes (sempre revisado pelo profissional) |
-| **App do paciente** | Paciente | Plano do dia, diário alimentar, hidratação, lista de compras, chat |
+| **Área do paciente** | Paciente | Plano alimentar, receitas, recomendações e PDFs (MVP); depois diário, hidratação, lista de compras e chat |
 
 Detalhes e prioridades em [docs/02-modulos.md](docs/02-modulos.md).
 
 ## Estratégia de lançamento
 
-1. **Clínico + Gestão** primeiro: assinatura mensal por nutricionista (referência de R$ 79 a R$ 190/mês), mercado grande e venda rápida.
-2. **App do paciente** como mecanismo de retenção: quando os pacientes usam o app, trocar de sistema fica caro para o profissional.
-3. **UAN/Qualidade Enterprise** em seguida: contratos B2B por unidade produtora (referência de R$ 500 a R$ 2.000+/mês).
+1. **Plano gratuito** com até 20 pacientes ativos por nutricionista para atrair usuários no MVP.
+2. **Clínico + Gestão** como base dos planos pagos: assinatura mensal por nutricionista (referência de R$ 79 a R$ 190/mês), mercado grande e venda rápida.
+3. **Área do paciente** como mecanismo de retenção: quando os pacientes usam o app, trocar de sistema fica caro para o profissional.
+4. **UAN/Qualidade Enterprise** em seguida: contratos B2B por unidade produtora (referência de R$ 500 a R$ 2.000+/mês).
 
 Ver [docs/01-visao-produto.md](docs/01-visao-produto.md).
 
@@ -62,7 +63,8 @@ Ver [docs/01-visao-produto.md](docs/01-visao-produto.md).
 | Fase | Entrega | Duração estimada* | Marco |
 |---|---|---|---|
 | 0 | [Fundação](docs/plano/fase-0-fundacao.md): monorepo, auth, organizações, RLS, TACO, CI/CD | 3 semanas | Base pronta |
-| 1 | [MVP Clínico](docs/plano/fase-1-mvp-clinico.md): pacientes, agenda, anamnese, avaliação, plano alimentar, PDF | 8 semanas | **Beta fechado** |
+| 1 | [MVP Clínico](docs/plano/fase-1-mvp-clinico.md): pacientes, agenda, anamnese, avaliação, plano alimentar, PDF | 8 semanas | |
+| 1B | [Plano gratuito e área do paciente](docs/plano/fase-1b-freemium-area-paciente.md): até 20 pacientes grátis; paciente vê plano, receitas e recomendações | 3 semanas | **Beta com plano gratuito** |
 | 2 | [Gestão](docs/plano/fase-2-gestao.md): WhatsApp, financeiro, CRM, assinatura do SaaS | 4 semanas | **Lançamento pago** |
 | 3 | [App do paciente + IA](docs/plano/fase-3-app-paciente-ia.md) | 6 semanas | App em uso |
 | 4 | [Materno-infantil](docs/plano/fase-4-materno-infantil.md) | 4 semanas | |

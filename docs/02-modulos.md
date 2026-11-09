@@ -11,6 +11,7 @@ Legenda de prioridade: **P0** = MVP, **P1** = logo após o MVP, **P2** = fase po
 | Cadastro e login (e-mail/senha, Google), recuperação de senha | P0 |
 | Organização (consultório/clínica/empresa) com membros e papéis | P0 |
 | Cadastro de pacientes com termo de consentimento LGPD | P0 |
+| Plano gratuito: até 20 pacientes ativos por nutricionista | P0 (Fase 1B) |
 | Agenda de consultas (presencial/online, retorno) | P0 |
 | Prontuário com linha do tempo de atendimentos | P0 |
 | Geração de PDF com a identidade visual do profissional | P0 |
@@ -98,3 +99,4 @@ Regra: a IA **sugere**, o nutricionista **decide**. Nada gerado por IA chega ao 
 | Chat com o nutricionista | P2 |
 | Fotos das refeições | P2 |
 | Responder anamnese e questionários | P0 (via link web) |
+| Área do paciente (web mobile) com plano publicado, receitas e recomendações | P0 (Fase 1B) |

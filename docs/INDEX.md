@@ -14,6 +14,7 @@
 - [Plano detalhado](plano/00-visao-geral.md): cronograma, marcos, Definition of Ready/Done, fluxo de trabalho.
   - [Fase 0 — Fundação](plano/fase-0-fundacao.md)
   - [Fase 1 — MVP Clínico](plano/fase-1-mvp-clinico.md)
+  - [Fase 1B — Plano gratuito e área do paciente](plano/fase-1b-freemium-area-paciente.md)
   - [Fase 2 — Gestão do consultório](plano/fase-2-gestao.md)
   - [Fase 3 — App do paciente + IA](plano/fase-3-app-paciente-ia.md)
   - [Fase 4 — Materno-infantil](plano/fase-4-materno-infantil.md)
@@ -30,5 +31,5 @@
 
 ## Convenções
 - Documentação em português do Brasil; código, identificadores, tabelas e colunas em inglês.
-- IDs de backlog no formato `RN-<número>` (ex.: `RN-012`).
+- IDs de backlog no formato `RN-<número>` (ex.: `RN-012`). Faixas por fase em [plano/00-visao-geral.md](plano/00-visao-geral.md); a Fase 1B usa RN-200 a RN-214.
 - Cada decisão de arquitetura relevante vira um ADR numerado em `docs/adr/`.

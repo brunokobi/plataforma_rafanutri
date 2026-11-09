@@ -10,8 +10,9 @@ Status: `todo`, `doing`, `done`, `adiado` (fora do MVP, ver [ADR 0004](adr/0004-
 |---|---|---|---|
 | 0 | [Fundação](plano/fase-0-fundacao.md) | 19 | 58 |
 | 1 | [MVP Clínico](plano/fase-1-mvp-clinico.md) | 30 | 119 |
+| 1B | [Plano gratuito e área do paciente](plano/fase-1b-freemium-area-paciente.md) | 15 | 47 |
 | 2 | [Gestão do consultório](plano/fase-2-gestao.md) | 18 | 64 |
-| 3 | [App do paciente + IA](plano/fase-3-app-paciente-ia.md) | 20 | 71 |
+| 3 | [App do paciente + IA](plano/fase-3-app-paciente-ia.md) | 20 | 63 |
 | 4 | [Materno-infantil](plano/fase-4-materno-infantil.md) | 20 | 65 |
 | 5 | [UAN e Qualidade (Enterprise)](plano/fase-5-uan-qualidade.md) | 50 | 209 |
 | 6 | [Saúde pública e avançados](plano/fase-6-saude-publica-avancados.md) | 30 | 134 |
@@ -22,7 +23,7 @@ Status: `todo`, `doing`, `done`, `adiado` (fora do MVP, ver [ADR 0004](adr/0004-
 |---|---|---|---|---|---|
 | [RN-001](plano/fase-0-fundacao.md#rn-001--criar-monorepo-pnpm--turborepo) | Criar monorepo (pnpm + Turborepo) | infra | 3 | — | todo |
 | [RN-002](plano/fase-0-fundacao.md#rn-002--configurar-nextjs-com-typescript-tailwind-e-shadcnui) | Configurar Next.js com TypeScript, Tailwind e shadcn/ui | infra | 2 | RN-001 | todo |
-| [RN-003](plano/fase-0-fundacao.md#rn-003--configurar-supabase-local-e-staging) | Configurar Supabase local e staging | infra | 2 | RN-001 | todo |
+| [RN-003](plano/fase-0-fundacao.md#rn-003--configurar-supabase-local-e-na-vps) | Configurar Supabase local e na VPS | infra | 2 | RN-001 | todo |
 | [RN-004](plano/fase-0-fundacao.md#rn-004--migração-organizações-perfis-membros-e-auditoria) | Migração: organizações, perfis, membros e auditoria | feature | 3 | RN-003 | todo |
 | [RN-005](plano/fase-0-fundacao.md#rn-005--autenticação-e-mailsenha-google-e-recuperação-de-senha) | Autenticação: e-mail/senha, Google e recuperação de senha | feature | 3 | RN-002, RN-004 | todo |
 | [RN-006](plano/fase-0-fundacao.md#rn-006--onboarding-criar-organização-no-primeiro-acesso) | Onboarding: criar organização no primeiro acesso | feature | 2 | RN-005 | todo |
@@ -50,7 +51,7 @@ Status: `todo`, `doing`, `done`, `adiado` (fora do MVP, ver [ADR 0004](adr/0004-
 | [RN-023](plano/fase-1-mvp-clinico.md#rn-023--prontuário-linha-do-tempo-e-evolução) | Prontuário: linha do tempo e evolução | feature | 5 | RN-020, RN-009 | todo |
 | [RN-024](plano/fase-1-mvp-clinico.md#rn-024--anamnese-modelos-padrão) | Anamnese: modelos padrão | feature | 3 | RN-025 | todo |
 | [RN-025](plano/fase-1-mvp-clinico.md#rn-025--editor-de-questionário-customizável) | Editor de questionário customizável | feature | 8 | RN-013 | todo |
-| [RN-026](plano/fase-1-mvp-clinico.md#rn-026--link-público-de-anamnese) | Link público de anamnese | feature | 5 | RN-021, RN-025 | todo |
+| [RN-026](plano/fase-1-mvp-clinico.md#rn-026--link-público-de-anamnese) | Link público de anamnese | feature | 5 | RN-025 (RN-021 adiado: no MVP o formulário não exige consentimento) | todo |
 | [RN-027](plano/fase-1-mvp-clinico.md#rn-027--nutrition-core-antropometria-e-composição-corporal) | `nutrition-core`: antropometria e composição corporal | feature | 5 | RN-001 | todo |
 | [RN-028](plano/fase-1-mvp-clinico.md#rn-028--avaliação-antropométrica-e-gráficos-de-evolução) | Avaliação antropométrica e gráficos de evolução | feature | 5 | RN-027, RN-020 | todo |
 | [RN-029](plano/fase-1-mvp-clinico.md#rn-029--nutrition-core-gasto-energético) | `nutrition-core`: gasto energético | feature | 3 | RN-001 | todo |
@@ -75,6 +76,26 @@ Status: `todo`, `doing`, `done`, `adiado` (fora do MVP, ver [ADR 0004](adr/0004-
 | [RN-048](plano/fase-1-mvp-clinico.md#rn-048--revisão-de-desempenho-e-acessibilidade) | Revisão de desempenho e acessibilidade | infra | 3 | RN-031, RN-039 | todo |
 | [RN-049](plano/fase-1-mvp-clinico.md#rn-049--endurecimento-de-segurança-antes-do-beta) | Endurecimento de segurança antes do beta | infra | 3 | RN-020 a RN-046 | todo |
 
+## Fase 1B — Plano gratuito e área do paciente
+
+| ID | Item | Tipo | Pts | Depende de | Status |
+|---|---|---|---|---|---|
+| [RN-200](plano/fase-1b-freemium-area-paciente.md#rn-200--planos-assinatura-e-plano-gratuito) | Planos, assinatura e plano gratuito | feature | 3 | RN-004 | todo |
+| [RN-201](plano/fase-1b-freemium-area-paciente.md#rn-201--limite-de-20-pacientes-ativos-no-banco) | Limite de 20 pacientes ativos no banco | feature | 3 | RN-200, RN-020 | todo |
+| [RN-202](plano/fase-1b-freemium-area-paciente.md#rn-202--uso-do-plano-e-aviso-de-limite-na-interface) | Uso do plano e aviso de limite na interface | feature | 2 | RN-201, RN-013 | todo |
+| [RN-203](plano/fase-1b-freemium-area-paciente.md#rn-203--convite-do-paciente-e-vínculo-da-conta) | Convite do paciente e vínculo da conta | feature | 5 | RN-005, RN-020 | todo |
+| [RN-204](plano/fase-1b-freemium-area-paciente.md#rn-204--área-do-paciente-autenticação-layout-e-início) | Área do paciente: autenticação, layout e início | feature | 5 | RN-203, RN-019 | todo |
+| [RN-205](plano/fase-1b-freemium-area-paciente.md#rn-205--plano-alimentar-na-área-do-paciente) | Plano alimentar na área do paciente | feature | 3 | RN-204, RN-031, RN-034 | todo |
+| [RN-206](plano/fase-1b-freemium-area-paciente.md#rn-206--biblioteca-de-receitas-compartilháveis) | Biblioteca de receitas compartilháveis | feature | 5 | RN-042 | todo |
+| [RN-207](plano/fase-1b-freemium-area-paciente.md#rn-207--receitas-na-área-do-paciente) | Receitas na área do paciente | feature | 3 | RN-206, RN-204 | todo |
+| [RN-208](plano/fase-1b-freemium-area-paciente.md#rn-208--recomendações-ao-paciente) | Recomendações ao paciente | feature | 5 | RN-045, RN-204 | todo |
+| [RN-209](plano/fase-1b-freemium-area-paciente.md#rn-209--documentos-do-paciente) | Documentos do paciente | feature | 2 | RN-036, RN-204 | todo |
+| [RN-210](plano/fase-1b-freemium-area-paciente.md#rn-210--o-que-o-paciente-vê-configurações-de-compartilhamento) | O que o paciente vê (configurações de compartilhamento) | feature | 2 | RN-205 | todo |
+| [RN-211](plano/fase-1b-freemium-area-paciente.md#rn-211--paciente-com-mais-de-um-nutricionista) | Paciente com mais de um nutricionista | feature | 2 | RN-203, RN-204 | todo |
+| [RN-212](plano/fase-1b-freemium-area-paciente.md#rn-212--avisos-por-e-mail-ao-paciente) | Avisos por e-mail ao paciente | feature | 2 | RN-205, RN-208 | todo |
+| [RN-213](plano/fase-1b-freemium-area-paciente.md#rn-213--testes-de-isolamento-e-e2e-da-área-do-paciente) | Testes de isolamento e e2e da área do paciente | infra | 3 | RN-201 a RN-212 | todo |
+| [RN-214](plano/fase-1b-freemium-area-paciente.md#rn-214--métricas-do-plano-gratuito) | Métricas do plano gratuito | feature | 2 | RN-202, RN-204 | todo |
+
 ## Fase 2 — Gestão do consultório
 
 | ID | Item | Tipo | Pts | Depende de | Status |
@@ -86,7 +107,7 @@ Status: `todo`, `doing`, `done`, `adiado` (fora do MVP, ver [ADR 0004](adr/0004-
 | [RN-054](plano/fase-2-gestao.md#rn-054--pacotes-de-consultas) | Pacotes de consultas | feature | 3 | RN-053, RN-022 | todo |
 | [RN-055](plano/fase-2-gestao.md#rn-055--recibo-em-pdf) | Recibo em PDF | feature | 2 | RN-053, RN-036 | todo |
 | [RN-056](plano/fase-2-gestao.md#rn-056--crm-funil-e-retornos-atrasados) | CRM: funil e retornos atrasados | feature | 5 | RN-020, RN-022 | todo |
-| [RN-057](plano/fase-2-gestao.md#rn-057--planos-do-saas-trial-e-cobrança-recorrente) | Planos do SaaS, trial e cobrança recorrente | feature | 8 | RN-004, RN-062 | todo |
+| [RN-057](plano/fase-2-gestao.md#rn-057--planos-pagos-do-saas-e-cobrança-recorrente) | Planos pagos do SaaS e cobrança recorrente | feature | 8 | RN-004, RN-062 | todo |
 | [RN-058](plano/fase-2-gestao.md#rn-058--sincronização-com-google-calendar) | Sincronização com Google Calendar | feature | 5 | RN-022 | todo |
 | [RN-059](plano/fase-2-gestao.md#rn-059--preferências-de-comunicação-e-opt-out-lgpd) | Preferências de comunicação e opt-out (LGPD) | feature | 3 | RN-021 | adiado |
 | [RN-060](plano/fase-2-gestao.md#rn-060--log-de-mensagens-e-painel-de-entregas) | Log de mensagens e painel de entregas | feature | 3 | RN-050 | todo |
@@ -102,8 +123,8 @@ Status: `todo`, `doing`, `done`, `adiado` (fora do MVP, ver [ADR 0004](adr/0004-
 
 | ID | Item | Tipo | Pts | Depende de | Status |
 |---|---|---|---|---|---|
-| [RN-070](plano/fase-3-app-paciente-ia.md#rn-070--pwa-instalação-magic-link-layout-mobile) | PWA: instalação, magic link, layout mobile | feature | 5 | RN-005, RN-002 | todo |
-| [RN-071](plano/fase-3-app-paciente-ia.md#rn-071--plano-do-dia-e-substituições-no-app) | Plano do dia e substituições no app | feature | 5 | RN-070, RN-086 | todo |
+| [RN-070](plano/fase-3-app-paciente-ia.md#rn-070--pwa-instalação-magic-link-layout-mobile) | PWA: instalação, magic link, layout mobile | feature | 2 | RN-005, RN-002 | todo |
+| [RN-071](plano/fase-3-app-paciente-ia.md#rn-071--plano-do-dia-e-substituições-no-app) | Plano do dia e substituições no app | feature | 2 | RN-070, RN-086 | todo |
 | [RN-072](plano/fase-3-app-paciente-ia.md#rn-072--lista-de-compras) | Lista de compras | feature | 3 | RN-071 | todo |
 | [RN-073](plano/fase-3-app-paciente-ia.md#rn-073--diário-alimentar-e-hidratação) | Diário alimentar e hidratação | feature | 5 | RN-071, RN-078 | todo |
 | [RN-074](plano/fase-3-app-paciente-ia.md#rn-074--notificações-push) | Notificações push | feature | 3 | RN-078, RN-050 | todo |
@@ -118,7 +139,7 @@ Status: `todo`, `doing`, `done`, `adiado` (fora do MVP, ver [ADR 0004](adr/0004-
 | [RN-083](plano/fase-3-app-paciente-ia.md#rn-083--schemas-zod-de-saída-da-ia) | Schemas Zod de saída da IA | feature | 2 | RN-082 | todo |
 | [RN-084](plano/fase-3-app-paciente-ia.md#rn-084--avaliação-de-qualidade-da-ia-com-casos-de-teste) | Avaliação de qualidade da IA com casos de teste | feature | 5 | RN-075, RN-076 | todo |
 | [RN-085](plano/fase-3-app-paciente-ia.md#rn-085--monitoramento-de-custo-e-uso-de-ia) | Monitoramento de custo e uso de IA | infra | 2 | RN-077 | todo |
-| [RN-086](plano/fase-3-app-paciente-ia.md#rn-086--convite-do-paciente-e-publicação-do-plano-para-o-app) | Convite do paciente e publicação do plano para o app | feature | 3 | RN-070, RN-035 | todo |
+| [RN-086](plano/fase-3-app-paciente-ia.md#rn-086--convite-do-paciente-e-publicação-do-plano-para-o-app) | Convite do paciente e publicação do plano para o app | feature | 1 | RN-070, RN-035 | todo |
 | [RN-087](plano/fase-3-app-paciente-ia.md#rn-087--restrições-e-preferências-alimentares-estruturadas) | Restrições e preferências alimentares estruturadas | feature | 3 | RN-024, RN-010 | todo |
 | [RN-088](plano/fase-3-app-paciente-ia.md#rn-088--interface-de-revisão-da-sugestão-de-ia) | Interface de revisão da sugestão de IA | feature | 3 | RN-075 | todo |
 | [RN-089](plano/fase-3-app-paciente-ia.md#rn-089--termos-de-ia-documentação-e-adrs-da-fase) | Termos de IA, documentação e ADRs da fase | doc | 2 | RN-082, RN-081 | todo |

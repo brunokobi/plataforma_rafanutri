@@ -39,6 +39,8 @@ Duração estimada: **6 semanas** (1 a 2 devs full-stack).
 
 ## Modelo de dados
 
+> A base do acesso do paciente (`patient_app_invites`, colunas de acesso em `patients`, `current_patient_ids()`, planos e limites) foi antecipada para a [Fase 1B](fase-1b-freemium-area-paciente.md). Nesta fase essas definições servem só de referência; as migrações novas são as de diário, hidratação, lista de compras, push e IA.
+
 ```sql
 -- =========================================================
 -- Acesso do paciente ao app
@@ -358,8 +360,10 @@ Nutricionista (parâmetros) ─▶ Server Action ─▶ checa cota ─▶ monta 
 ## Itens do backlog
 
 ### RN-070 — PWA: instalação, magic link, layout mobile
+> **Base entregue na [Fase 1B](fase-1b-freemium-area-paciente.md)** (RN-204: login por link mágico, layout e middleware). Aqui fica só a evolução: tela de instruções de instalação e ajustes do layout para modo app (standalone).
+
 - **Tipo:** feature
-- **Pontos:** 5
+- **Pontos:** 2
 - **Depende de:** RN-005, RN-002
 - **Descrição:** Estrutura do app do paciente dentro do `apps/web` (grupo de rotas `(patient)`), login por magic link, layout mobile-first e navegação inferior.
 - **Tarefas técnicas:**
@@ -375,8 +379,10 @@ Nutricionista (parâmetros) ─▶ Server Action ─▶ checa cota ─▶ monta 
 - **Testes:** e2e (Playwright, viewport mobile) do login; teste de middleware; Lighthouse PWA/acessibilidade no CI.
 
 ### RN-071 — Plano do dia e substituições no app
+> **Base entregue na [Fase 1B](fase-1b-freemium-area-paciente.md)** (RN-205: plano publicado com substituições). Aqui fica só a evolução: integração da tela "Hoje" com o diário (marcar refeição a partir do card) e cache offline do plano.
+
 - **Tipo:** feature
-- **Pontos:** 5
+- **Pontos:** 2
 - **Depende de:** RN-070, RN-086
 - **Descrição:** Tela "Hoje" com as refeições do plano publicado em ordem de horário, medidas caseiras e substituições por item.
 - **Tarefas técnicas:**
@@ -636,8 +642,10 @@ Nutricionista (parâmetros) ─▶ Server Action ─▶ checa cota ─▶ monta 
 - **Testes:** pgTAP das views.
 
 ### RN-086 — Convite do paciente e publicação do plano para o app
+> **Base entregue na [Fase 1B](fase-1b-freemium-area-paciente.md)** (RN-203 e RN-210: convite, vínculo e configurações de compartilhamento). Aqui fica só a evolução: aviso por push de plano novo.
+
 - **Tipo:** feature
-- **Pontos:** 3
+- **Pontos:** 1
 - **Depende de:** RN-070, RN-035
 - **Descrição:** Fluxo F-01 e regras de publicação: o paciente vê apenas o plano publicado ativo e o que o nutricionista decidir compartilhar.
 - **Tarefas técnicas:**

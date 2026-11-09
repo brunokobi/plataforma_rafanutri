@@ -89,3 +89,15 @@ O paciente só enxerga `meal_plans` com `status = 'published'`.
 - **Materno-infantil:** `growth_measurements`, `who_growth_references` (tabelas LMS), `pregnancy_records`.
 - **UAN:** `production_units`, `recipes` (ficha técnica), `recipe_ingredients`, `menus`, `menu_days`, `purchase_orders`, `stock_movements`, `checklist_templates`, `checklist_runs`, `non_conformities`, `quality_documents`.
 - **IA:** `ai_suggestions` (entrada, saída, modelo, aceite pelo profissional), `knowledge_chunks` com `embedding vector`.
+
+## Plano gratuito e área do paciente (Fase 1B)
+
+- **Tenant:** `organizations` (o nutricionista autônomo é uma organização `solo`).
+- `plans` e `subscriptions`: toda organização nasce no plano `free`, que permite **20 pacientes ativos**. Um gatilho em `patients` aplica o limite no banco.
+- O paciente acessa com login próprio (`patients.auth_user_id`). Uma pessoa atendida por dois nutricionistas tem um registro em cada organização.
+- `patient_app_invites`: convite com token de uso único.
+- `recipes` ganha foto, descrição, tempo, dificuldade e tags. `patient_recipes` registra as receitas enviadas ao paciente.
+- `patient_recommendations`: recomendações individuais com rascunho, publicação e marcação de leitura.
+- `patients.share_settings` define o que o paciente vê (calorias, macros, histórico de peso).
+
+SQL completo e políticas RLS em [plano/fase-1b-freemium-area-paciente.md](plano/fase-1b-freemium-area-paciente.md).

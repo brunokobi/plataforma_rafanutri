@@ -30,7 +30,8 @@ Ser a plataforma de trabalho do nutricionista em qualquer área de atuação: do
 
 | Plano | Público | Faixa de preço de referência | Inclui |
 |---|---|---|---|
-| Essencial | Nutricionista autônomo | R$ 79/mês | Clínico, agenda, prescrição, app do paciente (limite de pacientes ativos) |
+| **Gratuito** | Todo nutricionista | R$ 0 (permanente) | Até **20 pacientes ativos**, 1 nutricionista, clínico completo, área do paciente com plano, receitas e recomendações |
+| Essencial | Nutricionista autônomo | R$ 79/mês | Tudo do Gratuito com mais pacientes ativos |
 | Profissional | Nutricionista com volume | R$ 129–190/mês | Tudo do Essencial + IA, financeiro, automações WhatsApp, materiais com a marca |
 | Clínica | Equipes | Por profissional, com desconto por volume | Multiusuário, papéis e permissões, relatórios da clínica |
 | Enterprise UAN | Empresas de alimentação | R$ 500 a R$ 2.000+/mês por contrato | Módulo UAN/Qualidade por unidade produtora |
