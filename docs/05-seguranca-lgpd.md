@@ -2,13 +2,15 @@
 
 A Rafanutri trata **dados pessoais sensíveis de saúde** (LGPD, art. 5º, II, e art. 11). Isso define requisitos desde o primeiro dia, não como melhoria posterior.
 
+> **MVP:** a adequação à LGPD está **fora do escopo inicial** (decisão em [ADR 0004](adr/0004-infraestrutura-hospedagem.md)). No MVP valem só os itens marcados como "MVP" na tabela abaixo. O restante deste documento é o alvo para quando um gatilho de revisão do ADR ocorrer. Itens adiados no backlog: RN-016, RN-021, RN-059 e RN-081.
+
 ## Papéis na LGPD
 
 - **Nutricionista/clínica:** controlador dos dados dos seus pacientes.
 - **Rafanutri:** operador (trata os dados em nome do profissional), e controlador apenas dos dados de cadastro e cobrança dos próprios clientes.
 - Isso precisa constar nos Termos de Uso e no contrato de tratamento de dados (DPA) com os clientes.
 
-## Requisitos obrigatórios no MVP
+## Requisitos (alvo pós-MVP; no MVP só RLS, segredos fora do repositório e backups)
 
 | Requisito | Como atender |
 |---|---|
@@ -47,13 +49,13 @@ As validações da coluna "A validar" ficam como tarefas no backlog (Fase 0) e d
 
 Detalhes no [ADR 0004](adr/0004-infraestrutura-hospedagem.md).
 
-| Ferramenta | Pode receber dados reais de pacientes? | Motivo |
+| Ferramenta | No MVP | Pós-MVP (com LGPD) |
 |---|---|---|
-| VPS Oracle Always Free (Frankfurt, compartilhada) | **Não** | Sem SLA, risco de reclamação da instância, host compartilhado, dados fora do Brasil |
-| n8n dedicado da Rafanutri | Só dados mínimos de contato e agenda | Necessário para os lembretes; nada clínico passa por ele |
-| Modelos `:free` do OpenRouter | **Não** | Sem garantia contratual de não registrar ou treinar com os prompts |
-| Evolution API (WhatsApp não oficial) | **Não** | Risco de bloqueio e de violar os termos do WhatsApp; produção usa a API oficial |
-| Supabase Cloud (São Paulo) | Sim | Operador com contrato, backups e dados no Brasil |
+| vpsrafa (Oracle Always Free, Frankfurt, compartilhada) | Hospeda tudo, inclusive dados reais | Migrar banco e app para serviços gerenciados no Brasil |
+| Modelos `:free` do OpenRouter | Permitidos | Provedor pago com contrato de não treinamento + pseudonimização (RN-081) |
+| Evolution API (WhatsApp não oficial) | Permitida, com número dedicado | API oficial (Cloud API da Meta) |
+| Backup externo diário | **Obrigatório** | Obrigatório |
+| RLS e isolamento entre organizações | **Obrigatório** | Obrigatório |
 
 ## Práticas de desenvolvimento
 

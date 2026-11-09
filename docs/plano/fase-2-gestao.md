@@ -374,6 +374,8 @@ Supabase (pg_cron / trigger) ──webhook assinado (HMAC)──▶ n8n ──�
 
 ### Provedor de WhatsApp
 
+> **No MVP:** usar a **Evolution API** já disponível na VPS, com um número dedicado à Rafanutri (ver [ADR 0004](../adr/0004-infraestrutura-hospedagem.md)). Os workflows do n8n ficam atrás de uma interface `send_whatsapp` para trocar de provedor sem reescrevê-los. O texto abaixo vale para a migração pós-MVP.
+
 Usar a **WhatsApp Business Platform (Cloud API da Meta)** via provedor/BSP brasileiro (ex.: Z-API não é oficial — **evitar**; preferir BSP oficial como Twilio, Gupshup, 360dialog ou Blip). Decisão final no item RN-050 após comparar custo por conversa e facilidade de aprovação de templates. Mensagens iniciadas pela empresa exigem **templates aprovados** pela Meta (categoria *utility*).
 
 ### WF-01 — Lembrete de consulta
@@ -617,6 +619,8 @@ Usar a **WhatsApp Business Platform (Cloud API da Meta)** via provedor/BSP brasi
 - **Testes:** integração com mock da API Google; unidade do mapeamento consulta → evento.
 
 ### RN-059 — Preferências de comunicação e opt-out (LGPD)
+> **Adiado para depois do MVP** (LGPD fora do escopo inicial, ver [ADR 0004](../adr/0004-infraestrutura-hospedagem.md)). Executar quando um gatilho de revisão do ADR ocorrer.
+
 - **Tipo:** feature
 - **Pontos:** 3
 - **Depende de:** RN-021
@@ -686,6 +690,8 @@ Usar a **WhatsApp Business Platform (Cloud API da Meta)** via provedor/BSP brasi
 - **Testes:** unidade da máquina de estados (todas as transições); integração com payloads reais do sandbox.
 
 ### RN-063 — Modelos de mensagem e aprovação de templates WhatsApp
+> **No MVP:** só os modelos de mensagem internos (texto com variáveis). A aprovação de templates pela Meta fica para quando migrar para a API oficial.
+
 - **Tipo:** feature
 - **Pontos:** 3
 - **Depende de:** RN-050
@@ -745,6 +751,8 @@ Usar a **WhatsApp Business Platform (Cloud API da Meta)** via provedor/BSP brasi
 - **Testes:** simulação de falha em staging.
 
 ### RN-067 — Documentação da fase e atualização de termos
+> **No MVP:** só a documentação técnica. A atualização de termos e da lista de suboperadores fica adiada.
+
 - **Tipo:** doc
 - **Pontos:** 1
 - **Depende de:** RN-057, RN-059

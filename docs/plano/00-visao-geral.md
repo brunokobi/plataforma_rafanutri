@@ -16,6 +16,17 @@ Este é o plano detalhado da Rafanutri. O resumo executivo está em [../06-plano
 
 Premissa de capacidade: **1 a 2 desenvolvedores full-stack** e a nutricionista parceira (Rafaela) como responsável técnica e validadora de domínio. Com 1 desenvolvedor, multiplicar as durações por cerca de 1,6.
 
+## Escopo do MVP
+
+O MVP roda inteiro na vpsrafa e deixa a LGPD para depois ([ADR 0004](../adr/0004-infraestrutura-hospedagem.md)).
+
+| Situação | Itens |
+|---|---|
+| Adiados | RN-016 (termos e DPA), RN-021 (consentimento do paciente), RN-059 (opt-out), RN-081 (pseudonimização para a IA) |
+| Reduzidos | RN-063 (sem aprovação de templates da Meta), RN-067 e RN-089 (só documentação técnica) |
+| Trocados | WhatsApp pela Evolution API; IA pelo OpenRouter `:free`; Supabase self-hosted |
+| Mantidos mesmo no MVP | RLS (RN-008), backup externo (RN-003), segurança básica (RN-049) |
+
 ## Cronograma macro (2 desenvolvedores)
 
 Considerando início na semana 1 (a definir):

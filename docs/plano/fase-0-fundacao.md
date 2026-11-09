@@ -25,8 +25,9 @@ Deixar pronta a base técnica, de segurança e de dados sobre a qual todos os m�
 ## Pré-requisitos
 
 - Conta GitHub com o repositório `plataforma_rafanutri`.
-- Contas Supabase (organização com 2 projetos: staging e produção), Sentry e provedor de e-mail transacional.
-- Acesso ao Coolify da VPS existente para o staging; hospedagem de produção escolhida conforme o [ADR 0004](../adr/0004-infraestrutura-hospedagem.md) (Vercel Pro ou VPS paga no Brasil).
+- Acesso ao Coolify da vpsrafa, onde roda todo o MVP ([ADR 0004](../adr/0004-infraestrutura-hospedagem.md)); medição prévia de CPU e memória livres.
+- Conta no Sentry e provedor de e-mail transacional.
+- Bucket externo para backups (Object Storage da Oracle ou Cloudflare R2).
 - Domínio registrado (ex.: `rafanutri.com.br`).
 - Acesso aos arquivos oficiais da TACO e da TBCA.
 
@@ -262,16 +263,21 @@ $$;
   - Quando rodo `pnpm dev`, então a aplicação abre em `localhost:3000` com o tema aplicado.
 - **Testes:** build no CI.
 
-### RN-003 — Configurar Supabase local e staging
+### RN-003 — Configurar Supabase local e na VPS
 - **Tipo:** infra
 - **Pontos:** 2
 - **Depende de:** RN-001
-- **Descrição:** ambiente local com Supabase CLI (Docker) e projeto de staging na região São Paulo.
+- **Descrição:** ambiente local com Supabase CLI (Docker) e Supabase self-hosted na vpsrafa, com instâncias separadas de staging e produção e backup diário externo.
 - **Tarefas técnicas:**
   - [ ] `supabase init`; ajustar `config.toml` (auth, e-mail local com Inbucket, URLs de redirect)
   - [ ] Habilitar extensões `pgcrypto`, `pg_trgm`, `unaccent`, `citext`
   - [ ] Função `unaccent_immutable` para índices de busca
-  - [ ] Criar projetos staging e produção (sa-east-1); guardar chaves no gerenciador de segredos
+  - [ ] Subir Supabase self-hosted pelo template do Coolify (staging e produção separados), imagens ARM64, rede Docker própria
+  - [ ] Gerar `JWT_SECRET`, `ANON_KEY` e `SERVICE_ROLE_KEY` próprios por ambiente e guardá-los no Coolify
+  - [ ] Expor só a API (Kong) e o Auth pelo Traefik; Studio e Postgres sem acesso público
+  - [ ] Desligar serviços não usados no MVP (ex.: Realtime) para economizar memória
+  - [ ] Backup diário com `pg_dump` (e dos arquivos do Storage) para o bucket externo, retenção de 14 dias, alerta em caso de falha
+  - [ ] Testar a restauração do backup num banco limpo e documentar o passo a passo
   - [ ] Script `pnpm db:types` gerando tipos para `packages/db`
   - [ ] Clients Supabase em `apps/web/lib/supabase` (browser, server com cookies, middleware) usando `@supabase/ssr`
   - [ ] Documentar no README como subir o ambiente
@@ -279,6 +285,7 @@ $$;
 - **Critérios de aceite:**
   - Dado Docker instalado, quando rodo `pnpm db:start`, então o Supabase local sobe e as migrações são aplicadas.
   - Quando rodo `pnpm db:types`, então `packages/db/src/database.types.ts` é atualizado.
+  - Dado o backup da noite anterior, quando restauro num banco limpo, então os dados aparecem completos.
 - **Testes:** CI aplica as migrações em um Supabase efêmero.
 
 ### RN-004 — Migração: organizações, perfis, membros e auditoria
@@ -462,10 +469,11 @@ $$;
   - [ ] GitHub Actions: instalar com cache do pnpm, lint, typecheck, testes unitários, build
   - [ ] Job de banco: subir Supabase no runner, aplicar migrações, rodar pgTAP e checar tabelas sem RLS
   - [ ] Job e2e com Playwright contra o build local (em PRs para `main`)
-  - [ ] Staging na VPS via Coolify: aplicação ligada ao GitHub, deploy automático no merge em `main` e previews por PR, `Dockerfile` multi-stage do Next.js (`output: 'standalone'`) com build ARM64
+  - [ ] Staging e produção na vpsrafa via Coolify: aplicações ligadas ao GitHub, staging com deploy automático no merge em `main` (e previews por PR, se a memória permitir), `Dockerfile` multi-stage do Next.js (`output: 'standalone'`) com build ARM64
   - [ ] Rede Docker própria da Rafanutri; roteamento pelo Traefik existente com subdomínio de staging e TLS automático
   - [ ] Proteger o staging com autenticação básica ou allowlist (não indexável)
-  - [ ] Produção: configurar a hospedagem escolhida no ADR 0004, com deploy só por tag
+  - [ ] Produção: deploy só por tag, com migração aplicada antes do deploy
+  - [ ] Incluir a URL de produção no monitor externo de disponibilidade
   - [ ] Workflow de migração para staging (automático) e produção (manual com aprovação, `environment` protegido)
   - [ ] `pnpm audit` e Dependabot
   - [ ] Proteção da `main`: PR obrigatório, CI verde, 1 aprovação
@@ -492,6 +500,8 @@ $$;
 - **Testes:** —
 
 ### RN-016 — Termos de Uso, Política de Privacidade e DPA
+> **Adiado para depois do MVP** (LGPD fora do escopo inicial, ver [ADR 0004](../adr/0004-infraestrutura-hospedagem.md)). Executar quando um gatilho de revisão do ADR ocorrer.
+
 - **Tipo:** doc
 - **Pontos:** 3
 - **Depende de:** RN-015
@@ -531,7 +541,7 @@ $$;
 - **Tarefas técnicas:**
   - [ ] `.env.example` com todas as variáveis, sem valores reais e com descrição
   - [ ] Validação das variáveis na inicialização com Zod (`apps/web/lib/env.ts`), separando públicas (`NEXT_PUBLIC_*`) e de servidor
-  - [ ] Variáveis no Coolify (staging), na hospedagem de produção e nos secrets do GitHub, por ambiente
+  - [ ] Variáveis no Coolify (staging e produção) e nos secrets do GitHub, por ambiente
   - [ ] Segredos da Rafanutri nunca no repositório de recuperação da VPS nem em arquivos `.env` versionados
   - [ ] Regra de lint impedindo import de `env` de servidor em componentes de cliente
 - **Arquivos/áreas:** `.env.example`, `apps/web/lib/env.ts`

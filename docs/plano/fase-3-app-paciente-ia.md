@@ -552,6 +552,8 @@ Nutricionista (parâmetros) ─▶ Server Action ─▶ checa cota ─▶ monta 
 - **Testes:** pgTAP das funções; RLS (assistant não vê); e2e com seed.
 
 ### RN-081 — Pseudonimização antes do envio ao LLM
+> **Adiado para depois do MVP** (LGPD fora do escopo inicial, ver [ADR 0004](../adr/0004-infraestrutura-hospedagem.md)). Executar quando um gatilho de revisão do ADR ocorrer.
+
 - **Tipo:** feature
 - **Pontos:** 3
 - **Depende de:** RN-082
@@ -569,6 +571,8 @@ Nutricionista (parâmetros) ─▶ Server Action ─▶ checa cota ─▶ monta 
 - **Testes:** unidade com casos de PII variados (≥ 30 casos); teste de tipo (tsd/expect-type).
 
 ### RN-082 — Camada de acesso ao LLM (`packages/ai`)
+> **No MVP:** implementação `OpenRouterProvider` com fallback entre modelos `:free` (listar via `GET /api/v1/models`, ordenar, cachear por 1 h e filtrar modelos que suportam saída JSON), seguindo o padrão já usado nos projetos da VPS. A interface `LlmProvider` permite trocar por um provedor pago depois.
+
 - **Tipo:** infra
 - **Pontos:** 3
 - **Depende de:** RN-014
@@ -682,6 +686,8 @@ Nutricionista (parâmetros) ─▶ Server Action ─▶ checa cota ─▶ monta 
 - **Testes:** e2e com LLM mockado.
 
 ### RN-089 — Termos de IA, documentação e ADRs da fase
+> **No MVP:** só a documentação e os ADRs. Os termos de IA ficam adiados.
+
 - **Tipo:** doc
 - **Pontos:** 2
 - **Depende de:** RN-082, RN-081

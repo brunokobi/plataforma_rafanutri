@@ -1,58 +1,80 @@
-# ADR 0004 — Infraestrutura e uso da VPS existente
+# ADR 0004 — Infraestrutura do MVP na VPS existente
 
-- **Status:** proposto
+- **Status:** aceito
 - **Data:** 2026-11-09
 
 ## Contexto
 
-Já existe uma VPS em operação: Oracle Cloud no plano Always Free, ARM64 (Ampere A1), 2 OCPU e 12 GB de RAM, região Frankfurt, Ubuntu 24.04, com Coolify e Traefik (HTTPS automático por Let's Encrypt), DNS no Cloudflare e um n8n em uso. A mesma máquina roda outros projetos pessoais, inclusive serviços públicos e um agente de IA autônomo em teste, e já hospeda o backend do app **BPF Check** (FastAPI + Postgres), com um workflow multiagente no n8n.
+A Rafanutri começa como **MVP**. Já existe uma VPS em operação (a "vpsrafa"): Oracle Cloud no plano Always Free, ARM64 (Ampere A1), 2 OCPU e 12 GB de RAM, região Frankfurt, Ubuntu 24.04, com Coolify e Traefik (HTTPS automático por Let's Encrypt), DNS no Cloudflare, n8n, Evolution API disponível e acesso ao OpenRouter. A mesma máquina hospeda outros projetos, inclusive o backend do app **BPF Check**.
 
-Usar essa VPS reduz custo no início. Porém a Rafanutri trata **dados sensíveis de saúde** (LGPD, art. 11), e o histórico dessa infraestrutura mostra riscos concretos:
-
-| Fato | Risco para dados de pacientes |
-|---|---|
-| Uma instância Always Free anterior foi reclamada pela Oracle por ociosidade, sem aviso | Indisponibilidade de produção por tempo indeterminado ("Out of host capacity" pode durar meses) |
-| Always Free não tem SLA nem backup gerenciado | Perda de dados e de prontuário, que tem obrigação de guarda |
-| Host compartilhado com projetos pessoais e um agente autônomo | Superfície de ataque maior; uma falha em outro serviço expõe o banco de saúde |
-| Região Frankfurt | Transferência internacional de dados (LGPD, art. 33) e cerca de 200 ms a mais de latência para usuários no Brasil |
-| 2 OCPU e 12 GB já divididos com vários serviços | Sem folga para Postgres e Supabase self-hosted em produção |
-| Modelos `:free` do OpenRouter usados nos projetos atuais | Provedores gratuitos podem registrar prompts, e o limite é de 50 requisições por dia por conta |
-| Evolution API (WhatsApp não oficial) disponível | Risco de bloqueio do número e de violar os termos do WhatsApp num produto comercial |
+O objetivo nesta etapa é validar o produto com o menor custo possível. Adequação à LGPD **não é prioridade no MVP** e será tratada antes de escalar (ver "Gatilhos para revisar").
 
 ## Decisão
 
-Arquitetura **híbrida**: a VPS existente fica com o que não envolve dados reais de pacientes, e a produção vai para serviços gerenciados no Brasil.
+Todo o MVP roda na vpsrafa, gerenciado pelo Coolify.
 
-| Componente | Desenvolvimento e staging | Produção (dados reais) |
-|---|---|---|
-| Banco, Auth, Storage | Supabase Cloud, projeto gratuito de staging (região próxima da VPS) | **Supabase Cloud Pro, região São Paulo** (backups diários e PITR opcional) |
-| App web (Next.js) | **VPS via Coolify**: deploy automático de `main` e previews por PR | Hospedagem próxima de São Paulo: Vercel Pro (região `gru1`) **ou** VPS paga e dedicada no Brasil, gerenciada pelo mesmo Coolify |
-| n8n | **Instância dedicada da Rafanutri na VPS** (container e Postgres próprios, separados do n8n pessoal) | Mesma instância dedicada, que só recebe dados mínimos (primeiro nome, telefone, data e hora); migrar para host pago se o volume crescer |
-| WhatsApp | Evolution API permitida **só** para testes internos, com números de teste | API oficial (Cloud API da Meta via BSP), conforme a Fase 2 |
-| LLM | OpenRouter `:free` permitido **só** com dados sintéticos | Provedor pago com contrato de não treinamento e retenção controlada (ADR 0006) |
-| Demonstrações comerciais | VPS, com seed sintético | — |
-| Monitoramento | UptimeRobot já existente + Sentry | Sentry + alertas do Supabase |
+| Componente | Como fica no MVP |
+|---|---|
+| App web (Next.js) | Aplicação no Coolify ligada ao GitHub; `Dockerfile` multi-stage (`output: 'standalone'`), build ARM64 |
+| Banco, Auth, Storage | **Supabase self-hosted** na VPS (template de serviço do Coolify), mantendo RLS, Auth, Storage e Edge Functions como no plano |
+| n8n | Instância **dedicada** da Rafanutri (container e Postgres próprios), separada do n8n pessoal |
+| WhatsApp | **Evolution API** já disponível na infraestrutura |
+| IA | **OpenRouter** com fallback entre modelos `:free`, como já usado em outros projetos da VPS |
+| Ambientes | `staging` e `produção` como duas aplicações no mesmo Coolify, com bancos separados |
+| DNS e TLS | Subdomínios no Cloudflare, TLS pelo Traefik |
+| Monitoramento | Monitor externo já existente (UptimeRobot) também batendo na Rafanutri + Sentry |
 
-Regras:
-1. **Nenhum dado real de paciente na VPS Always Free**, nem em staging.
-2. O n8n da Rafanutri é **separado** do n8n pessoal: outra instância, outro `N8N_ENCRYPTION_KEY`, outras credenciais e outro banco.
-3. Segredos da Rafanutri ficam no Coolify, no GitHub Secrets e na Vercel. **Não** vão para o repositório de recuperação da VPS, que guarda segredos em texto puro.
-4. Os containers da Rafanutri usam uma rede Docker própria. Só o Traefik é compartilhado.
-5. Antes de abrir o beta (fim da Fase 1), a produção precisa estar nos serviços gerenciados da coluna da direita.
+### Requisitos mínimos mesmo no MVP
+
+Não são requisitos de LGPD. São proteções baratas contra perda de dados e invasão:
+
+1. **Backup diário do Postgres para fora da VPS** (ex.: `pg_dump` agendado enviado ao Object Storage da Oracle ou ao Cloudflare R2, com retenção de 14 dias) e um teste de restauração por mês. A Oracle já reclamou uma instância Always Free por ociosidade, e sem backup externo os dados se perdem.
+2. A **RLS** continua obrigatória: ela isola os dados entre os nutricionistas, que são clientes diferentes.
+3. Segredos ficam no Coolify e nos secrets do GitHub, nunca versionados.
+4. Os containers da Rafanutri ficam numa rede Docker própria; só o Traefik é compartilhado com os outros projetos.
+5. O staging fica protegido (autenticação básica) e não indexável.
+
+### Orçamento de recursos (2 OCPU / 12 GB compartilhados)
+
+| Serviço | RAM estimada |
+|---|---|
+| Supabase self-hosted (Postgres, Auth, REST, Storage, Realtime, Kong, Studio) | 2 a 3 GB |
+| App web (produção + staging) | 0,5 a 1 GB |
+| n8n dedicado + Postgres | 0,5 GB |
+| **Total Rafanutri** | **cerca de 3 a 4,5 GB** |
+
+Antes da Fase 0, medir o consumo atual da VPS (`docker stats`, `free -h`). Se faltar memória:
+- desligar os serviços do Supabase que não são usados (Realtime até a Fase 6, Studio fora do horário de trabalho);
+- ou usar o Supabase Cloud gratuito só para o staging.
 
 ## Alternativas consideradas
 
-- **Tudo na VPS Always Free, com Supabase self-hosted:** custo zero, mas sem SLA, com risco de reclamação, dados fora do Brasil e recursos insuficientes. Rejeitada para produção.
-- **VPS paga no Brasil para tudo, com Supabase self-hosted:** custo previsível e dados no Brasil, mas backup, atualização e segurança do Postgres e do Auth ficam por nossa conta. Pode ser revisitada quando houver escala e equipe de operação.
-- **Somente serviços gerenciados (sem usar a VPS):** mais simples, mas desperdiça a infraestrutura de staging e o n8n que já existem.
+- **Serviços gerenciados no Brasil (Supabase Pro em São Paulo + Vercel Pro):** mais robusto e já adequado à LGPD, mas com custo mensal desde o primeiro dia. Fica como destino pós-MVP.
+- **Supabase Cloud gratuito para o banco + VPS para o app:** sem custo, mas o projeto gratuito pausa por inatividade e o banco ficaria longe do app. Fica como plano B se faltar memória na VPS.
+
+## Gatilhos para revisar esta decisão
+
+Revisar (e escrever um novo ADR) quando ocorrer **qualquer** um destes:
+- primeiros clientes pagantes, ou mais de cerca de 20 nutricionistas ativos;
+- uso de dados reais de pacientes em escala;
+- primeiro cliente Enterprise (UAN), que vai exigir contrato e LGPD;
+- uso da VPS acima de 70% de CPU ou memória de forma sustentada;
+- reclamação da instância pela Oracle ou indisponibilidade relevante.
+
+Nessa revisão, a direção esperada é:
+- banco e app em serviços gerenciados no Brasil;
+- WhatsApp pela API oficial;
+- LLM pago com contrato de não treinamento;
+- executar os itens de LGPD adiados (ver [05-seguranca-lgpd.md](../05-seguranca-lgpd.md)).
 
 ## Consequências
 
-- Custo mensal mínimo em produção a partir do beta: Supabase Pro e hospedagem do app web. Os valores devem ser confirmados nos sites dos fornecedores na Fase 0. A Vercel Hobby não permite uso comercial, então em produção seria o plano Pro ou VPS paga.
-- Staging e demonstrações sem custo adicional.
-- A VPS segue sujeita à reclamação por ociosidade. O monitor externo que gera carga real continua obrigatório, e o staging precisa ser recriável a partir do repositório (Coolify + migrações + seed).
-- A Política de Privacidade lista os suboperadores e onde ficam os dados de cada um.
+- Custo de infraestrutura zero no MVP.
+- Disponibilidade sem SLA: aceitável para o MVP, com backup externo como rede de segurança.
+- Supabase self-hosted exige operar atualizações e backups por conta própria.
+- Evolution API é não oficial: o número de WhatsApp pode ser bloqueado. Usar um número dedicado à Rafanutri, não o pessoal.
+- Modelos `:free` têm limite de 50 requisições por dia por conta, o que basta para o MVP. Se faltar, os créditos do OpenRouter elevam o limite.
 
 ## Relação com o BPF Check
 
-O app BPF Check, já em produção na mesma VPS, cobre parte do Módulo UAN/Qualidade (checklists de Boas Práticas). Na Fase 5 (RN-120), avaliar o que reaproveitar do BPF Check: modelos de checklist, fluxo do app, aprendizados de uso e o workflow multiagente. As opções são integrar o BPF Check à Rafanutri ou migrar os clientes dele para cá.
+O app BPF Check, já em produção na mesma VPS, cobre parte do Módulo UAN/Qualidade (checklists de Boas Práticas). Na Fase 5 (RN-120), avaliar o que reaproveitar dele: modelos de checklist, fluxo mobile, workflow multiagente e usuários atuais.

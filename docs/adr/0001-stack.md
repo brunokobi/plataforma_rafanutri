@@ -13,7 +13,7 @@ Equipe pequena, necessidade de chegar rápido a um MVP vendável, dados sensíve
 - **Supabase** como backend: Postgres com RLS, Auth, Storage, Edge Functions e pgvector.
 - **n8n** para automações e integrações de mensageria.
 - **Monorepo** com pnpm + Turborepo; cálculos nutricionais em pacote TypeScript puro (`nutrition-core`).
-- Hospedagem do front e do staging conforme o [ADR 0004](0004-infraestrutura-hospedagem.md): staging na VPS existente (Coolify); produção perto de São Paulo (Vercel Pro ou VPS paga); Supabase de produção na região São Paulo.
+- Hospedagem conforme o [ADR 0004](0004-infraestrutura-hospedagem.md): no MVP, app web, Supabase self-hosted e n8n na VPS existente (Coolify); serviços gerenciados no Brasil depois do MVP.
 
 ## Consequências
 

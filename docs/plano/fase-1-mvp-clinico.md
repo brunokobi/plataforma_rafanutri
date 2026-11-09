@@ -407,6 +407,8 @@ P = peso (kg), A = altura (cm), I = idade (anos), MLG = massa livre de gordura (
 - **Testes:** unidade dos validadores; pgTAP de RLS (isolamento e assistente); e2e de cadastro e busca.
 
 ### RN-021 — Consentimento LGPD do paciente
+> **Adiado para depois do MVP** (LGPD fora do escopo inicial, ver [ADR 0004](../adr/0004-infraestrutura-hospedagem.md)). Executar quando um gatilho de revisão do ADR ocorrer.
+
 - **Tipo:** feature
 - **Pontos:** 3
 - **Depende de:** RN-016, RN-020
@@ -419,7 +421,7 @@ P = peso (kg), A = altura (cm), I = idade (anos), MLG = massa livre de gordura (
   - [ ] Exportação dos dados do paciente (JSON e PDF) para atender pedido do titular
 - **Arquivos/áreas:** `supabase/migrations`, `apps/web/app/(app)/[orgSlug]/pacientes`
 - **Critérios de aceite:**
-  - Dado um paciente sem consentimento, quando tento enviar anamnese, então o sistema pede o consentimento antes.
+  - (Pós-MVP) Dado um paciente sem consentimento, quando tento enviar anamnese, então o sistema pede o consentimento antes.
   - Quando exporto os dados do paciente, então recebo arquivo com cadastro, avaliações, planos e anamneses, e a ação fica registrada em `audit_logs`.
 - **Testes:** pgTAP; e2e de revogação e exportação.
 
@@ -497,13 +499,13 @@ P = peso (kg), A = altura (cm), I = idade (anos), MLG = massa livre de gordura (
 ### RN-026 — Link público de anamnese
 - **Tipo:** feature
 - **Pontos:** 5
-- **Depende de:** RN-021, RN-025
+- **Depende de:** RN-025 (RN-021 adiado: no MVP o formulário não exige consentimento)
 - **Descrição:** o nutricionista envia ao paciente um link para responder a anamnese antes da consulta, sem login.
 - **Tarefas técnicas:**
   - [ ] Gerar token aleatório (32 bytes), guardar só o hash, validade configurável (padrão 7 dias)
   - [ ] Edge Function `anamnesis-public` com `GET` (retorna schema e nome do profissional, sem dados do paciente além do primeiro nome) e `POST` (salva respostas)
   - [ ] Página `/r/[token]` com a marca do profissional, salvamento parcial (rascunho) e envio final
-  - [ ] Consentimento LGPD no início se ainda não houver
+  - [ ] Consentimento LGPD no início se ainda não houver (pós-MVP, junto com RN-021)
   - [ ] Rate limit por IP e por token; token invalidado após envio final
   - [ ] Copiar link e enviar por e-mail (WhatsApp manual por link `wa.me` nesta fase)
   - [ ] Notificação no painel quando o paciente responder

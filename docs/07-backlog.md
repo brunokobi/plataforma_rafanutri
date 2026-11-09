@@ -2,7 +2,7 @@
 
 Índice consolidado de todos os itens. O detalhe de cada item (descrição, tarefas técnicas, critérios de aceite e testes) está no documento da fase, no link do ID.
 
-Status: `todo`, `doing`, `done`. Pontos: 1, 2, 3, 5, 8 (ver [plano/00-visao-geral.md](plano/00-visao-geral.md)).
+Status: `todo`, `doing`, `done`, `adiado` (fora do MVP, ver [ADR 0004](adr/0004-infraestrutura-hospedagem.md)). Pontos: 1, 2, 3, 5, 8 (ver [plano/00-visao-geral.md](plano/00-visao-geral.md)).
 
 ## Resumo
 
@@ -35,7 +35,7 @@ Status: `todo`, `doing`, `done`. Pontos: 1, 2, 3, 5, 8 (ver [plano/00-visao-gera
 | [RN-013](plano/fase-0-fundacao.md#rn-013--layout-base-do-painel) | Layout base do painel | feature | 3 | RN-002, RN-019 | todo |
 | [RN-014](plano/fase-0-fundacao.md#rn-014--cicd) | CI/CD | infra | 3 | RN-001, RN-003 | todo |
 | [RN-015](plano/fase-0-fundacao.md#rn-015--validações-regulatórias-e-de-licenças) | Validações regulatórias e de licenças | pesquisa | 2 | — | todo |
-| [RN-016](plano/fase-0-fundacao.md#rn-016--termos-de-uso-política-de-privacidade-e-dpa) | Termos de Uso, Política de Privacidade e DPA | doc | 3 | RN-015 | todo |
+| [RN-016](plano/fase-0-fundacao.md#rn-016--termos-de-uso-política-de-privacidade-e-dpa) | Termos de Uso, Política de Privacidade e DPA | doc | 3 | RN-015 | adiado |
 | [RN-017](plano/fase-0-fundacao.md#rn-017--observabilidade-e-tratamento-de-erros) | Observabilidade e tratamento de erros | infra | 2 | RN-002 | todo |
 | [RN-018](plano/fase-0-fundacao.md#rn-018--gestão-de-segredos-e-variáveis-de-ambiente) | Gestão de segredos e variáveis de ambiente | infra | 1 | RN-003 | todo |
 | [RN-019](plano/fase-0-fundacao.md#rn-019--identidade-visual-e-design-system-inicial) | Identidade visual e design system inicial | feature | 3 | RN-002 | todo |
@@ -45,7 +45,7 @@ Status: `todo`, `doing`, `done`. Pontos: 1, 2, 3, 5, 8 (ver [plano/00-visao-gera
 | ID | Item | Tipo | Pts | Depende de | Status |
 |---|---|---|---|---|---|
 | [RN-020](plano/fase-1-mvp-clinico.md#rn-020--pacientes-cadastro-busca-e-filtros) | Pacientes: cadastro, busca e filtros | feature | 5 | RN-008, RN-013 | todo |
-| [RN-021](plano/fase-1-mvp-clinico.md#rn-021--consentimento-lgpd-do-paciente) | Consentimento LGPD do paciente | feature | 3 | RN-016, RN-020 | todo |
+| [RN-021](plano/fase-1-mvp-clinico.md#rn-021--consentimento-lgpd-do-paciente) | Consentimento LGPD do paciente | feature | 3 | RN-016, RN-020 | adiado |
 | [RN-022](plano/fase-1-mvp-clinico.md#rn-022--agenda) | Agenda | feature | 8 | RN-020 | todo |
 | [RN-023](plano/fase-1-mvp-clinico.md#rn-023--prontuário-linha-do-tempo-e-evolução) | Prontuário: linha do tempo e evolução | feature | 5 | RN-020, RN-009 | todo |
 | [RN-024](plano/fase-1-mvp-clinico.md#rn-024--anamnese-modelos-padrão) | Anamnese: modelos padrão | feature | 3 | RN-025 | todo |
@@ -88,7 +88,7 @@ Status: `todo`, `doing`, `done`. Pontos: 1, 2, 3, 5, 8 (ver [plano/00-visao-gera
 | [RN-056](plano/fase-2-gestao.md#rn-056--crm-funil-e-retornos-atrasados) | CRM: funil e retornos atrasados | feature | 5 | RN-020, RN-022 | todo |
 | [RN-057](plano/fase-2-gestao.md#rn-057--planos-do-saas-trial-e-cobrança-recorrente) | Planos do SaaS, trial e cobrança recorrente | feature | 8 | RN-004, RN-062 | todo |
 | [RN-058](plano/fase-2-gestao.md#rn-058--sincronização-com-google-calendar) | Sincronização com Google Calendar | feature | 5 | RN-022 | todo |
-| [RN-059](plano/fase-2-gestao.md#rn-059--preferências-de-comunicação-e-opt-out-lgpd) | Preferências de comunicação e opt-out (LGPD) | feature | 3 | RN-021 | todo |
+| [RN-059](plano/fase-2-gestao.md#rn-059--preferências-de-comunicação-e-opt-out-lgpd) | Preferências de comunicação e opt-out (LGPD) | feature | 3 | RN-021 | adiado |
 | [RN-060](plano/fase-2-gestao.md#rn-060--log-de-mensagens-e-painel-de-entregas) | Log de mensagens e painel de entregas | feature | 3 | RN-050 | todo |
 | [RN-061](plano/fase-2-gestao.md#rn-061--bloqueio-por-inadimplência-e-régua-de-cobrança) | Bloqueio por inadimplência e régua de cobrança | feature | 5 | RN-057, RN-062 | todo |
 | [RN-062](plano/fase-2-gestao.md#rn-062--webhooks-do-gateway-com-idempotência) | Webhooks do gateway com idempotência | infra | 3 | RN-057 (pode ser desenvolvido em paralelo) | todo |
@@ -113,7 +113,7 @@ Status: `todo`, `doing`, `done`. Pontos: 1, 2, 3, 5, 8 (ver [plano/00-visao-gera
 | [RN-078](plano/fase-3-app-paciente-ia.md#rn-078--manifest-service-worker-e-cache-offline) | Manifest, service worker e cache offline | infra | 3 | RN-070 | todo |
 | [RN-079](plano/fase-3-app-paciente-ia.md#rn-079--marca-do-nutricionista-no-app) | Marca do nutricionista no app | feature | 2 | RN-078 | todo |
 | [RN-080](plano/fase-3-app-paciente-ia.md#rn-080--painel-de-adesão-para-o-nutricionista) | Painel de adesão para o nutricionista | feature | 5 | RN-073 | todo |
-| [RN-081](plano/fase-3-app-paciente-ia.md#rn-081--pseudonimização-antes-do-envio-ao-llm) | Pseudonimização antes do envio ao LLM | feature | 3 | RN-082 | todo |
+| [RN-081](plano/fase-3-app-paciente-ia.md#rn-081--pseudonimização-antes-do-envio-ao-llm) | Pseudonimização antes do envio ao LLM | feature | 3 | RN-082 | adiado |
 | [RN-082](plano/fase-3-app-paciente-ia.md#rn-082--camada-de-acesso-ao-llm-packagesai) | Camada de acesso ao LLM (`packages/ai`) | infra | 3 | RN-014 | todo |
 | [RN-083](plano/fase-3-app-paciente-ia.md#rn-083--schemas-zod-de-saída-da-ia) | Schemas Zod de saída da IA | feature | 2 | RN-082 | todo |
 | [RN-084](plano/fase-3-app-paciente-ia.md#rn-084--avaliação-de-qualidade-da-ia-com-casos-de-teste) | Avaliação de qualidade da IA com casos de teste | feature | 5 | RN-075, RN-076 | todo |

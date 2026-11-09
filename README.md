@@ -28,6 +28,8 @@ A Rafanutri reúne as áreas da nutrição em um só lugar: atendimento clínico
 
 ## Por que a Rafanutri
 
+> **MVP:** tudo roda na VPS existente, com WhatsApp pela Evolution API e IA pelo OpenRouter. A adequação à LGPD fica para depois do MVP ([ADR 0004](docs/adr/0004-infraestrutura-hospedagem.md)).
+
 - **Nutricionistas** usam várias ferramentas soltas: uma para calcular dieta, outra para agenda, WhatsApp para falar com o paciente e planilha para o financeiro. A Rafanutri junta tudo e usa IA para reduzir o tempo de montar um plano alimentar para **menos de 10 minutos**.
 - **Pacientes** recebem o plano no celular, com substituições, lista de compras e metas de hidratação.
 - **Empresas de alimentação** substituem papel e planilha por checklists digitais, fichas técnicas com custo e documentação de Boas Práticas pronta para a fiscalização (RDC 216/2004).
@@ -79,7 +81,7 @@ Ver [docs/01-visao-produto.md](docs/01-visao-produto.md).
 | IA | API de LLM com saída estruturada + RAG em pgvector |
 | App do paciente | PWA (primeira versão) → Expo/React Native |
 | Qualidade | Vitest, Playwright, pgTAP, ESLint, Prettier |
-| Infra | GitHub Actions; staging e n8n na VPS existente (Oracle ARM + Coolify/Traefik); produção com Supabase em São Paulo e app web hospedado no Brasil; Sentry ([ADR 0004](docs/adr/0004-infraestrutura-hospedagem.md)) |
+| Infra | MVP inteiro na VPS existente (Oracle ARM + Coolify/Traefik): app web, Supabase self-hosted e n8n; backup diário externo; Sentry ([ADR 0004](docs/adr/0004-infraestrutura-hospedagem.md)) |
 
 Decisões registradas em [docs/adr/](docs/adr/).
 
@@ -181,14 +183,13 @@ Critérios completos de pronto em [docs/plano/00-visao-geral.md](docs/plano/00-v
 
 ## Segurança e LGPD
 
-A plataforma trata **dados sensíveis de saúde**. Princípios:
+A plataforma trata **dados sensíveis de saúde**. No MVP, a adequação à LGPD está adiada, mas valem sempre:
 
 - Isolamento por organização com RLS e testes automatizados.
-- Auditoria de acesso e alteração de prontuário.
-- Consentimento do paciente registrado com versão do termo.
-- Dados hospedados no Brasil (Supabase São Paulo).
-- Dados enviados à IA são pseudonimizados; a IA sugere, o nutricionista decide.
-- Nenhum dado real fora de produção.
+- Segredos fora do repositório.
+- Backup diário do banco fora da VPS, com teste de restauração.
+
+O alvo pós-MVP inclui auditoria, consentimento do paciente, dados no Brasil e IA com dados pseudonimizados.
 
 Ver [docs/05-seguranca-lgpd.md](docs/05-seguranca-lgpd.md).
 

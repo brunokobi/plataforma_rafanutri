@@ -31,14 +31,14 @@
 | Formulários e validação | React Hook Form + Zod | Schemas Zod compartilhados entre front e Edge Functions |
 | Gráficos | Recharts | Evolução antropométrica, curvas OMS |
 | PDF | Geração no servidor (React PDF ou Playwright) | Plano alimentar, recibos, relatórios |
-| Banco | Supabase Postgres | Migrações versionadas com Supabase CLI |
+| Banco | Supabase Postgres (self-hosted no MVP) | Migrações versionadas com Supabase CLI |
 | Autenticação | Supabase Auth | E-mail/senha, Google, magic link para paciente |
 | Arquivos | Supabase Storage | Buckets privados com URLs assinadas |
 | Lógica de servidor | Server Actions do Next.js + Edge Functions | Cálculos sensíveis e integrações com IA ficam no servidor |
 | Automação | n8n (self-hosted) | WhatsApp, e-mail, lembretes, rotinas |
 | IA | API de LLM + pgvector | Chave de API somente no servidor |
 | Testes | Vitest (unidade), Playwright (e2e) | Cálculos nutricionais com cobertura alta |
-| CI/CD | GitHub Actions; staging na VPS via Coolify; produção em hospedagem no Brasil | Ver [ADR 0004](adr/0004-infraestrutura-hospedagem.md) |
+| CI/CD | GitHub Actions; deploy de staging e produção na vpsrafa via Coolify | Ver [ADR 0004](adr/0004-infraestrutura-hospedagem.md) |
 | Observabilidade | Sentry + logs do Supabase | |
 
 ## Organização do código (monorepo proposto)
@@ -84,22 +84,24 @@ Ver [ADR 0002](adr/0002-multi-tenant-rls.md).
 
 ## Ambientes
 
-Decisão completa em [ADR 0004](adr/0004-infraestrutura-hospedagem.md).
+Decisão completa em [ADR 0004](adr/0004-infraestrutura-hospedagem.md). No MVP, tudo roda na VPS existente (vpsrafa).
 
 | Ambiente | Supabase | Web | n8n | Dados |
 |---|---|---|---|---|
 | Local | Supabase CLI (Docker) | `pnpm dev` | Container local opcional | Seed sintético |
-| Staging | Supabase Cloud, projeto gratuito | **VPS existente via Coolify** (deploy de `main` e previews por PR) | Instância dedicada da Rafanutri na VPS | Seed sintético |
-| Produção | Supabase Cloud Pro, região São Paulo | Vercel Pro (região `gru1`) ou VPS paga no Brasil | Instância dedicada (dados mínimos) | Reais |
+| Staging | Self-hosted na vpsrafa | Coolify na vpsrafa (deploy de `main`) | Instância dedicada da Rafanutri | Seed sintético |
+| Produção (MVP) | Self-hosted na vpsrafa, banco separado do staging | Coolify na vpsrafa (deploy por tag) | Mesma instância dedicada | Reais |
 
-Migrações e deploy em produção só por pipeline, com aprovação manual.
+Migrações e deploy em produção só por pipeline, com aprovação manual. Backup diário do Postgres para um bucket fora da VPS.
 
-## Infraestrutura existente (VPS)
+## Infraestrutura do MVP (vpsrafa)
 
-Uma VPS Oracle Cloud (ARM64, 2 OCPU, 12 GB, Frankfurt) com Coolify e Traefik já está em operação e compartilha a máquina com outros projetos. Uso na Rafanutri:
+VPS Oracle Cloud Always Free (ARM64, 2 OCPU, 12 GB, Frankfurt) com Coolify e Traefik, compartilhada com outros projetos.
 
-- **Sim:** staging, previews, demonstrações comerciais, n8n dedicado da Rafanutri, utilitários sem dado de paciente.
-- **Não:** banco ou arquivos com dados reais de pacientes, nem chaves de produção guardadas fora do Coolify ou dos secrets do CI.
-- Os containers da Rafanutri ficam em rede Docker própria; só o Traefik é compartilhado.
-- Imagens precisam ter build **ARM64** (ex.: `pgvector/pgvector:pg16`); o Next.js roda em ARM sem ajuste.
-- O monitor externo de disponibilidade continua obrigatório para evitar que a Oracle reclame a instância por ociosidade.
+- **Supabase self-hosted** pelo template do Coolify; Studio e Postgres sem acesso público.
+- **n8n dedicado** da Rafanutri, separado do n8n pessoal.
+- **WhatsApp** pela Evolution API; **IA** pelo OpenRouter com fallback entre modelos `:free`.
+- Containers da Rafanutri em rede Docker própria; só o Traefik é compartilhado.
+- Imagens com build **ARM64** (ex.: `pgvector/pgvector:pg16`).
+- Monitor externo de disponibilidade obrigatório, para evitar que a Oracle reclame a instância por ociosidade.
+- A migração para serviços gerenciados no Brasil acontece quando um dos gatilhos do ADR 0004 ocorrer.
