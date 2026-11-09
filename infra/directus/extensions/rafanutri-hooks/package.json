@@ -1,0 +1,6 @@
+{
+  "name": "directus-extension-rafanutri-hooks",
+  "version": "0.1.0",
+  "type": "module",
+  "directus:extension": { "type": "hook", "path": "dist/index.js", "source": "dist/index.js", "host": "^11.0.0" }
+}

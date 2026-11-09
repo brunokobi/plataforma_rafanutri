@@ -1,0 +1,53 @@
+# Ambiente local da Rafanutri: Postgres + Directus.
+# Na VPS, o mesmo compose roda no Coolify (ver docs/adr/0008-backend-directus.md).
+name: rafanutri
+
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: rafanutri
+      POSTGRES_USER: rafanutri
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?defina DB_PASSWORD no .env}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:${DB_PORT:-55432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rafanutri -d rafanutri"]
+      interval: 5s
+      retries: 20
+
+  directus:
+    image: directus/directus:11.17.4
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${DIRECTUS_PORT:-8055}:8055"
+    volumes:
+      - uploads:/directus/uploads
+      - ./extensions:/directus/extensions
+    environment:
+      KEY: ${DIRECTUS_KEY:?defina DIRECTUS_KEY}
+      SECRET: ${DIRECTUS_SECRET:?defina DIRECTUS_SECRET}
+      PUBLIC_URL: ${DIRECTUS_PUBLIC_URL:-http://localhost:8055}
+      DB_CLIENT: pg
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_DATABASE: rafanutri
+      DB_USER: rafanutri
+      DB_PASSWORD: ${DB_PASSWORD}
+      ADMIN_EMAIL: ${DIRECTUS_ADMIN_EMAIL:?defina DIRECTUS_ADMIN_EMAIL}
+      ADMIN_PASSWORD: ${DIRECTUS_ADMIN_PASSWORD:?defina DIRECTUS_ADMIN_PASSWORD}
+      CORS_ENABLED: "true"
+      CORS_ORIGIN: ${WEB_ORIGIN:-http://localhost:3000}
+      ACCESS_TOKEN_TTL: 15m
+      REFRESH_TOKEN_TTL: 7d
+      EXTENSIONS_AUTO_RELOAD: ${EXTENSIONS_AUTO_RELOAD:-false}
+      TELEMETRY: "false"
+      WEBSOCKETS_ENABLED: "false"
+
+volumes:
+  db_data:
+  uploads:

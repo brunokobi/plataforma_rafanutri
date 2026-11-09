@@ -2,21 +2,24 @@
   "name": "rafanutri",
   "private": true,
   "packageManager": "pnpm@9.15.9",
-  "engines": { "node": ">=20.9" },
+  "engines": {
+    "node": ">=20.9"
+  },
   "scripts": {
     "dev": "turbo run dev --filter=@rafanutri/web",
     "build": "turbo run build",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
-    "db:start": "supabase start -x studio,imgproxy,vector,logflare,edge-runtime,supavisor",
-    "db:stop": "supabase stop",
-    "db:reset": "supabase db reset",
-    "db:test": "supabase test db",
-    "db:types": "supabase gen types typescript --local > packages/db/src/database.types.ts"
+    "directus:up": "docker compose -f infra/directus/docker-compose.yml --env-file infra/directus/.env up -d",
+    "directus:down": "docker compose -f infra/directus/docker-compose.yml --env-file infra/directus/.env down",
+    "db:migrate": "node --env-file=infra/directus/.env scripts/db-migrate.mjs",
+    "directus:bootstrap": "node --env-file=infra/directus/.env scripts/directus-bootstrap.mjs",
+    "test:api": "node --env-file=infra/directus/.env --test scripts/tests/"
   },
   "devDependencies": {
-    "supabase": "2.122.1",
+    "@directus/sdk": "21.3.0",
+    "pg": "8.23.1",
     "turbo": "2.11.10",
     "typescript": "5.9.3"
   }
