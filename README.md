@@ -1,6 +1,29 @@
-# Rafanutri
+<h1 align="center">Rafanutri</h1>
 
-**A plataforma de trabalho do nutricionista, do consultório à cozinha industrial.**
+<p align="center"><strong>A plataforma de trabalho do nutricionista, do consultório à cozinha industrial.</strong></p>
+
+<p align="center">
+  <a href="docs/plano/00-visao-geral.md"><img alt="status: planejamento" src="https://img.shields.io/badge/status-planejamento-F59E0B?style=flat-square"></a>
+  <a href="docs/06-plano-implementacao.md"><img alt="roadmap: 8 fases" src="https://img.shields.io/badge/roadmap-8%20fases-2E7D32?style=flat-square"></a>
+  <a href="docs/07-backlog.md"><img alt="backlog: 204 itens" src="https://img.shields.io/badge/backlog-204%20itens-2E7D32?style=flat-square"></a>
+  <a href="docs/adr/"><img alt="ADRs: 5" src="https://img.shields.io/badge/ADRs-5-2E7D32?style=flat-square"></a>
+  <img alt="docs: pt-BR" src="https://img.shields.io/badge/docs-pt--BR-009C3B?style=flat-square">
+  <img alt="licença: proprietária" src="https://img.shields.io/badge/licen%C3%A7a-propriet%C3%A1ria-6B7280?style=flat-square">
+</p>
+<p align="center">
+  <a href="https://nextjs.org"><img alt="Next.js: App Router" src="https://img.shields.io/badge/Next.js-App%20Router-000000?style=flat-square&logo=nextdotjs&logoColor=white"></a>
+  <a href="https://www.typescriptlang.org"><img alt="TypeScript: strict" src="https://img.shields.io/badge/TypeScript-strict-3178C6?style=flat-square&logo=typescript&logoColor=white"></a>
+  <a href="https://tailwindcss.com"><img alt="Tailwind CSS: 4" src="https://img.shields.io/badge/Tailwind%20CSS-4-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white"></a>
+  <a href="docs/adr/0008-backend-directus.md"><img alt="Directus: 12" src="https://img.shields.io/badge/Directus-12-6644FF?style=flat-square&logo=directus&logoColor=white"></a>
+  <a href="https://www.postgresql.org"><img alt="PostgreSQL: 16 + pgvector" src="https://img.shields.io/badge/PostgreSQL-16%20%2B%20pgvector-4169E1?style=flat-square&logo=postgresql&logoColor=white"></a>
+  <a href="https://n8n.io"><img alt="n8n: automações" src="https://img.shields.io/badge/n8n-automa%C3%A7%C3%B5es-EA4B71?style=flat-square&logo=n8n&logoColor=white"></a>
+</p>
+<p align="center">
+  <a href="docs/adr/0004-infraestrutura-hospedagem.md"><img alt="Oracle Cloud: ARM64" src="https://img.shields.io/badge/Oracle%20Cloud-ARM64-F80000?style=flat-square"></a>
+  <img alt="Docker: Compose" src="https://img.shields.io/badge/Docker-Compose-2496ED?style=flat-square&logo=docker&logoColor=white">
+  <img alt="Coolify: Traefik" src="https://img.shields.io/badge/Coolify-Traefik-8C52FF?style=flat-square&logo=coolify&logoColor=white">
+  <img alt="Cloudflare: DNS" src="https://img.shields.io/badge/Cloudflare-DNS-F38020?style=flat-square&logo=cloudflare&logoColor=white">
+</p>
 
 A Rafanutri reúne as áreas da nutrição em um só lugar: atendimento clínico e esportivo, nutrição materno-infantil, saúde pública, Unidades de Alimentação e Nutrição (UAN) com gestão de qualidade, e gestão do negócio do nutricionista. Também traz assistentes de IA e um app para o paciente acompanhar o plano alimentar.
 
