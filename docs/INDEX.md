@@ -10,8 +10,16 @@
 - [05 — Segurança, LGPD e regulatório](05-seguranca-lgpd.md): dados sensíveis de saúde, prontuário, CFN, ANVISA.
 
 ## Execução
-- [06 — Plano de implementação](06-plano-implementacao.md): fases 0 a 6, entregas, critérios de pronto e riscos.
-- [07 — Backlog](07-backlog.md): itens numerados por fase.
+- [06 — Plano de implementação](06-plano-implementacao.md): resumo executivo das fases 0 a 6.
+- [Plano detalhado](plano/00-visao-geral.md): cronograma, marcos, Definition of Ready/Done, fluxo de trabalho.
+  - [Fase 0 — Fundação](plano/fase-0-fundacao.md)
+  - [Fase 1 — MVP Clínico](plano/fase-1-mvp-clinico.md)
+  - [Fase 2 — Gestão do consultório](plano/fase-2-gestao.md)
+  - [Fase 3 — App do paciente + IA](plano/fase-3-app-paciente-ia.md)
+  - [Fase 4 — Materno-infantil](plano/fase-4-materno-infantil.md)
+  - [Fase 5 — UAN e Qualidade](plano/fase-5-uan-qualidade.md)
+  - [Fase 6 — Saúde pública e avançados](plano/fase-6-saude-publica-avancados.md)
+- [07 — Backlog](07-backlog.md): índice consolidado de todos os itens; o detalhe de cada item está no documento da fase.
 
 ## Decisões
 - [ADR 0001 — Stack inicial](adr/0001-stack.md)

@@ -1,5 +1,7 @@
 # 06 — Plano de implementação
 
+> Este é o resumo executivo. O plano detalhado, com modelo de dados, telas, tarefas técnicas, critérios de aceite e testes de cada item, está em [plano/00-visao-geral.md](plano/00-visao-geral.md) e nos documentos de cada fase.
+
 ## Estratégia
 
 1. **Fundação** sólida (multi-tenant, segurança, base de alimentos) para não refazer depois.
