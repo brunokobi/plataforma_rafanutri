@@ -318,6 +318,7 @@ Todas as fórmulas vivem em `packages/nutrition-core`, como funções puras, com
 | Jackson, Pollock & Ward 7 (mulheres) | mesmas 7 | DC = 1,097 − 0,00046971·S + 0,00000056·S² − 0,00012828·idade |
 | Durnin & Womersley (1974) | bíceps, tríceps, subescapular, suprailíaca | DC = c − m·log10(S), coeficientes c e m por sexo e faixa etária — implementar a tabela original (A validar) |
 | Faulkner (1968) | tríceps, subescapular, suprailíaca, abdominal | %G = 0,153·S + 5,783 (direto, sem DC) |
+| Perfil restrito ISAK | tríceps, subescapular, bíceps, crista ilíaca, supraespinal, abdominal, coxa, panturrilha | Indicador principal: **somatório de 6 e de 8 dobras** (mm). Medidas em duplicata (triplicata se a diferença passar de 5%), usando a média (ou a mediana com 3 medidas) |
 
 Conversão de densidade em % de gordura:
 - Siri (1961): %G = (4,95 / DC − 4,50) × 100
@@ -524,6 +525,7 @@ P = peso (kg), A = altura (cm), I = idade (anos), MLG = massa livre de gordura (
 - **Tarefas técnicas:**
   - [ ] `bmi()`, `classifyBmi(age)`, `waistRisk()`, `waistHipRatio()`, `waistHeightRatio()`, `adjustedWeight()`
   - [ ] Protocolos: `jacksonPollock3`, `jacksonPollock7`, `durninWomersley`, `faulkner`
+  - [ ] Perfil ISAK: `isakSkinfoldSums()` (somatório de 6 e de 8 dobras) e `isakSiteValue()` (média de duplicata ou mediana de triplicata, com regra de 5%)
   - [ ] `siri()`, `brozek()`, `bodyComposition()`
   - [ ] Validação de entradas (faixas plausíveis, dobras exigidas por protocolo) com erros tipados
   - [ ] Constante `CALC_VERSION` exportada
@@ -546,6 +548,8 @@ P = peso (kg), A = altura (cm), I = idade (anos), MLG = massa livre de gordura (
   - [ ] Histórico em tabela com comparação entre duas avaliações (diferença absoluta e %)
   - [ ] Gráficos (Recharts): peso, IMC, % gordura, massa magra, circunferências ao longo do tempo
   - [ ] Fotos de evolução opcionais (bucket privado, URL assinada)
+  - [ ] Protocolo padrão por organização e por paciente (a avaliação nova já abre com o protocolo usado na anterior, para manter a comparação)
+  - [ ] Perfil ISAK: campos das 8 dobras com 2 ou 3 medidas por ponto e gráfico do somatório de dobras ao longo do tempo
 - **Arquivos/áreas:** `supabase/migrations`, `apps/web/app/(app)/[orgSlug]/pacientes/[id]/avaliacoes`
 - **Critérios de aceite:**
   - Quando preencho as dobras do protocolo escolhido, então os resultados aparecem sem salvar, e ao salvar ficam gravados com protocolo e `calc_version`.
@@ -600,6 +604,7 @@ P = peso (kg), A = altura (cm), I = idade (anos), MLG = massa livre de gordura (
   - [ ] Orientações gerais e por refeição, inserindo textos padrão
   - [ ] Publicar plano: congela `published_snapshot`, arquiva o plano anterior vigente
   - [ ] Desempenho: editor responsivo com 60+ itens
+  - [ ] **Modo qualitativo** (nutrição comportamental): plano sem quantidades e sem calorias, com refeições descritas por grupos e opções, orientações e escalas de fome e saciedade; o PDF e a área do paciente seguem o modo escolhido
 - **Arquivos/áreas:** `supabase/migrations`, `apps/web/app/(app)/[orgSlug]/pacientes/[id]/planos/[pid]`, `packages/ui`
 - **Critérios de aceite:**
   - Usando apenas o teclado, consigo adicionar um alimento a uma refeição em menos de 5 segundos.

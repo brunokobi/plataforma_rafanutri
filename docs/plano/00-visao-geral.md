@@ -8,7 +8,7 @@ Este é o plano detalhado da Rafanutri. O resumo executivo está em [../06-plano
 |---|---|---|---|
 | 0 | [Fundação](fase-0-fundacao.md) | RN-001 a RN-019 | 3 semanas |
 | 1 | [MVP Clínico](fase-1-mvp-clinico.md) | RN-020 a RN-049 | 8 semanas |
-| 1B | [Plano gratuito e área do paciente](fase-1b-freemium-area-paciente.md) | RN-200 a RN-214 | 3 semanas |
+| 1B | [Plano gratuito e área do paciente](fase-1b-freemium-area-paciente.md) | RN-200 a RN-219 | 3 semanas |
 | 2 | [Gestão do consultório](fase-2-gestao.md) | RN-050 a RN-069 | 4 semanas |
 | 3 | [App do paciente + IA](fase-3-app-paciente-ia.md) | RN-070 a RN-099 | 6 semanas |
 | 4 | [Materno-infantil](fase-4-materno-infantil.md) | RN-100 a RN-119 | 4 semanas |
@@ -102,8 +102,8 @@ Cada item do backlog, nos documentos de fase, segue:
 |---|---|---|---|
 | 0 | 58 | 3 × 2 | 9,7 |
 | 1 | 119 | 8 × 2 | 7,4 |
-| 1B | 47 | 3 × 2 | 7,8 |
-| 2 | 64 | 4 × 2 | 8,0 |
+| 1B | 50 | 3 × 2 | 8,3 |
+| 2 | 69 | 4 × 2 | 8,6 |
 | 3 | 63 | 6 × 2 | 5,3 |
 | 4 | 65 | 4 × 2 | 8,1 |
 | 5 | 209 | 10 × 2 | 10,5 (no limite) |
