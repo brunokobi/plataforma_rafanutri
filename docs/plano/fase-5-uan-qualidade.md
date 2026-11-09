@@ -543,6 +543,7 @@ Referências: ANVISA RDC nº 429/2020 e IN nº 75/2020. Todos os valores abaixo 
   - [ ] Roteiro de entrevista (rotina, ferramentas atuais, autuações, quem preenche o quê)
   - [ ] Coletar exemplos reais de checklists, fichas técnicas e POPs
   - [ ] Levantar a legislação sanitária estadual e municipal dos pilotos
+  - [ ] Avaliar o app **BPF Check** já existente (backend na VPS, ver [ADR 0004](../adr/0004-infraestrutura-hospedagem.md)): modelos de checklist, fluxo mobile, workflow multiagente e usuários atuais; decidir entre integrar, migrar ou reaproveitar partes
   - [ ] Registrar as conclusões em `docs/pesquisa/uan-discovery.md`
 - **Arquivos/áreas:** `docs/pesquisa/`
 - **Critérios de aceite:** Dadas as entrevistas, quando a fase começar, então há um cliente piloto confirmado e a lista de normas locais aplicáveis.

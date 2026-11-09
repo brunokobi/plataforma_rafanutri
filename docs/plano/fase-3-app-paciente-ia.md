@@ -579,7 +579,7 @@ Nutricionista (parâmetros) ─▶ Server Action ─▶ checa cota ─▶ monta 
   - [ ] Tabela de preços por modelo em `pricing.ts`
   - [ ] Chave de API só em variável de ambiente do servidor; proibir import de `packages/ai` em componentes cliente (lint rule `server-only`)
   - [ ] Modo mock para testes e para ambientes locais sem chave
-- **Arquivos/áreas:** `packages/ai/`, `docs/adr/0005-llm-provider.md`
+- **Arquivos/áreas:** `packages/ai/`, `docs/adr/0006-llm-provider.md`
 - **Critérios de aceite:**
   - Dado um componente cliente que importa `packages/ai`, quando o build roda, então falha.
   - Dado o provedor lento, quando passa o timeout, então a chamada é abortada e registrada como `failed`.
@@ -687,7 +687,7 @@ Nutricionista (parâmetros) ─▶ Server Action ─▶ checa cota ─▶ monta 
 - **Depende de:** RN-082, RN-081
 - **Descrição:** Atualizar Termos de Uso e Política de Privacidade (provedor de IA como suboperador, finalidade, ausência de treinamento com dados), termo do app do paciente e documentação técnica.
 - **Tarefas técnicas:**
-  - [ ] ADR 0005 (provedor de LLM) e ADR 0006 (estratégia offline do PWA)
+  - [ ] ADR 0006 (provedor de LLM) e ADR 0007 (estratégia offline do PWA)
   - [ ] `docs/ia/` com prompts versionados, métricas e limites
   - [ ] Atualizar `docs/04-modelo-dados.md` e `docs/05-seguranca-lgpd.md`
   - [ ] Texto para o nutricionista explicando como a IA funciona e seus limites

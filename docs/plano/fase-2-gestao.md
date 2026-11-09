@@ -451,14 +451,16 @@ Usar a **WhatsApp Business Platform (Cloud API da Meta)** via provedor/BSP brasi
 - **Depende de:** RN-003, RN-014
 - **Descrição:** Provisionar n8n em produção e staging com persistência em Postgres próprio, HTTPS, autenticação e backup, e conectá-lo ao Supabase por Edge Function com segredo compartilhado.
 - **Tarefas técnicas:**
-  - [ ] Escolher hospedagem (VPS com Docker Compose ou Railway/Render) e documentar custo
-  - [ ] Docker Compose com n8n + Postgres + Caddy/Traefik (TLS)
+  - [ ] Hospedagem conforme [ADR 0004](../adr/0004-infraestrutura-hospedagem.md): instância **dedicada** da Rafanutri na VPS existente (Coolify + Traefik), separada do n8n pessoal, com `N8N_ENCRYPTION_KEY`, credenciais e banco próprios
+  - [ ] Docker Compose com n8n + Postgres próprio, em rede Docker exclusiva; roteamento pelo Traefik já existente (labels), TLS por Let's Encrypt
+  - [ ] Monitor externo de disponibilidade (evitar reclamação da instância por ociosidade)
+  - [ ] Payloads enviados ao n8n limitados ao mínimo (primeiro nome, telefone, data/hora, link); nada clínico
   - [ ] Variáveis: `N8N_ENCRYPTION_KEY`, `WEBHOOK_URL`, autenticação de usuário, `GENERIC_TIMEZONE=America/Sao_Paulo`
   - [ ] Edge Function `messaging-gateway` com validação HMAC (`X-Rafanutri-Signature`)
   - [ ] Workflow de erro global (alerta por e-mail/Slack)
   - [ ] Exportar workflows como JSON em `n8n/workflows/` e script de import
   - [ ] Comparar BSPs de WhatsApp (custo por conversa, aprovação de template, SLA) e registrar ADR
-- **Arquivos/áreas:** `n8n/docker-compose.yml`, `n8n/workflows/`, `supabase/functions/messaging-gateway/`, `docs/adr/0004-whatsapp-provider.md`
+- **Arquivos/áreas:** `n8n/docker-compose.yml`, `n8n/workflows/`, `supabase/functions/messaging-gateway/`, `docs/adr/0005-whatsapp-provider.md`
 - **Critérios de aceite:**
   - Dado o n8n em staging, quando chama `messaging-gateway` sem assinatura válida, então recebe 401.
   - Dado um workflow que falha, quando a falha ocorre, então o alerta chega ao canal configurado em até 5 min.

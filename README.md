@@ -79,7 +79,7 @@ Ver [docs/01-visao-produto.md](docs/01-visao-produto.md).
 | IA | API de LLM com saída estruturada + RAG em pgvector |
 | App do paciente | PWA (primeira versão) → Expo/React Native |
 | Qualidade | Vitest, Playwright, pgTAP, ESLint, Prettier |
-| Infra | GitHub Actions, Vercel, Supabase (região São Paulo), Sentry |
+| Infra | GitHub Actions; staging e n8n na VPS existente (Oracle ARM + Coolify/Traefik); produção com Supabase em São Paulo e app web hospedado no Brasil; Sentry ([ADR 0004](docs/adr/0004-infraestrutura-hospedagem.md)) |
 
 Decisões registradas em [docs/adr/](docs/adr/).
 

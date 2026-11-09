@@ -43,6 +43,18 @@ A Rafanutri trata **dados pessoais sensíveis de saúde** (LGPD, art. 5º, II, e
 
 As validações da coluna "A validar" ficam como tarefas no backlog (Fase 0) e devem ser conferidas com a nutricionista responsável técnica e, se necessário, com assessoria jurídica.
 
+## Infraestrutura e ferramentas de terceiros
+
+Detalhes no [ADR 0004](adr/0004-infraestrutura-hospedagem.md).
+
+| Ferramenta | Pode receber dados reais de pacientes? | Motivo |
+|---|---|---|
+| VPS Oracle Always Free (Frankfurt, compartilhada) | **Não** | Sem SLA, risco de reclamação da instância, host compartilhado, dados fora do Brasil |
+| n8n dedicado da Rafanutri | Só dados mínimos de contato e agenda | Necessário para os lembretes; nada clínico passa por ele |
+| Modelos `:free` do OpenRouter | **Não** | Sem garantia contratual de não registrar ou treinar com os prompts |
+| Evolution API (WhatsApp não oficial) | **Não** | Risco de bloqueio e de violar os termos do WhatsApp; produção usa a API oficial |
+| Supabase Cloud (São Paulo) | Sim | Operador com contrato, backups e dados no Brasil |
+
 ## Práticas de desenvolvimento
 
 - Nenhum dado real de paciente em ambiente local ou de staging; usar dados sintéticos do `seed`.

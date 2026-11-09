@@ -25,6 +25,8 @@
 - [ADR 0001 — Stack inicial](adr/0001-stack.md)
 - [ADR 0002 — Multi-tenant com RLS](adr/0002-multi-tenant-rls.md)
 - [ADR 0003 — App do paciente como PWA primeiro](adr/0003-app-paciente-pwa.md)
+- [ADR 0004 — Infraestrutura e uso da VPS existente](adr/0004-infraestrutura-hospedagem.md)
+- ADRs 0005 (provedor de WhatsApp), 0006 (provedor de LLM) e 0007 (estratégia offline do PWA) serão escritos nas Fases 2 e 3.
 
 ## Convenções
 - Documentação em português do Brasil; código, identificadores, tabelas e colunas em inglês.

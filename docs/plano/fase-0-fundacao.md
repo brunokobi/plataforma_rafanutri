@@ -25,7 +25,8 @@ Deixar pronta a base técnica, de segurança e de dados sobre a qual todos os m�
 ## Pré-requisitos
 
 - Conta GitHub com o repositório `plataforma_rafanutri`.
-- Contas Supabase (organização com 2 projetos: staging e produção), Vercel, Sentry e provedor de e-mail transacional.
+- Contas Supabase (organização com 2 projetos: staging e produção), Sentry e provedor de e-mail transacional.
+- Acesso ao Coolify da VPS existente para o staging; hospedagem de produção escolhida conforme o [ADR 0004](../adr/0004-infraestrutura-hospedagem.md) (Vercel Pro ou VPS paga no Brasil).
 - Domínio registrado (ex.: `rafanutri.com.br`).
 - Acesso aos arquivos oficiais da TACO e da TBCA.
 
@@ -461,7 +462,10 @@ $$;
   - [ ] GitHub Actions: instalar com cache do pnpm, lint, typecheck, testes unitários, build
   - [ ] Job de banco: subir Supabase no runner, aplicar migrações, rodar pgTAP e checar tabelas sem RLS
   - [ ] Job e2e com Playwright contra o build local (em PRs para `main`)
-  - [ ] Vercel: preview por PR e staging no merge em `main`
+  - [ ] Staging na VPS via Coolify: aplicação ligada ao GitHub, deploy automático no merge em `main` e previews por PR, `Dockerfile` multi-stage do Next.js (`output: 'standalone'`) com build ARM64
+  - [ ] Rede Docker própria da Rafanutri; roteamento pelo Traefik existente com subdomínio de staging e TLS automático
+  - [ ] Proteger o staging com autenticação básica ou allowlist (não indexável)
+  - [ ] Produção: configurar a hospedagem escolhida no ADR 0004, com deploy só por tag
   - [ ] Workflow de migração para staging (automático) e produção (manual com aprovação, `environment` protegido)
   - [ ] `pnpm audit` e Dependabot
   - [ ] Proteção da `main`: PR obrigatório, CI verde, 1 aprovação
@@ -527,7 +531,8 @@ $$;
 - **Tarefas técnicas:**
   - [ ] `.env.example` com todas as variáveis, sem valores reais e com descrição
   - [ ] Validação das variáveis na inicialização com Zod (`apps/web/lib/env.ts`), separando públicas (`NEXT_PUBLIC_*`) e de servidor
-  - [ ] Variáveis no Vercel e nos secrets do GitHub por ambiente
+  - [ ] Variáveis no Coolify (staging), na hospedagem de produção e nos secrets do GitHub, por ambiente
+  - [ ] Segredos da Rafanutri nunca no repositório de recuperação da VPS nem em arquivos `.env` versionados
   - [ ] Regra de lint impedindo import de `env` de servidor em componentes de cliente
 - **Arquivos/áreas:** `.env.example`, `apps/web/lib/env.ts`
 - **Critérios de aceite:**

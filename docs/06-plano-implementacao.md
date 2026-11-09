@@ -40,7 +40,7 @@ Entregas:
 - `audit_logs` com gatilhos nas tabelas sensíveis.
 - Importação da TACO (e TBCA, se a licença permitir) para `foods`/`food_nutrients`.
 - Layout base do painel (navegação, tema, componentes) e identidade visual inicial.
-- CI no GitHub Actions: lint, typecheck, testes, build; deploy de preview na Vercel.
+- CI no GitHub Actions: lint, typecheck, testes, build; staging e previews na VPS existente via Coolify (ver ADR 0004).
 - Validação regulatória e de licenças (itens "A validar" de [05-seguranca-lgpd.md](05-seguranca-lgpd.md)).
 
 **Pronto quando:** um usuário cria conta, cria sua organização, convida um assistente, e o teste automatizado prova que outra organização não acessa seus dados.

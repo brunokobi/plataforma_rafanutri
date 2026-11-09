@@ -13,11 +13,11 @@ Equipe pequena, necessidade de chegar rápido a um MVP vendável, dados sensíve
 - **Supabase** como backend: Postgres com RLS, Auth, Storage, Edge Functions e pgvector.
 - **n8n** para automações e integrações de mensageria.
 - **Monorepo** com pnpm + Turborepo; cálculos nutricionais em pacote TypeScript puro (`nutrition-core`).
-- **Vercel** para hospedagem do front; Supabase na região São Paulo.
+- Hospedagem do front e do staging conforme o [ADR 0004](0004-infraestrutura-hospedagem.md): staging na VPS existente (Coolify); produção perto de São Paulo (Vercel Pro ou VPS paga); Supabase de produção na região São Paulo.
 
 ## Consequências
 
 - Menos infraestrutura para manter; foco no domínio.
 - Segurança depende de políticas RLS bem escritas e testadas.
-- Dependência de fornecedor (Supabase/Vercel) mitigada por ser Postgres padrão e Next.js portável.
+- Dependência de fornecedor (Supabase e hospedagem) mitigada por ser Postgres padrão e Next.js portável.
 - Regras de negócio complexas ficam em Server Actions/Edge Functions, não no cliente.
