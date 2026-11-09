@@ -767,6 +767,24 @@ Usar a **WhatsApp Business Platform (Cloud API da Meta)** via provedor/BSP brasi
   - Dado a fase concluída, quando um dev novo lê a documentação, então consegue rodar os workflows em staging.
 - **Testes:** —
 
+### RN-068 — Página pública do nutricionista e agendamento online
+- **Tipo:** feature
+- **Pontos:** 5
+- **Depende de:** RN-022, RN-051
+- **Descrição:** Página pública com a marca do nutricionista (apresentação, especialidades, local e modalidades de atendimento) e agendamento online pelos horários livres da agenda.
+- **Tarefas técnicas:**
+  - [ ] Rota pública `/n/[slug]` com dados editáveis em configurações (foto, bio, especialidades, endereço, valores opcionais)
+  - [ ] Cálculo de horários livres a partir do expediente e das consultas existentes (reaproveitar RN-022)
+  - [ ] Paciente escolhe horário, informa nome, e-mail e telefone; cria `appointments` com status `scheduled` e origem `online_booking`
+  - [ ] Confirmação por e-mail/WhatsApp e lembrete pelos workflows da RN-051
+  - [ ] Antispam (rate limit e captcha simples) e opção de exigir aprovação do nutricionista
+  - [ ] Novo paciente criado conta no limite do plano gratuito (RN-201); se o limite estiver cheio, o agendamento fica pendente de aprovação
+- **Arquivos/áreas:** `apps/web/app/n/[slug]`, `supabase/functions/public-booking`
+- **Critérios de aceite:**
+  - Dado um horário livre, quando o paciente agenda pela página, então a consulta aparece na agenda e ele recebe a confirmação.
+  - Dois pacientes não conseguem reservar o mesmo horário.
+- **Testes:** pgTAP (restrição de sobreposição); e2e do agendamento.
+
 ## Sequência semanal
 
 | Semana | Itens |

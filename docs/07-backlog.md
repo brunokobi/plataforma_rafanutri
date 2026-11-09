@@ -10,8 +10,8 @@ Status: `todo`, `doing`, `done`, `adiado` (fora do MVP, ver [ADR 0004](adr/0004-
 |---|---|---|---|
 | 0 | [Fundação](plano/fase-0-fundacao.md) | 19 | 58 |
 | 1 | [MVP Clínico](plano/fase-1-mvp-clinico.md) | 30 | 119 |
-| 1B | [Plano gratuito e área do paciente](plano/fase-1b-freemium-area-paciente.md) | 15 | 47 |
-| 2 | [Gestão do consultório](plano/fase-2-gestao.md) | 18 | 64 |
+| 1B | [Plano gratuito e área do paciente](plano/fase-1b-freemium-area-paciente.md) | 16 | 50 |
+| 2 | [Gestão do consultório](plano/fase-2-gestao.md) | 19 | 69 |
 | 3 | [App do paciente + IA](plano/fase-3-app-paciente-ia.md) | 20 | 63 |
 | 4 | [Materno-infantil](plano/fase-4-materno-infantil.md) | 20 | 65 |
 | 5 | [UAN e Qualidade (Enterprise)](plano/fase-5-uan-qualidade.md) | 50 | 209 |
@@ -95,6 +95,7 @@ Status: `todo`, `doing`, `done`, `adiado` (fora do MVP, ver [ADR 0004](adr/0004-
 | [RN-212](plano/fase-1b-freemium-area-paciente.md#rn-212--avisos-por-e-mail-ao-paciente) | Avisos por e-mail ao paciente | feature | 2 | RN-205, RN-208 | todo |
 | [RN-213](plano/fase-1b-freemium-area-paciente.md#rn-213--testes-de-isolamento-e-e2e-da-área-do-paciente) | Testes de isolamento e e2e da área do paciente | infra | 3 | RN-201 a RN-212 | todo |
 | [RN-214](plano/fase-1b-freemium-area-paciente.md#rn-214--métricas-do-plano-gratuito) | Métricas do plano gratuito | feature | 2 | RN-202, RN-204 | todo |
+| [RN-215](plano/fase-1b-freemium-area-paciente.md#rn-215--documentos-clínicos-com-a-marca) | Documentos clínicos com a marca | feature | 3 | RN-036, RN-209 | todo |
 
 ## Fase 2 — Gestão do consultório
 
@@ -118,6 +119,7 @@ Status: `todo`, `doing`, `done`, `adiado` (fora do MVP, ver [ADR 0004](adr/0004-
 | [RN-065](plano/fase-2-gestao.md#rn-065--configurações-de-automação-por-organização) | Configurações de automação por organização | feature | 2 | RN-051 | todo |
 | [RN-066](plano/fase-2-gestao.md#rn-066--operação-do-n8n-monitoramento-backup-e-runbook) | Operação do n8n: monitoramento, backup e runbook | infra | 2 | RN-050 | todo |
 | [RN-067](plano/fase-2-gestao.md#rn-067--documentação-da-fase-e-atualização-de-termos) | Documentação da fase e atualização de termos | doc | 1 | RN-057, RN-059 | todo |
+| [RN-068](plano/fase-2-gestao.md#rn-068--página-pública-do-nutricionista-e-agendamento-online) | Página pública do nutricionista e agendamento online | feature | 5 | RN-022, RN-051 | todo |
 
 ## Fase 3 — App do paciente + IA
 

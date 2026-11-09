@@ -487,13 +487,30 @@ A área do paciente usa a marca da organização (logo e cor) e é mobile-first.
   - É possível responder "quantos nutricionistas atingiram o limite de 20 no último mês".
 - **Testes:** —
 
+### RN-215 — Documentos clínicos com a marca
+- **Tipo:** feature
+- **Pontos:** 3
+- **Depende de:** RN-036, RN-209
+- **Descrição:** Gerar documentos que o nutricionista entrega ao paciente, além do plano alimentar, e disponibilizá-los na área do paciente.
+- **Tarefas técnicas:**
+  - [ ] Tabela `clinical_documents (organization_id, patient_id, kind, title, body, status, published_at, pdf_path, author_id)` com RLS (paciente lê só os publicados)
+  - [ ] Tipos: pedido de exames (lista de exames comuns selecionável + texto livre), prescrição de suplementos e manipulados (texto livre com posologia), declaração de comparecimento, orientações gerais
+  - [ ] Modelos reutilizáveis por organização
+  - [ ] PDF com logo, dados do profissional (nome e CRN), data e espaço para assinatura
+  - [ ] Publicação na área do paciente (`/p/documentos`)
+- **Arquivos/áreas:** `supabase/migrations`, `apps/web/app/(app)/[orgSlug]/pacientes/[id]/documentos`, `packages/pdf`
+- **Critérios de aceite:**
+  - Dado um pedido de exames publicado, quando o paciente abre "Documentos", então baixa o PDF com a marca do nutricionista.
+  - Um documento em rascunho não aparece para o paciente.
+- **Testes:** pgTAP; e2e.
+
 ## Sequência semanal (2 desenvolvedores)
 
 | Semana | Dev A | Dev B |
 |---|---|---|
 | 1 | RN-200, RN-201, RN-202 | RN-203, RN-204 (início) |
 | 2 | RN-206, RN-207 | RN-204, RN-205, RN-209 |
-| 3 | RN-208, RN-212 | RN-210, RN-211, RN-213, RN-214 |
+| 3 | RN-208, RN-212, RN-215 | RN-210, RN-211, RN-213, RN-214 |
 
 ## Critério de pronto da fase
 
