@@ -52,7 +52,7 @@ Detalhes e prioridades em [docs/02-modulos.md](docs/02-modulos.md).
 ## Estratégia de lançamento
 
 1. **Plano gratuito** com até 20 pacientes ativos por nutricionista para atrair usuários no MVP.
-2. **Clínico + Gestão** como base dos planos pagos: assinatura mensal por nutricionista (referência de R$ 79 a R$ 190/mês), mercado grande e venda rápida.
+2. **Clínico + Gestão** como base dos planos pagos: assinatura mensal por nutricionista (referência de R$ 49 a R$ 119/mês), mercado grande e venda rápida.
 3. **Área do paciente** como mecanismo de retenção: quando os pacientes usam o app, trocar de sistema fica caro para o profissional.
 4. **UAN/Qualidade Enterprise** em seguida: contratos B2B por unidade produtora (referência de R$ 500 a R$ 2.000+/mês).
 
