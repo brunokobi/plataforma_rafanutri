@@ -41,7 +41,7 @@ O repositório `brunokobi/plataforma_rafanutri` é **público**, então o Coolif
      pnpm-workspace.yaml
      turbo.json
      ```
-   - **Health Check**: ligado, path `/api/health`, porta `3000`.
+   - **Health Check**: ligado, path `/api/health`, porta `3000`, **host `127.0.0.1`** (com `localhost` o `wget` do Alpine tenta IPv6 `::1`, o Next.js só escuta em IPv4 e o deploy faz rollback por "unhealthy").
 6. **Deploy**. O primeiro build leva alguns minutos na VPS (2 OCPU ARM).
 
 ### 1.2 Deploy automático (webhook do GitHub)
@@ -86,6 +86,7 @@ No Coolify, abra a aplicação → **Deployments** → escolha um deploy anterio
 | Build morre sem mensagem clara | Falta de memória na VPS | O build usa `NODE_OPTIONS=--max-old-space-size=2048`; conferir `free -h` e serviços pesados no momento do build |
 | Login sempre falha com "Não foi possível entrar agora" | `DIRECTUS_URL` errada ou Directus fora do ar | `curl https://rafanutri-api.brunokobi.tech/server/ping` deve responder `pong` |
 | "Muitas tentativas seguidas" | Rate limiter do Directus | Aguardar um minuto |
+| Deploy termina com "New container is not healthy, rolling back" e `wget: can't connect ... Connection refused` | Health check do Coolify em `localhost` resolve para IPv6 | Health check host = `127.0.0.1` |
 
 ## 5. Rodar a mesma imagem localmente
 
