@@ -6,17 +6,13 @@ O deploy é automático: **cada push na `main`** que mexa no app dispara um novo
 
 ## 1. Configuração inicial (uma vez, pela interface do Coolify)
 
-Painel: `http://130.61.140.66:8010`.
+Abra o painel do Coolify da vpsrafa (endereço no repositório privado de infraestrutura; não publique o IP aqui, porque este repositório é público e o Cloudflare esconde o IP de origem).
 
-### 1.1 Ligar o Coolify ao GitHub
-1. **Sources → + Add → GitHub App**.
-2. Nome: `brunokobi-github`. Webhook endpoint: o domínio/IP do painel (o padrão sugerido serve).
-3. Clique em **Register now**: o GitHub abre para criar o app. Confirme.
-4. Na tela seguinte, **Install repositories**: escolha **Only select repositories → `brunokobi/plataforma_rafanutri`**.
+O repositório `brunokobi/plataforma_rafanutri` é **público**, então o Coolify clona direto pela URL, sem GitHub App.
 
-### 1.2 Criar projeto e aplicação
+### 1.1 Criar projeto e aplicação
 1. **Projects → + Add** → nome `Rafanutri` (o ambiente `production` é criado junto).
-2. Dentro de `production`: **+ New → Private Repository (with GitHub App)** → escolha `brunokobi-github` → repositório `plataforma_rafanutri` → branch `main`.
+2. Dentro de `production`: **+ New → Public Repository** → URL `https://github.com/brunokobi/plataforma_rafanutri` → **Check repository** → branch `main`.
 3. **Build Pack: Dockerfile**, com os campos:
 
 | Campo | Valor |
@@ -46,6 +42,16 @@ Painel: `http://130.61.140.66:8010`.
      ```
    - **Health Check**: ligado, path `/api/health`, porta `3000`.
 6. **Deploy**. O primeiro build leva alguns minutos na VPS (2 OCPU ARM).
+
+### 1.2 Deploy automático (webhook do GitHub)
+Com repositório público, o GitHub não avisa o Coolify sozinho. Configure o webhook uma vez:
+1. No Coolify, na aplicação → **Webhooks** → seção **GitHub**: defina um **Webhook Secret** (gere com `openssl rand -hex 32`) e copie a **URL do webhook** mostrada.
+2. No GitHub: **Settings → Webhooks → Add webhook**:
+   - Payload URL: a URL copiada do Coolify;
+   - Content type: `application/json`;
+   - Secret: o mesmo segredo do passo anterior;
+   - Eventos: **Just the push event**.
+3. Faça um push de teste e confira em **Recent Deliveries** (GitHub) que a entrega retornou `200`, e no Coolify que um deploy novo começou.
 
 ### 1.3 Directus
 No `.env` do Directus da Rafanutri (`~/apps/rafanutri-directus/.env`), inclua o domínio do app em `CORS_ORIGIN`:
