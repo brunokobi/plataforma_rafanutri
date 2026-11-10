@@ -51,12 +51,12 @@ O dev decidiu usar o **Directus** da infraestrutura da VPS como backend da Rafan
 | Onde | **vpsrafa**, instalada pelo dev, conforme o roteiro [docs/runbooks/directus-vpsrafa.md](../runbooks/directus-vpsrafa.md) |
 | Instância | **Nova e só da Rafanutri**, com Postgres próprio |
 | Versão | **Mais nova da linha 12** (12.6.1 em 09/11/2026), com a tag fixada no compose. Atualizações de versão só de forma deliberada, com backup antes |
+| URL | `https://rafanutri-api.brunokobi.tech` (instalado em 10/11/2026; ver o status no roteiro) |
 
 ## Pontos em aberto
 
 | Ponto | Por que importa | Quem decide |
 |---|---|---|
-| URL pública do Directus (ex.: subdomínio em `brunokobi.tech`) | Configuração do app web e do CORS | Dev, na instalação |
 | Mudanças da linha 12 em relação à 11 | O planejamento foi pensado com a API de papéis, políticas e permissões da linha 11. Na Fase 0, conferir as notas de versão da 12 e ajustar o bootstrap de permissões e as extensões | Fase 0 (RN-003, RN-008) |
 | Licença | O Directus usa BSL 1.1: gratuito para organizações com receita anual abaixo de US$ 5 milhões. Reavaliar se a Rafanutri passar disso | Dev |
 | Link mágico para o paciente (Fase 1B) | O Directus não tem login sem senha pronto; precisa de endpoint próprio ou de senha simples | Fase 1B |

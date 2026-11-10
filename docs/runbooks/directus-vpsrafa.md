@@ -4,6 +4,22 @@ Instalação feita pelo dev, seguindo o [ADR 0008](../adr/0008-backend-directus.
 
 > Nenhum segredo vai para este repositório. As senhas ficam só no `.env` da VPS (`chmod 600`).
 
+## Status da instalação (análise de 10/11/2026)
+
+| Item | Situação |
+|---|---|
+| Containers | `rafanutri-directus` (12.6.1) e `rafanutri-postgres` (pg16 + pgvector disponível), `restart: unless-stopped`, sem portas publicadas no host |
+| Rede | Directus nas redes `coolify` e interna; Postgres só na interna |
+| URL e TLS | `https://rafanutri-api.brunokobi.tech` respondendo atrás do Cloudflare, certificado válido |
+| Banco | Só as 33 tabelas de sistema do Directus; nenhuma tabela da Rafanutri ainda (esperado na etapa de planejamento) |
+| Usuários | 1 (administrador); só o papel Administrator |
+| Extensões | Pasta `extensions/` montada e vazia |
+| Consumo | ~205 MB (Directus) + ~31 MB (Postgres); a VPS tem ~6,8 GB disponíveis |
+| `.env` | Permissão 600 |
+| Pendências | Trocar a senha inicial do admin e remover `ADMIN_PASSWORD` do `.env`; **backup diário ainda não configurado**; incluir no UptimeRobot; confirmar o rate limiter ligado |
+
+**Particularidade da linha 12:** `GET /server/health` responde `403` para requisição anônima. Para monitor externo, use `GET /server/ping` (responde `pong`). Já `GET /server/info` responde `200` sem login.
+
 ## 1. Antes de começar
 
 - [ ] Medir a folga da VPS: `free -h` e `docker stats --no-stream`. A Rafanutri precisa de cerca de **0,7 a 1 GB de RAM** (Directus de 300 a 500 MB, Postgres de 200 a 400 MB).
@@ -96,7 +112,7 @@ Observações:
 ## 3. Subir e conferir
 
 - [ ] `docker compose up -d`
-- [ ] `curl -s https://rafanutri-api.brunokobi.tech/server/health` deve retornar `{"status":"ok"}`.
+- [ ] `curl -s https://rafanutri-api.brunokobi.tech/server/ping` deve retornar `pong`. Na linha 12, o `/server/health` exige autenticação.
 - [ ] Entrar no painel com o administrador e trocar a senha inicial.
 - [ ] Depois do primeiro boot, remover `ADMIN_PASSWORD` do `.env` (ele só é usado na criação inicial).
 
@@ -104,7 +120,7 @@ Observações:
 
 - [ ] **Backup diário** fora da VPS: `pg_dump` do banco `rafanutri` e cópia do volume `uploads` para o bucket externo (Object Storage da Oracle ou Cloudflare R2), com retenção de 14 dias.
 - [ ] **Teste de restauração** do backup num Postgres limpo, uma vez por mês.
-- [ ] **Monitor externo**: incluir `https://rafanutri-api.brunokobi.tech/server/health` no UptimeRobot. Isso também ajuda a evitar que a Oracle marque a instância como ociosa.
+- [ ] **Monitor externo**: incluir `https://rafanutri-api.brunokobi.tech/server/ping` no UptimeRobot. Isso também ajuda a evitar que a Oracle marque a instância como ociosa.
 - [ ] Registrar o serviço no README do repositório de infraestrutura (URL, diretório e onde está o `.env`).
 
 ## 5. O que me passar para a Fase 0
