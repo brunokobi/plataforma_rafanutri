@@ -1,20 +1,6 @@
-import {
-  ArrowRight,
-  BookOpenText,
-  Calculator,
-  ChefHat,
-  ClipboardList,
-  FileText,
-  Ruler,
-  ShieldCheck,
-  Smartphone,
-  Sparkles,
-  Table2,
-  Users,
-} from 'lucide-react';
+import { ArrowRight, Ruler, ShieldCheck, Smartphone, Sparkles, Table2, Users } from 'lucide-react';
 import Link from 'next/link';
 import { Logo } from '@/components/brand/logo';
-import { PhoneMock } from '@/components/art/product-cards';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -77,77 +63,6 @@ export function TrustBar() {
           </li>
         ))}
       </ul>
-    </section>
-  );
-}
-
-const features = [
-  { icon: ClipboardList, title: 'Anamnese por link', text: 'Envie o questionário antes da consulta e receba as respostas organizadas na ficha do paciente.' },
-  { icon: Ruler, title: 'Avaliação e composição corporal', text: 'Dobras, circunferências, Jackson & Pollock, Durnin, Faulkner e perfil ISAK, com gráficos de evolução.' },
-  { icon: Calculator, title: 'Gasto energético', text: 'Harris-Benedict, Mifflin-St Jeor, Cunningham e FAO/OMS lado a lado, com metas de macros.' },
-  { icon: BookOpenText, title: 'Plano alimentar em minutos', text: 'Editor rápido com cálculo em tempo real, medidas caseiras e substituições por equivalência.' },
-  { icon: FileText, title: 'PDF com a sua marca', text: 'Plano, pedidos de exames e orientações com seu logo, suas cores e seu CRN.' },
-  { icon: ChefHat, title: 'Receitas e recomendações', text: 'Monte sua biblioteca de receitas e envie orientações personalizadas para cada paciente.' },
-];
-
-export function Features() {
-  return (
-    <section id="funcionalidades" className="scroll-mt-20 py-20 lg:py-28">
-      <div className="mx-auto max-w-6xl px-5">
-        <Reveal className="max-w-2xl">
-          <p className="text-sm font-semibold uppercase tracking-wider text-primary">Funcionalidades</p>
-          <h2 className="mt-2 font-display text-3xl font-semibold tracking-tight sm:text-4xl">
-            Tudo o que a consulta precisa, sem planilhas
-          </h2>
-          <p className="mt-4 text-muted-foreground">Do primeiro contato ao acompanhamento, com cálculos validados e tabelas brasileiras.</p>
-        </Reveal>
-        <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {features.map(({ icon: Icon, title, text }, i) => (
-            <Reveal key={title} delay={(i % 3) * 0.08}>
-              <article className="group h-full rounded-2xl border border-border bg-card p-6 transition-shadow hover:shadow-lg hover:shadow-primary/5">
-                <span className="grid size-11 place-items-center rounded-xl bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
-                  <Icon className="size-5" />
-                </span>
-                <h3 className="mt-5 text-lg font-semibold">{title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{text}</p>
-              </article>
-            </Reveal>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-export function PatientSection() {
-  const items = ['Plano do dia com horários e substituições', 'Receitas com foto e modo de preparo', 'Recomendações individuais do nutricionista', 'Seus PDFs sempre à mão'];
-  return (
-    <section id="paciente" className="scroll-mt-20 bg-forest py-20 text-white lg:py-28">
-      <div className="mx-auto grid max-w-6xl items-center gap-12 px-5 lg:grid-cols-2">
-        <Reveal className="order-2 flex justify-center lg:order-1">
-          <div className="relative">
-            <div className="absolute -inset-10 rounded-full bg-leaf/25 blur-3xl" />
-            <PhoneMock className="relative scale-110" />
-          </div>
-        </Reveal>
-        <Reveal className="order-1 lg:order-2" delay={0.1}>
-          <p className="text-sm font-semibold uppercase tracking-wider text-leaf">Para o paciente</p>
-          <h2 className="mt-2 font-display text-3xl font-semibold tracking-tight sm:text-4xl">
-            Seu paciente acompanha tudo pelo celular
-          </h2>
-          <p className="mt-4 text-white/75">
-            Uma área exclusiva com a sua marca. Mais adesão ao plano e um vínculo que continua entre as consultas.
-          </p>
-          <ul className="mt-6 space-y-3">
-            {items.map((t) => (
-              <li key={t} className="flex items-center gap-3">
-                <span className="grid size-6 place-items-center rounded-full bg-leaf/25 text-leaf">✓</span>
-                {t}
-              </li>
-            ))}
-          </ul>
-        </Reveal>
-      </div>
     </section>
   );
 }

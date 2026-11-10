@@ -112,3 +112,21 @@ Artigo de uma nutricionista clínica que usa o Dietbox e mentora recém-formados
 - RN-031: modo de plano qualitativo (comportamental).
 - RN-215 (novo, Fase 1B): documentos clínicos com a marca.
 - RN-068 (novo, Fase 2): página pública com agendamento online.
+
+---
+
+## Análise 3 — páginas comerciais (Notrispace, WebDiet, Dietbox), 10/11/2026
+
+O que cada referência faz bem na página de venda e o que a Rafanutri adotou na página inicial (`apps/web/app/page.tsx`):
+
+| Referência | Padrão observado | Adotado na Rafanutri |
+|---|---|---|
+| Notrispace | Missão clara, "áreas de apoio" em chips, princípios de trabalho, "IA amplia o alcance, nunca substitui o julgamento" | Seção **Áreas de atuação** (chips) e **Como trabalhamos** (4 princípios, com "a IA sugere, você decide") |
+| Notrispace | Selos de conformidade (ISO 27001, SOC 2, HIPAA, GDPR) | **Não adotado**: a Rafanutri não tem essas certificações e a LGPD está adiada no MVP. Mostramos só o que é verdade (dados isolados por consultório, acesso por papel) |
+| WebDiet | Grade "Muito mais para você e seu consultório" com ícone e texto curto | Seção **Muito mais para você e o seu consultório** (9 recursos, com "em breve" no que ainda não existe) |
+| WebDiet | "Feito por nutricionistas para nutricionistas" com print do editor de prescrição e análise de nutrientes | Seção **Feito com nutricionistas, para nutricionistas** com mockup próprio do editor (refeições, prescrito × meta, gráfico de macros) |
+| WebDiet | "O que nossa IA pode fazer por você" em 4 cards | Seção **O que a IA vai fazer por você** (marcada "em breve", Fase 3), com a regra de que o cardápio é calculado pelo sistema e não pela IA |
+| WebDiet | Body3D: antropometria por 2 fotos | **Não adotado**: no plano é só pesquisa (Fase 6). Não anunciamos o que não existe |
+| Dietbox | Benefícios para nutricionista e para paciente, lado a lado, com fotos | Seção **Benefícios** com duas listas e o mockup do celular (sem fotos de pessoas, que exigiriam licença e direito de imagem) |
+
+**Regras mantidas:** texto e ilustrações próprios (nada copiado das referências), nenhum depoimento ou número de cliente inventado, e "em breve" em tudo que ainda não foi entregue.

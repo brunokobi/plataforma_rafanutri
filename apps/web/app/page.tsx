@@ -1,5 +1,6 @@
+import { AiSection, Benefits, Principles, Showcase, Specialties, Toolkit } from '@/components/marketing/more-sections';
+import { Faq, FinalCta, Hero, Pricing, SiteFooter, TrustBar } from '@/components/marketing/sections';
 import { SiteHeader } from '@/components/marketing/site-header';
-import { Faq, Features, FinalCta, Hero, PatientSection, Pricing, SiteFooter, TrustBar } from '@/components/marketing/sections';
 
 export default function HomePage() {
   return (
@@ -8,8 +9,12 @@ export default function HomePage() {
       <main>
         <Hero />
         <TrustBar />
-        <Features />
-        <PatientSection />
+        <Specialties />
+        <Toolkit />
+        <Showcase />
+        <AiSection />
+        <Benefits />
+        <Principles />
         <Pricing />
         <Faq />
         <FinalCta />
