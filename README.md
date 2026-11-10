@@ -160,7 +160,7 @@ cp apps/web/.env.example apps/web/.env.local   # aponta para o Directus da vpsra
 pnpm dev                                       # http://localhost:3000
 ```
 
-Hoje o app tem a **página inicial** e a **tela de login** (com parallax), autenticando no Directus de `https://rafanutri-api.brunokobi.tech`. As tabelas e permissões da Rafanutri no Directus entram nas próximas entregas.
+Hoje o app tem a **página inicial**, o **login** (com parallax), o **cadastro**, o **onboarding** e a **tela principal com os módulos**, autenticando no Directus de `https://rafanutri-api.brunokobi.tech`. As tabelas e permissões da Rafanutri no Directus entram nas próximas entregas.
 
 ## Scripts
 
@@ -188,6 +188,7 @@ A lista completa, sem valores reais, fica nos arquivos `.env.example`. Principai
 |---|---|---|
 | `DIRECTUS_URL` | Servidor do app web | URL da API do Directus (`https://rafanutri-api.brunokobi.tech`) |
 | `NEXT_PUBLIC_SITE_URL` | App web (build e execução) | URL pública do app (`https://rafanutri.brunokobi.tech`) |
+| `SIGNUP_OPEN` | Servidor do app web | `true` libera o cadastro e o onboarding no Directus; padrão `false` (pré-lançamento) |
 | `DIRECTUS_KEY` / `DIRECTUS_SECRET` | Directus | Chaves da instância |
 | `DIRECTUS_ADMIN_EMAIL` / `DIRECTUS_ADMIN_PASSWORD` | Scripts de manutenção | Bootstrap e migrações; **nunca** no app web |
 | `DB_PASSWORD` | Directus e scripts | Senha do Postgres |

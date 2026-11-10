@@ -9,6 +9,7 @@
 
 ## Specs
 - [Tela principal com os módulos do usuário](specs/tela-principal-modulos.md)
+- [Cadastro e onboarding](specs/cadastro-onboarding.md)
 
 ## Pesquisa
 - [Benchmark clínico](pesquisa/benchmark-clinico.md): concorrentes, diferenciais e lacunas incorporadas ao plano.

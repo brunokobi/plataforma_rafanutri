@@ -20,7 +20,7 @@ async function refresh(refreshToken: string): Promise<TokenSet | null> {
 
 export async function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
-  const isProtected = pathname === '/app' || pathname.startsWith('/app/');
+  const isProtected = ['/app', '/onboarding'].some((p) => pathname === p || pathname.startsWith(`${p}/`));
   const isLogin = pathname === '/login';
 
   let hasSession = request.cookies.has(ACCESS_COOKIE);
@@ -56,5 +56,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/app/:path*', '/login'],
+  matcher: ['/app/:path*', '/onboarding/:path*', '/login'],
 };

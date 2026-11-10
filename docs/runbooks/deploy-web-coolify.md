@@ -28,6 +28,7 @@ O repositório `brunokobi/plataforma_rafanutri` é **público**, então o Coolif
 |---|---|---|
 | `DIRECTUS_URL` | `https://rafanutri-api.brunokobi.tech` | não |
 | `NEXT_PUBLIC_SITE_URL` | `https://rafanutri.brunokobi.tech` | **sim** (marcar "Build Variable") |
+| `SIGNUP_OPEN` | `false` (ligar só depois da Fase 0 do banco) | não |
 
 5. **Advanced**:
    - **Auto Deploy**: ligado.

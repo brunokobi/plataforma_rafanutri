@@ -51,3 +51,20 @@ test('login, sessão httpOnly e logout', async ({ page, context }) => {
   await page.getByRole('button', { name: 'Sair' }).click();
   await expect(page).toHaveURL(/\/login$/);
 });
+
+test('cadastro válido em pré-lançamento avisa que nada foi salvo', async ({ page }) => {
+  await page.goto('/cadastro');
+  await expect(page.getByText('Pré-lançamento')).toBeVisible();
+  await page.getByLabel('Nome completo').fill('Ana Souza');
+  await page.getByLabel('E-mail').fill('ana@exemplo.com.br');
+  await page.getByLabel('Senha', { exact: true }).fill('nutri2026');
+  await page.getByLabel('Confirmar senha').fill('nutri2026');
+  await page.getByRole('checkbox').check();
+  await page.getByRole('button', { name: 'Criar conta grátis' }).click();
+  await expect(page.getByText(/Nenhuma informação foi salva/)).toBeVisible();
+});
+
+test('onboarding exige login', async ({ page }) => {
+  await page.goto('/onboarding');
+  await expect(page).toHaveURL(/\/login\?next=%2Fonboarding/);
+});
