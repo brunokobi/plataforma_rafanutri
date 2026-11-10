@@ -136,7 +136,7 @@ Estrutura prevista a partir da Fase 0:
 apps/
   web/                 # Next.js: painel do profissional + área do paciente
 packages/
-  nutrition-core/      # fórmulas e cálculos nutricionais (TS puro)
+  nutrition-core/      # fórmulas e cálculos nutricionais (TS puro, 41 testes)
   ui/                  # componentes compartilhados
   config/              # tsconfig e presets
 db/
@@ -160,7 +160,7 @@ cp apps/web/.env.example apps/web/.env.local   # aponta para o Directus da vpsra
 pnpm dev                                       # http://localhost:3000
 ```
 
-Hoje o app tem a **página inicial**, o **login** (com parallax), o **cadastro**, o **onboarding** e a **tela principal com os módulos**, autenticando no Directus de `https://rafanutri-api.brunokobi.tech`. As tabelas e permissões da Rafanutri no Directus entram nas próximas entregas.
+Hoje o app tem a **página inicial**, o **login** (com parallax), o **cadastro**, o **onboarding**, a **tela principal com os módulos** e uma **demonstração do módulo clínico** (avaliação antropométrica e editor de plano alimentar com cálculos reais do `nutrition-core` e uma paciente de exemplo), autenticando no Directus de `https://rafanutri-api.brunokobi.tech`. As tabelas e permissões da Rafanutri no Directus entram nas próximas entregas.
 
 ## Scripts
 

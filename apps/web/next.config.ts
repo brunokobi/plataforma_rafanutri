@@ -12,6 +12,7 @@ const securityHeaders = [
 const config: NextConfig = {
   output: 'standalone',
   outputFileTracingRoot: path.join(import.meta.dirname, '../../'),
+  transpilePackages: ['@rafanutri/nutrition-core'],
   poweredByHeader: false,
   reactStrictMode: true,
   async headers() {

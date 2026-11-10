@@ -88,7 +88,16 @@ export function ModuleCard({ view }: { view: ModuleAccessView }) {
             </Link>
           </Button>
         ) : view.status === 'included_soon' ? (
-          <p className="text-sm font-medium text-primary">Chega na {module.phase}</p>
+          <div className="space-y-2">
+            {module.demoHref && (
+              <Button asChild variant="outline" className="w-full">
+                <Link href={module.demoHref}>
+                  Ver demonstração <ArrowRight className="size-4" />
+                </Link>
+              </Button>
+            )}
+            <p className="text-sm font-medium text-primary">Chega na {module.phase}</p>
+          </div>
         ) : view.status === 'contract' ? (
           <Button asChild variant="outline" className="w-full">
             <a href="#planos">Falar com a equipe</a>

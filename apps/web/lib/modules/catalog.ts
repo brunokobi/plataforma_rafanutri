@@ -16,6 +16,8 @@ export interface ModuleDefinition {
   availability: 'available' | 'building';
   /** Rota do módulo quando estiver disponível. */
   href?: string;
+  /** Demonstração navegável enquanto o módulo está em construção. */
+  demoHref?: string;
 }
 
 export const MODULES: readonly ModuleDefinition[] = [
@@ -27,6 +29,7 @@ export const MODULES: readonly ModuleDefinition[] = [
     icon: 'stethoscope',
     phase: 'Fase 1',
     availability: 'building',
+    demoHref: '/app/pacientes/exemplo/plano',
   },
   {
     code: 'patient_area',
