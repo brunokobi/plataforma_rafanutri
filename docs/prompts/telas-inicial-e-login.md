@@ -132,7 +132,7 @@ Requisitos:
 - Criar o projeto **Rafanutri** com o ambiente **production**.
 - **Nova aplicação** com origem no repositório GitHub privado `brunokobi/plataforma_rafanutri` via **GitHub App**, branch `main`.
 - **Build pack Dockerfile**: base directory `/` e Dockerfile `apps/web/Dockerfile`.
-- **Porta 3000**. Domínio sugerido: `https://rafanutri.brunokobi.tech`, que o curinga do Cloudflare já resolve para a VPS.
+- **Porta 3000**. Domínio definido: **`https://rafanutri.brunokobi.tech`**. O curinga do Cloudflare já resolve para a VPS; até existir a aplicação, o Traefik responde 503.
 - **Deploy automático** a cada push na `main`. Configure *watch paths* para `apps/web/**`, `packages/**`, `pnpm-lock.yaml` e `turbo.json`, para não reconstruir quando só a documentação mudar.
 - Variáveis de ambiente no Coolify (nunca no repositório):
   - `DIRECTUS_URL=https://rafanutri-api.brunokobi.tech`

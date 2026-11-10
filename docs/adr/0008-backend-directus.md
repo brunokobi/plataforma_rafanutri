@@ -52,6 +52,7 @@ O dev decidiu usar o **Directus** da infraestrutura da VPS como backend da Rafan
 | Instância | **Nova e só da Rafanutri**, com Postgres próprio |
 | Versão | **Mais nova da linha 12** (12.6.1 em 09/11/2026), com a tag fixada no compose. Atualizações de versão só de forma deliberada, com backup antes |
 | URL | `https://rafanutri-api.brunokobi.tech` (instalado em 10/11/2026; ver o status no roteiro) |
+| Domínio do app web | `https://rafanutri.brunokobi.tech` (definido em 10/11/2026; incluir em `CORS_ORIGIN` do Directus) |
 
 ## Pontos em aberto
 
