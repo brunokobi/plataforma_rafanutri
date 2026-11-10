@@ -16,7 +16,7 @@ Instalação feita pelo dev, seguindo o [ADR 0008](../adr/0008-backend-directus.
 | Extensões | Pasta `extensions/` montada e vazia |
 | Consumo | ~205 MB (Directus) + ~31 MB (Postgres); a VPS tem ~6,8 GB disponíveis |
 | `.env` | Permissão 600 |
-| Pendências | Trocar a senha inicial do admin e remover `ADMIN_PASSWORD` do `.env`; **backup diário ainda não configurado**; incluir no UptimeRobot; confirmar o rate limiter ligado |
+| Pendências | `ADMIN_PASSWORD` já removido do `.env` (10/11/2026); **backup diário ainda não configurado**; incluir no UptimeRobot; confirmar o rate limiter ligado |
 
 **Particularidade da linha 12:** `GET /server/health` responde `403` para requisição anônima. Para monitor externo, use `GET /server/ping` (responde `pong`). Já `GET /server/info` responde `200` sem login.
 
@@ -114,7 +114,7 @@ Observações:
 - [ ] `docker compose up -d`
 - [ ] `curl -s https://rafanutri-api.brunokobi.tech/server/ping` deve retornar `pong`. Na linha 12, o `/server/health` exige autenticação.
 - [ ] Entrar no painel com o administrador e trocar a senha inicial.
-- [ ] Depois do primeiro boot, remover `ADMIN_PASSWORD` do `.env` (ele só é usado na criação inicial).
+- [x] Depois do primeiro boot, remover `ADMIN_PASSWORD` do `.env` (ele só é usado na criação inicial).
 
 ## 4. Proteções mínimas (ADR 0004)
 
