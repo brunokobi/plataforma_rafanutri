@@ -12,7 +12,7 @@ import {
   totalEnergyExpenditure,
   type EnergyInput,
 } from '@rafanutri/nutrition-core';
-import { ArrowLeftRight, Info, Plus, Search, Send, Trash2 } from 'lucide-react';
+import { ArrowLeftRight, FileDown, Info, Loader2, Plus, Search, Send, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -20,6 +20,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { DEMO_FOODS, DEMO_PLAN, foodById, searchDemoFoods, type DemoFood, type DemoMeal } from '@/lib/demo/foods';
 import { demoPatient } from '@/lib/demo/patient';
+import { formatMeasure } from '@/lib/format/measure';
+import { demoGuidelines, demoPractice } from '@/lib/demo/practice';
+import { buildMealPlanPdfData } from '@/lib/pdf/meal-plan-data';
 import { cn } from '@/lib/utils';
 
 const WEIGHT_KG = 67.6;
@@ -44,7 +47,7 @@ type Meal = Omit<DemoMeal, 'items'> & { items: Item[] };
 
 function measureLabel(food: DemoFood, grams: number) {
   const r = roundToHouseholdMeasure(grams, food.householdMeasures);
-  return r.measure ? `${fmt(r.measure.quantity, r.measure.quantity % 1 ? 1 : 0)} ${r.measure.label}` : `${fmt(grams)} g`;
+  return r.measure ? formatMeasure(r.measure.quantity, r.measure.label) : `${fmt(grams)} g`;
 }
 
 function AdequacyBar({ label, total, target, unit, minimum = false }: { label: string; total: number; target: number; unit: string; minimum?: boolean }) {
@@ -128,6 +131,31 @@ export function MealPlanEditor() {
   const [proteinPerKg, setProteinPerKg] = useState(1.6);
   const [lipidPct, setLipidPct] = useState(28);
   const [subsFor, setSubsFor] = useState<string | null>(null);
+  const [showKcalPdf, setShowKcalPdf] = useState(false);
+  const [pdfBusy, setPdfBusy] = useState(false);
+
+  async function downloadPdf() {
+    setPdfBusy(true);
+    try {
+      const [{ pdf }, { MealPlanDocument }] = await Promise.all([import('@react-pdf/renderer'), import('@/components/pdf/meal-plan-document')]);
+      const data = buildMealPlanPdfData(meals, {
+        mode,
+        showKcal: showKcalPdf,
+        practice: demoPractice,
+        patient: { name: demoPatient.name, objective: demoPatient.objective },
+        guidelines: demoGuidelines,
+      });
+      const blob = await pdf(<MealPlanDocument data={data} />).toBlob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'plano-alimentar-marina-costa.pdf';
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 10_000);
+    } finally {
+      setPdfBusy(false);
+    }
+  }
 
   const energy: EnergyInput = { sex: demoPatient.sex, weightKg: WEIGHT_KG, heightCm: demoPatient.heightCm, ageYears: demoPatient.ageYears };
   const ree = FORMULAS[formula].fn(energy);
@@ -199,9 +227,20 @@ export function MealPlanEditor() {
                 </button>
               ))}
             </div>
-            <Button type="button" disabled title="Pré-lançamento: o plano ainda não é publicado">
-              <Send className="size-4" /> Publicar para a paciente
-            </Button>
+            <div className="flex flex-wrap items-center gap-3">
+              {quantitative && (
+                <label className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <input type="checkbox" checked={showKcalPdf} onChange={(e) => setShowKcalPdf(e.target.checked)} className="size-4 accent-[var(--primary)]" />
+                  Mostrar calorias no PDF
+                </label>
+              )}
+              <Button type="button" variant="outline" onClick={downloadPdf} disabled={pdfBusy} aria-busy={pdfBusy}>
+                {pdfBusy ? <Loader2 className="size-4 animate-spin" /> : <FileDown className="size-4" />} Baixar PDF
+              </Button>
+              <Button type="button" disabled title="Pré-lançamento: o plano ainda não é publicado">
+                <Send className="size-4" /> Publicar para a paciente
+              </Button>
+            </div>
           </div>
 
           {meals.map((meal) => {
@@ -229,7 +268,7 @@ export function MealPlanEditor() {
                           <div className="min-w-0 flex-1">
                             <p className="truncate font-medium">{food.name}</p>
                             <p className="text-xs text-muted-foreground">
-                              {quantitative ? `${measureLabel(food, item.quantityG)} · ${fmt(((food.per100g.energy_kcal ?? 0) * item.quantityG) / 100)} kcal` : measureLabel(food, item.quantityG).replace(/^[\d,]+ /, 'Porção: ')}
+                              {quantitative ? `${measureLabel(food, item.quantityG)} · ${fmt(((food.per100g.energy_kcal ?? 0) * item.quantityG) / 100)} kcal` : food.group}
                             </p>
                           </div>
                           {quantitative && (

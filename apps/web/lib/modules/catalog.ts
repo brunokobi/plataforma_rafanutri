@@ -29,7 +29,7 @@ export const MODULES: readonly ModuleDefinition[] = [
     icon: 'stethoscope',
     phase: 'Fase 1',
     availability: 'building',
-    demoHref: '/app/pacientes/exemplo/plano',
+    demoHref: '/app/pacientes',
   },
   {
     code: 'patient_area',

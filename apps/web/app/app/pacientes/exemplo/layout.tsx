@@ -8,9 +8,9 @@ export const metadata: Metadata = { title: 'Paciente de exemplo', robots: { inde
 
 export default async function DemoPatientLayout({ children }: { children: ReactNode }) {
   const user = await getCurrentUser();
-  if (!user) redirect('/login?next=/app/pacientes/exemplo/plano');
+  if (!user) redirect('/login?next=/app/pacientes/exemplo');
   return (
-    <PatientDemoShell basePath="/app/pacientes/exemplo" backHref="/app">
+    <PatientDemoShell basePath="/app/pacientes/exemplo" backHref="/app/pacientes">
       {children}
     </PatientDemoShell>
   );

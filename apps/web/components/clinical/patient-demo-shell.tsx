@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils';
 export function PatientDemoShell({ basePath, backHref, children }: { basePath: string; backHref: string; children: ReactNode }) {
   const pathname = usePathname();
   const tabs = [
+    { href: basePath, label: 'Resumo' },
     { href: `${basePath}/avaliacao`, label: 'Avaliação' },
     { href: `${basePath}/plano`, label: 'Plano alimentar' },
   ];
@@ -28,7 +29,7 @@ export function PatientDemoShell({ basePath, backHref, children }: { basePath: s
       <div className="border-b border-border/60 bg-muted/30">
         <div className="mx-auto max-w-7xl px-5 pt-6">
           <Link href={backHref} className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-            <ArrowLeft className="size-4" /> Voltar aos módulos
+            <ArrowLeft className="size-4" /> Voltar aos pacientes
           </Link>
           <div className="mt-3 flex flex-wrap items-center gap-3">
             <span className="grid size-12 place-items-center rounded-full bg-primary/15 font-semibold text-primary">MC</span>

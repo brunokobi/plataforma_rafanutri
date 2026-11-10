@@ -1,5 +1,5 @@
-import { redirect } from 'next/navigation';
+import { PatientSummary } from '@/components/clinical/patient-summary';
 
-export default function DemoPatientIndex() {
-  redirect('/app/pacientes/exemplo/plano');
+export default function DemoPatientSummaryPage() {
+  return <PatientSummary basePath="/app/pacientes/exemplo" />;
 }

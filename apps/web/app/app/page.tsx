@@ -1,13 +1,9 @@
-import { LogOut } from 'lucide-react';
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
+import { AppHeader } from '@/components/app/app-header';
 import { ModuleCard } from '@/components/app/module-card';
 import { PlanSummary } from '@/components/app/plan-summary';
 import { PlansComparison } from '@/components/app/plans-comparison';
-import { Logo } from '@/components/brand/logo';
-import { ThemeToggle } from '@/components/theme-toggle';
-import { Button } from '@/components/ui/button';
-import { signOut } from '@/lib/auth/actions';
 import { getCurrentUser } from '@/lib/auth/session';
 import { buildModuleSections } from '@/lib/modules/access';
 import { getPlan } from '@/lib/modules/plans';
@@ -26,19 +22,7 @@ export default async function AppHome() {
 
   return (
     <div className="min-h-dvh">
-      <header className="sticky top-0 z-30 border-b border-border/60 bg-background/80 backdrop-blur-lg">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5">
-          <Logo href="/app" />
-          <div className="flex items-center gap-2">
-            <ThemeToggle />
-            <form action={signOut}>
-              <Button type="submit" variant="outline">
-                <LogOut className="size-4" /> Sair
-              </Button>
-            </form>
-          </div>
-        </div>
-      </header>
+      <AppHeader />
 
       <main className="mx-auto max-w-6xl space-y-12 px-5 py-10">
         <div>

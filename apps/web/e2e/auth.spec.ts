@@ -68,3 +68,10 @@ test('onboarding exige login', async ({ page }) => {
   await page.goto('/onboarding');
   await expect(page).toHaveURL(/\/login\?next=%2Fonboarding/);
 });
+
+test('telas do módulo clínico exigem login', async ({ page }) => {
+  for (const path of ['/app/pacientes', '/app/pacientes/exemplo/plano']) {
+    await page.goto(path);
+    await expect(page).toHaveURL(/\/login\?next=/);
+  }
+});
