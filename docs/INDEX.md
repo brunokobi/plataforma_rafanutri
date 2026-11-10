@@ -7,6 +7,9 @@
 ## Módulos
 - [UAN e Qualidade](modulos/uan.md): plano do módulo, entregas U0 a U7 e MVP do módulo (Qualidade BPF).
 
+## Specs
+- [Tela principal com os módulos do usuário](specs/tela-principal-modulos.md)
+
 ## Pesquisa
 - [Benchmark clínico](pesquisa/benchmark-clinico.md): concorrentes, diferenciais e lacunas incorporadas ao plano.
 
