@@ -36,6 +36,9 @@
 - [ADR 0008 — Backend com Directus](adr/0008-backend-directus.md)
 - ADRs 0005 (provedor de WhatsApp), 0006 (provedor de LLM) e 0007 (estratégia offline do PWA) serão escritos nas Fases 2 e 3.
 
+## Prompts
+- [Tela inicial e login com parallax + deploy no Coolify](prompts/telas-inicial-e-login.md)
+
 ## Runbooks
 - [Instalar o Directus na vpsrafa](runbooks/directus-vpsrafa.md)
 
