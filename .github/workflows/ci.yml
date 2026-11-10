@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
+        env:
+          NEXT_PUBLIC_SITE_URL: https://rafanutri.brunokobi.tech
+      - name: E2E (Playwright)
+        run: |
+          pnpm --filter @rafanutri/web exec playwright install --with-deps chromium
+          pnpm test:e2e -- --project=desktop
+        env:
+          DIRECTUS_URL: https://rafanutri-api.brunokobi.tech

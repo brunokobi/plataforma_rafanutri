@@ -3,7 +3,7 @@
 <p align="center"><strong>A plataforma de trabalho do nutricionista, do consultório à cozinha industrial.</strong></p>
 
 <p align="center">
-  <a href="docs/plano/00-visao-geral.md"><img alt="status: planejamento" src="https://img.shields.io/badge/status-planejamento-F59E0B?style=flat-square"></a>
+  <a href="docs/plano/00-visao-geral.md"><img alt="status: MVP em construção" src="https://img.shields.io/badge/status-MVP%20em%20constru%C3%A7%C3%A3o-F59E0B?style=flat-square"></a>
   <a href="docs/06-plano-implementacao.md"><img alt="roadmap: 8 fases" src="https://img.shields.io/badge/roadmap-8%20fases-2E7D32?style=flat-square"></a>
   <a href="docs/07-backlog.md"><img alt="backlog: 204 itens" src="https://img.shields.io/badge/backlog-204%20itens-2E7D32?style=flat-square"></a>
   <a href="docs/adr/"><img alt="ADRs: 5" src="https://img.shields.io/badge/ADRs-5-2E7D32?style=flat-square"></a>
@@ -11,7 +11,9 @@
   <img alt="licença: proprietária" src="https://img.shields.io/badge/licen%C3%A7a-propriet%C3%A1ria-6B7280?style=flat-square">
 </p>
 <p align="center">
-  <a href="https://nextjs.org"><img alt="Next.js: App Router" src="https://img.shields.io/badge/Next.js-App%20Router-000000?style=flat-square&logo=nextdotjs&logoColor=white"></a>
+  <a href="https://nextjs.org"><img alt="Next.js: 16" src="https://img.shields.io/badge/Next.js-16-000000?style=flat-square&logo=nextdotjs&logoColor=white"></a>
+  <a href="https://react.dev"><img alt="React: 19" src="https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=black"></a>
+  <a href="https://ui.shadcn.com"><img alt="shadcn/ui" src="https://img.shields.io/badge/shadcn%2Fui-componentes-000000?style=flat-square&logo=shadcnui&logoColor=white"></a>
   <a href="https://www.typescriptlang.org"><img alt="TypeScript: strict" src="https://img.shields.io/badge/TypeScript-strict-3178C6?style=flat-square&logo=typescript&logoColor=white"></a>
   <a href="https://tailwindcss.com"><img alt="Tailwind CSS: 4" src="https://img.shields.io/badge/Tailwind%20CSS-4-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white"></a>
   <a href="docs/adr/0008-backend-directus.md"><img alt="Directus: 12" src="https://img.shields.io/badge/Directus-12-6644FF?style=flat-square&logo=directus&logoColor=white"></a>
@@ -148,37 +150,35 @@ docs/                  # produto, arquitetura, plano e ADRs
 
 ## Como rodar localmente
 
-> Disponível a partir da Fase 0. Os comandos abaixo são os previstos.
-
-**Pré-requisitos:** Node.js LTS (ver `.nvmrc`), pnpm e Docker.
+**Pré-requisitos:** Node.js 22 (ver `.nvmrc`) e pnpm 9 (`corepack enable`).
 
 ```bash
 git clone https://github.com/brunokobi/plataforma_rafanutri.git
 cd plataforma_rafanutri
 pnpm install
-cp infra/directus/.env.example infra/directus/.env   # gerar senhas próprias
-cp apps/web/.env.example apps/web/.env.local
-pnpm directus:up          # sobe Postgres + Directus (http://localhost:8055)
-pnpm db:migrate           # cria as tabelas da Rafanutri
-pnpm directus:bootstrap   # papéis, permissões e relações no Directus
-pnpm dev                  # http://localhost:3000
+cp apps/web/.env.example apps/web/.env.local   # aponta para o Directus da vpsrafa
+pnpm dev                                       # http://localhost:3000
 ```
+
+Hoje o app tem a **página inicial** e a **tela de login** (com parallax), autenticando no Directus de `https://rafanutri-api.brunokobi.tech`. As tabelas e permissões da Rafanutri no Directus entram nas próximas entregas.
 
 ## Scripts
 
 | Comando | O que faz |
 |---|---|
 | `pnpm dev` | Sobe o app web em modo desenvolvimento |
-| `pnpm build` | Build de todos os pacotes |
-| `pnpm lint` / `pnpm typecheck` | Qualidade de código |
-| `pnpm test` | Testes unitários (Vitest) |
-| `pnpm test:api` | Testes de isolamento entre organizações pela API do Directus |
-| `pnpm test:e2e` | Testes end-to-end (Playwright) |
-| `pnpm directus:up` / `pnpm directus:down` | Postgres + Directus locais |
-| `pnpm db:migrate` | Aplica as migrações SQL pendentes |
-| `pnpm directus:bootstrap` | Configura papéis, permissões e relações no Directus (idempotente) |
-| `pnpm db:seed:demo` | Carrega dados fictícios |
-| `pnpm import:taco` | Importa a tabela TACO |
+| `pnpm build` | Build de produção |
+| `pnpm lint` / `pnpm typecheck` | Qualidade de código (ESLint e TypeScript estrito) |
+| `pnpm test` | Testes unitários e de componente (Vitest + Testing Library) |
+| `pnpm test:e2e` | Testes end-to-end (Playwright); login real com `E2E_USER_EMAIL` e `E2E_USER_PASSWORD` |
+
+## Deploy
+
+- **Coolify da vpsrafa**, com **deploy automático a cada push na `main`** que altere o app.
+- Imagem: `apps/web/Dockerfile` (multi-stage, `turbo prune`, Next.js `standalone`, ARM64).
+- Domínio: **https://rafanutri.brunokobi.tech**. Verificação de saúde: `/api/health`.
+- CI no GitHub Actions: lint, typecheck, testes, build e e2e em todo push e pull request.
+- Passo a passo, variáveis e rollback: [docs/runbooks/deploy-web-coolify.md](docs/runbooks/deploy-web-coolify.md).
 
 ## Variáveis de ambiente
 
@@ -186,7 +186,8 @@ A lista completa, sem valores reais, fica nos arquivos `.env.example`. Principai
 
 | Variável | Onde | Uso |
 |---|---|---|
-| `DIRECTUS_URL` | Servidor do app web | URL da API do Directus |
+| `DIRECTUS_URL` | Servidor do app web | URL da API do Directus (`https://rafanutri-api.brunokobi.tech`) |
+| `NEXT_PUBLIC_SITE_URL` | App web (build e execução) | URL pública do app (`https://rafanutri.brunokobi.tech`) |
 | `DIRECTUS_KEY` / `DIRECTUS_SECRET` | Directus | Chaves da instância |
 | `DIRECTUS_ADMIN_EMAIL` / `DIRECTUS_ADMIN_PASSWORD` | Scripts de manutenção | Bootstrap e migrações; **nunca** no app web |
 | `DB_PASSWORD` | Directus e scripts | Senha do Postgres |

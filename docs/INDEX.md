@@ -41,6 +41,7 @@
 
 ## Runbooks
 - [Instalar o Directus na vpsrafa](runbooks/directus-vpsrafa.md)
+- [Deploy do app web no Coolify](runbooks/deploy-web-coolify.md)
 
 ## Convenções
 - Documentação em português do Brasil; código, identificadores, tabelas e colunas em inglês.

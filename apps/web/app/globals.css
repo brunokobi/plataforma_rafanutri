@@ -1,0 +1,111 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --radius: 0.875rem;
+  --background: oklch(0.985 0.006 95);
+  --foreground: oklch(0.22 0.025 155);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.22 0.025 155);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.22 0.025 155);
+  --primary: oklch(0.52 0.13 145);
+  --primary-foreground: oklch(0.99 0.005 145);
+  --secondary: oklch(0.95 0.035 140);
+  --secondary-foreground: oklch(0.32 0.07 145);
+  --muted: oklch(0.96 0.01 100);
+  --muted-foreground: oklch(0.48 0.02 150);
+  --accent: oklch(0.94 0.045 60);
+  --accent-foreground: oklch(0.38 0.09 45);
+  --destructive: oklch(0.58 0.22 27);
+  --border: oklch(0.9 0.012 120);
+  --input: oklch(0.88 0.015 120);
+  --ring: oklch(0.52 0.13 145);
+  /* Marca */
+  --leaf: oklch(0.86 0.12 135);
+  --forest: oklch(0.32 0.08 150);
+  --peach: oklch(0.8 0.12 55);
+  --tomato: oklch(0.66 0.19 32);
+  --lemon: oklch(0.9 0.16 100);
+}
+
+.dark {
+  --background: oklch(0.16 0.015 155);
+  --foreground: oklch(0.95 0.01 120);
+  --card: oklch(0.2 0.02 155);
+  --card-foreground: oklch(0.95 0.01 120);
+  --popover: oklch(0.2 0.02 155);
+  --popover-foreground: oklch(0.95 0.01 120);
+  --primary: oklch(0.74 0.15 145);
+  --primary-foreground: oklch(0.18 0.03 150);
+  --secondary: oklch(0.27 0.035 150);
+  --secondary-foreground: oklch(0.9 0.04 140);
+  --muted: oklch(0.24 0.02 155);
+  --muted-foreground: oklch(0.72 0.02 140);
+  --accent: oklch(0.3 0.05 50);
+  --accent-foreground: oklch(0.92 0.05 60);
+  --destructive: oklch(0.68 0.19 25);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 16%);
+  --ring: oklch(0.74 0.15 145);
+  --leaf: oklch(0.74 0.14 140);
+  --forest: oklch(0.24 0.05 150);
+}
+
+@theme inline {
+  --font-sans: var(--font-sans);
+  --font-display: var(--font-display);
+  --radius-sm: calc(var(--radius) - 6px);
+  --radius-md: calc(var(--radius) - 3px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 6px);
+  --radius-2xl: calc(var(--radius) + 12px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-leaf: var(--leaf);
+  --color-forest: var(--forest);
+  --color-peach: var(--peach);
+  --color-tomato: var(--tomato);
+  --color-lemon: var(--lemon);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "ss01", "cv11";
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+  }
+}
+
+/* Textura de grão sutil para fundos de marca */
+.bg-grain {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.35'/%3E%3C/svg%3E");
+}
