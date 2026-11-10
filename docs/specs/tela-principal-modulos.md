@@ -1,6 +1,6 @@
 # Spec — Tela principal com os módulos do usuário (`/app`)
 
-- **Status:** aprovada para implementação (10/11/2026)
+- **Status:** implementada em 10/11/2026 (`/app`). O card Clínico tem o botão "Ver demonstração" ([módulo clínico em demonstração](modulo-clinico-demo.md))
 - **Fontes:** [02-modulos.md](../02-modulos.md), [01-visao-produto.md](../01-visao-produto.md) (planos), [Fase 1B](../plano/fase-1b-freemium-area-paciente.md) (plano gratuito, `plans.features`), [Módulo UAN](../modulos/uan.md), [ADR 0008](../adr/0008-backend-directus.md)
 
 ## 1. Objetivo

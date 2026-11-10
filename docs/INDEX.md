@@ -10,6 +10,7 @@
 ## Specs
 - [Tela principal com os módulos do usuário](specs/tela-principal-modulos.md)
 - [Cadastro e onboarding](specs/cadastro-onboarding.md)
+- [Módulo clínico em demonstração](specs/modulo-clinico-demo.md): pacientes, avaliação, plano alimentar e PDF
 
 ## Pesquisa
 - [Benchmark clínico](pesquisa/benchmark-clinico.md): concorrentes, diferenciais e lacunas incorporadas ao plano.
@@ -21,6 +22,7 @@
 
 ## Execução
 - [06 — Plano de implementação](06-plano-implementacao.md): resumo executivo das fases 0 a 6.
+- [Progresso da implementação](plano/progresso.md): o que está feito, em demonstração e pendente.
 - [Plano detalhado](plano/00-visao-geral.md): cronograma, marcos, Definition of Ready/Done, fluxo de trabalho.
   - [Fase 0 — Fundação](plano/fase-0-fundacao.md)
   - [Fase 1 — MVP Clínico](plano/fase-1-mvp-clinico.md)

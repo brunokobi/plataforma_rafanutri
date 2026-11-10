@@ -29,7 +29,7 @@
 
 A Rafanutri reúne as áreas da nutrição em um só lugar: atendimento clínico e esportivo, nutrição materno-infantil, saúde pública, Unidades de Alimentação e Nutrição (UAN) com gestão de qualidade, e gestão do negócio do nutricionista. Também traz assistentes de IA e um app para o paciente acompanhar o plano alimentar.
 
-> **Status:** concepção e planejamento. O repositório contém a documentação do produto e o plano de implementação. O desenvolvimento começa na [Fase 0 — Fundação](docs/plano/fase-0-fundacao.md).
+> **Status:** MVP em construção. A interface já tem página inicial, login, cadastro, onboarding, tela de módulos e uma **demonstração do módulo clínico** (pacientes, avaliação, plano alimentar e PDF) com cálculos reais. Ainda **sem banco**: nada é salvo. Veja o [progresso](docs/plano/progresso.md).
 
 ---
 
@@ -130,23 +130,26 @@ Decisões registradas em [docs/adr/](docs/adr/).
 
 ## Estrutura do repositório
 
-Estrutura prevista a partir da Fase 0:
-
 ```
 apps/
-  web/                 # Next.js: painel do profissional + área do paciente
+  web/                    # Next.js 16: site, login, cadastro, onboarding e área logada
+    app/                  # rotas (App Router); proxy.ts protege /app e /onboarding
+    components/           # telas e componentes (ui/ = shadcn/ui)
+    lib/
+      auth/               # login, sessão e Server Actions (Directus)
+      modules/            # catálogo de módulos e acesso por plano
+      demo/               # dados de exemplo do módulo clínico (pré-lançamento)
+      pdf/                # dados do PDF do plano alimentar
+    tests/  e2e/          # Vitest + Testing Library · Playwright
+    Dockerfile            # imagem de produção (Next.js standalone, ARM64)
 packages/
-  nutrition-core/      # fórmulas e cálculos nutricionais (TS puro, 41 testes)
-  ui/                  # componentes compartilhados
-  config/              # tsconfig e presets
-db/
-  migrations/          # SQL versionado (tabelas, funções e gatilhos)
-infra/
-  directus/            # docker-compose do Postgres + Directus e extensões (endpoints e ganchos)
-scripts/               # migrações, bootstrap do Directus (papéis e permissões), importadores (TACO, TBCA, OMS)
-n8n/workflows/         # fluxos de automação exportados
-docs/                  # produto, arquitetura, plano e ADRs
+  nutrition-core/         # fórmulas e cálculos nutricionais (TS puro, 41 testes)
+  config/                 # tsconfig base
+docs/                     # produto, arquitetura, plano, specs, runbooks e ADRs
+.github/workflows/        # CI: lint, typecheck, testes, build e e2e
 ```
+
+Previstos para quando o banco for liberado (Fase 0): `db/migrations/` (SQL versionado), `infra/directus/` (extensões e configuração do Directus) e `scripts/` (bootstrap de permissões e importadores TACO/TBCA/OMS).
 
 ## Como rodar localmente
 
@@ -160,7 +163,7 @@ cp apps/web/.env.example apps/web/.env.local   # aponta para o Directus da vpsra
 pnpm dev                                       # http://localhost:3000
 ```
 
-Hoje o app tem a **página inicial**, o **login** (com parallax), o **cadastro**, o **onboarding**, a **tela principal com os módulos** e uma **demonstração do módulo clínico** (avaliação antropométrica e editor de plano alimentar com cálculos reais do `nutrition-core` e uma paciente de exemplo), autenticando no Directus de `https://rafanutri-api.brunokobi.tech`. As tabelas e permissões da Rafanutri no Directus entram nas próximas entregas.
+O app autentica no Directus de `https://rafanutri-api.brunokobi.tech`. O cadastro e o onboarding só gravam com `SIGNUP_OPEN=true` (desligado até a Fase 0 do banco). O módulo clínico abre em `/app/pacientes` com uma paciente de exemplo. O que está feito e o que falta: [docs/plano/progresso.md](docs/plano/progresso.md).
 
 ## Scripts
 
@@ -236,6 +239,9 @@ Ver [docs/05-seguranca-lgpd.md](docs/05-seguranca-lgpd.md).
 | [docs/06-plano-implementacao.md](docs/06-plano-implementacao.md) | Resumo do plano |
 | [docs/plano/](docs/plano/00-visao-geral.md) | Plano detalhado por fase |
 | [docs/07-backlog.md](docs/07-backlog.md) | Backlog consolidado |
+| [docs/plano/progresso.md](docs/plano/progresso.md) | **Progresso da implementação** (feito, demonstração, pendente) |
+| [docs/specs/](docs/specs/) | Specs das telas: módulos, cadastro e onboarding, módulo clínico em demonstração |
+| [docs/runbooks/](docs/runbooks/) | Instalação do Directus e deploy no Coolify |
 | [docs/adr/](docs/adr/) | Decisões de arquitetura |
 
 ---
