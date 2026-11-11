@@ -70,7 +70,7 @@ test('onboarding exige login', async ({ page }) => {
 });
 
 test('telas do módulo clínico exigem login', async ({ page }) => {
-  for (const path of ['/app/pacientes', '/app/pacientes/exemplo/plano', '/app/pacientes/3f6c1e2a-9b7d-4c1e-8a2b-1c2d3e4f5a6b', '/app/pacientes/3f6c1e2a-9b7d-4c1e-8a2b-1c2d3e4f5a6b/avaliacoes']) {
+  for (const path of ['/app/pacientes', '/app/pacientes/exemplo/plano', '/app/pacientes/3f6c1e2a-9b7d-4c1e-8a2b-1c2d3e4f5a6b', '/app/pacientes/3f6c1e2a-9b7d-4c1e-8a2b-1c2d3e4f5a6b/avaliacoes', '/app/pacientes/3f6c1e2a-9b7d-4c1e-8a2b-1c2d3e4f5a6b/planos', '/app/pacientes/3f6c1e2a-9b7d-4c1e-8a2b-1c2d3e4f5a6b/planos/4a7d2f3b-0c8e-4d2f-9b3c-2d3e4f5a6b7c']) {
     await page.goto(path);
     await expect(page).toHaveURL(/\/login\?next=/);
   }

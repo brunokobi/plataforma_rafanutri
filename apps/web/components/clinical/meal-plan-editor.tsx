@@ -10,10 +10,10 @@ import {
   rankSubstitutes,
   roundToHouseholdMeasure,
   totalEnergyExpenditure,
-  type EnergyInput,
+  type Sex,
 } from '@rafanutri/nutrition-core';
-import { ArrowLeftRight, FileDown, Info, Loader2, Plus, Search, Send, Trash2 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { ArrowLeftRight, FileDown, Info, Loader2, Plus, Save, Search, Send, Trash2 } from 'lucide-react';
+import { useEffect, useMemo, useState, useTransition, type ReactNode } from 'react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,10 +24,29 @@ import { normalizeSearch, substituteCandidates, type Food } from '@/lib/foods/fo
 import { demoPatient } from '@/lib/demo/patient';
 import { formatMeasure } from '@/lib/format/measure';
 import { demoGuidelines, demoPractice } from '@/lib/demo/practice';
-import { buildMealPlanPdfData } from '@/lib/pdf/meal-plan-data';
+import { buildMealPlanPdfData, type MealPlanPdfData } from '@/lib/pdf/meal-plan-data';
+import { DEFAULT_TARGETS, type PlanContent, type PlanTargets } from '@/lib/meal-plans/schema';
 import { cn } from '@/lib/utils';
 
-const WEIGHT_KG = 67.6;
+/** Dados do paciente que o editor usa nas metas e no PDF. */
+export interface EditorPatient {
+  name: string;
+  objective: string | null;
+  sex: Sex | null;
+  ageYears: number | null;
+  weightKg: number | null;
+  heightCm: number | null;
+}
+
+const DEMO_EDITOR_PATIENT: EditorPatient = {
+  name: demoPatient.name,
+  objective: demoPatient.objective,
+  sex: demoPatient.sex,
+  ageYears: demoPatient.ageYears,
+  weightKg: 67.6,
+  heightCm: demoPatient.heightCm,
+};
+const DEMO_TARGETS: PlanTargets = { ...DEFAULT_TARGETS, adjustment: -450 };
 const FORMULAS = {
   mifflin: { label: 'Mifflin-St Jeor', fn: mifflinStJeor },
   harris: { label: 'Harris-Benedict', fn: harrisBenedict },
@@ -163,14 +182,48 @@ function FoodSearch({ onPick, search }: { onPick: (food: Food) => void; search: 
   );
 }
 
+export type EditorResult = { ok: boolean; message?: string };
+
 export interface MealPlanEditorProps {
   initialPlan: DemoMeal[];
   initialFoods: Food[];
   /** true quando o Directus está fora do ar e o editor usa a base de exemplo local. */
   offline?: boolean;
+  /** Paciente real (padrão: paciente de exemplo). */
+  patient?: EditorPatient;
+  /** Consultório para o PDF (padrão: consultório de exemplo). */
+  practice?: MealPlanPdfData['practice'];
+  initialTitle?: string;
+  initialMode?: 'quantitative' | 'qualitative';
+  initialTargets?: Partial<PlanTargets>;
+  initialGuidelines?: string | null;
+  /** Substitui o aviso do topo. */
+  banner?: ReactNode;
+  /** Plano publicado/arquivado: só leitura (o PDF continua disponível). */
+  readOnly?: boolean;
+  onSave?: (content: PlanContent) => Promise<EditorResult>;
+  onPublish?: (content: PlanContent) => Promise<EditorResult>;
+  pdfFileName?: string;
 }
 
-export function MealPlanEditor({ initialPlan, initialFoods, offline = false }: MealPlanEditorProps) {
+export function MealPlanEditor({
+  initialPlan,
+  initialFoods,
+  offline = false,
+  patient,
+  practice,
+  initialTitle = 'Plano alimentar',
+  initialMode = 'quantitative',
+  initialTargets,
+  initialGuidelines = null,
+  banner,
+  readOnly = false,
+  onSave,
+  onPublish,
+  pdfFileName = 'plano-alimentar.pdf',
+}: MealPlanEditorProps) {
+  const p = patient ?? DEMO_EDITOR_PATIENT;
+  const t0: PlanTargets = { ...(patient ? DEFAULT_TARGETS : DEMO_TARGETS), ...initialTargets };
   const [meals, setMeals] = useState<Meal[]>(initialPlan);
   const [foods, setFoods] = useState<Record<string, Food>>(() => Object.fromEntries(initialFoods.map((f) => [f.id, f])));
   const [groupPools, setGroupPools] = useState<Record<string, string[] | 'loading' | 'error'>>({});
@@ -198,12 +251,38 @@ export function MealPlanEditor({ initialPlan, initialFoods, offline = false }: M
     if (offline || !Array.isArray(pool)) return substituteCandidates(food, Object.values(foods));
     return substituteCandidates(food, pool.map((id) => foods[id]).filter((f): f is Food => Boolean(f)));
   }
-  const [mode, setMode] = useState<'quantitative' | 'qualitative'>('quantitative');
-  const [formula, setFormula] = useState<FormulaKey>('mifflin');
-  const [activity, setActivity] = useState(1.55);
-  const [adjustment, setAdjustment] = useState(-450);
-  const [proteinPerKg, setProteinPerKg] = useState(1.6);
-  const [lipidPct, setLipidPct] = useState(28);
+  const [mode, setMode] = useState<'quantitative' | 'qualitative'>(initialMode);
+  const [formula, setFormula] = useState<FormulaKey>(t0.formula);
+  const [activity, setActivity] = useState(t0.activity);
+  const [adjustment, setAdjustment] = useState(t0.adjustment);
+  const [proteinPerKg, setProteinPerKg] = useState(t0.proteinPerKg);
+  const [lipidPct, setLipidPct] = useState(t0.lipidPct);
+  const [manualKcal, setManualKcal] = useState(t0.manualKcal);
+  const [title, setTitle] = useState(initialTitle);
+  const [guidelines, setGuidelines] = useState(initialGuidelines ?? '');
+  const [status, setStatus] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
+  const [saving, startSaving] = useTransition();
+
+  const snapshot = (): PlanContent => ({
+    title: title.trim() || 'Plano alimentar',
+    mode,
+    targets: { formula, activity, adjustment, proteinPerKg, lipidPct, manualKcal },
+    meals: meals.map((m) => ({
+      id: m.id,
+      name: m.name,
+      time: m.time,
+      items: m.items.map((i) => ({ key: i.key, foodId: i.foodId, quantityG: i.quantityG, ...(i.subs?.length ? { subs: i.subs } : {}) })),
+    })),
+    guidelines: guidelines.trim() || null,
+  });
+
+  function run(action: (c: PlanContent) => Promise<EditorResult>, okText: string) {
+    setStatus(null);
+    startSaving(async () => {
+      const r = await action(snapshot());
+      setStatus(r.ok ? { kind: 'ok', text: okText } : { kind: 'error', text: r.message ?? 'Não foi possível concluir.' });
+    });
+  }
   const [subsFor, setSubsFor] = useState<string | null>(null);
   const [showKcalPdf, setShowKcalPdf] = useState(false);
   const [pdfBusy, setPdfBusy] = useState(false);
@@ -216,15 +295,15 @@ export function MealPlanEditor({ initialPlan, initialFoods, offline = false }: M
         foodById,
         mode,
         showKcal: showKcalPdf,
-        practice: demoPractice,
-        patient: { name: demoPatient.name, objective: demoPatient.objective },
-        guidelines: demoGuidelines,
+        practice: practice ?? demoPractice,
+        patient: { name: p.name, objective: p.objective ?? '' },
+        guidelines: guidelines.trim() ? guidelines.split('\n').map((g) => g.trim()).filter(Boolean) : patient ? [] : demoGuidelines,
       });
       const blob = await pdf(<MealPlanDocument data={data} />).toBlob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'plano-alimentar-marina-costa.pdf';
+      a.download = patient ? pdfFileName : 'plano-alimentar-marina-costa.pdf';
       a.click();
       setTimeout(() => URL.revokeObjectURL(url), 10_000);
     } finally {
@@ -232,16 +311,28 @@ export function MealPlanEditor({ initialPlan, initialFoods, offline = false }: M
     }
   }
 
-  const energy: EnergyInput = { sex: demoPatient.sex, weightKg: WEIGHT_KG, heightCm: demoPatient.heightCm, ageYears: demoPatient.ageYears };
-  const ree = FORMULAS[formula].fn(energy);
-  const tee = totalEnergyExpenditure(ree, activity);
-  const target = Math.max(1000, tee + adjustment);
-  const proteinKcal = proteinPerKg * WEIGHT_KG * 4;
+  // Gasto energético só com sexo, idade (adulto), peso e altura; senão, meta informada à mão.
+  const ree = (() => {
+    if (!p.sex || p.ageYears === null || p.ageYears < 18 || !p.weightKg || !p.heightCm) return null;
+    try {
+      return FORMULAS[formula].fn({ sex: p.sex, weightKg: p.weightKg, heightCm: p.heightCm, ageYears: p.ageYears });
+    } catch {
+      return null;
+    }
+  })();
+  const tee = ree !== null ? totalEnergyExpenditure(ree, activity) : null;
+  const target = tee !== null ? Math.max(1000, tee + adjustment) : manualKcal;
+  const macroWeight = p.weightKg ?? 60;
+  const proteinKcal = p.weightKg ? proteinPerKg * p.weightKg * 4 : target * 0.2;
   const carbPct = Math.max(0, 100 - lipidPct - (proteinKcal / target) * 100);
   const macros = macroDistribution(
-    { protein: { mode: 'g_per_kg', value: proteinPerKg }, lipid: { mode: 'pct', value: lipidPct }, carbohydrate: { mode: 'pct', value: carbPct } },
+    {
+      protein: p.weightKg ? { mode: 'g_per_kg', value: proteinPerKg } : { mode: 'pct', value: 20 },
+      lipid: { mode: 'pct', value: lipidPct },
+      carbohydrate: { mode: 'pct', value: carbPct },
+    },
     target,
-    WEIGHT_KG,
+    macroWeight,
   );
 
   const totals = useMemo(
@@ -275,7 +366,7 @@ export function MealPlanEditor({ initialPlan, initialFoods, offline = false }: M
 
   return (
     <div className="space-y-6">
-      {offline ? (
+      {banner ?? (offline ? (
         <Alert>
           <Info />
           <AlertTitle>Base de alimentos indisponível: usando a base de exemplo</AlertTitle>
@@ -293,6 +384,23 @@ export function MealPlanEditor({ initialPlan, initialFoods, offline = false }: M
             salvo. Medidas caseiras cadastradas só para os alimentos mais comuns; nos demais, a quantidade aparece em gramas.
           </AlertDescription>
         </Alert>
+      ))}
+
+      {(onSave || readOnly) && (
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="min-w-64 flex-1 space-y-1.5">
+            <Label htmlFor="plan-title">Título do plano</Label>
+            <Input id="plan-title" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={120} disabled={readOnly} className="h-10" />
+          </div>
+          {onSave && !readOnly && (
+            <Button type="button" variant="outline" disabled={saving} onClick={() => run(onSave, 'Rascunho salvo.')}>
+              {saving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />} Salvar rascunho
+            </Button>
+          )}
+          {status && (
+            <p role="status" className={cn('w-full text-sm', status.kind === 'ok' ? 'text-primary' : 'text-destructive')}>{status.text}</p>
+          )}
+        </div>
       )}
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
@@ -325,12 +433,22 @@ export function MealPlanEditor({ initialPlan, initialFoods, offline = false }: M
               <Button type="button" variant="outline" onClick={downloadPdf} disabled={pdfBusy} aria-busy={pdfBusy}>
                 {pdfBusy ? <Loader2 className="size-4 animate-spin" /> : <FileDown className="size-4" />} Baixar PDF
               </Button>
-              <Button type="button" disabled title="Pré-lançamento: o plano ainda não é publicado">
-                <Send className="size-4" /> Publicar para a paciente
+              <Button
+                type="button"
+                disabled={!onPublish || readOnly || saving}
+                title={!onPublish ? 'Demonstração: o plano não é publicado' : readOnly ? 'Plano já publicado ou arquivado' : undefined}
+                onClick={() => {
+                  if (onPublish && window.confirm('Publicar este plano? Depois de publicado ele não pode ser editado (você pode criar uma nova versão), e o plano publicado anterior é arquivado.')) {
+                    run(onPublish, 'Plano publicado.');
+                  }
+                }}
+              >
+                <Send className="size-4" /> {readOnly ? 'Publicado' : 'Publicar para o paciente'}
               </Button>
             </div>
           </div>
 
+          <fieldset disabled={readOnly} className="contents">
           {meals.map((meal) => {
             const mealKcal = totals.meals[meal.id]?.totals.energy_kcal ?? 0;
             return (
@@ -445,18 +563,40 @@ export function MealPlanEditor({ initialPlan, initialFoods, offline = false }: M
               </section>
             );
           })}
-          <Button type="button" variant="outline" disabled title="Em breve">
-            <Plus className="size-4" /> Nova refeição
-          </Button>
+          </fieldset>
+          {!readOnly && (
+            <Button type="button" variant="outline" disabled title="Em breve">
+              <Plus className="size-4" /> Nova refeição
+            </Button>
+          )}
+          {(onSave || readOnly) && (
+            <div className="space-y-1.5">
+              <Label htmlFor="plan-guidelines">Orientações para o paciente (uma por linha; vão no PDF)</Label>
+              <textarea
+                id="plan-guidelines"
+                value={guidelines}
+                onChange={(e) => setGuidelines(e.target.value)}
+                rows={4}
+                maxLength={4000}
+                disabled={readOnly}
+                className="w-full rounded-md border border-input bg-transparent p-3 text-sm dark:bg-input/30"
+              />
+            </div>
+          )}
         </div>
 
         <aside className="space-y-5 xl:sticky xl:top-24 xl:self-start">
           <section aria-labelledby="metas" className="rounded-2xl border border-border bg-card p-5">
             <h2 id="metas" className="font-semibold">Gasto energético e metas</h2>
             <p className="mt-1 text-xs text-muted-foreground">
-              {demoPatient.name}, {demoPatient.ageYears} anos, {fmt(WEIGHT_KG, 1)} kg, {demoPatient.heightCm} cm
+              {[p.name, p.ageYears !== null ? `${p.ageYears} anos` : null, p.weightKg ? `${fmt(p.weightKg, 1)} kg` : null, p.heightCm ? `${fmt(p.heightCm)} cm` : null].filter(Boolean).join(', ')}
             </p>
-            <div className="mt-4 grid grid-cols-2 gap-3">
+            {ree === null && (
+              <p className="mt-2 rounded-md bg-muted/60 p-2 text-xs text-muted-foreground">
+                Para calcular o gasto energético, informe sexo e nascimento na ficha e registre uma avaliação com peso e altura. Enquanto isso, use a meta manual.
+              </p>
+            )}
+            <fieldset disabled={readOnly} className="mt-4 grid grid-cols-2 gap-3">
               <div className="col-span-2 space-y-1.5">
                 <Label htmlFor="formula">Fórmula</Label>
                 <select id="formula" value={formula} onChange={(e) => setFormula(e.target.value as FormulaKey)} className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm dark:bg-input/30">
@@ -481,10 +621,16 @@ export function MealPlanEditor({ initialPlan, initialFoods, offline = false }: M
                 <Label htmlFor="lip">Lipídios (%)</Label>
                 <Input id="lip" type="number" step={1} min={10} max={45} value={lipidPct} onChange={(e) => setLipidPct(Number(e.target.value) || 0)} className="h-9 tabular-nums" />
               </div>
-            </div>
+            </fieldset>
+            {ree === null && (
+              <div className="mt-3 space-y-1.5">
+                <Label htmlFor="manual-kcal">Meta manual (kcal)</Label>
+                <Input id="manual-kcal" disabled={readOnly} type="number" step={50} min={600} max={6000} value={manualKcal} onChange={(e) => setManualKcal(Number(e.target.value) || 0)} className="h-9 tabular-nums" />
+              </div>
+            )}
             <dl className="mt-4 grid grid-cols-3 gap-2 text-center text-xs">
-              <div className="rounded-lg bg-muted/60 p-2"><dt className="text-muted-foreground">GER</dt><dd className="text-sm font-semibold tabular-nums">{fmt(ree)}</dd></div>
-              <div className="rounded-lg bg-muted/60 p-2"><dt className="text-muted-foreground">GET</dt><dd className="text-sm font-semibold tabular-nums">{fmt(tee)}</dd></div>
+              <div className="rounded-lg bg-muted/60 p-2"><dt className="text-muted-foreground">GER</dt><dd className="text-sm font-semibold tabular-nums">{ree !== null ? fmt(ree) : '—'}</dd></div>
+              <div className="rounded-lg bg-muted/60 p-2"><dt className="text-muted-foreground">GET</dt><dd className="text-sm font-semibold tabular-nums">{tee !== null ? fmt(tee) : '—'}</dd></div>
               <div className="rounded-lg bg-primary/10 p-2"><dt className="text-primary">Meta</dt><dd className="text-sm font-semibold tabular-nums">{fmt(target)}</dd></div>
             </dl>
           </section>
