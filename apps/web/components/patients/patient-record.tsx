@@ -24,6 +24,7 @@ import { formatPhoneBR } from '@/components/clinical/patients-list';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { setPatientStatus } from '@/lib/patients/actions';
+import type { Assessment } from '@/lib/assessments/schema';
 import { ageInYears, formatCpf, maskCpf, toFormValues, type Patient, type PatientStatus } from '@/lib/patients/schema';
 import { cn } from '@/lib/utils';
 
@@ -60,18 +61,15 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
 
 const missing = <span className="font-normal text-muted-foreground">Não informado</span>;
 
-export function PatientRecord({ patient, activeLimitReached }: { patient: Patient; activeLimitReached: boolean }) {
+export function PatientHeader({ patient, activeLimitReached, active }: { patient: Patient; activeLimitReached: boolean; active: 'resumo' | 'avaliacoes' }) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
-  const [showCpf, setShowCpf] = useState(false);
   const [feedback, setFeedback] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
   const [pending, startTransition] = useTransition();
 
   const initials = patient.full_name.split(/\s+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase();
   const age = patient.birth_date ? ageInYears(patient.birth_date) : null;
   const subtitle = [age !== null ? `${age} anos` : null, patient.sex ? SEX_LABEL[patient.sex] : null].filter(Boolean).join(' · ');
-  const phone = formatPhoneBR(patient.phone);
-  const whatsapp = patient.phone ? `https://wa.me/${patient.phone.replace(/\D/g, '')}` : null;
   const archived = patient.status !== 'active';
 
   function changeStatus(next: PatientStatus) {
@@ -146,15 +144,46 @@ export function PatientRecord({ patient, activeLimitReached }: { patient: Patien
       )}
 
       <nav aria-label="Seções do paciente" className="-mx-5 flex gap-1 overflow-x-auto whitespace-nowrap border-b border-border px-5 sm:mx-0 sm:px-0">
-        <span aria-current="page" className="border-b-2 border-primary px-4 py-2.5 text-sm font-medium">Resumo</span>
-        <span className="flex items-center gap-1.5 px-4 py-2.5 text-sm text-muted-foreground" aria-disabled="true">
-          Avaliações <Badge variant="outline" className="text-[10px]">em breve</Badge>
-        </span>
+        {(
+          [
+            ['resumo', 'Resumo', `/app/pacientes/${patient.id}`],
+            ['avaliacoes', 'Avaliações', `/app/pacientes/${patient.id}/avaliacoes`],
+          ] as const
+        ).map(([key, label, href]) => (
+          <Link
+            key={key}
+            href={href}
+            aria-current={active === key ? 'page' : undefined}
+            className={cn('border-b-2 px-4 py-2.5 text-sm font-medium', active === key ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground')}
+          >
+            {label}
+          </Link>
+        ))}
         <span className="flex items-center gap-1.5 px-4 py-2.5 text-sm text-muted-foreground" aria-disabled="true">
           Plano alimentar <Badge variant="outline" className="text-[10px]">em breve</Badge>
         </span>
       </nav>
+    </div>
+  );
+}
 
+export function PatientRecord({
+  patient,
+  activeLimitReached,
+  latestAssessment = null,
+}: {
+  patient: Patient;
+  activeLimitReached: boolean;
+  latestAssessment?: Assessment | null;
+}) {
+  const [showCpf, setShowCpf] = useState(false);
+  const age = patient.birth_date ? ageInYears(patient.birth_date) : null;
+  const phone = formatPhoneBR(patient.phone);
+  const whatsapp = patient.phone ? `https://wa.me/${patient.phone.replace(/\D/g, '')}` : null;
+
+  return (
+    <div className="space-y-6">
+      <PatientHeader patient={patient} activeLimitReached={activeLimitReached} active="resumo" />
       <div className="grid gap-5 lg:grid-cols-3">
         <Card title="Dados pessoais" icon={<CalendarDays className="size-5" />} className="lg:col-span-2">
           <dl className="divide-y divide-border">
@@ -215,9 +244,27 @@ export function PatientRecord({ patient, activeLimitReached }: { patient: Patien
         </Card>
 
         <Card title="Avaliações" icon={<Ruler className="size-5" />}>
-          <p className="text-sm text-muted-foreground">Nenhuma avaliação registrada. A gravação de avaliações antropométricas chega na próxima etapa.</p>
-          <Link href="/app/pacientes/exemplo/avaliacao" className="mt-3 inline-block text-sm font-medium text-primary hover:underline">
-            Ver a demonstração
+          {latestAssessment ? (
+            <>
+              <p className="text-xs text-muted-foreground">Última em {dateBR(latestAssessment.assessed_at)}</p>
+              <dl className="mt-3 grid grid-cols-3 gap-2 text-center">
+                {[
+                  ['Peso', latestAssessment.weight_kg !== null ? `${latestAssessment.weight_kg.toLocaleString('pt-BR')} kg` : '—'],
+                  ['IMC', latestAssessment.results.bmi !== undefined ? latestAssessment.results.bmi.toLocaleString('pt-BR', { maximumFractionDigits: 1 }) : '—'],
+                  ['Gordura', latestAssessment.results.body_fat_pct !== undefined ? `${latestAssessment.results.body_fat_pct.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%` : '—'],
+                ].map(([k, v]) => (
+                  <div key={k} className="rounded-lg bg-muted/60 p-2">
+                    <dt className="text-xs text-muted-foreground">{k}</dt>
+                    <dd className="text-sm font-semibold tabular-nums">{v}</dd>
+                  </div>
+                ))}
+              </dl>
+            </>
+          ) : (
+            <p className="text-sm text-muted-foreground">Nenhuma avaliação registrada ainda.</p>
+          )}
+          <Link href={`/app/pacientes/${patient.id}/avaliacoes`} className="mt-3 inline-block text-sm font-medium text-primary hover:underline">
+            {latestAssessment ? 'Ver histórico e nova avaliação' : 'Registrar a primeira avaliação'}
           </Link>
         </Card>
 

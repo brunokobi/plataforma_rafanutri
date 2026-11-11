@@ -1,5 +1,5 @@
-import { AssessmentForm } from '@/components/clinical/assessment-form';
+import { DemoAssessmentForm } from '@/components/clinical/assessment-form';
 
 export default function DemoAssessmentPage() {
-  return <AssessmentForm />;
+  return <DemoAssessmentForm />;
 }

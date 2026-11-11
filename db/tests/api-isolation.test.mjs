@@ -172,6 +172,42 @@ try {
     assert.equal(r.json.errors[0].extensions.code, 'RECORD_NOT_UNIQUE');
   });
 
+  console.log('Avaliações antropométricas (RN-028):');
+  let patientB;
+  {
+    const r = await api('/items/patients?fields=id', { token: b.token, method: 'POST', body: { organization_id: B, full_name: 'Paciente Teste B', status: 'inactive' } });
+    assert.equal(r.status, 200, JSON.stringify(r.json));
+    patientB = r.json.data.id;
+  }
+  const assessment = (org, patient) => ({
+    organization_id: org, patient_id: patient, weight_kg: 70, height_cm: 170, protocol: 'jp3',
+    skinfolds: { chest: 10, abdominal: 20, thigh: 15 }, results: { bmi: 24.2 }, calc_version: 'teste',
+  });
+  let assessmentA;
+  await check('A registra avaliação do próprio paciente e vira o autor', async () => {
+    const r = await api('/items/anthropometric_assessments?fields=id,user_created', { token: a.token, method: 'POST', body: assessment(A, patientA) });
+    assert.equal(r.status, 200, JSON.stringify(r.json));
+    assessmentA = r.json.data.id;
+    assert.equal(r.json.data.user_created, created.users[0]);
+  });
+  await check('o cliente não escolhe o autor', async () => {
+    const r = await api('/items/anthropometric_assessments', { token: a.token, method: 'POST', body: { ...assessment(A, patientA), user_created: created.users[1] } });
+    assert.equal(r.status, 403);
+  });
+  await check('A não registra avaliação no consultório de B nem para paciente de B', async () => {
+    const r1 = await api('/items/anthropometric_assessments', { token: a.token, method: 'POST', body: assessment(B, patientB) });
+    const r2 = await api('/items/anthropometric_assessments', { token: a.token, method: 'POST', body: assessment(A, patientB) });
+    assert.ok(r1.status >= 400, `consultório de B: ${r1.status}`);
+    assert.ok(r2.status >= 400, `paciente de B: ${r2.status}`);
+  });
+  await check('B não lê nem altera a avaliação de A', async () => {
+    assert.deepEqual((await api('/items/anthropometric_assessments?fields=id', { token: b.token })).json.data, []);
+    assert.equal((await api(`/items/anthropometric_assessments/${assessmentA}`, { token: b.token, method: 'PATCH', body: { notes: 'x' } })).status, 403);
+  });
+  await check('A não apaga avaliação (histórico preservado)', async () => {
+    assert.equal((await api(`/items/anthropometric_assessments/${assessmentA}`, { token: a.token, method: 'DELETE' })).status, 403);
+  });
+
   console.log(`${passed} verificações passaram.`);
 } finally {
   for (const id of created.orgs) await api(`/items/organizations/${id}`, { token: ADMIN, method: 'DELETE' });

@@ -8,11 +8,15 @@ db/
 │   ├── 0001_foods.sql           # RN-010: base de alimentos e função search_foods
 │   ├── 0002_organizations.sql   # RN-004: consultórios, membros, perfil profissional, planos
 │   ├── 0003_household_measures.sql  # RN-033: medidas caseiras de 25 alimentos comuns (revisar)
-│   └── 0004_patients.sql        # RN-020: pacientes, limite de ativos do plano, CPF único
+│   ├── 0004_patients.sql        # RN-020: pacientes, limite de ativos do plano, CPF único
+│   └── 0005_anthropometric_assessments.sql  # RN-028: avaliações por paciente (consultório e autor conferidos no banco)
 ├── tests/
 │   ├── 0002_organizations.test.sql  # regras do banco (transação desfeita no fim)
 │   ├── 0004_patients.test.sql       # limite de 20 ativos, CPF, responsável, formatos
+│   ├── 0005_anthropometric_assessments.test.sql  # consultório do paciente, autor, faixas, cascata
 │   └── api-isolation.test.mjs       # RN-008: isolamento entre consultórios pela API
+├── directus/
+│   └── 0005_anthropometric_assessments.mjs  # registra a coleção e as permissões no Directus (token de admin)
 └── seed/
     ├── dev/
     │   └── seed-nutricionista.mjs  # usuário de teste como nutricionista + consultório + 9 pacientes fictícios
@@ -131,3 +135,30 @@ Regerar o CSV (só se a fonte mudar):
 python3 -m venv /tmp/venv && /tmp/venv/bin/pip install xlrd==2.0.1
 /tmp/venv/bin/python db/seed/taco/build_taco_csv.py <pasta_com_original.xls_e_csvs> db/seed/taco/taco-4ed.csv
 ```
+
+## Avaliações antropométricas (RN-028)
+
+Tabela `anthropometric_assessments`: medidas (peso, altura, cintura, quadril), protocolo e dobras (`skinfolds`, jsonb), **resultados** calculados pelo `@rafanutri/nutrition-core` (`results`, jsonb, com a `calc_version`), observações, autor (`user_created`, preenchido pelo Directus) e datas.
+
+**Regras no banco (gatilho `anthropometric_guard`)**, que dispensam gancho na extensão:
+- a avaliação é do mesmo consultório do paciente;
+- o autor é owner ou nutricionista do consultório;
+- consultório e paciente não mudam depois.
+
+**Permissões** (script `db/directus/0005_anthropometric_assessments.mjs`): copia o filtro de leitura e edição de `patients` para a nova coleção; cria sem filtro (o gatilho valida); edita só data e observações; **não apaga** (histórico preservado).
+
+### Como ativar (uma vez)
+
+```bash
+# 1. migração e testes (na VPS; o teste roda numa transação desfeita)
+ssh vpsrafa 'docker exec -i rafanutri-postgres psql -U rafanutri -d rafanutri -v ON_ERROR_STOP=1' < db/migrations/0005_anthropometric_assessments.sql
+ssh vpsrafa 'docker exec -i rafanutri-postgres psql -U rafanutri -d rafanutri -v ON_ERROR_STOP=1' < db/tests/0005_anthropometric_assessments.test.sql
+
+# 2. coleção e permissões no Directus
+DIRECTUS_URL=https://rafanutri-api.brunokobi.tech DIRECTUS_ADMIN_TOKEN=<token> node db/directus/0005_anthropometric_assessments.mjs
+
+# 3. isolamento pela API (inclui as verificações das avaliações)
+DIRECTUS_URL=https://rafanutri-api.brunokobi.tech DIRECTUS_ADMIN_TOKEN=<token> node db/tests/api-isolation.test.mjs
+```
+
+Enquanto isso não for feito, a tela de avaliações calcula tudo e avisa que a gravação ainda não foi liberada.

@@ -13,6 +13,7 @@ export interface Patient {
   status: PatientStatus;
   created_at: string;
   cpf?: string | null; // só dígitos (lido apenas na ficha)
+  organization_id?: string; // lido apenas na ficha
   updated_at?: string | null;
 }
 

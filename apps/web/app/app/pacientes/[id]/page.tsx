@@ -9,6 +9,7 @@ import { getCurrentUser } from '@/lib/auth/session';
 import { isSignupOpen } from '@/lib/flags';
 import { getPlan } from '@/lib/modules/plans';
 import { getUserPlan } from '@/lib/modules/user-plan';
+import { listAssessments } from '@/lib/assessments/repository';
 import { getPatient, listPatients } from '@/lib/patients/repository';
 import { isUuid } from '@/lib/patients/schema';
 
@@ -25,7 +26,7 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
   if (target) redirect(target);
 
   const organization = organizations?.find((o) => o.role === 'owner' || o.role === 'nutritionist') ?? null;
-  const [patient, all] = await Promise.all([getPatient(id), organization ? listPatients(organization.id) : null]);
+  const [patient, all, assessments] = await Promise.all([getPatient(id), organization ? listPatients(organization.id) : null, listAssessments(id)]);
   if (patient === undefined) notFound();
 
   const limit = getPlan(getUserPlan(organizations)).maxActivePatients;
@@ -41,7 +42,7 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
             <AlertDescription>Não foi possível carregar a ficha agora. Atualize a página em instantes.</AlertDescription>
           </Alert>
         ) : (
-          <PatientRecord patient={patient} activeLimitReached={limit !== null && activeCount >= limit} />
+          <PatientRecord patient={patient} activeLimitReached={limit !== null && activeCount >= limit} latestAssessment={Array.isArray(assessments) ? (assessments[0] ?? null) : null} />
         )}
       </main>
     </div>

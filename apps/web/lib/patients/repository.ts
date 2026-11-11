@@ -31,7 +31,7 @@ export async function listPatients(organizationId: string): Promise<Patient[] | 
   }
 }
 
-const DETAIL_FIELDS = [...FIELDS, 'cpf', 'updated_at'];
+const DETAIL_FIELDS = [...FIELDS, 'cpf', 'updated_at', 'organization_id'];
 
 /**
  * Um paciente do consultório (com o token do usuário).

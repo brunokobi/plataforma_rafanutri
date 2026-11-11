@@ -1,7 +1,7 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { MealPlanEditor } from '@/components/clinical/meal-plan-editor';
-import { AssessmentForm } from '@/components/clinical/assessment-form';
+import { DemoAssessmentForm } from '@/components/clinical/assessment-form';
 import { DEMO_FOODS, DEMO_PLAN, foodById, searchDemoFoods } from '@/lib/demo/foods';
 import { demoFoodsAsFoods } from '@/lib/demo/taco-plan';
 import type { Food } from '@/lib/foods/food';
@@ -100,7 +100,7 @@ describe('MealPlanEditor com a TACO', () => {
 
 describe('AssessmentForm', () => {
   it('calcula IMC e gordura corporal ao vivo', () => {
-    render(<AssessmentForm />);
+    render(<DemoAssessmentForm />);
     // 67,6 kg / 1,65² = 24,8
     expect(screen.getByText('24,8')).toBeTruthy();
     expect(screen.getByText('Gordura corporal')).toBeTruthy();
