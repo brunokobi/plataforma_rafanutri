@@ -60,6 +60,7 @@ O dev decidiu usar o **Directus** da infraestrutura da VPS como backend da Rafan
 |---|---|---|
 | Mudanças da linha 12 em relação à 11 | O planejamento foi pensado com a API de papéis, políticas e permissões da linha 11. Na Fase 0, conferir as notas de versão da 12 e ajustar o bootstrap de permissões e as extensões | Fase 0 (RN-003, RN-008) |
 | Licença | O Directus usa BSL 1.1: gratuito para organizações com receita anual abaixo de US$ 5 milhões. Reavaliar se a Rafanutri passar disso | Dev |
+| **Permissões com filtro bloqueadas sem licença (achado em 10/11/2026)** | O Directus 12.6.1 recusa criar permissão com filtro (ex.: `id = $CURRENT_USER` ou pela organização) com `custom_permission_rules_enabled is a restricted resource`. Permissões sem filtro funcionam. O isolamento entre nutricionistas planejado aqui depende desses filtros. Saídas: isolar por endpoints de extensão + ganchos + gatilhos no banco; conferir se a licença gratuita libera o recurso; ou fixar na linha 11. A leitura do próprio perfil foi resolvida com `app_access` na política (permissões mínimas de sistema) | Antes do RN-008 |
 | Link mágico para o paciente (Fase 1B) | O Directus não tem login sem senha pronto; precisa de endpoint próprio ou de senha simples | Fase 1B |
 
 ## Consequências

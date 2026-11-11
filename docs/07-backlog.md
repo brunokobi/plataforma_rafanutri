@@ -30,8 +30,8 @@ Status: `todo`, `doing`, `done`, `adiado` (fora do MVP, ver [ADR 0004](adr/0004-
 | [RN-007](plano/fase-0-fundacao.md#rn-007--convite-de-membros-e-papéis) | Convite de membros e papéis | feature | 5 | RN-006 | todo |
 | [RN-008](plano/fase-0-fundacao.md#rn-008--políticas-rls-base-e-testes-de-isolamento) | Políticas RLS base e testes de isolamento | infra | 5 | RN-004 | todo |
 | [RN-009](plano/fase-0-fundacao.md#rn-009--gatilhos-de-auditoria-para-tabelas-sensíveis) | Gatilhos de auditoria para tabelas sensíveis | feature | 3 | RN-004 | todo |
-| [RN-010](plano/fase-0-fundacao.md#rn-010--migração-da-base-de-alimentos) | Migração da base de alimentos | feature | 3 | RN-003 | todo |
-| [RN-011](plano/fase-0-fundacao.md#rn-011--importação-da-taco) | Importação da TACO | feature | 5 | RN-010, RN-015 | todo |
+| [RN-010](plano/fase-0-fundacao.md#rn-010--migração-da-base-de-alimentos) | Migração da base de alimentos | feature | 3 | RN-003 | doing |
+| [RN-011](plano/fase-0-fundacao.md#rn-011--importação-da-taco) | Importação da TACO | feature | 5 | RN-010, RN-015 | doing |
 | [RN-012](plano/fase-0-fundacao.md#rn-012--importação-da-tbca) | Importação da TBCA | feature | 5 | RN-010, RN-015 | todo |
 | [RN-013](plano/fase-0-fundacao.md#rn-013--layout-base-do-painel) | Layout base do painel | feature | 3 | RN-002, RN-019 | todo |
 | [RN-014](plano/fase-0-fundacao.md#rn-014--cicd) | CI/CD | infra | 3 | RN-001, RN-003 | todo |
