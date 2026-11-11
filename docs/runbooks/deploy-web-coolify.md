@@ -2,7 +2,9 @@
 
 App: `apps/web` (Next.js 16, saída `standalone`). Domínio: **https://rafanutri.brunokobi.tech**. Backend: Directus em `https://rafanutri-api.brunokobi.tech` ([ADR 0008](../adr/0008-backend-directus.md)).
 
-O deploy é automático: **cada push na `main`** que mexa no app dispara um novo build no Coolify. O CI do GitHub (lint, typecheck, testes, build e e2e) roda em paralelo e garante que a `main` continua verde.
+> **Situação em 10/11/2026:** a aplicação `rafanutri-web` já existe no Coolify (criada pelo terminal, sem o painel; ver o repositório de infraestrutura) e o deploy é **disparado manualmente** depois de cada push. O webhook do GitHub (seção 1.2) ainda não foi configurado.
+
+Com o webhook configurado, o deploy fica automático: **cada push na `main`** que mexa no app dispara um novo build no Coolify. O CI do GitHub (lint, typecheck, testes, build e e2e) roda em paralelo e garante que a `main` continua verde.
 
 ## 1. Configuração inicial (uma vez, pela interface do Coolify)
 

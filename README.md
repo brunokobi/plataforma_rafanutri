@@ -29,7 +29,7 @@
 
 A Rafanutri reúne as áreas da nutrição em um só lugar: atendimento clínico e esportivo, nutrição materno-infantil, saúde pública, Unidades de Alimentação e Nutrição (UAN) com gestão de qualidade, e gestão do negócio do nutricionista. Também traz assistentes de IA e um app para o paciente acompanhar o plano alimentar.
 
-> **Status:** MVP em construção. A interface já tem página inicial, login, cadastro, onboarding, tela de módulos e uma **demonstração do módulo clínico** (pacientes, avaliação, plano alimentar e PDF) com cálculos reais. Ainda **sem banco**: nada é salvo. Veja o [progresso](docs/plano/progresso.md).
+> **Status (10/11/2026):** MVP em construção, **no ar em https://rafanutri.brunokobi.tech**. Já gravam no banco: cadastro com login automático, onboarding do consultório (plano gratuito), **pacientes** (cadastro, busca, arquivar, limite de 20 ativos) e a base de alimentos **TACO 4ª edição** usada pelo editor de plano alimentar. Avaliação, plano alimentar e PDF ainda funcionam só com a paciente de exemplo, sem salvar. Veja o [progresso](docs/plano/progresso.md).
 
 ---
 
@@ -136,7 +136,9 @@ apps/
     app/                  # rotas (App Router); proxy.ts protege /app e /onboarding
     components/           # telas e componentes (ui/ = shadcn/ui)
     lib/
-      auth/               # login, sessão e Server Actions (Directus)
+      auth/               # login, sessão, consultórios do usuário e Server Actions (Directus)
+      foods/              # base de alimentos (TACO) pela API do Directus: busca e substitutos
+      patients/           # pacientes: validação (CPF, telefone), leitura e Server Actions
       modules/            # catálogo de módulos e acesso por plano
       demo/               # dados de exemplo do módulo clínico (pré-lançamento)
       pdf/                # dados do PDF do plano alimentar
@@ -145,11 +147,19 @@ apps/
 packages/
   nutrition-core/         # fórmulas e cálculos nutricionais (TS puro, 41 testes)
   config/                 # tsconfig base
+db/
+  migrations/             # SQL versionado e idempotente (0001 alimentos … 0004 pacientes)
+  seed/taco/              # TACO 4ª edição (CSV + importador + gerador a partir da planilha oficial)
+  seed/dev/               # seed de nutricionista de teste com consultório e pacientes
+  tests/                  # testes SQL das regras do banco + teste de isolamento pela API
+directus/extensions/
+  rafanutri/              # endpoints próprios (/rafanutri/organizations, /rafanutri/me/organizations)
+  rafanutri-hooks/        # ganchos: gravação só no próprio consultório, limite do plano
 docs/                     # produto, arquitetura, plano, specs, runbooks e ADRs
 .github/workflows/        # CI: lint, typecheck, testes, build e e2e
 ```
 
-Previstos para quando o banco for liberado (Fase 0): `db/migrations/` (SQL versionado), `infra/directus/` (extensões e configuração do Directus) e `scripts/` (bootstrap de permissões e importadores TACO/TBCA/OMS).
+Detalhes do banco, das permissões e de como aplicar migrações: [db/README.md](db/README.md).
 
 ## Como rodar localmente
 
@@ -163,7 +173,13 @@ cp apps/web/.env.example apps/web/.env.local   # aponta para o Directus da vpsra
 pnpm dev                                       # http://localhost:3000
 ```
 
-O app autentica no Directus de `https://rafanutri-api.brunokobi.tech`. O cadastro e o onboarding só gravam com `SIGNUP_OPEN=true` (desligado até a Fase 0 do banco). O módulo clínico abre em `/app/pacientes` com uma paciente de exemplo. O que está feito e o que falta: [docs/plano/progresso.md](docs/plano/progresso.md).
+O app fala com o Directus de `https://rafanutri-api.brunokobi.tech`. Localmente, o cadastro e o onboarding só gravam com `SIGNUP_OPEN=true` (em produção já está ligado). Para ter um nutricionista pronto com consultório e pacientes fictícios:
+
+```bash
+SEED_EMAIL=<email> SEED_PASSWORD=<senha> node db/seed/dev/seed-nutricionista.mjs   # SEED_CREATE_USER=1 cria a conta
+```
+
+O que está feito e o que falta: [docs/plano/progresso.md](docs/plano/progresso.md).
 
 ## Scripts
 
@@ -174,10 +190,12 @@ O app autentica no Directus de `https://rafanutri-api.brunokobi.tech`. O cadastr
 | `pnpm lint` / `pnpm typecheck` | Qualidade de código (ESLint e TypeScript estrito) |
 | `pnpm test` | Testes unitários e de componente (Vitest + Testing Library) |
 | `pnpm test:e2e` | Testes end-to-end (Playwright); login real com `E2E_USER_EMAIL` e `E2E_USER_PASSWORD` |
+| `node db/tests/api-isolation.test.mjs` | Isolamento entre consultórios pela API (23 verificações; exige `DIRECTUS_URL` e `DIRECTUS_ADMIN_TOKEN` só para a limpeza) |
 
 ## Deploy
 
-- **Coolify da vpsrafa**, com **deploy automático a cada push na `main`** que altere o app.
+- **App web:** aplicação `rafanutri-web` no Coolify da vpsrafa. Hoje o deploy é **disparado manualmente** após o push; o deploy automático a cada push depende do webhook do GitHub (pendente).
+- **Backend:** Directus 12 (licença gratuita Open Innovation Grant) + Postgres em `~/apps/rafanutri-directus/` na vpsrafa; migrações de `db/` e extensões de `directus/extensions/` aplicadas conforme o [db/README.md](db/README.md) e o [runbook do Directus](docs/runbooks/directus-vpsrafa.md).
 - Imagem: `apps/web/Dockerfile` (multi-stage, `turbo prune`, Next.js `standalone`, ARM64).
 - Domínio: **https://rafanutri.brunokobi.tech**. Verificação de saúde: `/api/health`.
 - CI no GitHub Actions: lint, typecheck, testes, build e e2e em todo push e pull request.
@@ -192,10 +210,12 @@ A lista completa, sem valores reais, fica nos arquivos `.env.example`. Principai
 | `DIRECTUS_URL` | Servidor do app web | URL da API do Directus (`https://rafanutri-api.brunokobi.tech`) |
 | `NEXT_PUBLIC_SITE_URL` | App web (build e execução) | URL pública do app (`https://rafanutri.brunokobi.tech`) |
 | `SIGNUP_OPEN` | Servidor do app web | `true` libera o cadastro e o onboarding no Directus; padrão `false` (pré-lançamento) |
-| `DIRECTUS_KEY` / `DIRECTUS_SECRET` | Directus | Chaves da instância |
+| `KEY` / `SECRET` | Directus | Chaves da instância |
+| `LICENSE_KEY` | Directus | Licença Open Innovation Grant (libera permissões com filtro) |
+| `EMAIL_*` | Directus | SMTP do Resend para verificação de cadastro e recuperação de senha (aguarda DNS do domínio) |
+| `USER_REGISTER_URL_ALLOW_LIST` / `PASSWORD_RESET_URL_ALLOW_LIST` | Directus | URLs do app aceitas nos e-mails de cadastro e senha |
 | `DIRECTUS_ADMIN_EMAIL` / `DIRECTUS_ADMIN_PASSWORD` | Scripts de manutenção | Bootstrap e migrações; **nunca** no app web |
 | `DB_PASSWORD` | Directus e scripts | Senha do Postgres |
-| `RESEND_API_KEY` | Servidor | E-mail transacional |
 | `LLM_API_KEY` | Servidor | Provedor de IA (Fase 3) |
 | `N8N_WEBHOOK_SECRET` | Servidor | Assinatura dos webhooks com o n8n (Fase 2) |
 | `SENTRY_DSN` | Ambos | Monitoramento de erros |
@@ -207,8 +227,8 @@ Nunca versione arquivos `.env*` com valores reais.
 - `main` é protegida e sempre implantável; trabalho em branches `feat/RN-xxx-descricao`, `fix/...`, `docs/...`, `chore/...`.
 - Commits no padrão Conventional Commits, em português: `feat(clinico): editor de plano alimentar (RN-031)`.
 - Um item do backlog por pull request, com descrição, como testar e prints.
-- CI obrigatório: lint, typecheck, testes, testes de RLS e build.
-- Toda tabela nova precisa de política RLS e teste de isolamento.
+- CI obrigatório: lint, typecheck, testes e build.
+- Toda tabela nova com `organization_id` precisa de permissões filtradas no Directus, gancho de gravação, gatilhos para as regras invioláveis e cenários no teste de isolamento (`db/tests/api-isolation.test.mjs`).
 - Merge em `main` publica em staging; produção por tag, com aprovação manual.
 
 Critérios completos de pronto em [docs/plano/00-visao-geral.md](docs/plano/00-visao-geral.md).
@@ -217,7 +237,7 @@ Critérios completos de pronto em [docs/plano/00-visao-geral.md](docs/plano/00-v
 
 A plataforma trata **dados sensíveis de saúde**. No MVP, a adequação à LGPD está adiada, mas valem sempre:
 
-- Isolamento por organização com RLS e testes automatizados.
+- Isolamento por consultório (permissões do Directus + ganchos + gatilhos) com testes automatizados.
 - Segredos fora do repositório.
 - Backup diário do banco fora da VPS, com teste de restauração.
 
@@ -241,6 +261,7 @@ Ver [docs/05-seguranca-lgpd.md](docs/05-seguranca-lgpd.md).
 | [docs/07-backlog.md](docs/07-backlog.md) | Backlog consolidado |
 | [docs/plano/progresso.md](docs/plano/progresso.md) | **Progresso da implementação** (feito, demonstração, pendente) |
 | [docs/specs/](docs/specs/) | Specs das telas: módulos, cadastro e onboarding, módulo clínico em demonstração |
+| [db/README.md](db/README.md) | Banco: migrações, TACO, permissões do Directus, testes e seed |
 | [docs/runbooks/](docs/runbooks/) | Instalação do Directus e deploy no Coolify |
 | [docs/adr/](docs/adr/) | Decisões de arquitetura |
 
