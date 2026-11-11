@@ -7,9 +7,11 @@ db/
 ├── migrations/                  # SQL idempotente, aplicado em ordem (0001_, 0002_, ...)
 │   ├── 0001_foods.sql           # RN-010: base de alimentos e função search_foods
 │   ├── 0002_organizations.sql   # RN-004: consultórios, membros, perfil profissional, planos
-│   └── 0003_household_measures.sql  # RN-033: medidas caseiras de 25 alimentos comuns (revisar)
+│   ├── 0003_household_measures.sql  # RN-033: medidas caseiras de 25 alimentos comuns (revisar)
+│   └── 0004_patients.sql        # RN-020: pacientes, limite de ativos do plano, CPF único
 ├── tests/
 │   ├── 0002_organizations.test.sql  # regras do banco (transação desfeita no fim)
+│   ├── 0004_patients.test.sql       # limite de 20 ativos, CPF, responsável, formatos
 │   └── api-isolation.test.mjs       # RN-008: isolamento entre consultórios pela API
 └── seed/
     └── taco/            # RN-011: TACO 4ª edição
@@ -59,8 +61,11 @@ Depois de criar tabelas novas, registre-as no Directus (`POST /collections` com 
 | `organization_members` | membros dos próprios consultórios | nenhuma (convites entram no RN-007) |
 | `professional_profiles` | o próprio | CRN e regional do próprio |
 | `plans` | todos | nenhuma |
+| `patients` | dos consultórios em que é owner ou nutricionista | cria no próprio consultório (responsável = ele mesmo); edita dados e status; **não apaga** (arquiva) |
 | `foods`, `food_nutrients` | base pública + alimentos do próprio consultório | nenhuma |
 | `directus_users` | só o próprio | nome, avatar e idioma do próprio |
+
+**Gancho** (extensão `directus/extensions/rafanutri-hooks`, instalada do mesmo jeito): na criação de paciente, confere se o usuário é owner/nutricionista do consultório, fixa o responsável e antecipa o limite do plano com mensagem clara; na edição, impede trocar consultório e responsável. As mesmas regras estão nos gatilhos do banco.
 
 **Cadastro público:** ligado no Directus com o papel Profissional e **sem verificação por e-mail** (não há SMTP). `USER_REGISTER_URL_ALLOW_LIST` no `.env` lista as URLs de verificação aceitas.
 

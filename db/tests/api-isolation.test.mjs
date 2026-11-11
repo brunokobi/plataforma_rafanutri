@@ -118,6 +118,60 @@ try {
     assert.equal((await api('/items/organizations')).status, 403);
     assert.equal((await api('/items/foods?limit=1')).status, 403);
   });
+
+  console.log('Pacientes:');
+  let patientA;
+  await check('A cadastra paciente no próprio consultório e vira o responsável', async () => {
+    const r = await api('/items/patients?fields=id,organization_id,responsible_user_id,status', {
+      token: a.token, method: 'POST',
+      body: { organization_id: A, full_name: 'Paciente Teste A', phone: '+5531999990000' },
+    });
+    assert.equal(r.status, 200, JSON.stringify(r.json));
+    patientA = r.json.data.id;
+    assert.equal(r.json.data.responsible_user_id, created.users[0], 'responsável deve ser quem cadastrou');
+    assert.equal(r.json.data.status, 'active');
+  });
+  await check('o cliente não escolhe o responsável', async () => {
+    const r = await api('/items/patients', { token: a.token, method: 'POST', body: { organization_id: A, full_name: 'Com Responsável', responsible_user_id: created.users[1] } });
+    assert.equal(r.status, 403);
+  });
+  await check('A não cadastra paciente no consultório de B', async () => {
+    const r = await api('/items/patients', { token: a.token, method: 'POST', body: { organization_id: B, full_name: 'Intruso Teste' } });
+    assert.equal(r.status, 403);
+  });
+  await check('B não lê nem altera o paciente de A', async () => {
+    assert.equal((await api(`/items/patients/${patientA}`, { token: b.token })).status, 403);
+    assert.deepEqual((await api('/items/patients?fields=id', { token: b.token })).json.data, []);
+    assert.equal((await api(`/items/patients/${patientA}`, { token: b.token, method: 'PATCH', body: { full_name: 'x' } })).status, 403);
+  });
+  await check('A não move o paciente para outro consultório', async () => {
+    const r = await api(`/items/patients/${patientA}`, { token: a.token, method: 'PATCH', body: { organization_id: B } });
+    assert.equal(r.status, 403);
+  });
+  await check('A não apaga paciente (só arquiva)', async () => {
+    assert.equal((await api(`/items/patients/${patientA}`, { token: a.token, method: 'DELETE' })).status, 403);
+    const r = await api(`/items/patients/${patientA}?fields=status`, { token: a.token, method: 'PATCH', body: { status: 'archived' } });
+    assert.equal(r.json.data.status, 'archived');
+  });
+  await check('limite do plano gratuito: o 21º ativo é recusado com mensagem clara', async () => {
+    for (let i = 1; i <= 20; i += 1) {
+      const r = await api('/items/patients', { token: a.token, method: 'POST', body: { organization_id: A, full_name: `Paciente Limite ${i}` } });
+      assert.equal(r.status, 200, `paciente ${i}: ${JSON.stringify(r.json)}`);
+    }
+    const r = await api('/items/patients', { token: a.token, method: 'POST', body: { organization_id: A, full_name: 'Paciente Limite 21' } });
+    assert.equal(r.status, 400);
+    assert.match(r.json.errors[0].message, /até 20 pacientes ativos/);
+    const reativar = await api(`/items/patients/${patientA}`, { token: a.token, method: 'PATCH', body: { status: 'active' } });
+    assert.equal(reativar.status, 400, 'reativar com o limite cheio deveria falhar');
+  });
+  await check('CPF repetido no consultório é recusado', async () => {
+    const body = { organization_id: A, full_name: 'Com CPF', cpf: '52998224725', status: 'inactive' };
+    assert.equal((await api('/items/patients', { token: a.token, method: 'POST', body })).status, 200);
+    const r = await api('/items/patients', { token: a.token, method: 'POST', body: { ...body, full_name: 'Outro Com CPF' } });
+    assert.equal(r.status, 400);
+    assert.equal(r.json.errors[0].extensions.code, 'RECORD_NOT_UNIQUE');
+  });
+
   console.log(`${passed} verificações passaram.`);
 } finally {
   for (const id of created.orgs) await api(`/items/organizations/${id}`, { token: ADMIN, method: 'DELETE' });

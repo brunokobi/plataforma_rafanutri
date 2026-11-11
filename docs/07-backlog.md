@@ -45,7 +45,7 @@ Status: `todo`, `doing`, `done`, `adiado` (fora do MVP, ver [ADR 0004](adr/0004-
 
 | ID | Item | Tipo | Pts | Depende de | Status |
 |---|---|---|---|---|---|
-| [RN-020](plano/fase-1-mvp-clinico.md#rn-020--pacientes-cadastro-busca-e-filtros) | Pacientes: cadastro, busca e filtros | feature | 5 | RN-008, RN-013 | todo |
+| [RN-020](plano/fase-1-mvp-clinico.md#rn-020--pacientes-cadastro-busca-e-filtros) | Pacientes: cadastro, busca e filtros | feature | 5 | RN-008, RN-013 | doing |
 | [RN-021](plano/fase-1-mvp-clinico.md#rn-021--consentimento-lgpd-do-paciente) | Consentimento LGPD do paciente | feature | 3 | RN-016, RN-020 | adiado |
 | [RN-022](plano/fase-1-mvp-clinico.md#rn-022--agenda) | Agenda | feature | 8 | RN-020 | todo |
 | [RN-023](plano/fase-1-mvp-clinico.md#rn-023--prontuário-linha-do-tempo-e-evolução) | Prontuário: linha do tempo e evolução | feature | 5 | RN-020, RN-009 | todo |
