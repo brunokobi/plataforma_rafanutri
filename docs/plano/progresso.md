@@ -25,7 +25,7 @@ Atualizado em **10/11/2026**. O que já está no código (`main`), o que está s
 | RN-006 Onboarding | ✅ | Grava o consultório pelo endpoint `/rafanutri/organizations`; redireciona quem não tem consultório. Falta: upload do logo e seletor de consultório ([spec](../specs/cadastro-onboarding.md)) |
 | RN-007 Convites e papéis | ⏳ | |
 | RN-008 Isolamento entre organizações | 🟡 base | Permissões filtradas pela organização no papel Profissional + gatilhos no banco; 15 verificações em `db/tests/api-isolation.test.mjs`. Falta rodar no CI e estender a cada tabela nova |
-| RN-010 e RN-011 Base de alimentos | 🟡 | TACO 4ª edição no banco (597 alimentos, 29 nutrientes) com busca sem acento ([db/README](../../db/README.md)). Falta a página `/alimentos` e o editor usar a TACO no lugar da base de exemplo. RN-012 (TBCA) pendente |
+| RN-010 e RN-011 Base de alimentos | 🟡 | TACO 4ª edição no banco (597 alimentos, 29 nutrientes) com busca sem acento ([db/README](../../db/README.md)) e já usada pelo editor de plano. Falta a página `/alimentos`. RN-012 (TBCA) pendente |
 | RN-013 Layout | ✅ | Cabeçalho da área logada, tema claro e escuro, responsivo |
 | RN-014 CI/CD | 🟡 parcial | GitHub Actions e Dockerfile ARM64; app no Coolify (`rafanutri-web`). Falta o webhook do GitHub para deploy automático ([runbook](../runbooks/deploy-web-coolify.md)) |
 | RN-019 Identidade visual | ✅ | Paleta, tipografia, logo provisório, ilustrações vetoriais próprias |
@@ -40,9 +40,9 @@ Atualizado em **10/11/2026**. O que já está no código (`main`), o que está s
 | RN-028 Avaliação e gráficos | 🧪 | Cálculo ao vivo e evolução de peso e % de gordura |
 | RN-029 Gasto energético | ✅ cálculo · 🧪 tela | Harris-Benedict, Mifflin-St Jeor, Cunningham, FAO/OMS |
 | RN-030 Metas | 🧪 | No painel do editor: fórmula, fator de atividade, ajuste, proteína em g/kg e lipídios em % |
-| RN-031 Editor de plano | 🧪 | Refeições, busca, medidas caseiras, modo qualitativo |
+| RN-031 Editor de plano | 🧪 com TACO | Busca, substituições e plano de exemplo usam a **TACO do banco** (pela API do Directus, com o token do usuário); cai na base de exemplo se o Directus estiver fora. Paciente fictícia e plano ainda não salvos |
 | RN-032 Cálculo em tempo real | 🧪 | Plano × metas com faixas de adequação |
-| RN-033 Medidas caseiras | 🧪 | Com plural correto em português |
+| RN-033 Medidas caseiras | 🟡 | Medidas de 25 alimentos comuns da TACO no banco (migração 0003, **revisar com a nutricionista**); nos demais, a quantidade aparece em gramas |
 | RN-034 Substituições | 🧪 | Equivalência em energia no mesmo grupo, já em medida caseira |
 | RN-036 PDF do plano | 🧪 | PDF com a marca, gerado no navegador ([spec](../specs/modulo-clinico-demo.md)) |
 | RN-022 Agenda, RN-025/026 Anamnese, RN-035 Modelos, RN-041/042 Alimentos e preparações próprios | ⏳ | |
@@ -76,5 +76,5 @@ Atualizado em **10/11/2026**. O que já está no código (`main`), o que está s
 |---|---|
 | Dev | Servidor de e-mail (SMTP) para verificação de cadastro e recuperação de senha |
 | Dev | Backup diário do banco (bloqueado pelo controle de permissões), UptimeRobot, webhook do GitHub, fechar a porta 8010 |
-| Nenhum | RN-031: editor de plano usando a TACO do banco; página `/alimentos` |
+| Nenhum | Página `/alimentos`; ampliar as medidas caseiras (RN-033) com a nutricionista |
 | Nenhum | Fase 1 com banco: pacientes (RN-020) com o limite de 20 do plano gratuito, avaliação e plano alimentar salvos |

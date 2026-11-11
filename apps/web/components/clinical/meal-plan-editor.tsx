@@ -13,12 +13,14 @@ import {
   type EnergyInput,
 } from '@rafanutri/nutrition-core';
 import { ArrowLeftRight, FileDown, Info, Loader2, Plus, Search, Send, Trash2 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { DEMO_FOODS, DEMO_PLAN, foodById, searchDemoFoods, type DemoFood, type DemoMeal } from '@/lib/demo/foods';
+import type { DemoMeal } from '@/lib/demo/foods';
+import { foodsInGroup, searchFoods, type FoodsResult } from '@/lib/foods/actions';
+import { normalizeSearch, substituteCandidates, type Food } from '@/lib/foods/food';
 import { demoPatient } from '@/lib/demo/patient';
 import { formatMeasure } from '@/lib/format/measure';
 import { demoGuidelines, demoPractice } from '@/lib/demo/practice';
@@ -45,7 +47,7 @@ type Sub = { foodId: string; quantityG: number };
 type Item = DemoMeal['items'][number] & { subs?: Sub[] };
 type Meal = Omit<DemoMeal, 'items'> & { items: Item[] };
 
-function measureLabel(food: DemoFood, grams: number) {
+function measureLabel(food: Food, grams: number) {
   const r = roundToHouseholdMeasure(grams, food.householdMeasures);
   return r.measure ? formatMeasure(r.measure.quantity, r.measure.label) : `${fmt(grams)} g`;
 }
@@ -77,9 +79,42 @@ function AdequacyBar({ label, total, target, unit, minimum = false }: { label: s
   );
 }
 
-function FoodSearch({ onPick }: { onPick: (food: DemoFood) => void }) {
+/** Busca local (base de exemplo, quando o Directus está fora do ar). */
+function localSearch(foods: Food[], query: string): FoodsResult {
+  const q = normalizeSearch(query);
+  if (q.length < 2) return { ok: true, foods: [] };
+  return { ok: true, foods: foods.filter((f) => normalizeSearch(f.name).includes(q)).slice(0, 8) };
+}
+
+function FoodSearch({ onPick, search }: { onPick: (food: Food) => void; search: (q: string) => Promise<FoodsResult> }) {
   const [q, setQ] = useState('');
-  const results = searchDemoFoods(q);
+  const [found, setFound] = useState<{ query: string; foods: Food[]; error: string | null } | null>(null);
+  const text = q.trim();
+  const active = text.length >= 2;
+  // Resultado só vale para o texto que está no campo (evita mostrar resposta de uma busca antiga).
+  const current = active && found?.query === text ? found : null;
+  const loading = active && !current;
+  const results = current?.foods ?? [];
+  const error = current?.error ?? null;
+
+  useEffect(() => {
+    if (!active) return;
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      const r = await search(text);
+      if (!cancelled) setFound({ query: text, foods: r.ok ? r.foods : [], error: r.ok ? null : r.message });
+    }, 250);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [active, text, search]);
+
+  const pick = (food: Food) => {
+    onPick(food);
+    setQ('');
+  };
+
   return (
     <div className="relative">
       <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
@@ -92,27 +127,33 @@ function FoodSearch({ onPick }: { onPick: (food: DemoFood) => void }) {
         onKeyDown={(e) => {
           if (e.key === 'Enter' && results[0]) {
             e.preventDefault();
-            onPick(results[0]);
-            setQ('');
+            pick(results[0]);
           }
         }}
       />
+      {loading && <Loader2 className="absolute right-3 top-1/2 size-4 -translate-y-1/2 animate-spin text-muted-foreground" aria-label="Buscando" />}
+      {error && <p className="mt-1 text-xs text-destructive" role="alert">{error}</p>}
+      {current && !error && results.length === 0 && (
+        <p className="mt-1 text-xs text-muted-foreground">Nenhum alimento encontrado para “{q.trim()}”.</p>
+      )}
       {results.length > 0 && (
-        <ul role="listbox" className="absolute z-20 mt-1 w-full overflow-hidden rounded-lg border border-border bg-popover shadow-lg">
+        <ul role="listbox" className="absolute z-20 mt-1 max-h-80 w-full overflow-auto rounded-lg border border-border bg-popover shadow-lg">
           {results.map((f) => (
             <li key={f.id}>
               <button
                 type="button"
                 role="option"
                 aria-selected="false"
-                onClick={() => {
-                  onPick(f);
-                  setQ('');
-                }}
+                onClick={() => pick(f)}
                 className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm hover:bg-muted"
               >
-                <span>{f.name}</span>
-                <span className="shrink-0 text-xs text-muted-foreground">{fmt(f.per100g.energy_kcal ?? 0)} kcal/100 g</span>
+                <span>
+                  {f.name}
+                  <span className="block text-xs text-muted-foreground">{f.group}</span>
+                </span>
+                <span className="shrink-0 text-xs text-muted-foreground">
+                  {f.per100g.energy_kcal == null ? 's/ dado' : `${fmt(f.per100g.energy_kcal)} kcal/100 g`}
+                </span>
               </button>
             </li>
           ))}
@@ -122,8 +163,41 @@ function FoodSearch({ onPick }: { onPick: (food: DemoFood) => void }) {
   );
 }
 
-export function MealPlanEditor() {
-  const [meals, setMeals] = useState<Meal[]>(DEMO_PLAN);
+export interface MealPlanEditorProps {
+  initialPlan: DemoMeal[];
+  initialFoods: Food[];
+  /** true quando o Directus está fora do ar e o editor usa a base de exemplo local. */
+  offline?: boolean;
+}
+
+export function MealPlanEditor({ initialPlan, initialFoods, offline = false }: MealPlanEditorProps) {
+  const [meals, setMeals] = useState<Meal[]>(initialPlan);
+  const [foods, setFoods] = useState<Record<string, Food>>(() => Object.fromEntries(initialFoods.map((f) => [f.id, f])));
+  const [groupPools, setGroupPools] = useState<Record<string, string[] | 'loading' | 'error'>>({});
+  const foodById = (id: string) => foods[id];
+  const remember = (list: Food[]) => setFoods((cur) => ({ ...cur, ...Object.fromEntries(list.map((f) => [f.id, f])) }));
+  const search = useMemo(
+    () => (offline ? (q: string) => Promise.resolve(localSearch(initialFoods, q)) : searchFoods),
+    [offline, initialFoods],
+  );
+
+  async function loadGroup(group: string) {
+    if (offline || groupPools[group]) return;
+    setGroupPools((g) => ({ ...g, [group]: 'loading' }));
+    const r = await foodsInGroup(group);
+    if (r.ok) {
+      remember(r.foods);
+      setGroupPools((g) => ({ ...g, [group]: r.foods.map((f) => f.id) }));
+    } else {
+      setGroupPools((g) => ({ ...g, [group]: 'error' }));
+    }
+  }
+
+  function substitutePool(food: Food): Food[] {
+    const pool = groupPools[food.group];
+    if (offline || !Array.isArray(pool)) return substituteCandidates(food, Object.values(foods));
+    return substituteCandidates(food, pool.map((id) => foods[id]).filter((f): f is Food => Boolean(f)));
+  }
   const [mode, setMode] = useState<'quantitative' | 'qualitative'>('quantitative');
   const [formula, setFormula] = useState<FormulaKey>('mifflin');
   const [activity, setActivity] = useState(1.55);
@@ -139,6 +213,7 @@ export function MealPlanEditor() {
     try {
       const [{ pdf }, { MealPlanDocument }] = await Promise.all([import('@react-pdf/renderer'), import('@/components/pdf/meal-plan-document')]);
       const data = buildMealPlanPdfData(meals, {
+        foodById,
         mode,
         showKcal: showKcalPdf,
         practice: demoPractice,
@@ -174,10 +249,10 @@ export function MealPlanEditor() {
       computePlanTotals(
         meals.map((m) => ({
           id: m.id,
-          items: m.items.map((i) => ({ quantityG: i.quantityG, per100g: foodById(i.foodId)!.per100g })),
+          items: m.items.map((i) => ({ quantityG: i.quantityG, per100g: foods[i.foodId]?.per100g ?? {} })),
         })),
       ),
-    [meals],
+    [meals, foods],
   );
   const day = totals.day.totals;
 
@@ -185,7 +260,8 @@ export function MealPlanEditor() {
     setMeals((ms) => ms.map((m) => (m.id === mealId ? { ...m, items: m.items.map((i) => (i.key === key ? { ...i, ...patch } : i)) } : m)));
   const removeItem = (mealId: string, key: string) =>
     setMeals((ms) => ms.map((m) => (m.id === mealId ? { ...m, items: m.items.filter((i) => i.key !== key) } : m)));
-  const addItem = (mealId: string, food: DemoFood) =>
+  const addItem = (mealId: string, food: Food) => {
+    remember([food]);
     setMeals((ms) =>
       ms.map((m) =>
         m.id === mealId
@@ -193,19 +269,31 @@ export function MealPlanEditor() {
           : m,
       ),
     );
+  };
 
   const quantitative = mode === 'quantitative';
 
   return (
     <div className="space-y-6">
-      <Alert>
-        <Info />
-        <AlertTitle>Demonstração com base de alimentos de exemplo</AlertTitle>
-        <AlertDescription>
-          Os cálculos usam as fórmulas reais da Rafanutri, mas os alimentos têm valores aproximados e não servem para uso clínico. A tabela TACO
-          completa entra na importação da base. Nada é salvo.
-        </AlertDescription>
-      </Alert>
+      {offline ? (
+        <Alert>
+          <Info />
+          <AlertTitle>Base de alimentos indisponível: usando a base de exemplo</AlertTitle>
+          <AlertDescription>
+            Não foi possível falar com a base de alimentos agora. Os alimentos abaixo têm valores aproximados e não servem para uso clínico. Nada é
+            salvo.
+          </AlertDescription>
+        </Alert>
+      ) : (
+        <Alert>
+          <Info />
+          <AlertTitle>Alimentos da TACO 4ª edição</AlertTitle>
+          <AlertDescription>
+            Composição por 100 g da Tabela Brasileira de Composição de Alimentos (NEPA/UNICAMP, 2011). A paciente é fictícia e o plano ainda não é
+            salvo. Medidas caseiras cadastradas só para os alimentos mais comuns; nos demais, a quantidade aparece em gramas.
+          </AlertDescription>
+        </Alert>
+      )}
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="min-w-0 space-y-6">
@@ -261,7 +349,8 @@ export function MealPlanEditor() {
                 <ul className="divide-y divide-border">
                   {meal.items.map((item) => {
                     const food = foodById(item.foodId)!;
-                    const ranked = subsFor === item.key ? rankSubstitutes({ id: food.id, per100g: food.per100g }, item.quantityG, DEMO_FOODS.filter((f) => f.group === food.group).map((f) => ({ id: f.id, per100g: f.per100g, householdMeasures: f.householdMeasures })), 'energy_kcal').slice(0, 4) : [];
+                    const ranked = subsFor === item.key ? rankSubstitutes({ id: food.id, per100g: food.per100g }, item.quantityG, substitutePool(food).map((f) => ({ id: f.id, per100g: f.per100g, householdMeasures: f.householdMeasures })), 'energy_kcal').slice(0, 4) : [];
+                    const poolState = groupPools[food.group];
                     return (
                       <li key={item.key} className="px-5 py-3">
                         <div className="flex flex-wrap items-center gap-3">
@@ -291,7 +380,10 @@ export function MealPlanEditor() {
                             variant="ghost"
                             size="sm"
                             aria-expanded={subsFor === item.key}
-                            onClick={() => setSubsFor((k) => (k === item.key ? null : item.key))}
+                            onClick={() => {
+                              setSubsFor((k) => (k === item.key ? null : item.key));
+                              void loadGroup(food.group);
+                            }}
                           >
                             <ArrowLeftRight className="size-4" /> Substituições{item.subs?.length ? ` (${item.subs.length})` : ''}
                           </Button>
@@ -308,8 +400,12 @@ export function MealPlanEditor() {
                         {subsFor === item.key && (
                           <div className="mt-3 rounded-xl bg-muted/50 p-3">
                             <p className="text-xs font-medium text-muted-foreground">Equivalentes em energia, mesmo grupo ({food.group.toLowerCase()}):</p>
-                            {ranked.length === 0 ? (
-                              <p className="mt-2 text-sm">Nenhum equivalente na base de exemplo.</p>
+                            {poolState === 'loading' ? (
+                              <p className="mt-2 flex items-center gap-2 text-sm"><Loader2 className="size-4 animate-spin" /> Buscando equivalentes na TACO…</p>
+                            ) : poolState === 'error' ? (
+                              <p className="mt-2 text-sm text-destructive">Não foi possível buscar equivalentes agora.</p>
+                            ) : ranked.length === 0 ? (
+                              <p className="mt-2 text-sm">Nenhum equivalente encontrado neste grupo.</p>
                             ) : (
                               <ul className="mt-2 space-y-1.5">
                                 {ranked.map(({ food: f, result }) => {
@@ -344,7 +440,7 @@ export function MealPlanEditor() {
                   })}
                 </ul>
                 <div className="border-t border-border px-5 py-3">
-                  <FoodSearch onPick={(f) => addItem(meal.id, f)} />
+                  <FoodSearch onPick={(f) => addItem(meal.id, f)} search={search} />
                 </div>
               </section>
             );

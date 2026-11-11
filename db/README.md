@@ -6,7 +6,8 @@ Postgres 16 (+ pgvector) do Directus da Rafanutri ([ADR 0008](../docs/adr/0008-b
 db/
 ├── migrations/                  # SQL idempotente, aplicado em ordem (0001_, 0002_, ...)
 │   ├── 0001_foods.sql           # RN-010: base de alimentos e função search_foods
-│   └── 0002_organizations.sql   # RN-004: consultórios, membros, perfil profissional, planos
+│   ├── 0002_organizations.sql   # RN-004: consultórios, membros, perfil profissional, planos
+│   └── 0003_household_measures.sql  # RN-033: medidas caseiras de 25 alimentos comuns (revisar)
 ├── tests/
 │   ├── 0002_organizations.test.sql  # regras do banco (transação desfeita no fim)
 │   └── api-isolation.test.mjs       # RN-008: isolamento entre consultórios pela API

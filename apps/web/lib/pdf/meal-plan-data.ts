@@ -1,5 +1,6 @@
 import { computePlanTotals, roundToHouseholdMeasure } from '@rafanutri/nutrition-core';
-import { foodById } from '@/lib/demo/foods';
+import { foodById as demoFoodById } from '@/lib/demo/foods';
+import type { HouseholdMeasure, NutrientValues } from '@rafanutri/nutrition-core';
 import { formatMeasure } from '@/lib/format/measure';
 
 export interface PdfItem {
@@ -34,7 +35,15 @@ export interface EditorMeal {
   items: Array<{ foodId: string; quantityG: number; subs?: Array<{ foodId: string; quantityG: number }> }>;
 }
 
-function measureText(foodId: string, grams: number): string {
+/** Alimento mínimo que o PDF precisa: nome, composição e medidas caseiras. */
+export interface PdfFood {
+  name: string;
+  per100g: NutrientValues;
+  householdMeasures: HouseholdMeasure[];
+}
+export type PdfFoodLookup = (id: string) => PdfFood | undefined;
+
+function measureText(foodById: PdfFoodLookup, foodId: string, grams: number): string {
   const food = foodById(foodId)!;
   const r = roundToHouseholdMeasure(grams, food.householdMeasures);
   if (!r.measure) return `${Math.round(grams)} g`;
@@ -54,8 +63,11 @@ export function buildMealPlanPdfData(
     guidelines: string[];
     issuedAt?: Date;
     validDays?: number;
+    /** De onde vêm os alimentos (padrão: base de exemplo). */
+    foodById?: PdfFoodLookup;
   },
 ): MealPlanPdfData {
+  const foodById = opts.foodById ?? demoFoodById;
   const issued = opts.issuedAt ?? new Date();
   const valid = new Date(issued.getTime() + (opts.validDays ?? 30) * 86_400_000);
   const totals = computePlanTotals(
@@ -77,11 +89,11 @@ export function buildMealPlanPdfData(
         const food = foodById(i.foodId)!;
         return {
           name: food.name,
-          measure: showNumbers ? measureText(i.foodId, i.quantityG) : '',
+          measure: showNumbers ? measureText(foodById, i.foodId, i.quantityG) : '',
           grams: showNumbers ? Math.round(i.quantityG) : 0,
           kcal: Math.round(((food.per100g.energy_kcal ?? 0) * i.quantityG) / 100),
           substitutions: (i.subs ?? []).map((s) =>
-            showNumbers ? `${measureText(s.foodId, s.quantityG)} de ${foodById(s.foodId)!.name.toLowerCase()}` : foodById(s.foodId)!.name,
+            showNumbers ? `${measureText(foodById, s.foodId, s.quantityG)} de ${foodById(s.foodId)!.name.toLowerCase()}` : foodById(s.foodId)!.name,
           ),
         };
       }),
