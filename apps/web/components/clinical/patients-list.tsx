@@ -166,7 +166,9 @@ export function PatientsList({ patients, limit, planName, demoHref }: PatientsLi
               <li key={p.id} className="flex items-center gap-4 px-5 py-4">
                 <span className="grid size-10 shrink-0 place-items-center rounded-full bg-primary/10 text-sm font-semibold text-primary">{initials}</span>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium">{p.full_name}</p>
+                  <Link href={`/app/pacientes/${p.id}`} className="block truncate font-medium hover:text-primary hover:underline">
+                    {p.full_name}
+                  </Link>
                   <p className="truncate text-sm text-muted-foreground">{details || 'Sem dados complementares'}</p>
                 </div>
                 {p.status === 'archived' || p.status === 'inactive' ? (
@@ -188,7 +190,7 @@ export function PatientsList({ patients, limit, planName, demoHref }: PatientsLi
         <Sparkles className="size-5 shrink-0 text-primary" aria-hidden="true" />
         <span className="min-w-0 flex-1 text-sm">
           <span className="font-medium">Paciente de exemplo (Marina Costa)</span>
-          <span className="block text-muted-foreground">Veja a ficha, a avaliação e o plano alimentar com a TACO. A ficha dos pacientes reais vem a seguir.</span>
+          <span className="block text-muted-foreground">Veja a avaliação antropométrica e o plano alimentar com a TACO em demonstração.</span>
         </span>
         <ChevronRight className="size-5 text-muted-foreground" aria-hidden="true" />
       </Link>

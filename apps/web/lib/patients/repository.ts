@@ -30,3 +30,23 @@ export async function listPatients(organizationId: string): Promise<Patient[] | 
     return null;
   }
 }
+
+const DETAIL_FIELDS = [...FIELDS, 'cpf', 'updated_at'];
+
+/**
+ * Um paciente do consultório (com o token do usuário).
+ * `undefined` = não existe ou não pertence aos consultórios do usuário; `null` = falha no Directus.
+ */
+export async function getPatient(id: string): Promise<Patient | null | undefined> {
+  const token = (await cookies()).get(ACCESS_COOKIE)?.value;
+  if (!token) return null;
+  try {
+    const rows = await directus().request<Patient[]>(
+      withToken(token, readItems('patients' as never, { fields: DETAIL_FIELDS, filter: { id: { _eq: id } }, limit: 1 } as never)),
+    );
+    return rows[0];
+  } catch (error) {
+    console.error('patients: falha ao ler', directusErrorInfo(error));
+    return null;
+  }
+}

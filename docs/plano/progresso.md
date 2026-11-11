@@ -34,8 +34,8 @@ Atualizado em **10/11/2026**. O que já está no código (`main`), o que está s
 
 | Item | Situação | Observação |
 |---|---|---|
-| RN-020 Pacientes | ✅ base | Cadastro, busca sem acento, filtro por status, arquivar e reativar gravando no Directus; limite de 20 ativos do plano gratuito (banco + gancho + tela); CPF com dígito verificador e único no consultório; telefone em E.164. Falta: editar, ficha do paciente real, detecção de duplicidade por nome + nascimento |
-| RN-023 Prontuário (linha do tempo) | 🧪 | Ficha resumo da paciente de exemplo |
+| RN-020 Pacientes | ✅ | Cadastro, busca sem acento, filtro por status, arquivar e reativar gravando no Directus; limite de 20 ativos do plano gratuito (banco + gancho + tela); CPF com dígito verificador e único no consultório; telefone em E.164. **Editar** e **ficha real** (`/app/pacientes/[id]`) feitos em 11/11/2026. Falta: detecção de duplicidade por nome + nascimento |
+| RN-023 Prontuário (linha do tempo) | 🟡 | Ficha real com dados pessoais (CPF mascarado, atalho de WhatsApp), objetivo e situação, editar e arquivar/reativar; avaliações e plano ainda não salvos por paciente. Linha do tempo só na paciente de exemplo |
 | RN-027 Antropometria e composição corporal | ✅ cálculo · 🧪 tela | `nutrition-core`: IMC, Jackson & Pollock 3/7, Durnin, Faulkner, ISAK, Siri/Brozek |
 | RN-028 Avaliação e gráficos | 🧪 | Cálculo ao vivo e evolução de peso e % de gordura |
 | RN-029 Gasto energético | ✅ cálculo · 🧪 tela | Harris-Benedict, Mifflin-St Jeor, Cunningham, FAO/OMS |

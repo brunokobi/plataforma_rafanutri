@@ -12,6 +12,8 @@ export interface Patient {
   objective: string | null;
   status: PatientStatus;
   created_at: string;
+  cpf?: string | null; // só dígitos (lido apenas na ficha)
+  updated_at?: string | null;
 }
 
 const onlyDigits = (s: string) => s.replace(/\D/g, '');
@@ -90,3 +92,40 @@ export const patientFormSchema = z.object({
 
 export type PatientFormInput = z.input<typeof patientFormSchema>;
 export type PatientFormData = z.output<typeof patientFormSchema>;
+
+/** Campos opcionais que a edição pode limpar (vazio no formulário = apagar no banco). */
+const CLEARABLE = ['birth_date', 'sex', 'email', 'phone', 'cpf', 'objective'] as const;
+
+/** Payload de edição: campos opcionais vazios viram null para apagar o valor salvo. */
+export function toPatientUpdate(data: PatientFormData): Record<string, string | null> {
+  const out: Record<string, string | null> = { full_name: data.full_name };
+  for (const key of CLEARABLE) out[key] = (data[key] as string | undefined) ?? null;
+  return out;
+}
+
+/** "529.982.247-25" */
+export function formatCpf(cpf: string): string {
+  const d = cpf.replace(/\D/g, '');
+  return d.length === 11 ? `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}` : cpf;
+}
+
+/** "•••.•••.247-25": mostra só o fim, para conferência. */
+export function maskCpf(cpf: string): string {
+  const d = cpf.replace(/\D/g, '');
+  return d.length === 11 ? `•••.•••.${d.slice(6, 9)}-${d.slice(9)}` : '•••';
+}
+
+/** Valores do banco no formato do formulário (para editar). */
+export function toFormValues(p: Patient): PatientFormInput {
+  return {
+    full_name: p.full_name,
+    birth_date: p.birth_date ?? '',
+    sex: p.sex ?? undefined,
+    email: p.email ?? '',
+    phone: p.phone ?? '',
+    cpf: p.cpf ? formatCpf(p.cpf) : '',
+    objective: p.objective ?? '',
+  };
+}
+
+export const isUuid = (v: unknown): v is string => typeof v === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
