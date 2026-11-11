@@ -45,8 +45,13 @@ export function SignupForm({ signupOpen }: { signupOpen: boolean }) {
     return (
       <Alert>
         <CheckCircle2 />
-        <AlertTitle>Confira seu e-mail</AlertTitle>
-        <AlertDescription>Enviamos um link para ativar sua conta. Depois é só entrar e configurar seu consultório.</AlertDescription>
+        <AlertTitle>Cadastro recebido</AlertTitle>
+        <AlertDescription>
+          Entre com seu e-mail e senha para configurar seu consultório.{' '}
+          <a href="/login?next=/onboarding" className="font-medium underline underline-offset-4">
+            Ir para o login
+          </a>
+        </AlertDescription>
       </Alert>
     );
   }

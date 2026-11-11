@@ -1,12 +1,10 @@
-import type { SessionUser } from '@/lib/auth/session';
+import type { UserOrganization } from '@/lib/auth/landing';
 import type { PlanCode } from './plans';
 
 /**
- * Plano do usuário. Enquanto não existem as tabelas de assinatura no Directus (RN-200),
- * todo usuário está no plano gratuito, como define a Fase 1B.
- * Depois: ler subscriptions.plan_code da organização ativa com o token do usuário.
+ * Plano do usuário: o do consultório ativo (o primeiro, enquanto não há seletor de consultório).
+ * Sem consultório, ou se a consulta falhou, vale o plano gratuito (Fase 1B).
  */
-export async function getUserPlan(user: SessionUser): Promise<PlanCode> {
-  void user; // será usado para achar a organização ativa
-  return 'free';
+export function getUserPlan(organizations: UserOrganization[] | null): PlanCode {
+  return organizations?.[0]?.plan ?? 'free';
 }

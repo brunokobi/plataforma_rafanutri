@@ -1,0 +1,125 @@
+// RN-008 — Teste de isolamento entre consultórios pela API do Directus.
+// Cria dois nutricionistas de teste pelo cadastro público, cada um cria o próprio consultório
+// e o teste confere que um não lê nem altera nada do outro. No fim, apaga tudo o que criou.
+//
+// Uso: DIRECTUS_URL=https://rafanutri-api.brunokobi.tech DIRECTUS_ADMIN_TOKEN=... node db/tests/api-isolation.test.mjs
+// O token de administrador só é usado na limpeza (ADR 0008, regra 1).
+
+import assert from 'node:assert/strict';
+import { randomUUID } from 'node:crypto';
+
+const URL_ = process.env.DIRECTUS_URL;
+const ADMIN = process.env.DIRECTUS_ADMIN_TOKEN;
+if (!URL_ || !ADMIN) {
+  console.error('Defina DIRECTUS_URL e DIRECTUS_ADMIN_TOKEN.');
+  process.exit(2);
+}
+
+async function api(path, { token, method = 'GET', body } = {}) {
+  const res = await fetch(URL_ + path, {
+    method,
+    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const text = await res.text();
+  return { status: res.status, json: text ? JSON.parse(text) : null };
+}
+
+async function newUser(tag) {
+  const email = `teste-isolamento-${tag}-${randomUUID().slice(0, 8)}@example.com`;
+  const password = `Teste-${randomUUID()}`;
+  const reg = await api('/users/register', { method: 'POST', body: { email, password, first_name: `Teste ${tag}` } });
+  assert.equal(reg.status, 204, `cadastro de ${tag}: ${JSON.stringify(reg.json)}`);
+  const login = await api('/auth/login', { method: 'POST', body: { email, password } });
+  assert.equal(login.status, 200, `login de ${tag}`);
+  return { email, token: login.json.data.access_token };
+}
+
+const created = { users: [], orgs: [] };
+let passed = 0;
+const check = async (name, fn) => { await fn(); passed += 1; console.log(`  ok - ${name}`); };
+
+try {
+  const a = await newUser('a');
+  const b = await newUser('b');
+  for (const u of [a, b]) {
+    const me = await api('/users/me?fields=id', { token: u.token });
+    created.users.push(me.json.data.id);
+  }
+
+  const orgBody = (name) => ({ name, type: 'solo', brand_color: '#2E7D32', crn: '12345', crn_region: 'CRN-4' });
+  const oa = await api('/rafanutri/organizations', { token: a.token, method: 'POST', body: orgBody('Consultório Teste A') });
+  const ob = await api('/rafanutri/organizations', { token: b.token, method: 'POST', body: orgBody('Consultório Teste B') });
+  assert.equal(oa.status, 201); assert.equal(ob.status, 201);
+  created.orgs.push(oa.json.data.id, ob.json.data.id);
+  const A = oa.json.data.id; const B = ob.json.data.id;
+
+  console.log('Isolamento entre consultórios:');
+  await check('sem login, o endpoint de criação recusa', async () => {
+    const r = await api('/rafanutri/organizations', { method: 'POST', body: orgBody('Anônimo') });
+    assert.equal(r.status, 401);
+  });
+  await check('corpo inválido é recusado', async () => {
+    const r = await api('/rafanutri/organizations', { token: a.token, method: 'POST', body: { ...orgBody('ok'), crn_region: 'CRN-99' } });
+    assert.equal(r.status, 400);
+  });
+  await check('criar de novo devolve o mesmo consultório (idempotente)', async () => {
+    const r = await api('/rafanutri/organizations', { token: a.token, method: 'POST', body: orgBody('Outro nome') });
+    assert.equal(r.json.data.id, A);
+  });
+  await check('A vê só o próprio consultório', async () => {
+    const r = await api('/items/organizations?fields=id', { token: a.token });
+    assert.deepEqual(r.json.data.map((o) => o.id), [A]);
+  });
+  await check('A não lê o consultório de B pelo id', async () => {
+    const r = await api(`/items/organizations/${B}`, { token: a.token });
+    assert.equal(r.status, 403);
+  });
+  await check('A não altera o consultório de B', async () => {
+    const r = await api(`/items/organizations/${B}`, { token: a.token, method: 'PATCH', body: { name: 'invadido' } });
+    assert.equal(r.status, 403);
+  });
+  await check('A altera o próprio consultório (owner)', async () => {
+    const r = await api(`/items/organizations/${A}`, { token: a.token, method: 'PATCH', body: { name: 'Consultório Teste A2' } });
+    assert.equal(r.status, 200);
+  });
+  await check('A não muda o plano do próprio consultório', async () => {
+    const r = await api(`/items/organizations/${A}`, { token: a.token, method: 'PATCH', body: { plan: 'pro' } });
+    assert.equal(r.status, 403);
+  });
+  await check('A vê só os membros do próprio consultório', async () => {
+    const r = await api('/items/organization_members?fields=organization_id', { token: a.token });
+    assert.ok(r.json.data.length >= 1);
+    assert.ok(r.json.data.every((m) => m.organization_id === A));
+  });
+  await check('A não se adiciona ao consultório de B', async () => {
+    const r = await api('/items/organization_members', { token: a.token, method: 'POST', body: { organization_id: B, user_id: created.users[0], role: 'owner' } });
+    assert.equal(r.status, 403);
+  });
+  await check('A vê só o próprio perfil profissional', async () => {
+    const r = await api('/items/professional_profiles?fields=user_id', { token: a.token });
+    assert.deepEqual(r.json.data.map((p) => p.user_id), [created.users[0]]);
+  });
+  await check('/rafanutri/me/organizations devolve só os consultórios do usuário', async () => {
+    const r = await api('/rafanutri/me/organizations', { token: b.token });
+    assert.deepEqual(r.json.data.map((o) => [o.id, o.role]), [[B, 'owner']]);
+  });
+  await check('A não lê outros usuários', async () => {
+    const r = await api('/users?fields=id', { token: a.token });
+    assert.deepEqual(r.json.data.map((u) => u.id), [created.users[0]]);
+  });
+  await check('base pública de alimentos é legível e somente leitura', async () => {
+    const r = await api('/items/foods?limit=1&fields=id', { token: a.token });
+    assert.equal(r.status, 200); assert.equal(r.json.data.length, 1);
+    const w = await api(`/items/foods/${r.json.data[0].id}`, { token: a.token, method: 'PATCH', body: { name: 'x' } });
+    assert.equal(w.status, 403);
+  });
+  await check('anônimo não lê consultórios nem alimentos', async () => {
+    assert.equal((await api('/items/organizations')).status, 403);
+    assert.equal((await api('/items/foods?limit=1')).status, 403);
+  });
+  console.log(`${passed} verificações passaram.`);
+} finally {
+  for (const id of created.orgs) await api(`/items/organizations/${id}`, { token: ADMIN, method: 'DELETE' });
+  for (const id of created.users) await api(`/users/${id}`, { token: ADMIN, method: 'DELETE' });
+}

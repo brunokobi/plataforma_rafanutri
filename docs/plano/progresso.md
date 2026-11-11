@@ -2,7 +2,7 @@
 
 Atualizado em **10/11/2026**. O que já está no código (`main`), o que está só em **demonstração** (interface completa, sem banco) e o que falta. Os IDs são os do [backlog](../07-backlog.md).
 
-> **Situação geral:** a interface do MVP está avançando **sem banco**. Por decisão do dev, o Directus da vpsrafa ainda não recebe tabelas nem dados ("não mexer em nada do banco agora"). Por isso, cadastro, onboarding e o módulo clínico funcionam de ponta a ponta na tela, mas **nada é salvo**.
+> **Situação geral (10/11/2026, noite):** o banco foi liberado. Cadastro, onboarding e consultório já gravam no Directus, com isolamento entre consultórios testado, e a TACO está no banco. O módulo clínico (pacientes, avaliação, plano alimentar) segue em **demonstração**, sem salvar.
 
 ## Legenda
 
@@ -19,15 +19,15 @@ Atualizado em **10/11/2026**. O que já está no código (`main`), o que está s
 |---|---|---|
 | RN-001 Monorepo | ✅ | pnpm + Turborepo, `apps/web`, `packages/nutrition-core`, `packages/config` |
 | RN-002 App web | ✅ | Next.js 16, React 19, Tailwind 4, shadcn/ui, TypeScript estrito |
-| RN-003 Backend | 🟡 parcial | Directus 12.6.1 instalado na vpsrafa ([runbook](../runbooks/directus-vpsrafa.md)); sem tabelas, sem backup ainda |
-| RN-004 Tabelas de organização | ⏳ | Aguardando liberação do banco |
-| RN-005 Autenticação | ✅ login · 🔒 cadastro | Login e logout reais no Directus (cookies `httpOnly`, renovação no `proxy.ts`). Cadastro pronto e desligado |
-| RN-006 Onboarding | 🔒 | Assistente de 4 etapas com pré-visualização da marca ([spec](../specs/cadastro-onboarding.md)) |
+| RN-003 Backend | 🟡 parcial | Directus 12.6.1 na vpsrafa com licença gratuita (Open Innovation Grant), migrações em `db/` e extensão em `directus/extensions/` ([runbook](../runbooks/directus-vpsrafa.md)); **sem backup diário ainda** |
+| RN-004 Tabelas de organização | ✅ | Migração 0002: `organizations`, `organization_members`, `professional_profiles`, `plans`; slug único, gatilhos de último owner e limite de membros; testes em `db/tests/0002_organizations.test.sql`. Convites e auditoria ficam para RN-007/RN-009 |
+| RN-005 Autenticação | ✅ login · ✅ cadastro | Login e logout reais; cadastro aberto com login automático. **Sem verificação por e-mail** (falta SMTP); recuperação de senha também depende de SMTP |
+| RN-006 Onboarding | ✅ | Grava o consultório pelo endpoint `/rafanutri/organizations`; redireciona quem não tem consultório. Falta: upload do logo e seletor de consultório ([spec](../specs/cadastro-onboarding.md)) |
 | RN-007 Convites e papéis | ⏳ | |
-| RN-008 Isolamento entre organizações | ⏳ | Permissões do Directus + ganchos + gatilhos ([ADR 0008](../adr/0008-backend-directus.md)) |
-| RN-010 a RN-012 Base de alimentos | ⏳ | Hoje existe só uma base **de exemplo** (29 alimentos, valores aproximados) |
+| RN-008 Isolamento entre organizações | 🟡 base | Permissões filtradas pela organização no papel Profissional + gatilhos no banco; 15 verificações em `db/tests/api-isolation.test.mjs`. Falta rodar no CI e estender a cada tabela nova |
+| RN-010 e RN-011 Base de alimentos | 🟡 | TACO 4ª edição no banco (597 alimentos, 29 nutrientes) com busca sem acento ([db/README](../../db/README.md)). Falta a página `/alimentos` e o editor usar a TACO no lugar da base de exemplo. RN-012 (TBCA) pendente |
 | RN-013 Layout | ✅ | Cabeçalho da área logada, tema claro e escuro, responsivo |
-| RN-014 CI/CD | 🟡 parcial | GitHub Actions (lint, typecheck, testes, build, e2e) e Dockerfile ARM64 prontos; **aplicação no Coolify ainda não criada** ([runbook](../runbooks/deploy-web-coolify.md)) |
+| RN-014 CI/CD | 🟡 parcial | GitHub Actions e Dockerfile ARM64; app no Coolify (`rafanutri-web`). Falta o webhook do GitHub para deploy automático ([runbook](../runbooks/deploy-web-coolify.md)) |
 | RN-019 Identidade visual | ✅ | Paleta, tipografia, logo provisório, ilustrações vetoriais próprias |
 
 ## Fase 1 — MVP Clínico
@@ -74,7 +74,7 @@ Atualizado em **10/11/2026**. O que já está no código (`main`), o que está s
 
 | Depende de | Passo |
 |---|---|
-| Dev | Criar a aplicação no Coolify (ou liberar a permissão para fazer pelo terminal) |
-| Dev | Pendências da vpsrafa: senha do admin do Directus, backup diário, UptimeRobot, fechar a porta 8010 |
-| Dev | Liberar o banco para a Fase 0 no Directus: tabelas, permissões, importação da TACO e `SIGNUP_OPEN=true` |
-| Nenhum (sem banco) | Agenda, anamnese por link e área do paciente com dados de exemplo |
+| Dev | Servidor de e-mail (SMTP) para verificação de cadastro e recuperação de senha |
+| Dev | Backup diário do banco (bloqueado pelo controle de permissões), UptimeRobot, webhook do GitHub, fechar a porta 8010 |
+| Nenhum | RN-031: editor de plano usando a TACO do banco; página `/alimentos` |
+| Nenhum | Fase 1 com banco: pacientes (RN-020) com o limite de 20 do plano gratuito, avaliação e plano alimentar salvos |

@@ -1,13 +1,13 @@
 'use server';
 
-import { customEndpoint, registerUser, withToken } from '@directus/sdk';
+import { customEndpoint, login, registerUser, withToken } from '@directus/sdk';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { env } from '@/lib/env';
 import { isSignupOpen } from '@/lib/flags';
 import { onboardingSchema, type OnboardingInput } from '@/lib/validation/onboarding';
 import { signupSchema, type SignupInput } from '@/lib/validation/signup';
-import { ACCESS_COOKIE } from './cookies';
+import { ACCESS_COOKIE, sessionCookies } from './cookies';
 import { directus, directusErrorInfo } from './directus';
 
 export type ActionResult =
@@ -39,7 +39,19 @@ export async function signUp(input: SignupInput): Promise<ActionResult> {
     console.error('signUp: falha no Directus', { status, code });
     return { status: 'error', message: 'Não foi possível criar a conta agora. Tente novamente em instantes.' };
   }
-  return { status: 'ok' };
+
+  // Sem verificação por e-mail (o Directus ainda não tem servidor de e-mail), a conta já nasce
+  // ativa: entra direto e segue para o onboarding. Se o login falhar, a tela orienta a entrar.
+  let tokens;
+  try {
+    tokens = await directus().request(login({ email: email.toLowerCase(), password }, { mode: 'json' }));
+  } catch (error) {
+    console.error('signUp: conta criada, mas o login automático falhou', directusErrorInfo(error));
+    return { status: 'ok' };
+  }
+  const store = await cookies();
+  for (const c of sessionCookies(tokens)) store.set(c.name, c.value, c.options);
+  redirect('/onboarding');
 }
 
 export async function completeOnboarding(input: OnboardingInput): Promise<ActionResult> {

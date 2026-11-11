@@ -4,7 +4,9 @@ import { AppHeader } from '@/components/app/app-header';
 import { ModuleCard } from '@/components/app/module-card';
 import { PlanSummary } from '@/components/app/plan-summary';
 import { PlansComparison } from '@/components/app/plans-comparison';
+import { getMyOrganizations, landingRedirect } from '@/lib/auth/organizations';
 import { getCurrentUser } from '@/lib/auth/session';
+import { isSignupOpen } from '@/lib/flags';
 import { buildModuleSections } from '@/lib/modules/access';
 import { getPlan } from '@/lib/modules/plans';
 import { getUserPlan } from '@/lib/modules/user-plan';
@@ -15,7 +17,12 @@ export default async function AppHome() {
   const user = await getCurrentUser();
   if (!user) redirect('/login?next=/app');
 
-  const planCode = await getUserPlan(user);
+  const organizations = await getMyOrganizations();
+  const target = landingRedirect('app', organizations, isSignupOpen());
+  if (target) redirect(target);
+
+  const organization = organizations?.[0] ?? null;
+  const planCode = getUserPlan(organizations);
   const plan = getPlan(planCode);
   const { mine, others } = buildModuleSections(planCode);
   const name = user.first_name || user.email;
@@ -27,6 +34,11 @@ export default async function AppHome() {
       <main className="mx-auto max-w-6xl space-y-12 px-5 py-10">
         <div>
           <h1 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">Olá, {name}</h1>
+          {organization && (
+            <p className="mt-1 text-sm font-medium" data-testid="organization-name">
+              {organization.name}
+            </p>
+          )}
           <p className="mt-2 text-muted-foreground">
             Estes são os módulos da Rafanutri e o que o seu plano inclui. Cada módulo é liberado conforme o roadmap.
           </p>

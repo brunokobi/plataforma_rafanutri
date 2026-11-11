@@ -24,11 +24,11 @@ Status: `todo`, `doing`, `done`, `adiado` (fora do MVP, ver [ADR 0004](adr/0004-
 | [RN-001](plano/fase-0-fundacao.md#rn-001--criar-monorepo-pnpm--turborepo) | Criar monorepo (pnpm + Turborepo) | infra | 3 | — | todo |
 | [RN-002](plano/fase-0-fundacao.md#rn-002--configurar-nextjs-com-typescript-tailwind-e-shadcnui) | Configurar Next.js com TypeScript, Tailwind e shadcn/ui | infra | 2 | RN-001 | todo |
 | [RN-003](plano/fase-0-fundacao.md#rn-003--configurar-supabase-local-e-na-vps) | Configurar Supabase local e na VPS | infra | 2 | RN-001 | todo |
-| [RN-004](plano/fase-0-fundacao.md#rn-004--migração-organizações-perfis-membros-e-auditoria) | Migração: organizações, perfis, membros e auditoria | feature | 3 | RN-003 | todo |
-| [RN-005](plano/fase-0-fundacao.md#rn-005--autenticação-e-mailsenha-google-e-recuperação-de-senha) | Autenticação: e-mail/senha, Google e recuperação de senha | feature | 3 | RN-002, RN-004 | todo |
-| [RN-006](plano/fase-0-fundacao.md#rn-006--onboarding-criar-organização-no-primeiro-acesso) | Onboarding: criar organização no primeiro acesso | feature | 2 | RN-005 | todo |
+| [RN-004](plano/fase-0-fundacao.md#rn-004--migração-organizações-perfis-membros-e-auditoria) | Migração: organizações, perfis, membros e auditoria | feature | 3 | RN-003 | done |
+| [RN-005](plano/fase-0-fundacao.md#rn-005--autenticação-e-mailsenha-google-e-recuperação-de-senha) | Autenticação: e-mail/senha, Google e recuperação de senha | feature | 3 | RN-002, RN-004 | doing |
+| [RN-006](plano/fase-0-fundacao.md#rn-006--onboarding-criar-organização-no-primeiro-acesso) | Onboarding: criar organização no primeiro acesso | feature | 2 | RN-005 | doing |
 | [RN-007](plano/fase-0-fundacao.md#rn-007--convite-de-membros-e-papéis) | Convite de membros e papéis | feature | 5 | RN-006 | todo |
-| [RN-008](plano/fase-0-fundacao.md#rn-008--políticas-rls-base-e-testes-de-isolamento) | Políticas RLS base e testes de isolamento | infra | 5 | RN-004 | todo |
+| [RN-008](plano/fase-0-fundacao.md#rn-008--políticas-rls-base-e-testes-de-isolamento) | Políticas RLS base e testes de isolamento | infra | 5 | RN-004 | doing |
 | [RN-009](plano/fase-0-fundacao.md#rn-009--gatilhos-de-auditoria-para-tabelas-sensíveis) | Gatilhos de auditoria para tabelas sensíveis | feature | 3 | RN-004 | todo |
 | [RN-010](plano/fase-0-fundacao.md#rn-010--migração-da-base-de-alimentos) | Migração da base de alimentos | feature | 3 | RN-003 | doing |
 | [RN-011](plano/fase-0-fundacao.md#rn-011--importação-da-taco) | Importação da TACO | feature | 5 | RN-010, RN-015 | doing |

@@ -1,0 +1,13 @@
+{
+  "name": "directus-extension-rafanutri",
+  "description": "Endpoints próprios da Rafanutri (operações atômicas que não cabem na API genérica)",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "directus:extension": {
+    "type": "endpoint",
+    "path": "index.js",
+    "source": "index.js",
+    "host": "^12.0.0"
+  }
+}

@@ -1,6 +1,6 @@
 # Spec — Cadastro (`/cadastro`) e onboarding (`/onboarding`)
 
-- **Status:** interface implementada em 10/11/2026; **gravação no Directus desligada** até a Fase 0 do banco ser liberada (decisão do dev: "não mexer em nada do banco agora")
+- **Status:** gravação **ligada** em 10/11/2026 (`SIGNUP_OPEN=true` no Coolify). Cadastro, onboarding e redirecionamentos funcionam contra o Directus da vpsrafa
 - **Relacionado:** [Fase 0](../plano/fase-0-fundacao.md) (RN-005, RN-006), [Fase 1B](../plano/fase-1b-freemium-area-paciente.md) (plano gratuito), [ADR 0008](../adr/0008-backend-directus.md)
 
 ## 1. Objetivo
@@ -24,7 +24,7 @@ Levar um nutricionista do primeiro clique até um consultório configurado no pl
 **Envio:**
 - O mesmo schema Zod valida no cliente e na Server Action.
 - **Chave `SIGNUP_OPEN` desligada (padrão):** nada é gravado. A tela mostra "O cadastro abre em breve. Seus dados não foram salvos." e oferece o login.
-- **Chave ligada (depois da Fase 0):** chama o registro de usuário do Directus (`registerUser`, com e-mail de verificação). Se der certo, mostra "Confira seu e-mail para ativar a conta". E-mail já cadastrado mostra uma mensagem neutra, sem confirmar que o e-mail existe.
+- **Chave ligada:** chama o registro público do Directus (`registerUser`; novos usuários recebem o papel **Profissional**). **A verificação por e-mail está desligada** enquanto o Directus não tiver servidor de e-mail: a conta já nasce ativa, o app faz o login automático e leva ao `/onboarding`. E-mail já cadastrado mostra "Cadastro recebido, entre com seu e-mail e senha", sem confirmar que o e-mail existe. Quando houver SMTP: ligar `public_registration_verify_email` no Directus, criar a rota `/cadastro/verificar` (`registerUserVerify`) e voltar a mensagem "Confira seu e-mail".
 
 ## 3. Onboarding (`/onboarding`)
 
@@ -39,7 +39,8 @@ Exige sessão. Assistente em 4 etapas, com barra de progresso e voltar/avançar:
 
 **Envio:**
 - **Chave `SIGNUP_OPEN` desligada:** valida tudo e mostra "Pré-lançamento: o consultório ainda não é salvo". Nada é gravado.
-- **Chave ligada (Fase 0):** chama o endpoint `/rafanutri/organizations` do Directus, que cria organização, owner e plano gratuito numa transação, e redireciona para `/app`.
+- **Chave ligada:** chama o endpoint `POST /rafanutri/organizations` (extensão em `directus/extensions/rafanutri`), que cria organização, owner e perfil profissional numa transação (função `create_organization`, migração 0002) e redireciona para `/app`. É idempotente: reenviar não cria outro consultório.
+- **Redirecionamentos:** em `/app`, quem não tem consultório vai para `/onboarding` (só com o cadastro aberto); em `/onboarding`, quem já tem vai para `/app`. Se o Directus falhar, ninguém é redirecionado.
 
 **Logo:** fica só na memória do navegador até a Fase 0. O upload para os arquivos do Directus entra junto com a gravação.
 

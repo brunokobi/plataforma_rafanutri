@@ -4,8 +4,12 @@ Postgres 16 (+ pgvector) do Directus da Rafanutri ([ADR 0008](../docs/adr/0008-b
 
 ```
 db/
-├── migrations/          # SQL idempotente, aplicado em ordem (0001_, 0002_, ...)
-│   └── 0001_foods.sql   # RN-010: base de alimentos e função search_foods
+├── migrations/                  # SQL idempotente, aplicado em ordem (0001_, 0002_, ...)
+│   ├── 0001_foods.sql           # RN-010: base de alimentos e função search_foods
+│   └── 0002_organizations.sql   # RN-004: consultórios, membros, perfil profissional, planos
+├── tests/
+│   ├── 0002_organizations.test.sql  # regras do banco (transação desfeita no fim)
+│   └── api-isolation.test.mjs       # RN-008: isolamento entre consultórios pela API
 └── seed/
     └── taco/            # RN-011: TACO 4ª edição
         ├── taco-4ed.csv         # 597 alimentos × 29 nutrientes (gerado, versionado)
@@ -31,6 +35,45 @@ Antes de qualquer migração em produção, faça um `pg_dump` (`~/backups/rafan
 
 Depois de criar tabelas novas, registre-as no Directus (`POST /collections` com só o `meta`; as relações são detectadas pelas chaves estrangeiras) e dê as permissões ao papel certo.
 
+## Consultórios e isolamento (Fase 0)
+
+| Tabela | Conteúdo |
+|---|---|
+| `plans` | Planos e limites (`free`: 20 pacientes ativos, 1 membro) |
+| `organizations` | Consultório: nome, `slug` único, tipo, cor, logo, plano |
+| `organization_members` | Usuário do Directus no consultório, com papel `owner`, `nutritionist` ou `assistant` |
+| `professional_profiles` | CRN e regional do usuário |
+
+**Regras no banco (gatilhos):** todo consultório tem ao menos um `owner`; o número de membros respeita o plano. A função `create_organization(user, nome, tipo, cor, crn, regional)` cria consultório, owner e perfil numa transação e é idempotente por usuário.
+
+**Endpoint** (extensão `directus/extensions/rafanutri`, copiada para `~/apps/rafanutri-directus/extensions/rafanutri` na VPS, com `chmod -R a+rX`, e `docker compose restart directus`):
+- `POST /rafanutri/organizations`: onboarding (exige login).
+- `GET /rafanutri/me/organizations`: consultórios do usuário com o papel dele.
+
+**Permissões do papel Profissional** (política `Profissional - próprio perfil`, filtradas por `$CURRENT_USER`; exigem a licença do Directus, ver ADR 0008):
+
+| Coleção | Leitura | Escrita |
+|---|---|---|
+| `organizations` | consultórios em que é membro | `owner` altera nome, cor, logo e tipo (não o plano) |
+| `organization_members` | membros dos próprios consultórios | nenhuma (convites entram no RN-007) |
+| `professional_profiles` | o próprio | CRN e regional do próprio |
+| `plans` | todos | nenhuma |
+| `foods`, `food_nutrients` | base pública + alimentos do próprio consultório | nenhuma |
+| `directus_users` | só o próprio | nome, avatar e idioma do próprio |
+
+**Cadastro público:** ligado no Directus com o papel Profissional e **sem verificação por e-mail** (não há SMTP). `USER_REGISTER_URL_ALLOW_LIST` no `.env` lista as URLs de verificação aceitas.
+
+### Testes
+
+```bash
+# regras do banco (na VPS)
+docker cp db/. rafanutri-postgres:/tmp/db
+docker exec rafanutri-postgres psql -U rafanutri -d rafanutri -v ON_ERROR_STOP=1 -f /tmp/db/tests/0002_organizations.test.sql
+
+# isolamento pela API (de qualquer máquina; cria e apaga 2 usuários de teste)
+DIRECTUS_URL=https://rafanutri-api.brunokobi.tech DIRECTUS_ADMIN_TOKEN=<token> node db/tests/api-isolation.test.mjs
+```
+
 ## Base de alimentos
 
 | Tabela | Conteúdo |
@@ -54,7 +97,7 @@ Composição de um alimento: `GET /items/foods/561?fields=name,nutrients.amount_
 
 O papel **Profissional** lê `foods`, `food_nutrients`, `nutrients` e `food_sources`, mas não altera nada. Sem login, não há acesso.
 
-Quando existirem alimentos próprios por organização (`organization_id` preenchido), essa leitura sem filtro deixa de servir: o Directus 12 sem licença não aceita permissões com filtro (ver ADR 0008). Isolar por extensão antes de liberar alimentos próprios.
+A leitura já está filtrada: base pública (`organization_id` nulo) mais os alimentos do próprio consultório.
 
 ### Origem dos dados da TACO
 
