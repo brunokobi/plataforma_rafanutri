@@ -35,16 +35,16 @@ Atualizado em **10/11/2026**. O que já está no código (`main`), o que está s
 | Item | Situação | Observação |
 |---|---|---|
 | RN-020 Pacientes | ✅ | Cadastro, busca sem acento, filtro por status, arquivar e reativar gravando no Directus; limite de 20 ativos do plano gratuito (banco + gancho + tela); CPF com dígito verificador e único no consultório; telefone em E.164. **Editar** e **ficha real** (`/app/pacientes/[id]`) feitos em 11/11/2026. Falta: detecção de duplicidade por nome + nascimento |
-| RN-023 Prontuário (linha do tempo) | 🟡 | Ficha real com dados pessoais (CPF mascarado, atalho de WhatsApp), objetivo e situação, editar e arquivar/reativar; avaliações e plano ainda não salvos por paciente. Linha do tempo só na paciente de exemplo |
+| RN-023 Prontuário (linha do tempo) | 🟡 | Ficha real com dados pessoais (CPF mascarado, atalho de WhatsApp), objetivo e situação, editar e arquivar/reativar; avaliações (0005) e planos (0006) por paciente prontos, aguardando ativação; card do plano publicado no resumo. Linha do tempo só na paciente de exemplo |
 | RN-027 Antropometria e composição corporal | ✅ cálculo · 🧪 tela | `nutrition-core`: IMC, Jackson & Pollock 3/7, Durnin, Faulkner, ISAK, Siri/Brozek |
 | RN-028 Avaliação e gráficos | 🔒 | Aba **Avaliações** na ficha real (`/app/pacientes/[id]/avaliacoes`): cálculo ao vivo, salvar (resultados recalculados no servidor), histórico e gráficos. Migração 0005 e script do Directus prontos e testados (ensaio no banco em transação desfeita); **falta aplicar na vpsrafa** ([db/README](../../db/README.md#avaliações-antropométricas-rn-028)) |
 | RN-029 Gasto energético | ✅ cálculo · 🧪 tela | Harris-Benedict, Mifflin-St Jeor, Cunningham, FAO/OMS |
 | RN-030 Metas | 🧪 | No painel do editor: fórmula, fator de atividade, ajuste, proteína em g/kg e lipídios em % |
-| RN-031 Editor de plano | 🧪 com TACO | Busca, substituições e plano de exemplo usam a **TACO do banco** (pela API do Directus, com o token do usuário); cai na base de exemplo se o Directus estiver fora. Paciente fictícia e plano ainda não salvos |
+| RN-031 Editor de plano | 🔒 | Aba **Plano alimentar** na ficha real (`/app/pacientes/[id]/planos`): criar, salvar rascunho, publicar (arquiva o anterior), nova versão a partir de um publicado e apagar rascunho. Busca e substituições usam a TACO do banco. Metas usam o peso e a altura da última avaliação; sem eles, calorias manuais. Migração 0006 e script do Directus prontos (ensaio em transação desfeita); **falta aplicar na vpsrafa** ([db/README](../../db/README.md#planos-alimentares-por-paciente-rn-031-rn-036)) |
 | RN-032 Cálculo em tempo real | 🧪 | Plano × metas com faixas de adequação |
 | RN-033 Medidas caseiras | 🟡 | Medidas de 25 alimentos comuns da TACO no banco (migração 0003, **revisar com a nutricionista**); nos demais, a quantidade aparece em gramas |
 | RN-034 Substituições | 🧪 | Equivalência em energia no mesmo grupo, já em medida caseira |
-| RN-036 PDF do plano | 🧪 | PDF com a marca, gerado no navegador ([spec](../specs/modulo-clinico-demo.md)) |
+| RN-036 PDF do plano | 🔒 | PDF gerado no navegador com o nome e a cor do consultório e o CRN do perfil, também nos planos do paciente (depende da 0006) |
 | RN-022 Agenda, RN-025/026 Anamnese, RN-035 Modelos, RN-041/042 Alimentos e preparações próprios | ⏳ | |
 
 ## Fase 1B — Plano gratuito e área do paciente

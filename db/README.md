@@ -9,14 +9,17 @@ db/
 │   ├── 0002_organizations.sql   # RN-004: consultórios, membros, perfil profissional, planos
 │   ├── 0003_household_measures.sql  # RN-033: medidas caseiras de 25 alimentos comuns (revisar)
 │   ├── 0004_patients.sql        # RN-020: pacientes, limite de ativos do plano, CPF único
-│   └── 0005_anthropometric_assessments.sql  # RN-028: avaliações por paciente (consultório e autor conferidos no banco)
+│   ├── 0005_anthropometric_assessments.sql  # RN-028: avaliações por paciente (consultório e autor conferidos no banco)
+│   └── 0006_meal_plans.sql      # RN-031/036: planos alimentares por paciente (rascunho, publicado, arquivado)
 ├── tests/
 │   ├── 0002_organizations.test.sql  # regras do banco (transação desfeita no fim)
 │   ├── 0004_patients.test.sql       # limite de 20 ativos, CPF, responsável, formatos
 │   ├── 0005_anthropometric_assessments.test.sql  # consultório do paciente, autor, faixas, cascata
+│   ├── 0006_meal_plans.test.sql     # ciclo de vida, um publicado por paciente, conteúdo travado após publicar
 │   └── api-isolation.test.mjs       # RN-008: isolamento entre consultórios pela API
 ├── directus/
-│   └── 0005_anthropometric_assessments.mjs  # registra a coleção e as permissões no Directus (token de admin)
+│   ├── 0005_anthropometric_assessments.mjs  # registra a coleção e as permissões no Directus (token de admin)
+│   └── 0006_meal_plans.mjs      # idem para os planos alimentares
 └── seed/
     ├── dev/
     │   └── seed-nutricionista.mjs  # usuário de teste como nutricionista + consultório + 9 pacientes fictícios
@@ -162,3 +165,29 @@ DIRECTUS_URL=https://rafanutri-api.brunokobi.tech DIRECTUS_ADMIN_TOKEN=<token> n
 ```
 
 Enquanto isso não for feito, a tela de avaliações calcula tudo e avisa que a gravação ainda não foi liberada.
+
+## Planos alimentares por paciente (RN-031, RN-036)
+
+Tabela `meal_plans`: título, situação (`draft`, `published`, `archived`), modo (`quantitative` ou `qualitative`), metas (`targets`, jsonb), refeições com itens e substituições (`meals`, jsonb com ids da TACO e gramas), orientações (até 4000 caracteres), totais calculados no servidor (`totals`), validade, data de publicação, autor e datas.
+
+**Regras no banco (gatilho `meal_plans_guard`):**
+- todo plano nasce como rascunho; o paciente é do mesmo consultório; o autor é owner ou nutricionista;
+- consultório e paciente não mudam depois;
+- plano publicado ou arquivado **não muda de conteúdo** (para alterar, crie uma nova versão);
+- publicado não volta a rascunho e arquivado não é republicado;
+- ao publicar, o plano publicado anterior do paciente é arquivado, e `published_at` e `valid_until` (hoje + 30 dias, se vazio) são preenchidos;
+- índice único: **um plano publicado por paciente**.
+
+**Permissões** (script `db/directus/0006_meal_plans.mjs`): copia o filtro de `patients`; cria sem filtro (o gatilho valida); edita conteúdo, situação e validade; **apaga só rascunho**.
+
+No app: aba **Plano alimentar** da ficha (`/app/pacientes/[id]/planos`) com a lista de versões, "Novo plano", "Nova versão" (copia um publicado ou arquivado) e o editor em `/app/pacientes/[id]/planos/[planId]`. Ao publicar, os totais são recalculados no servidor com os alimentos do banco. O PDF usa o nome e a cor do consultório e o CRN do perfil profissional.
+
+### Como ativar (uma vez)
+
+```bash
+ssh vpsrafa 'docker exec -i rafanutri-postgres psql -U rafanutri -d rafanutri -v ON_ERROR_STOP=1' < db/migrations/0006_meal_plans.sql
+ssh vpsrafa 'docker exec -i rafanutri-postgres psql -U rafanutri -d rafanutri -v ON_ERROR_STOP=1' < db/tests/0006_meal_plans.test.sql
+DIRECTUS_URL=https://rafanutri-api.brunokobi.tech DIRECTUS_ADMIN_TOKEN=<token> node db/directus/0006_meal_plans.mjs
+```
+
+A 0006 não depende da 0005, mas a tela do plano usa o peso e a altura da última avaliação para calcular as metas; sem avaliações, o editor pede as calorias manualmente. Antes de ativar, a aba mostra o aviso de ativação e o link para o editor de demonstração.

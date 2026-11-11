@@ -56,3 +56,10 @@ export async function tacoFoodsByCodeRepo(codes: string[]): Promise<Map<string, 
     return null;
   }
 }
+
+/** Alimentos pelo id do banco (para abrir um plano salvo). */
+export async function foodsByIdsRepo(ids: string[]): Promise<Food[] | null> {
+  const numeric = ids.filter((id) => /^\d+$/.test(id));
+  if (numeric.length === 0) return [];
+  return query({ filter: { id: { _in: numeric.map(Number) } }, limit: numeric.length });
+}

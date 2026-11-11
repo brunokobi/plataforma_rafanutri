@@ -25,6 +25,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { setPatientStatus } from '@/lib/patients/actions';
 import type { Assessment } from '@/lib/assessments/schema';
+import type { MealPlanSummary } from '@/lib/meal-plans/schema';
 import { ageInYears, formatCpf, maskCpf, toFormValues, type Patient, type PatientStatus } from '@/lib/patients/schema';
 import { cn } from '@/lib/utils';
 
@@ -61,7 +62,7 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
 
 const missing = <span className="font-normal text-muted-foreground">Não informado</span>;
 
-export function PatientHeader({ patient, activeLimitReached, active }: { patient: Patient; activeLimitReached: boolean; active: 'resumo' | 'avaliacoes' }) {
+export function PatientHeader({ patient, activeLimitReached, active }: { patient: Patient; activeLimitReached: boolean; active: 'resumo' | 'avaliacoes' | 'planos' }) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [feedback, setFeedback] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
@@ -148,6 +149,7 @@ export function PatientHeader({ patient, activeLimitReached, active }: { patient
           [
             ['resumo', 'Resumo', `/app/pacientes/${patient.id}`],
             ['avaliacoes', 'Avaliações', `/app/pacientes/${patient.id}/avaliacoes`],
+            ['planos', 'Plano alimentar', `/app/pacientes/${patient.id}/planos`],
           ] as const
         ).map(([key, label, href]) => (
           <Link
@@ -159,9 +161,6 @@ export function PatientHeader({ patient, activeLimitReached, active }: { patient
             {label}
           </Link>
         ))}
-        <span className="flex items-center gap-1.5 px-4 py-2.5 text-sm text-muted-foreground" aria-disabled="true">
-          Plano alimentar <Badge variant="outline" className="text-[10px]">em breve</Badge>
-        </span>
       </nav>
     </div>
   );
@@ -171,10 +170,12 @@ export function PatientRecord({
   patient,
   activeLimitReached,
   latestAssessment = null,
+  publishedPlan = null,
 }: {
   patient: Patient;
   activeLimitReached: boolean;
   latestAssessment?: Assessment | null;
+  publishedPlan?: MealPlanSummary | null;
 }) {
   const [showCpf, setShowCpf] = useState(false);
   const age = patient.birth_date ? ageInYears(patient.birth_date) : null;
@@ -269,9 +270,20 @@ export function PatientRecord({
         </Card>
 
         <Card title="Plano alimentar" icon={<Utensils className="size-5" />} className="lg:col-span-2">
-          <p className="text-sm text-muted-foreground">Nenhum plano publicado. O plano salvo por paciente chega depois das avaliações.</p>
-          <Link href="/app/pacientes/exemplo/plano" className="mt-3 inline-block text-sm font-medium text-primary hover:underline">
-            Abrir o editor de demonstração (TACO)
+          {publishedPlan ? (
+            <>
+              <p className="font-medium">{publishedPlan.title}</p>
+              <p className="text-sm text-muted-foreground">
+                {publishedPlan.published_at ? `Publicado em ${dateBR(publishedPlan.published_at)}` : 'Publicado'}
+                {publishedPlan.valid_until ? ` · válido até ${dateBR(publishedPlan.valid_until)}` : ''}
+                {publishedPlan.totals?.energy_kcal ? ` · ${Math.round(publishedPlan.totals.energy_kcal).toLocaleString('pt-BR')} kcal/dia` : ''}
+              </p>
+            </>
+          ) : (
+            <p className="text-sm text-muted-foreground">Nenhum plano publicado.</p>
+          )}
+          <Link href={`/app/pacientes/${patient.id}/planos`} className="mt-3 inline-block text-sm font-medium text-primary hover:underline">
+            {publishedPlan ? 'Ver planos e versões' : 'Criar ou continuar um plano'}
           </Link>
         </Card>
       </div>
