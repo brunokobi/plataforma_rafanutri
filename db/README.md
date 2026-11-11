@@ -14,6 +14,8 @@ db/
 │   ├── 0004_patients.test.sql       # limite de 20 ativos, CPF, responsável, formatos
 │   └── api-isolation.test.mjs       # RN-008: isolamento entre consultórios pela API
 └── seed/
+    ├── dev/
+    │   └── seed-nutricionista.mjs  # usuário de teste como nutricionista + consultório + 9 pacientes fictícios
     └── taco/            # RN-011: TACO 4ª edição
         ├── taco-4ed.csv         # 597 alimentos × 29 nutrientes (gerado, versionado)
         ├── import.sql           # importador idempotente (upsert)
@@ -37,6 +39,18 @@ docker exec rafanutri-postgres rm -rf /tmp/db
 Antes de qualquer migração em produção, faça um `pg_dump` (`~/backups/rafanutri/` na VPS). O importador termina com erro se não houver exatamente 597 alimentos e 597 × 29 valores.
 
 Depois de criar tabelas novas, registre-as no Directus (`POST /collections` com só o `meta`; as relações são detectadas pelas chaves estrangeiras) e dê as permissões ao papel certo.
+
+## Seed de desenvolvimento
+
+Deixa um usuário pronto para testar como nutricionista: consultório no plano gratuito (CRN fictício) e 9 pacientes fictícios (7 ativos, 1 inativo, 1 arquivado). Usa só o login do próprio usuário pela API, então passa pelas mesmas permissões e regras do app. Pode rodar quantas vezes quiser: não duplica.
+
+```bash
+SEED_EMAIL=<email> SEED_PASSWORD=<senha> node db/seed/dev/seed-nutricionista.mjs
+# conta nova pelo cadastro público, se ainda não existir:
+SEED_CREATE_USER=1 SEED_EMAIL=<email> SEED_PASSWORD=<senha> SEED_FIRST_NAME=Ana node db/seed/dev/seed-nutricionista.mjs
+```
+
+Já aplicada em 10/11/2026 para o usuário de teste `brunokobi2@hotmail.com`.
 
 ## Consultórios e isolamento (Fase 0)
 
