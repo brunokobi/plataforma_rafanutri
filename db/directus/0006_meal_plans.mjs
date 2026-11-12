@@ -47,7 +47,11 @@ if (existing.status === 200) {
 
 // 2. Campos de sistema preenchidos pelo Directus (autor e datas)
 for (const [field, special] of [['user_created', 'user-created'], ['date_created', 'date-created'], ['date_updated', 'date-updated']]) {
-  await api(`/fields/${COLLECTION}/${field}`, { method: 'PATCH', body: { meta: { special: [special], readonly: true, hidden: true } } });
+  const r = await api(`/fields/${COLLECTION}/${field}`, { method: 'PATCH', body: { meta: { special: [special], readonly: true, hidden: true } } });
+  if (r.status !== 200) {
+    // 403/404 aqui = o Directus ainda não enxerga a tabela nova (cache de schema).
+    throw new Error(`campo ${field}: ${r.status}. Reinicie o Directus (docker compose restart directus) depois da migração e rode este script de novo.`);
+  }
   console.log(`campo ${field}: ${special}`);
 }
 

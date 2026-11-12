@@ -158,6 +158,7 @@ ssh vpsrafa 'docker exec -i rafanutri-postgres psql -U rafanutri -d rafanutri -v
 ssh vpsrafa 'docker exec -i rafanutri-postgres psql -U rafanutri -d rafanutri -v ON_ERROR_STOP=1' < db/tests/0005_anthropometric_assessments.test.sql
 
 # 2. coleção e permissões no Directus
+ssh vpsrafa 'cd ~/apps/rafanutri-directus && docker compose restart directus'   # recarrega o schema (tabela nova)
 DIRECTUS_URL=https://rafanutri-api.brunokobi.tech DIRECTUS_ADMIN_TOKEN=<token> node db/directus/0005_anthropometric_assessments.mjs
 
 # 3. isolamento pela API (inclui as verificações das avaliações)
@@ -187,6 +188,7 @@ No app: aba **Plano alimentar** da ficha (`/app/pacientes/[id]/planos`) com a li
 ```bash
 ssh vpsrafa 'docker exec -i rafanutri-postgres psql -U rafanutri -d rafanutri -v ON_ERROR_STOP=1' < db/migrations/0006_meal_plans.sql
 ssh vpsrafa 'docker exec -i rafanutri-postgres psql -U rafanutri -d rafanutri -v ON_ERROR_STOP=1' < db/tests/0006_meal_plans.test.sql
+ssh vpsrafa 'cd ~/apps/rafanutri-directus && docker compose restart directus'   # recarrega o schema (tabela nova)
 DIRECTUS_URL=https://rafanutri-api.brunokobi.tech DIRECTUS_ADMIN_TOKEN=<token> node db/directus/0006_meal_plans.mjs
 ```
 
