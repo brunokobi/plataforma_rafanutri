@@ -13,7 +13,8 @@ db/
 │   ├── 0006_meal_plans.sql      # RN-031/036: planos alimentares por paciente (rascunho, publicado, arquivado)
 │   ├── 0007_appointments.sql    # RN-022: agenda (sem sobreposição por nutricionista, btree_gist)
 │   ├── 0008_anamneses.sql       # RN-024/026: modelos de questionário e anamneses com link público
-│   └── 0009_meal_plan_templates.sql  # RN-035: modelos de plano alimentar
+│   ├── 0009_meal_plan_templates.sql  # RN-035: modelos de plano alimentar
+│   └── 0010_meal_plan_templates_tags_jsonb.sql  # etiquetas em jsonb (o Directus não grava text[])
 ├── tests/
 │   ├── 0002_organizations.test.sql  # regras do banco (transação desfeita no fim)
 │   ├── 0004_patients.test.sql       # limite de 20 ativos, CPF, responsável, formatos
@@ -254,7 +255,9 @@ Os modelos padrão (clínica adulto, esportiva e recordatório de 24 h) são uma
 
 ## Modelos de plano (RN-035)
 
-Migração `0009_meal_plan_templates.sql`, testes em `db/tests/0009_meal_plan_templates.test.sql`, registro em `db/directus/0009_meal_plan_templates.mjs`. **Migração aplicada na vpsrafa em 12/11/2026.**
+Migrações `0009_meal_plan_templates.sql` e `0010_meal_plan_templates_tags_jsonb.sql`, testes em `db/tests/0009_meal_plan_templates.test.sql`, registro em `db/directus/0009_meal_plan_templates.mjs`. **Aplicadas e registradas na vpsrafa em 12/11/2026.**
+
+> **Gotcha:** o Directus não grava colunas `text[]` do Postgres (envia o array como texto JSON → `malformed array literal`, erro 500). Use `jsonb` para listas, como as etiquetas (corrigido na 0010).
 
 | Regra | Onde |
 |---|---|

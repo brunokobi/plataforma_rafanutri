@@ -1,4 +1,4 @@
--- Testes da migração 0009 (modelos de plano). Transação desfeita no fim.
+-- Testes das migrações 0009 e 0010 (modelos de plano; etiquetas em jsonb). Transação desfeita no fim.
 --   psql -v ON_ERROR_STOP=1 -f db/tests/0009_meal_plan_templates.test.sql
 
 begin;
@@ -20,9 +20,9 @@ begin
 
   -- cria a partir de um plano do consultório; tags normalizadas
   insert into meal_plan_templates (organization_id, name, tags, meals, energy_kcal, source_plan_id, user_created)
-    values (o1.id, 'Low carb 1600', array[' Low Carb', 'low carb', '', 'Emagrecimento '], '[{"id":"cafe","name":"Café","time":"07:00","items":[]}]', 1600, plan_a, u1)
+    values (o1.id, 'Low carb 1600', '[" Low Carb", "low carb", "", "Emagrecimento "]', '[{"id":"cafe","name":"Café","time":"07:00","items":[]}]', 1600, plan_a, u1)
     returning id into t1;
-  assert (select tags = array['emagrecimento', 'low carb'] from meal_plan_templates where id = t1), 'tags deveriam ser aparadas, em minúsculas, sem vazias nem repetidas';
+  assert (select tags = '["emagrecimento", "low carb"]'::jsonb from meal_plan_templates where id = t1), 'tags deveriam ser aparadas, em minúsculas, sem vazias nem repetidas';
 
   -- plano de origem de outro consultório
   ok := false;
@@ -46,13 +46,19 @@ begin
 
   -- limites
   ok := false;
-  begin insert into meal_plan_templates (organization_id, name, tags, user_created) values (o1.id, 'Muitas tags', array['a','b','c','d','e','f','g','h','i','j','k'], u1);
+  begin insert into meal_plan_templates (organization_id, name, tags, user_created) values (o1.id, 'Muitas tags', '["a","b","c","d","e","f","g","h","i","j","k"]', u1);
   exception when check_violation then ok := true; end;
   assert ok, 'mais de 10 tags deveria falhar';
   ok := false;
-  begin insert into meal_plan_templates (organization_id, name, tags, user_created) values (o1.id, 'Tag longa', array[repeat('x', 31)], u1);
+  begin insert into meal_plan_templates (organization_id, name, tags, user_created) values (o1.id, 'Tag longa', jsonb_build_array(repeat('x', 31)), u1);
   exception when others then ok := sqlerrm like '%muito longa%'; end;
   assert ok, 'tag com mais de 30 caracteres deveria falhar';
+
+  -- etiquetas precisam ser lista de textos
+  ok := false;
+  begin insert into meal_plan_templates (organization_id, name, tags, user_created) values (o1.id, 'Tag número', '[1]', u1);
+  exception when others then ok := sqlerrm like '%devem ser textos%'; end;
+  assert ok, 'etiqueta que não é texto deveria falhar';
 
   -- apagar o plano de origem não apaga o modelo
   delete from meal_plans where id = plan_a;
