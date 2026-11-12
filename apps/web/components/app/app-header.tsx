@@ -17,6 +17,7 @@ export function AppHeader({ homeHref = '/app', patientsHref = '/app/pacientes', 
             <Link href={patientsHref} className="hover:text-foreground">Pacientes</Link>
             <Link href="/app/agenda" className="hover:text-foreground">Agenda</Link>
             <Link href="/app/questionarios" className="hover:text-foreground">Questionários</Link>
+            <Link href="/app/modelos-de-plano" className="hover:text-foreground">Modelos de plano</Link>
           </nav>
         </div>
         <div className="flex items-center gap-2">

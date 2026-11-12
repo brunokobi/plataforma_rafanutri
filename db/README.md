@@ -12,7 +12,8 @@ db/
 │   ├── 0005_anthropometric_assessments.sql  # RN-028: avaliações por paciente (consultório e autor conferidos no banco)
 │   ├── 0006_meal_plans.sql      # RN-031/036: planos alimentares por paciente (rascunho, publicado, arquivado)
 │   ├── 0007_appointments.sql    # RN-022: agenda (sem sobreposição por nutricionista, btree_gist)
-│   └── 0008_anamneses.sql       # RN-024/026: modelos de questionário e anamneses com link público
+│   ├── 0008_anamneses.sql       # RN-024/026: modelos de questionário e anamneses com link público
+│   └── 0009_meal_plan_templates.sql  # RN-035: modelos de plano alimentar
 ├── tests/
 │   ├── 0002_organizations.test.sql  # regras do banco (transação desfeita no fim)
 │   ├── 0004_patients.test.sql       # limite de 20 ativos, CPF, responsável, formatos
@@ -20,12 +21,14 @@ db/
 │   ├── 0006_meal_plans.test.sql     # ciclo de vida, um publicado por paciente, conteúdo travado após publicar
 │   ├── 0007_appointments.test.sql   # sobreposição, cancelar libera horário, consultório, remarcar
 │   ├── 0008_anamneses.test.sql      # cópia do questionário, versão, validade, link invalidado, transições
+│   ├── 0009_meal_plan_templates.test.sql  # autor, origem do mesmo consultório, etiquetas
 │   └── api-isolation.test.mjs       # RN-008: isolamento entre consultórios pela API
 ├── directus/
 │   ├── 0005_anthropometric_assessments.mjs  # registra a coleção e as permissões no Directus (token de admin)
 │   ├── 0006_meal_plans.mjs      # idem para os planos alimentares
 │   ├── 0007_appointments.mjs    # idem para a agenda
-│   └── 0008_anamneses.mjs       # idem para questionários e anamneses
+│   ├── 0008_anamneses.mjs       # idem para questionários e anamneses
+│   └── 0009_meal_plan_templates.mjs  # idem para os modelos de plano
 └── seed/
     ├── dev/
     │   └── seed-nutricionista.mjs  # usuário de teste como nutricionista + consultório + 9 pacientes fictícios
@@ -248,3 +251,14 @@ DIRECTUS_URL=https://rafanutri-api.brunokobi.tech DIRECTUS_ADMIN_TOKEN=<token> n
 ```
 
 Os modelos padrão (clínica adulto, esportiva e recordatório de 24 h) são uma **primeira versão a validar com a nutricionista**; o teste do pacote `@rafanutri/forms` garante que todos passam no validador.
+
+## Modelos de plano (RN-035)
+
+Migração `0009_meal_plan_templates.sql`, testes em `db/tests/0009_meal_plan_templates.test.sql`, registro em `db/directus/0009_meal_plan_templates.mjs`. **Migração aplicada na vpsrafa em 12/11/2026.**
+
+| Regra | Onde |
+|---|---|
+| Modelo guarda o conteúdo de um plano (refeições, metas, orientações, energia do dia) sem paciente | tabela `meal_plan_templates` |
+| `organization_id` nulo = biblioteca da plataforma (métodos de prescrição, a validar com a nutricionista): visível para todos, não editável | permissões (script) |
+| Autor owner/nutricionista; plano de origem do mesmo consultório; não muda de consultório; até 10 etiquetas de até 30 caracteres, normalizadas | gatilho `meal_plan_templates_guard` |
+| Aplicar um modelo cria um **rascunho** de plano para o paciente (cópia); com meta de calorias, as quantidades são escaladas pelo fator meta ÷ energia do modelo (limitado a 0,3–3×) e arredondadas de 5 em 5 g (abaixo de 20 g, de 1 em 1 g) | app (`lib/meal-plans/scale.ts`, `template-actions.ts`) |

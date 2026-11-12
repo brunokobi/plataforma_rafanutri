@@ -60,7 +60,7 @@ Status: `todo`, `doing`, `done`, `adiado` (fora do MVP, ver [ADR 0004](adr/0004-
 | [RN-032](plano/fase-1-mvp-clinico.md#rn-032--cálculo-em-tempo-real-de-nutrientes) | Cálculo em tempo real de nutrientes | feature | 5 | RN-031, RN-044 | todo |
 | [RN-033](plano/fase-1-mvp-clinico.md#rn-033--medidas-caseiras) | Medidas caseiras | feature | 3 | RN-011 | todo |
 | [RN-034](plano/fase-1-mvp-clinico.md#rn-034--substituições-por-equivalência) | Substituições por equivalência | feature | 5 | RN-032, RN-033 | todo |
-| [RN-035](plano/fase-1-mvp-clinico.md#rn-035--modelos-de-plano-e-duplicação) | Modelos de plano e duplicação | feature | 3 | RN-031 | todo |
+| [RN-035](plano/fase-1-mvp-clinico.md#rn-035--modelos-de-plano-e-duplicação) | Modelos de plano e duplicação | feature | 3 | RN-031 | doing |
 | [RN-036](plano/fase-1-mvp-clinico.md#rn-036--pdf-do-plano-alimentar) | PDF do plano alimentar | feature | 5 | RN-031, RN-034 | todo |
 | [RN-037](plano/fase-1-mvp-clinico.md#rn-037--testes-e2e-do-fluxo-completo-de-consulta) | Testes e2e do fluxo completo de consulta | infra | 5 | RN-020 a RN-036 | todo |
 | [RN-038](plano/fase-1-mvp-clinico.md#rn-038--seed-de-dados-sintéticos) | Seed de dados sintéticos | infra | 2 | RN-020, RN-031 | todo |

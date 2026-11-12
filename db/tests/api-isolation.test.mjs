@@ -324,6 +324,35 @@ try {
     assert.equal(r.json.data.status, 'reviewed');
   });
 
+  console.log('Modelos de plano (RN-035):');
+  const planA = await api('/items/meal_plans?fields=id', { token: a.token, method: 'POST', body: { organization_id: A, patient_id: patientAnam, title: 'Plano base' } });
+  const planB = await api('/items/meal_plans?fields=id', { token: b.token, method: 'POST', body: { organization_id: B, patient_id: patientB, title: 'Plano de B' } });
+  let tplA;
+  await check('A salva modelo a partir do próprio plano', async () => {
+    const r = await api('/items/meal_plan_templates?fields=id,tags', {
+      token: a.token, method: 'POST',
+      body: { organization_id: A, source_plan_id: planA.json.data.id, name: 'Modelo A', tags: ['Low Carb', 'low carb'], meals: [], energy_kcal: 1800 },
+    });
+    assert.equal(r.status, 200, JSON.stringify(r.json));
+    tplA = r.json.data.id;
+    assert.deepEqual(r.json.data.tags, ['low carb']);
+  });
+  await check('A não usa plano de B como origem nem cria modelo "da biblioteca"', async () => {
+    const r1 = await api('/items/meal_plan_templates', { token: a.token, method: 'POST', body: { organization_id: A, source_plan_id: planB.json.data.id, name: 'Copiado' } });
+    const r2 = await api('/items/meal_plan_templates', { token: a.token, method: 'POST', body: { name: 'Biblioteca falsa' } });
+    assert.ok(r1.status >= 400, `origem de B: ${r1.status}`);
+    assert.ok(r2.status >= 400, `sem consultório: ${r2.status}`);
+  });
+  await check('B não lê, não altera nem apaga o modelo de A', async () => {
+    assert.deepEqual((await api('/items/meal_plan_templates?fields=id&filter[organization_id][_nnull]=true', { token: b.token })).json.data, []);
+    assert.equal((await api(`/items/meal_plan_templates/${tplA}`, { token: b.token, method: 'PATCH', body: { name: 'x' } })).status, 403);
+    assert.equal((await api(`/items/meal_plan_templates/${tplA}`, { token: b.token, method: 'DELETE' })).status, 403);
+  });
+  await check('A edita e apaga o próprio modelo', async () => {
+    assert.equal((await api(`/items/meal_plan_templates/${tplA}`, { token: a.token, method: 'PATCH', body: { name: 'Modelo A2' } })).status, 200);
+    assert.equal((await api(`/items/meal_plan_templates/${tplA}`, { token: a.token, method: 'DELETE' })).status, 204);
+  });
+
   console.log(`${passed} verificações passaram.`);
 } finally {
   for (const id of created.orgs) await api(`/items/organizations/${id}`, { token: ADMIN, method: 'DELETE' });
