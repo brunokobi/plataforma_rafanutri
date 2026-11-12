@@ -25,6 +25,12 @@ begin
   assert (select version from questionnaire_templates where id = tpl) = 1, 'renomear não muda a versão';
   insert into questionnaire_templates (organization_id, name, schema, user_created) values (o2.id, 'Modelo de B', sch, u2) returning id into tpl_b;
 
+  -- usuário não cria modelo da biblioteca (sem consultório) (0011)
+  ok := false;
+  begin insert into questionnaire_templates (organization_id, name, schema, user_created) values (null, 'Biblioteca falsa', sch, u1);
+  exception when others then ok := sqlerrm like '%só podem ser criados pela equipe%'; end;
+  assert ok, 'usuário criando questionário sem consultório deveria falhar';
+
   -- autor de fora não cria modelo no consultório
   ok := false;
   begin insert into questionnaire_templates (organization_id, name, schema, user_created) values (o1.id, 'Intruso', sch, u2);

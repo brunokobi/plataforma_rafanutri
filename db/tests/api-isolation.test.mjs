@@ -266,6 +266,11 @@ try {
   const patientAnam = pa.json.data.id;
   const link = newLink();
   let anamA;
+  await check('ninguém cria questionário sem consultório (biblioteca da plataforma)', async () => {
+    const sch = { version: 1, sections: [{ title: 'S', questions: [{ id: 'q', type: 'text', label: 'Q' }] }] };
+    const r = await api('/items/questionnaire_templates', { token: a.token, method: 'POST', body: { name: 'Biblioteca falsa', schema: sch } });
+    assert.equal(r.status, 403, `sem consultório: ${r.status}`);
+  });
   await check('modelos padrão são visíveis e não editáveis', async () => {
     const r = await api(`/items/questionnaire_templates/${CLINICA}?fields=id,organization_id`, { token: a.token });
     assert.equal(r.status, 200);
@@ -341,7 +346,7 @@ try {
     const r1 = await api('/items/meal_plan_templates', { token: a.token, method: 'POST', body: { organization_id: A, source_plan_id: planB.json.data.id, name: 'Copiado' } });
     const r2 = await api('/items/meal_plan_templates', { token: a.token, method: 'POST', body: { name: 'Biblioteca falsa' } });
     assert.ok(r1.status >= 400, `origem de B: ${r1.status}`);
-    assert.ok(r2.status >= 400, `sem consultório: ${r2.status}`);
+    assert.equal(r2.status, 403, `sem consultório: ${r2.status}`);
   });
   await check('B não lê, não altera nem apaga o modelo de A', async () => {
     assert.deepEqual((await api('/items/meal_plan_templates?fields=id&filter[organization_id][_nnull]=true', { token: b.token })).json.data, []);

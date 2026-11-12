@@ -72,6 +72,17 @@ export default ({ filter }, { database }) => {
     return payload;
   });
 
+  // Modelos sem consultório são a biblioteca da plataforma (visíveis para todos): usuário não cria.
+  // O gatilho library_templates_guard (migração 0011) garante no banco; aqui só damos 403 claro.
+  for (const collection of ['questionnaire_templates', 'meal_plan_templates']) {
+    filter(`${collection}.items.create`, async (payload, _meta, { accountability }) => {
+      if (!isEndUser(accountability)) return payload;
+      if (!payload?.organization_id) throw forbidden('Informe o consultório: modelos da biblioteca da plataforma são criados só pela equipe da Rafanutri.');
+      await assertClinicalMember(payload.organization_id, accountability.user);
+      return payload;
+    });
+  }
+
   // Agenda (RN-022): antecipa a restrição de sobreposição do banco com uma mensagem clara
   // (sem isto, o Postgres devolve exclusion_violation e o Directus responde 500).
   const BLOCKING = ['cancelled', 'no_show'];

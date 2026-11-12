@@ -60,6 +60,12 @@ begin
   exception when others then ok := sqlerrm like '%devem ser textos%'; end;
   assert ok, 'etiqueta que não é texto deveria falhar';
 
+  -- usuário não cria modelo da biblioteca (sem consultório) (0011)
+  ok := false;
+  begin insert into meal_plan_templates (organization_id, name, user_created) values (null, 'Biblioteca falsa', u1);
+  exception when others then ok := sqlerrm like '%só podem ser criados pela equipe%'; end;
+  assert ok, 'usuário criando modelo sem consultório deveria falhar';
+
   -- apagar o plano de origem não apaga o modelo
   delete from meal_plans where id = plan_a;
   assert (select source_plan_id is null from meal_plan_templates where id = t1), 'modelo deveria ficar sem origem';

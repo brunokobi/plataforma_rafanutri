@@ -14,7 +14,8 @@ db/
 │   ├── 0007_appointments.sql    # RN-022: agenda (sem sobreposição por nutricionista, btree_gist)
 │   ├── 0008_anamneses.sql       # RN-024/026: modelos de questionário e anamneses com link público
 │   ├── 0009_meal_plan_templates.sql  # RN-035: modelos de plano alimentar
-│   └── 0010_meal_plan_templates_tags_jsonb.sql  # etiquetas em jsonb (o Directus não grava text[])
+│   ├── 0010_meal_plan_templates_tags_jsonb.sql  # etiquetas em jsonb (o Directus não grava text[])
+│   └── 0011_library_templates_guard.sql  # segurança: usuário não cria modelo sem consultório
 ├── tests/
 │   ├── 0002_organizations.test.sql  # regras do banco (transação desfeita no fim)
 │   ├── 0004_patients.test.sql       # limite de 20 ativos, CPF, responsável, formatos
@@ -265,3 +266,13 @@ Migrações `0009_meal_plan_templates.sql` e `0010_meal_plan_templates_tags_json
 | `organization_id` nulo = biblioteca da plataforma (métodos de prescrição, a validar com a nutricionista): visível para todos, não editável | permissões (script) |
 | Autor owner/nutricionista; plano de origem do mesmo consultório; não muda de consultório; até 10 etiquetas de até 30 caracteres, normalizadas | gatilho `meal_plan_templates_guard` |
 | Aplicar um modelo cria um **rascunho** de plano para o paciente (cópia); com meta de calorias, as quantidades são escaladas pelo fator meta ÷ energia do modelo (limitado a 0,3–3×) e arredondadas de 5 em 5 g (abaixo de 20 g, de 1 em 1 g) | app (`lib/meal-plans/scale.ts`, `template-actions.ts`) |
+
+## Segurança: biblioteca da plataforma (0011)
+
+Modelos com `organization_id` nulo (questionários padrão e, no futuro, a biblioteca de métodos de prescrição) aparecem para **todos** os consultórios. Em 12/11/2026 o teste de isolamento mostrou que um usuário conseguia criar um modelo de plano sem consultório: a validação `_nnull` da permissão do Directus **não é aplicada quando o campo não vem no corpo**. Correção:
+
+- gatilho `library_templates_guard` (migração 0011) em `questionnaire_templates` e `meal_plan_templates`: modelo sem consultório só pode ser criado direto no banco (seeds, sem `user_created`);
+- gancho `rafanutri-hooks`: responde 403 com mensagem clara e confere se o usuário é owner/nutricionista do consultório informado;
+- cenários no teste de isolamento para as duas coleções.
+
+**Lição para as próximas coleções:** não confiar em `validation` do Directus para campos obrigatórios de segurança; garantir no banco (gatilho ou `not null`) e, se quiser mensagem clara, no gancho.
