@@ -231,7 +231,7 @@ DIRECTUS_URL=https://rafanutri-api.brunokobi.tech DIRECTUS_ADMIN_TOKEN=<token> n
 
 ## Anamneses (RN-024 a RN-026)
 
-Migração `0008_anamneses.sql`, testes em `db/tests/0008_anamneses.test.sql`, registro em `db/directus/0008_anamneses.mjs`, modelos padrão em `db/seed/questionnaires/*.json`. O formato do questionário e o validador ficam em `packages/forms` (o mesmo código roda no app, nos testes e na extensão do Directus). **Aplicada, com os 3 modelos padrão gravados e as coleções registradas no Directus, em 12/11/2026**; teste de isolamento pela API com 43 verificações passando.
+Migração `0008_anamneses.sql`, testes em `db/tests/0008_anamneses.test.sql`, registro em `db/directus/0008_anamneses.mjs`, modelos padrão em `db/seed/questionnaires/*.json`. O formato do questionário e o validador ficam em `packages/forms` (o mesmo código roda no app, nos testes e na extensão do Directus). **Aplicada, com os 3 modelos padrão gravados e as coleções registradas no Directus, em 12/11/2026**; teste de isolamento pela API com 48 verificações passando.
 
 | Regra | Onde |
 |---|---|
