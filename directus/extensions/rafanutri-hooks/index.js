@@ -71,4 +71,46 @@ export default ({ filter }, { database }) => {
     }
     return payload;
   });
+
+  // Agenda (RN-022): antecipa a restrição de sobreposição do banco com uma mensagem clara
+  // (sem isto, o Postgres devolve exclusion_violation e o Directus responde 500).
+  const BLOCKING = ['cancelled', 'no_show'];
+  async function assertFreeSlot({ nutritionistId, startsAt, endsAt, ignoreId }) {
+    const q = database('appointments')
+      .where('nutritionist_id', nutritionistId)
+      .whereNotIn('status', BLOCKING)
+      .where('starts_at', '<', endsAt)
+      .where('ends_at', '>', startsAt);
+    if (ignoreId) q.whereNot('id', ignoreId);
+    const clash = await q.first('id');
+    if (clash) throw invalid('Horário ocupado: já existe uma consulta nesse período para este nutricionista.');
+  }
+
+  filter('appointments.items.create', async (payload, _meta, { accountability }) => {
+    if (!isEndUser(accountability)) return payload;
+    if (!payload?.organization_id) throw invalid('Informe o consultório.');
+    await assertClinicalMember(payload.organization_id, accountability.user);
+    const nutritionistId = payload.nutritionist_id ?? accountability.user;
+    if (payload.starts_at && payload.ends_at && !BLOCKING.includes(payload.status)) {
+      await assertFreeSlot({ nutritionistId, startsAt: payload.starts_at, endsAt: payload.ends_at });
+    }
+    return { ...payload, nutritionist_id: nutritionistId };
+  });
+
+  filter('appointments.items.update', async (payload, meta, { accountability }) => {
+    if (!isEndUser(accountability)) return payload;
+    if ('organization_id' in payload || 'patient_id' in payload) {
+      throw forbidden('Consultório e paciente da consulta não podem ser alterados.');
+    }
+    const touchesTime = 'starts_at' in payload || 'ends_at' in payload || 'nutritionist_id' in payload;
+    const reactivates = 'status' in payload && !BLOCKING.includes(payload.status);
+    if (!touchesTime && !reactivates) return payload;
+    const rows = await database('appointments').whereIn('id', meta?.keys ?? []).select('id', 'nutritionist_id', 'starts_at', 'ends_at', 'status');
+    for (const row of rows) {
+      const next = { ...row, ...payload };
+      if (BLOCKING.includes(next.status)) continue;
+      await assertFreeSlot({ nutritionistId: next.nutritionist_id, startsAt: next.starts_at, endsAt: next.ends_at, ignoreId: row.id });
+    }
+    return payload;
+  });
 };

@@ -208,6 +208,52 @@ try {
     assert.equal((await api(`/items/anthropometric_assessments/${assessmentA}`, { token: a.token, method: 'DELETE' })).status, 403);
   });
 
+  console.log('Agenda (RN-022):');
+  // Amanhã às 10h e 10h30 (horário de Brasília, UTC-3).
+  const day = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
+  const at = (hhmm) => new Date(`${day}T${hhmm}:00-03:00`).toISOString();
+  const appt = (org, patient, start, end, extra = {}) => ({ organization_id: org, patient_id: patient, starts_at: at(start), ends_at: at(end), type: 'return', ...extra });
+  let apptA;
+  await check('A marca consulta do próprio paciente e vira o nutricionista', async () => {
+    const r = await api('/items/appointments?fields=id,nutritionist_id,status', { token: a.token, method: 'POST', body: appt(A, patientA, '10:00', '11:00') });
+    assert.equal(r.status, 200, JSON.stringify(r.json));
+    apptA = r.json.data.id;
+    assert.equal(r.json.data.nutritionist_id, created.users[0]);
+    assert.equal(r.json.data.status, 'scheduled');
+  });
+  await check('horário sobreposto é recusado com mensagem clara', async () => {
+    const r = await api('/items/appointments', { token: a.token, method: 'POST', body: appt(A, patientA, '10:30', '11:30') });
+    assert.equal(r.status, 400);
+    assert.match(r.json.errors[0].message, /Horário ocupado/);
+  });
+  await check('consulta encostada (começa quando a outra termina) é aceita', async () => {
+    const r = await api('/items/appointments', { token: a.token, method: 'POST', body: appt(A, patientA, '11:00', '11:45') });
+    assert.equal(r.status, 200, JSON.stringify(r.json));
+  });
+  await check('A não marca consulta para paciente de B nem com nutricionista de B', async () => {
+    const r1 = await api('/items/appointments', { token: a.token, method: 'POST', body: appt(A, patientB, '14:00', '15:00') });
+    const r2 = await api('/items/appointments', { token: a.token, method: 'POST', body: appt(B, patientB, '14:00', '15:00') });
+    const r3 = await api('/items/appointments', { token: a.token, method: 'POST', body: appt(A, patientA, '14:00', '15:00', { nutritionist_id: created.users[1] }) });
+    for (const [n, r] of [['paciente de B', r1], ['consultório de B', r2], ['nutricionista de B', r3]]) assert.ok(r.status >= 400, `${n}: ${r.status}`);
+  });
+  await check('B não lê nem remarca a consulta de A', async () => {
+    assert.deepEqual((await api('/items/appointments?fields=id', { token: b.token })).json.data, []);
+    assert.equal((await api(`/items/appointments/${apptA}`, { token: b.token, method: 'PATCH', body: { status: 'cancelled' } })).status, 403);
+  });
+  await check('cancelar libera o horário; consulta não é apagada', async () => {
+    assert.equal((await api(`/items/appointments/${apptA}`, { token: a.token, method: 'DELETE' })).status, 403);
+    const c = await api(`/items/appointments/${apptA}?fields=status`, { token: a.token, method: 'PATCH', body: { status: 'cancelled' } });
+    assert.equal(c.json.data.status, 'cancelled');
+    const r = await api('/items/appointments', { token: a.token, method: 'POST', body: appt(A, patientA, '10:00', '10:45') });
+    assert.equal(r.status, 200, JSON.stringify(r.json));
+  });
+  await check('remarcar para cima de outra consulta é recusado', async () => {
+    const free = await api('/items/appointments?fields=id', { token: a.token, method: 'POST', body: appt(A, patientA, '16:00', '17:00') });
+    const r = await api(`/items/appointments/${free.json.data.id}`, { token: a.token, method: 'PATCH', body: { starts_at: at('10:15'), ends_at: at('10:50') } });
+    assert.equal(r.status, 400);
+    assert.match(r.json.errors[0].message, /Horário ocupado/);
+  });
+
   console.log(`${passed} verificações passaram.`);
 } finally {
   for (const id of created.orgs) await api(`/items/organizations/${id}`, { token: ADMIN, method: 'DELETE' });

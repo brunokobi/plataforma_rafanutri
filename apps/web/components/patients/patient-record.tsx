@@ -1,21 +1,6 @@
 'use client';
 
-import {
-  Archive,
-  ArrowLeft,
-  CalendarDays,
-  Eye,
-  EyeOff,
-  Loader2,
-  Mail,
-  MessageCircle,
-  Pencil,
-  Phone,
-  RotateCcw,
-  Ruler,
-  Target,
-  Utensils,
-} from 'lucide-react';
+import { Archive, ArrowLeft, CalendarDays, CalendarPlus, Eye, EyeOff, Loader2, Mail, MessageCircle, Pencil, Phone, RotateCcw, Ruler, Target, Utensils } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, useTransition, type ReactNode } from 'react';
@@ -102,6 +87,13 @@ export function PatientHeader({ patient, activeLimitReached, active }: { patient
           {STATUS_LABEL[patient.status]}
         </Badge>
         <div className="flex flex-wrap gap-2">
+          {!archived && (
+            <Button asChild variant="outline">
+              <Link href={`/app/agenda?paciente=${patient.id}`}>
+                <CalendarPlus className="size-4" /> Marcar consulta
+              </Link>
+            </Button>
+          )}
           {!editing && (
             <Button type="button" variant="outline" onClick={() => { setEditing(true); setFeedback(null); }}>
               <Pencil className="size-4" /> Editar dados

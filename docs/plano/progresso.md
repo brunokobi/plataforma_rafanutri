@@ -35,6 +35,7 @@ Atualizado em **10/11/2026**. O que já está no código (`main`), o que está s
 | Item | Situação | Observação |
 |---|---|---|
 | RN-020 Pacientes | ✅ | Cadastro, busca sem acento, filtro por status, arquivar e reativar gravando no Directus; limite de 20 ativos do plano gratuito (banco + gancho + tela); CPF com dígito verificador e único no consultório; telefone em E.164. **Editar** e **ficha real** (`/app/pacientes/[id]`) feitos em 11/11/2026. Falta: detecção de duplicidade por nome + nascimento |
+| RN-022 Agenda | ✅ base | `/app/agenda`: semana de segunda a domingo, nova consulta com horários livres sugeridos (expediente 08h–18h), presencial ou online com link, confirmar, concluir (atalho para a ficha), faltou, cancelar e remarcar; atalho "Marcar consulta" na ficha. Sem sobreposição por nutricionista (banco + gancho). Falta: arrastar para remarcar, expediente configurável, filtro por nutricionista (clínicas) |
 | RN-023 Prontuário (linha do tempo) | 🟡 | Ficha real com dados pessoais (CPF mascarado, atalho de WhatsApp), objetivo e situação, editar e arquivar/reativar; avaliações (0005) e planos (0006) por paciente **ativos desde 12/11/2026**; card do plano publicado no resumo. Linha do tempo só na paciente de exemplo |
 | RN-027 Antropometria e composição corporal | ✅ cálculo · 🧪 tela | `nutrition-core`: IMC, Jackson & Pollock 3/7, Durnin, Faulkner, ISAK, Siri/Brozek |
 | RN-028 Avaliação e gráficos | ✅ | Aba **Avaliações** na ficha real (`/app/pacientes/[id]/avaliacoes`): cálculo ao vivo, salvar (resultados recalculados no servidor), histórico e gráficos. Migração 0005 aplicada e coleção registrada no Directus em 12/11/2026 (testes SQL e de isolamento pela API passaram) ([db/README](../../db/README.md#avaliações-antropométricas-rn-028)) |
@@ -45,7 +46,7 @@ Atualizado em **10/11/2026**. O que já está no código (`main`), o que está s
 | RN-033 Medidas caseiras | 🟡 | Medidas de 25 alimentos comuns da TACO no banco (migração 0003, **revisar com a nutricionista**); nos demais, a quantidade aparece em gramas |
 | RN-034 Substituições | 🧪 | Equivalência em energia no mesmo grupo, já em medida caseira |
 | RN-036 PDF do plano | 🔒 | PDF gerado no navegador com o nome e a cor do consultório e o CRN do perfil, também nos planos do paciente (depende da 0006) |
-| RN-022 Agenda, RN-025/026 Anamnese, RN-035 Modelos, RN-041/042 Alimentos e preparações próprios | ⏳ | |
+| RN-025/026 Anamnese, RN-035 Modelos, RN-041/042 Alimentos e preparações próprios | ⏳ | |
 
 ## Fase 1B — Plano gratuito e área do paciente
 

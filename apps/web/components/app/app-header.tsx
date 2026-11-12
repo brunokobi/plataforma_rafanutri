@@ -15,6 +15,7 @@ export function AppHeader({ homeHref = '/app', patientsHref = '/app/pacientes', 
           <nav aria-label="Área logada" className="hidden items-center gap-5 text-sm font-medium text-muted-foreground sm:flex">
             <Link href={homeHref} className="hover:text-foreground">Módulos</Link>
             <Link href={patientsHref} className="hover:text-foreground">Pacientes</Link>
+            <Link href="/app/agenda" className="hover:text-foreground">Agenda</Link>
           </nav>
         </div>
         <div className="flex items-center gap-2">

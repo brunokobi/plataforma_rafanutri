@@ -10,16 +10,19 @@ db/
 │   ├── 0003_household_measures.sql  # RN-033: medidas caseiras de 25 alimentos comuns (revisar)
 │   ├── 0004_patients.sql        # RN-020: pacientes, limite de ativos do plano, CPF único
 │   ├── 0005_anthropometric_assessments.sql  # RN-028: avaliações por paciente (consultório e autor conferidos no banco)
-│   └── 0006_meal_plans.sql      # RN-031/036: planos alimentares por paciente (rascunho, publicado, arquivado)
+│   ├── 0006_meal_plans.sql      # RN-031/036: planos alimentares por paciente (rascunho, publicado, arquivado)
+│   └── 0007_appointments.sql    # RN-022: agenda (sem sobreposição por nutricionista, btree_gist)
 ├── tests/
 │   ├── 0002_organizations.test.sql  # regras do banco (transação desfeita no fim)
 │   ├── 0004_patients.test.sql       # limite de 20 ativos, CPF, responsável, formatos
 │   ├── 0005_anthropometric_assessments.test.sql  # consultório do paciente, autor, faixas, cascata
 │   ├── 0006_meal_plans.test.sql     # ciclo de vida, um publicado por paciente, conteúdo travado após publicar
+│   ├── 0007_appointments.test.sql   # sobreposição, cancelar libera horário, consultório, remarcar
 │   └── api-isolation.test.mjs       # RN-008: isolamento entre consultórios pela API
 ├── directus/
 │   ├── 0005_anthropometric_assessments.mjs  # registra a coleção e as permissões no Directus (token de admin)
-│   └── 0006_meal_plans.mjs      # idem para os planos alimentares
+│   ├── 0006_meal_plans.mjs      # idem para os planos alimentares
+│   └── 0007_appointments.mjs    # idem para a agenda
 └── seed/
     ├── dev/
     │   └── seed-nutricionista.mjs  # usuário de teste como nutricionista + consultório + 9 pacientes fictícios
@@ -82,6 +85,7 @@ Já aplicada em 10/11/2026 para o usuário de teste `brunokobi2@hotmail.com`.
 | `organization_members` | membros dos próprios consultórios | nenhuma (convites entram no RN-007) |
 | `professional_profiles` | o próprio | CRN e regional do próprio |
 | `plans` | todos | nenhuma |
+| `appointments` | consultas dos consultórios em que é owner ou nutricionista | marca (quem marca atende, se não indicar outro nutricionista do consultório); remarca, confirma, conclui, registra falta e cancela; **não apaga** |
 | `patients` | dos consultórios em que é owner ou nutricionista | cria no próprio consultório (responsável = ele mesmo); edita dados e status; **não apaga** (arquiva) |
 | `foods`, `food_nutrients` | base pública + alimentos do próprio consultório | nenhuma |
 | `directus_users` | só o próprio | nome, avatar e idioma do próprio |
@@ -193,3 +197,25 @@ DIRECTUS_URL=https://rafanutri-api.brunokobi.tech DIRECTUS_ADMIN_TOKEN=<token> n
 ```
 
 A 0006 não depende da 0005, mas a tela do plano usa o peso e a altura da última avaliação para calcular as metas; sem avaliações, o editor pede as calorias manualmente. Antes de ativar, a aba mostra o aviso de ativação e o link para o editor de demonstração.
+
+## Agenda (RN-022)
+
+Migração `0007_appointments.sql`, testes em `db/tests/0007_appointments.test.sql`, registro em `db/directus/0007_appointments.mjs`. **Aplicada e registrada na vpsrafa em 12/11/2026.**
+
+| Regra | Onde |
+|---|---|
+| O mesmo nutricionista não tem duas consultas sobrepostas (cancelada e falta não ocupam o horário; encostadas são permitidas) | restrição `exclude using gist` (extensão `btree_gist`) |
+| Paciente do mesmo consultório; nutricionista e autor são owner/nutricionista do consultório; sem nutricionista informado, quem marca atende | gatilho `appointments_guard` |
+| Não muda de consultório nem de paciente; concluída e cancelada não são remarcadas | gatilho |
+| Conflito de horário com mensagem clara ("Horário ocupado…") em vez de erro 500 | gancho `rafanutri-hooks` (create e update) |
+| Ler e editar (horário, tipo, atendimento, link, observação, situação) só no próprio consultório; **sem apagar** (cancela) | permissões copiadas de `patients` pelo script |
+
+Horários em `timestamptz`; o app mostra em horário de Brasília (UTC-3 fixo, sem horário de verão desde 2019). O histórico de remarcações fica nas revisões do Directus.
+
+```bash
+ssh vpsrafa 'docker exec -i rafanutri-postgres psql -U rafanutri -d rafanutri -v ON_ERROR_STOP=1' < db/migrations/0007_appointments.sql
+ssh vpsrafa 'docker exec -i rafanutri-postgres psql -U rafanutri -d rafanutri -v ON_ERROR_STOP=1' < db/tests/0007_appointments.test.sql
+# gancho atualizado: copiar directus/extensions/rafanutri-hooks para a VPS (chmod -R a+rX)
+ssh vpsrafa 'cd ~/apps/rafanutri-directus && docker compose restart directus'   # recarrega schema e gancho
+DIRECTUS_URL=https://rafanutri-api.brunokobi.tech DIRECTUS_ADMIN_TOKEN=<token> node db/directus/0007_appointments.mjs
+```

@@ -29,7 +29,7 @@
 
 A Rafanutri reúne as áreas da nutrição em um só lugar: atendimento clínico e esportivo, nutrição materno-infantil, saúde pública, Unidades de Alimentação e Nutrição (UAN) com gestão de qualidade, e gestão do negócio do nutricionista. Também traz assistentes de IA e um app para o paciente acompanhar o plano alimentar.
 
-> **Status (10/11/2026):** MVP em construção, **no ar em https://rafanutri.brunokobi.tech**. Já gravam no banco: cadastro com login automático, onboarding do consultório (plano gratuito), **pacientes** (cadastro, busca, arquivar, limite de 20 ativos) e a base de alimentos **TACO 4ª edição** usada pelo editor de plano alimentar. Avaliação, plano alimentar e PDF ainda funcionam só com a paciente de exemplo, sem salvar. Veja o [progresso](docs/plano/progresso.md).
+> **Status (12/11/2026):** MVP em construção, **no ar em https://rafanutri.brunokobi.tech**. Já gravam no banco: cadastro com login automático, onboarding do consultório (plano gratuito), **pacientes** (cadastro, ficha, edição, limite de 20 ativos), **avaliações antropométricas**, **planos alimentares por paciente** (rascunho, publicação e versões), **agenda** de consultas e a base de alimentos **TACO 4ª edição** usada pelo editor de plano alimentar.  Veja o [progresso](docs/plano/progresso.md).
 
 ---
 
@@ -148,7 +148,7 @@ packages/
   nutrition-core/         # fórmulas e cálculos nutricionais (TS puro, 41 testes)
   config/                 # tsconfig base
 db/
-  migrations/             # SQL versionado e idempotente (0001 alimentos … 0004 pacientes)
+  migrations/             # SQL versionado e idempotente (0001 alimentos … 0007 agenda)
   seed/taco/              # TACO 4ª edição (CSV + importador + gerador a partir da planilha oficial)
   seed/dev/               # seed de nutricionista de teste com consultório e pacientes
   tests/                  # testes SQL das regras do banco + teste de isolamento pela API
@@ -190,7 +190,7 @@ O que está feito e o que falta: [docs/plano/progresso.md](docs/plano/progresso.
 | `pnpm lint` / `pnpm typecheck` | Qualidade de código (ESLint e TypeScript estrito) |
 | `pnpm test` | Testes unitários e de componente (Vitest + Testing Library) |
 | `pnpm test:e2e` | Testes end-to-end (Playwright); login real com `E2E_USER_EMAIL` e `E2E_USER_PASSWORD` |
-| `node db/tests/api-isolation.test.mjs` | Isolamento entre consultórios pela API (23 verificações; exige `DIRECTUS_URL` e `DIRECTUS_ADMIN_TOKEN` só para a limpeza) |
+| `node db/tests/api-isolation.test.mjs` | Isolamento entre consultórios pela API (35 verificações; exige `DIRECTUS_URL` e `DIRECTUS_ADMIN_TOKEN` só para a limpeza) |
 
 ## Deploy
 
