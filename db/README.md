@@ -11,21 +11,25 @@ db/
 │   ├── 0004_patients.sql        # RN-020: pacientes, limite de ativos do plano, CPF único
 │   ├── 0005_anthropometric_assessments.sql  # RN-028: avaliações por paciente (consultório e autor conferidos no banco)
 │   ├── 0006_meal_plans.sql      # RN-031/036: planos alimentares por paciente (rascunho, publicado, arquivado)
-│   └── 0007_appointments.sql    # RN-022: agenda (sem sobreposição por nutricionista, btree_gist)
+│   ├── 0007_appointments.sql    # RN-022: agenda (sem sobreposição por nutricionista, btree_gist)
+│   └── 0008_anamneses.sql       # RN-024/026: modelos de questionário e anamneses com link público
 ├── tests/
 │   ├── 0002_organizations.test.sql  # regras do banco (transação desfeita no fim)
 │   ├── 0004_patients.test.sql       # limite de 20 ativos, CPF, responsável, formatos
 │   ├── 0005_anthropometric_assessments.test.sql  # consultório do paciente, autor, faixas, cascata
 │   ├── 0006_meal_plans.test.sql     # ciclo de vida, um publicado por paciente, conteúdo travado após publicar
 │   ├── 0007_appointments.test.sql   # sobreposição, cancelar libera horário, consultório, remarcar
+│   ├── 0008_anamneses.test.sql      # cópia do questionário, versão, validade, link invalidado, transições
 │   └── api-isolation.test.mjs       # RN-008: isolamento entre consultórios pela API
 ├── directus/
 │   ├── 0005_anthropometric_assessments.mjs  # registra a coleção e as permissões no Directus (token de admin)
 │   ├── 0006_meal_plans.mjs      # idem para os planos alimentares
-│   └── 0007_appointments.mjs    # idem para a agenda
+│   ├── 0007_appointments.mjs    # idem para a agenda
+│   └── 0008_anamneses.mjs       # idem para questionários e anamneses
 └── seed/
     ├── dev/
     │   └── seed-nutricionista.mjs  # usuário de teste como nutricionista + consultório + 9 pacientes fictícios
+    ├── questionnaires/  # RN-024: modelos padrão de anamnese (JSON) + seed-sql.mjs
     └── taco/            # RN-011: TACO 4ª edição
         ├── taco-4ed.csv         # 597 alimentos × 29 nutrientes (gerado, versionado)
         ├── import.sql           # importador idempotente (upsert)
@@ -219,3 +223,28 @@ ssh vpsrafa 'docker exec -i rafanutri-postgres psql -U rafanutri -d rafanutri -v
 ssh vpsrafa 'cd ~/apps/rafanutri-directus && docker compose restart directus'   # recarrega schema e gancho
 DIRECTUS_URL=https://rafanutri-api.brunokobi.tech DIRECTUS_ADMIN_TOKEN=<token> node db/directus/0007_appointments.mjs
 ```
+
+## Anamneses (RN-024 a RN-026)
+
+Migração `0008_anamneses.sql`, testes em `db/tests/0008_anamneses.test.sql`, registro em `db/directus/0008_anamneses.mjs`, modelos padrão em `db/seed/questionnaires/*.json`. O formato do questionário e o validador ficam em `packages/forms` (o mesmo código roda no app, nos testes e na extensão do Directus).
+
+| Regra | Onde |
+|---|---|
+| Modelos padrão (`organization_id` nulo) visíveis para todos e não editáveis; o consultório duplica para adaptar | permissões (script) |
+| Modelo do consultório: versão sobe a cada mudança do conteúdo | gatilho `questionnaire_templates_guard` |
+| No envio, o banco **copia o questionário** (`schema_snapshot`) e zera as respostas: mudar o modelo não altera anamneses já enviadas | gatilho `anamneses_guard` |
+| Link público: token aleatório de 32 bytes; o banco guarda **só o hash sha256**; validade padrão de 7 dias, máximo 30 | app (`lib/anamneses/token.ts`) + gatilho |
+| Responder ou cancelar **apaga o hash**: o link deixa de funcionar | gatilho |
+| Respostas só mudam enquanto a anamnese está enviada; transições `sent → answered/cancelled` e `answered → reviewed` | gatilho |
+| O profissional não lê o hash, não edita respostas e só muda a situação para revisada ou cancelada | permissões (campos e validação) |
+| `GET/POST /rafanutri/public/anamneses/:token` (sem login): devolve só o questionário, o rascunho, o primeiro nome do paciente e a marca do consultório; valida as respostas com o mesmo validador do app (rascunho não exige obrigatórias) | extensão `rafanutri` (`forms.js` é cópia de `packages/forms/src/forms.js`: `pnpm --filter @rafanutri/forms sync`) |
+
+```bash
+ssh vpsrafa 'docker exec -i rafanutri-postgres psql -U rafanutri -d rafanutri -v ON_ERROR_STOP=1' < db/migrations/0008_anamneses.sql
+node db/seed/questionnaires/seed-sql.mjs | ssh vpsrafa 'docker exec -i rafanutri-postgres psql -U rafanutri -d rafanutri -v ON_ERROR_STOP=1'
+ssh vpsrafa 'docker exec -i rafanutri-postgres psql -U rafanutri -d rafanutri -v ON_ERROR_STOP=1' < db/tests/0008_anamneses.test.sql
+# extensão atualizada (index.js + forms.js) → copiar para a VPS (chmod -R a+rX) e reiniciar o Directus
+DIRECTUS_URL=https://rafanutri-api.brunokobi.tech DIRECTUS_ADMIN_TOKEN=<token> node db/directus/0008_anamneses.mjs
+```
+
+Os modelos padrão (clínica adulto, esportiva e recordatório de 24 h) são uma **primeira versão a validar com a nutricionista**; o teste do pacote `@rafanutri/forms` garante que todos passam no validador.

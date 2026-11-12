@@ -1,0 +1,215 @@
+{
+  "id": "7b1d3c2e-0002-4a5b-9c00-000000000002",
+  "name": "Anamnese esportiva",
+  "description": "Treino, competição, suplementação e alimentação em torno do exercício.",
+  "schema": {
+    "version": 1,
+    "sections": [
+      {
+        "title": "Esporte e treino",
+        "questions": [
+          {
+            "id": "modalidade",
+            "type": "text",
+            "label": "Modalidade principal",
+            "required": true
+          },
+          {
+            "id": "nivel",
+            "type": "single",
+            "label": "Nível",
+            "required": true,
+            "options": [
+              {
+                "value": "iniciante",
+                "label": "Iniciante"
+              },
+              {
+                "value": "amador",
+                "label": "Amador"
+              },
+              {
+                "value": "competitivo",
+                "label": "Competitivo"
+              },
+              {
+                "value": "profissional",
+                "label": "Profissional"
+              }
+            ]
+          },
+          {
+            "id": "frequencia",
+            "type": "number",
+            "label": "Treinos por semana",
+            "required": true,
+            "min": 0,
+            "max": 21
+          },
+          {
+            "id": "duracao",
+            "type": "number",
+            "label": "Duração média de cada treino",
+            "min": 0,
+            "max": 600,
+            "unit": "min"
+          },
+          {
+            "id": "horario",
+            "type": "single",
+            "label": "Horário em que costuma treinar",
+            "options": [
+              {
+                "value": "manha",
+                "label": "Manhã"
+              },
+              {
+                "value": "tarde",
+                "label": "Tarde"
+              },
+              {
+                "value": "noite",
+                "label": "Noite"
+              },
+              {
+                "value": "varia",
+                "label": "Varia"
+              }
+            ]
+          },
+          {
+            "id": "competicao",
+            "type": "yesno",
+            "label": "Tem prova ou competição marcada?"
+          },
+          {
+            "id": "competicao_data",
+            "type": "date",
+            "label": "Data da próxima prova",
+            "show_if": {
+              "question": "competicao",
+              "equals": true
+            }
+          }
+        ]
+      },
+      {
+        "title": "Objetivo",
+        "questions": [
+          {
+            "id": "objetivo",
+            "type": "multiple",
+            "label": "Objetivos",
+            "required": true,
+            "options": [
+              {
+                "value": "desempenho",
+                "label": "Melhorar desempenho"
+              },
+              {
+                "value": "hipertrofia",
+                "label": "Ganhar massa muscular"
+              },
+              {
+                "value": "perda_gordura",
+                "label": "Reduzir gordura"
+              },
+              {
+                "value": "recuperacao",
+                "label": "Recuperar melhor"
+              },
+              {
+                "value": "peso_categoria",
+                "label": "Ajustar peso de categoria"
+              }
+            ]
+          },
+          {
+            "id": "peso_categoria",
+            "type": "number",
+            "label": "Peso da categoria",
+            "unit": "kg",
+            "min": 30,
+            "max": 200,
+            "show_if": {
+              "question": "objetivo",
+              "includes": "peso_categoria"
+            }
+          }
+        ]
+      },
+      {
+        "title": "Alimentação e suplementos",
+        "questions": [
+          {
+            "id": "pre_treino",
+            "type": "textarea",
+            "label": "O que costuma comer antes do treino?"
+          },
+          {
+            "id": "pos_treino",
+            "type": "textarea",
+            "label": "E depois do treino?"
+          },
+          {
+            "id": "hidratacao",
+            "type": "text",
+            "label": "Como se hidrata durante o treino?"
+          },
+          {
+            "id": "suplementos_usa",
+            "type": "yesno",
+            "label": "Usa suplementos?",
+            "required": true
+          },
+          {
+            "id": "suplementos",
+            "type": "textarea",
+            "label": "Quais, em que dose e horário?",
+            "required": true,
+            "show_if": {
+              "question": "suplementos_usa",
+              "equals": true
+            }
+          },
+          {
+            "id": "desconfortos",
+            "type": "multiple",
+            "label": "Sente algum destes durante o treino?",
+            "options": [
+              {
+                "value": "fadiga",
+                "label": "Cansaço precoce"
+              },
+              {
+                "value": "caimbra",
+                "label": "Cãibras"
+              },
+              {
+                "value": "gi",
+                "label": "Desconforto gastrointestinal"
+              },
+              {
+                "value": "tontura",
+                "label": "Tontura"
+              },
+              {
+                "value": "nenhum",
+                "label": "Nenhum"
+              }
+            ]
+          },
+          {
+            "id": "recuperacao",
+            "type": "scale",
+            "label": "Como avalia sua recuperação entre treinos?",
+            "min": 1,
+            "max": 5,
+            "min_label": "Ruim",
+            "max_label": "Ótima"
+          }
+        ]
+      }
+    ]
+  }
+}

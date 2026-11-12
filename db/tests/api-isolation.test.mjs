@@ -6,7 +6,7 @@
 // O token de administrador só é usado na limpeza (ADR 0008, regra 1).
 
 import assert from 'node:assert/strict';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomBytes, randomUUID } from 'node:crypto';
 
 const URL_ = process.env.DIRECTUS_URL;
 const ADMIN = process.env.DIRECTUS_ADMIN_TOKEN;
@@ -252,6 +252,76 @@ try {
     const r = await api(`/items/appointments/${free.json.data.id}`, { token: a.token, method: 'PATCH', body: { starts_at: at('10:15'), ends_at: at('10:50') } });
     assert.equal(r.status, 400);
     assert.match(r.json.errors[0].message, /Horário ocupado/);
+  });
+
+  console.log('Anamneses e link público (RN-024 a RN-026):');
+  const CLINICA = '7b1d3c2e-0001-4a5b-9c00-000000000001'; // modelo padrão "Anamnese clínica (adulto)"
+  const newLink = () => {
+    const token = randomBytes(32).toString('base64url');
+    return { token, hash: createHash('sha256').update(token).digest('hex') };
+  };
+  const pub = (token, init) => api(`/rafanutri/public/anamneses/${token}`, init);
+  // paciente ativo novo de A (o anterior foi arquivado nos testes de pacientes)
+  const pa = await api('/items/patients?fields=id', { token: a.token, method: 'POST', body: { organization_id: A, full_name: 'Paciente Anamnese Teste', status: 'inactive' } });
+  const patientAnam = pa.json.data.id;
+  const link = newLink();
+  let anamA;
+  await check('modelos padrão são visíveis e não editáveis', async () => {
+    const r = await api(`/items/questionnaire_templates/${CLINICA}?fields=id,organization_id`, { token: a.token });
+    assert.equal(r.status, 200);
+    assert.equal(r.json.data.organization_id, null);
+    assert.equal((await api(`/items/questionnaire_templates/${CLINICA}`, { token: a.token, method: 'PATCH', body: { name: 'x' } })).status, 403);
+  });
+  await check('A envia anamnese; o banco copia o questionário e o hash não é legível', async () => {
+    const r = await api('/items/anamneses?fields=id,status,title,schema_snapshot', {
+      token: a.token, method: 'POST', body: { organization_id: A, patient_id: patientAnam, template_id: CLINICA, public_token_hash: link.hash },
+    });
+    assert.equal(r.status, 200, JSON.stringify(r.json));
+    anamA = r.json.data.id;
+    assert.equal(r.json.data.status, 'sent');
+    assert.ok(r.json.data.schema_snapshot.sections.length > 0);
+    const h = await api(`/items/anamneses/${anamA}?fields=public_token_hash`, { token: a.token });
+    assert.equal(h.status, 403);
+  });
+  await check('B não lê nem cancela a anamnese de A', async () => {
+    assert.deepEqual((await api('/items/anamneses?fields=id', { token: b.token })).json.data, []);
+    assert.equal((await api(`/items/anamneses/${anamA}`, { token: b.token, method: 'PATCH', body: { status: 'cancelled' } })).status, 403);
+  });
+  await check('o profissional não marca como respondida nem edita respostas', async () => {
+    assert.ok((await api(`/items/anamneses/${anamA}`, { token: a.token, method: 'PATCH', body: { status: 'answered' } })).status >= 400);
+    assert.equal((await api(`/items/anamneses/${anamA}`, { token: a.token, method: 'PATCH', body: { answers: { objetivo: 'outro' } } })).status, 403);
+  });
+  await check('link público: abre sem login e mostra só o primeiro nome', async () => {
+    const r = await pub(link.token);
+    assert.equal(r.status, 200, JSON.stringify(r.json));
+    assert.equal(r.json.data.patient_first_name, 'Paciente');
+    assert.ok(!('patient_id' in r.json.data) && !JSON.stringify(r.json.data).includes('Anamnese Teste'));
+  });
+  await check('link público: token errado ou mal formado não abre', async () => {
+    assert.equal((await pub(newLink().token)).status, 410);
+    assert.equal((await pub('x'.repeat(10))).status, 410);
+  });
+  await check('link público: rascunho, respostas inválidas recusadas, envio final invalida o link', async () => {
+    const draft = await pub(link.token, { method: 'POST', body: { answers: { objetivo: 'emagrecimento' }, final: false } });
+    assert.equal(draft.status, 200, JSON.stringify(draft.json));
+    assert.equal((await pub(link.token)).json.data.answers.objetivo, 'emagrecimento');
+    const bad = await pub(link.token, { method: 'POST', body: { answers: { objetivo: 'nao_existe' }, final: true } });
+    assert.equal(bad.status, 400);
+    assert.ok(bad.json.errors[0].extensions.fields.objetivo);
+    const done = await pub(link.token, {
+      method: 'POST',
+      body: { answers: { objetivo: 'emagrecimento', medicamentos_usa: false, atividade: 'nao', refeicoes: 4 }, final: true },
+    });
+    assert.equal(done.status, 200, JSON.stringify(done.json));
+    assert.equal((await pub(link.token)).status, 410);
+    assert.equal((await pub(link.token, { method: 'POST', body: { answers: {}, final: true } })).status, 410);
+    const r = await api(`/items/anamneses/${anamA}?fields=status,answers`, { token: a.token });
+    assert.equal(r.json.data.status, 'answered');
+    assert.equal(r.json.data.answers.refeicoes, 4);
+  });
+  await check('A revisa a anamnese respondida', async () => {
+    const r = await api(`/items/anamneses/${anamA}?fields=status`, { token: a.token, method: 'PATCH', body: { status: 'reviewed' } });
+    assert.equal(r.json.data.status, 'reviewed');
   });
 
   console.log(`${passed} verificações passaram.`);

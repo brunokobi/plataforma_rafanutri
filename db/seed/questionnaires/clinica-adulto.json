@@ -1,0 +1,285 @@
+{
+  "id": "7b1d3c2e-0001-4a5b-9c00-000000000001",
+  "name": "Anamnese clínica (adulto)",
+  "description": "Histórico de saúde, hábitos e rotina alimentar para a primeira consulta.",
+  "schema": {
+    "version": 1,
+    "sections": [
+      {
+        "title": "Objetivo",
+        "questions": [
+          {
+            "id": "objetivo",
+            "type": "single",
+            "label": "Qual é o seu principal objetivo com o acompanhamento?",
+            "required": true,
+            "options": [
+              {
+                "value": "emagrecimento",
+                "label": "Emagrecimento"
+              },
+              {
+                "value": "ganho_massa",
+                "label": "Ganho de massa muscular"
+              },
+              {
+                "value": "saude",
+                "label": "Melhorar a saúde / exames"
+              },
+              {
+                "value": "desempenho",
+                "label": "Desempenho esportivo"
+              },
+              {
+                "value": "reeducacao",
+                "label": "Reeducação alimentar"
+              },
+              {
+                "value": "outro",
+                "label": "Outro"
+              }
+            ]
+          },
+          {
+            "id": "objetivo_outro",
+            "type": "text",
+            "label": "Qual?",
+            "required": true,
+            "show_if": {
+              "question": "objetivo",
+              "equals": "outro"
+            }
+          },
+          {
+            "id": "expectativa",
+            "type": "textarea",
+            "label": "Conte um pouco do que espera do acompanhamento"
+          }
+        ]
+      },
+      {
+        "title": "Saúde",
+        "questions": [
+          {
+            "id": "doencas",
+            "type": "multiple",
+            "label": "Tem algum destes diagnósticos?",
+            "options": [
+              {
+                "value": "diabetes",
+                "label": "Diabetes"
+              },
+              {
+                "value": "hipertensao",
+                "label": "Hipertensão"
+              },
+              {
+                "value": "dislipidemia",
+                "label": "Colesterol ou triglicerídeos altos"
+              },
+              {
+                "value": "tireoide",
+                "label": "Problema de tireoide"
+              },
+              {
+                "value": "gastrite",
+                "label": "Gastrite ou refluxo"
+              },
+              {
+                "value": "intestino",
+                "label": "Intestino irritável ou constipação"
+              },
+              {
+                "value": "renal",
+                "label": "Doença renal"
+              },
+              {
+                "value": "nenhum",
+                "label": "Nenhum"
+              }
+            ]
+          },
+          {
+            "id": "medicamentos_usa",
+            "type": "yesno",
+            "label": "Usa algum medicamento ou suplemento?",
+            "required": true
+          },
+          {
+            "id": "medicamentos",
+            "type": "textarea",
+            "label": "Quais, e em que dose?",
+            "required": true,
+            "show_if": {
+              "question": "medicamentos_usa",
+              "equals": true
+            }
+          },
+          {
+            "id": "alergias",
+            "type": "text",
+            "label": "Alergias ou intolerâncias alimentares",
+            "help": "Ex.: lactose, glúten, amendoim. Deixe em branco se não tiver."
+          },
+          {
+            "id": "cirurgias",
+            "type": "text",
+            "label": "Cirurgias anteriores"
+          }
+        ]
+      },
+      {
+        "title": "Rotina e hábitos",
+        "questions": [
+          {
+            "id": "atividade",
+            "type": "single",
+            "label": "Pratica atividade física?",
+            "required": true,
+            "options": [
+              {
+                "value": "nao",
+                "label": "Não pratico"
+              },
+              {
+                "value": "1_2",
+                "label": "1 a 2 vezes por semana"
+              },
+              {
+                "value": "3_4",
+                "label": "3 a 4 vezes por semana"
+              },
+              {
+                "value": "5_mais",
+                "label": "5 ou mais vezes por semana"
+              }
+            ]
+          },
+          {
+            "id": "atividade_qual",
+            "type": "text",
+            "label": "Se pratica, qual atividade e por quanto tempo?"
+          },
+          {
+            "id": "sono",
+            "type": "number",
+            "label": "Quantas horas dorme por noite, em média?",
+            "min": 0,
+            "max": 16,
+            "unit": "h"
+          },
+          {
+            "id": "agua",
+            "type": "number",
+            "label": "Quantos copos de água (250 ml) bebe por dia?",
+            "min": 0,
+            "max": 40,
+            "unit": "copos"
+          },
+          {
+            "id": "intestino_func",
+            "type": "single",
+            "label": "Com que frequência o intestino funciona?",
+            "options": [
+              {
+                "value": "diario",
+                "label": "Todos os dias"
+              },
+              {
+                "value": "2_3",
+                "label": "A cada 2 ou 3 dias"
+              },
+              {
+                "value": "menos",
+                "label": "Menos que isso"
+              }
+            ]
+          },
+          {
+            "id": "alcool",
+            "type": "single",
+            "label": "Consumo de bebida alcoólica",
+            "options": [
+              {
+                "value": "nao",
+                "label": "Não bebo"
+              },
+              {
+                "value": "social",
+                "label": "Socialmente"
+              },
+              {
+                "value": "semanal",
+                "label": "Toda semana"
+              },
+              {
+                "value": "diario",
+                "label": "Quase todos os dias"
+              }
+            ]
+          },
+          {
+            "id": "fome",
+            "type": "scale",
+            "label": "Como avalia sua fome ao longo do dia?",
+            "min": 1,
+            "max": 5,
+            "min_label": "Pouca",
+            "max_label": "Muita"
+          }
+        ]
+      },
+      {
+        "title": "Alimentação",
+        "questions": [
+          {
+            "id": "refeicoes",
+            "type": "number",
+            "label": "Quantas refeições faz por dia?",
+            "required": true,
+            "min": 1,
+            "max": 10
+          },
+          {
+            "id": "nao_gosta",
+            "type": "text",
+            "label": "Alimentos que não gosta ou não come"
+          },
+          {
+            "id": "preferencias",
+            "type": "text",
+            "label": "Alimentos que mais gosta"
+          },
+          {
+            "id": "quem_cozinha",
+            "type": "single",
+            "label": "Quem prepara as suas refeições?",
+            "options": [
+              {
+                "value": "eu",
+                "label": "Eu mesmo(a)"
+              },
+              {
+                "value": "familia",
+                "label": "Alguém da família"
+              },
+              {
+                "value": "fora",
+                "label": "Como fora / marmita"
+              },
+              {
+                "value": "misto",
+                "label": "Varia"
+              }
+            ]
+          },
+          {
+            "id": "observacoes",
+            "type": "textarea",
+            "label": "Algo mais que queira contar?"
+          }
+        ]
+      }
+    ]
+  }
+}

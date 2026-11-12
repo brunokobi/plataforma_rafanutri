@@ -29,7 +29,7 @@
 
 A Rafanutri reúne as áreas da nutrição em um só lugar: atendimento clínico e esportivo, nutrição materno-infantil, saúde pública, Unidades de Alimentação e Nutrição (UAN) com gestão de qualidade, e gestão do negócio do nutricionista. Também traz assistentes de IA e um app para o paciente acompanhar o plano alimentar.
 
-> **Status (12/11/2026):** MVP em construção, **no ar em https://rafanutri.brunokobi.tech**. Já gravam no banco: cadastro com login automático, onboarding do consultório (plano gratuito), **pacientes** (cadastro, ficha, edição, limite de 20 ativos), **avaliações antropométricas**, **planos alimentares por paciente** (rascunho, publicação e versões), **agenda** de consultas e a base de alimentos **TACO 4ª edição** usada pelo editor de plano alimentar.  Veja o [progresso](docs/plano/progresso.md).
+> **Status (12/11/2026):** MVP em construção, **no ar em https://rafanutri.brunokobi.tech**. Já gravam no banco: cadastro com login automático, onboarding do consultório (plano gratuito), **pacientes** (cadastro, ficha, edição, limite de 20 ativos), **avaliações antropométricas**, **planos alimentares por paciente** (rascunho, publicação e versões), **agenda** de consultas e **anamneses** com link público para o paciente responder e a base de alimentos **TACO 4ª edição** usada pelo editor de plano alimentar.  Veja o [progresso](docs/plano/progresso.md).
 
 ---
 
@@ -145,10 +145,11 @@ apps/
     tests/  e2e/          # Vitest + Testing Library · Playwright
     Dockerfile            # imagem de produção (Next.js standalone, ARM64)
 packages/
-  nutrition-core/         # fórmulas e cálculos nutricionais (TS puro, 41 testes)
+  nutrition-core/         # fórmulas e cálculos nutricionais (TS puro)
+  forms/                  # formato dos questionários e validador das respostas (app + extensão do Directus)
   config/                 # tsconfig base
 db/
-  migrations/             # SQL versionado e idempotente (0001 alimentos … 0007 agenda)
+  migrations/             # SQL versionado e idempotente (0001 alimentos … 0008 anamneses)
   seed/taco/              # TACO 4ª edição (CSV + importador + gerador a partir da planilha oficial)
   seed/dev/               # seed de nutricionista de teste com consultório e pacientes
   tests/                  # testes SQL das regras do banco + teste de isolamento pela API

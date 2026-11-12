@@ -1,0 +1,26 @@
+{
+  "name": "@rafanutri/forms",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/forms.js",
+  "types": "./src/forms.d.ts",
+  "exports": {
+    ".": {
+      "types": "./src/forms.d.ts",
+      "default": "./src/forms.js"
+    }
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "lint": "tsc --noEmit",
+    "sync": "node scripts/sync-extension.mjs"
+  },
+  "devDependencies": {
+    "@rafanutri/config": "workspace:*",
+    "@types/node": "22.20.5",
+    "typescript": "5.9.3",
+    "vitest": "5.1.0"
+  }
+}

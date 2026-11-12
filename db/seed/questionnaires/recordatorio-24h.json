@@ -1,0 +1,90 @@
+{
+  "id": "7b1d3c2e-0003-4a5b-9c00-000000000003",
+  "name": "Recordatório alimentar de 24 horas",
+  "description": "O que a pessoa comeu e bebeu no dia anterior, refeição por refeição.",
+  "schema": {
+    "version": 1,
+    "sections": [
+      {
+        "title": "Sobre o dia",
+        "description": "Pense no dia de ontem, do momento em que acordou até ir dormir.",
+        "questions": [
+          {
+            "id": "dia_tipico",
+            "type": "yesno",
+            "label": "Ontem foi um dia típico para você?",
+            "required": true
+          },
+          {
+            "id": "dia_diferente",
+            "type": "text",
+            "label": "O que foi diferente?",
+            "show_if": {
+              "question": "dia_tipico",
+              "equals": false
+            }
+          }
+        ]
+      },
+      {
+        "title": "Refeições",
+        "description": "Escreva os alimentos, a quantidade (ex.: 2 colheres de sopa) e o horário. Deixe em branco a refeição que não fez.",
+        "questions": [
+          {
+            "id": "cafe",
+            "type": "textarea",
+            "label": "Café da manhã"
+          },
+          {
+            "id": "lanche_manha",
+            "type": "textarea",
+            "label": "Lanche da manhã"
+          },
+          {
+            "id": "almoco",
+            "type": "textarea",
+            "label": "Almoço"
+          },
+          {
+            "id": "lanche_tarde",
+            "type": "textarea",
+            "label": "Lanche da tarde"
+          },
+          {
+            "id": "jantar",
+            "type": "textarea",
+            "label": "Jantar"
+          },
+          {
+            "id": "ceia",
+            "type": "textarea",
+            "label": "Ceia"
+          },
+          {
+            "id": "beliscos",
+            "type": "textarea",
+            "label": "Beliscou algo entre as refeições?"
+          }
+        ]
+      },
+      {
+        "title": "Bebidas",
+        "questions": [
+          {
+            "id": "agua_copos",
+            "type": "number",
+            "label": "Copos de água (250 ml)",
+            "min": 0,
+            "max": 40,
+            "unit": "copos"
+          },
+          {
+            "id": "outras_bebidas",
+            "type": "text",
+            "label": "Outras bebidas (café, suco, refrigerante, álcool) e quantidade"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -47,7 +47,7 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
 
 const missing = <span className="font-normal text-muted-foreground">Não informado</span>;
 
-export function PatientHeader({ patient, activeLimitReached, active }: { patient: Patient; activeLimitReached: boolean; active: 'resumo' | 'avaliacoes' | 'planos' }) {
+export function PatientHeader({ patient, activeLimitReached, active }: { patient: Patient; activeLimitReached: boolean; active: 'resumo' | 'avaliacoes' | 'planos' | 'anamneses' }) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [feedback, setFeedback] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
@@ -142,6 +142,7 @@ export function PatientHeader({ patient, activeLimitReached, active }: { patient
             ['resumo', 'Resumo', `/app/pacientes/${patient.id}`],
             ['avaliacoes', 'Avaliações', `/app/pacientes/${patient.id}/avaliacoes`],
             ['planos', 'Plano alimentar', `/app/pacientes/${patient.id}/planos`],
+            ['anamneses', 'Anamneses', `/app/pacientes/${patient.id}/anamneses`],
           ] as const
         ).map(([key, label, href]) => (
           <Link

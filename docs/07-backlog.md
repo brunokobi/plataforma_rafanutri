@@ -49,9 +49,9 @@ Status: `todo`, `doing`, `done`, `adiado` (fora do MVP, ver [ADR 0004](adr/0004-
 | [RN-021](plano/fase-1-mvp-clinico.md#rn-021--consentimento-lgpd-do-paciente) | Consentimento LGPD do paciente | feature | 3 | RN-016, RN-020 | adiado |
 | [RN-022](plano/fase-1-mvp-clinico.md#rn-022--agenda) | Agenda | feature | 8 | RN-020 | doing |
 | [RN-023](plano/fase-1-mvp-clinico.md#rn-023--prontuário-linha-do-tempo-e-evolução) | Prontuário: linha do tempo e evolução | feature | 5 | RN-020, RN-009 | todo |
-| [RN-024](plano/fase-1-mvp-clinico.md#rn-024--anamnese-modelos-padrão) | Anamnese: modelos padrão | feature | 3 | RN-025 | todo |
-| [RN-025](plano/fase-1-mvp-clinico.md#rn-025--editor-de-questionário-customizável) | Editor de questionário customizável | feature | 8 | RN-013 | todo |
-| [RN-026](plano/fase-1-mvp-clinico.md#rn-026--link-público-de-anamnese) | Link público de anamnese | feature | 5 | RN-025 (RN-021 adiado: no MVP o formulário não exige consentimento) | todo |
+| [RN-024](plano/fase-1-mvp-clinico.md#rn-024--anamnese-modelos-padrão) | Anamnese: modelos padrão | feature | 3 | RN-025 | doing |
+| [RN-025](plano/fase-1-mvp-clinico.md#rn-025--editor-de-questionário-customizável) | Editor de questionário customizável | feature | 8 | RN-013 | doing |
+| [RN-026](plano/fase-1-mvp-clinico.md#rn-026--link-público-de-anamnese) | Link público de anamnese | feature | 5 | RN-025 (RN-021 adiado: no MVP o formulário não exige consentimento) | doing |
 | [RN-027](plano/fase-1-mvp-clinico.md#rn-027--nutrition-core-antropometria-e-composição-corporal) | `nutrition-core`: antropometria e composição corporal | feature | 5 | RN-001 | todo |
 | [RN-028](plano/fase-1-mvp-clinico.md#rn-028--avaliação-antropométrica-e-gráficos-de-evolução) | Avaliação antropométrica e gráficos de evolução | feature | 5 | RN-027, RN-020 | todo |
 | [RN-029](plano/fase-1-mvp-clinico.md#rn-029--nutrition-core-gasto-energético) | `nutrition-core`: gasto energético | feature | 3 | RN-001 | todo |
