@@ -13,7 +13,7 @@ describe('busca de alimentos', () => {
     expect(searchWords('Feijão, carioca cozido!')).toEqual(['feijao', 'carioca', 'cozido']);
   });
   it('monta o filtro do Directus com todas as palavras', () => {
-    expect(foodSearchFilter('feijão carioca')).toEqual({ _and: [{ search_name: { _contains: 'feijao' } }, { search_name: { _contains: 'carioca' } }] });
+    expect(foodSearchFilter('feijão carioca')).toEqual({ _and: [{ archived: { _eq: false } }, { search_name: { _contains: 'feijao' } }, { search_name: { _contains: 'carioca' } }] });
   });
   it('não busca com texto vazio ou de 1 letra', () => {
     expect(foodSearchFilter('')).toBeNull();

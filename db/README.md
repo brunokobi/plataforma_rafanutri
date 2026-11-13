@@ -16,7 +16,8 @@ db/
 │   ├── 0009_meal_plan_templates.sql  # RN-035: modelos de plano alimentar
 │   ├── 0010_meal_plan_templates_tags_jsonb.sql  # etiquetas em jsonb (o Directus não grava text[])
 │   ├── 0011_library_templates_guard.sql  # segurança: usuário não cria modelo sem consultório
-│   └── 0012_require_author.sql  # segurança: autor obrigatório na criação; revisor só na revisão
+│   ├── 0012_require_author.sql  # segurança: autor obrigatório na criação; revisor só na revisão
+│   └── 0013_custom_foods_recipes.sql  # RN-041/042: alimentos próprios e preparações do consultório
 ├── tests/
 │   ├── 0002_organizations.test.sql  # regras do banco (transação desfeita no fim)
 │   ├── 0004_patients.test.sql       # limite de 20 ativos, CPF, responsável, formatos
@@ -26,6 +27,8 @@ db/
 │   ├── 0008_anamneses.test.sql      # cópia do questionário, versão, validade, link invalidado, transições
 │   ├── 0009_meal_plan_templates.test.sql  # autor, origem do mesmo consultório, etiquetas
 │   ├── 0012_require_author.test.sql   # nada é criado sem autor; seed da plataforma continua valendo
+│   ├── 0013_custom_foods_recipes.test.sql  # fonte CUSTOM, autor, ingredientes do mesmo consultório
+│   ├── extension-foods.test.mjs       # conversão porção → 100 g e composição da preparação (node --test)
 │   └── api-isolation.test.mjs       # RN-008: isolamento entre consultórios pela API
 ├── directus/
 │   ├── 0005_anthropometric_assessments.mjs  # registra a coleção e as permissões no Directus (token de admin)
@@ -296,3 +299,18 @@ Achados e correções:
 3. Teste de isolamento ganhou os casos de criar no consultório alheio em todas as coleções, forjar o autor, revisor arbitrário, perfis e membros de outro consultório e acesso anônimo a todas as coleções de dados.
 
 **Regra para novas coleções:** leitura/edição com o filtro de consultório; criação protegida por gatilho que **exige** autor e confere o consultório; nada de segurança em `validation`; cenários novos no teste de isolamento.
+
+## Alimentos e preparações do consultório (RN-041, RN-042)
+
+Migração `0013_custom_foods_recipes.sql` (**aplicada na vpsrafa em 12/11/2026**), testes em `db/tests/0013_custom_foods_recipes.test.sql` e `db/tests/extension-foods.test.mjs`. Não precisa de script de registro no Directus: a gravação é pelos endpoints da extensão e a leitura usa a permissão de `foods` que já existe.
+
+| Regra | Onde |
+|---|---|
+| Alimento próprio e preparação ficam em `foods` com `organization_id` do consultório e fonte `CUSTOM`; aparecem na busca do editor junto com a TACO (etiqueta "Próprio"/"Preparação") e só o consultório vê | tabela `foods` (+ `kind`, `archived`, `user_created`) e permissão de leitura existente |
+| Base pública só por seed/importador; consultório não cria alimento público nem preparação pública | gatilho `foods_guard` |
+| Alimento de consultório: fonte CUSTOM, autor owner/nutricionista, não muda de consultório nem de tipo | gatilho `foods_guard` |
+| "Apagar" = arquivar: some da busca e dos substitutos, mas planos antigos continuam mostrando | coluna `archived` + filtro na busca |
+| Preparação: ingredientes da base pública ou do próprio consultório (nunca ela mesma), rendimento e modo de preparo em `recipes`; composição por 100 g calculada no servidor (soma dos ingredientes ÷ rendimento) e gravada em `food_nutrients` | gatilho `recipes_guard` + `foods.js` |
+| `POST/PUT /rafanutri/foods[/:id]` (valores por 100 g ou pela porção do rótulo, convertidos), `POST /rafanutri/foods/:id/archive`, `POST/PUT /rafanutri/recipes[/:id]`, `GET /rafanutri/recipes/:id` — transação, consultório do próprio usuário | extensão `rafanutri` |
+
+Nutrientes informados: energia (obrigatória), proteínas, carboidratos, gorduras totais e saturadas, fibra e sódio. Limites por 100 g evitam erros de digitação (ex.: kJ no lugar de kcal; macros somando mais de 100 g).

@@ -48,7 +48,7 @@ Atualizado em **10/11/2026**. O que já está no código (`main`), o que está s
 | RN-033 Medidas caseiras | 🟡 | Medidas de 25 alimentos comuns da TACO no banco (migração 0003, **revisar com a nutricionista**); nos demais, a quantidade aparece em gramas |
 | RN-034 Substituições | 🧪 | Equivalência em energia no mesmo grupo, já em medida caseira |
 | RN-036 PDF do plano | 🔒 | PDF gerado no navegador com o nome e a cor do consultório e o CRN do perfil, também nos planos do paciente (depende da 0006) |
-| RN-041/042 Alimentos e preparações próprios | ⏳ | |
+| RN-041/042 Alimentos e preparações próprios | ✅ base | `/app/alimentos`: alimento pelo rótulo (porção → 100 g) ou por 100 g, medidas caseiras, copiar da TACO para ajustar, arquivar/reativar; preparações com ingredientes (TACO e próprios), rendimento, porções, modo de preparo e prévia da composição. Aparecem na busca do editor marcados como próprios. Falta: modo de preparo no PDF do plano |
 
 ## Fase 1B — Plano gratuito e área do paciente
 

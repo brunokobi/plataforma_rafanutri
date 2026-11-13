@@ -4,6 +4,7 @@
 
 import { createHash } from 'node:crypto';
 import { validateAnswers } from './forms.js';
+import { CUSTOM_NUTRIENTS, recipePer100g, validateFoodInput, validateRecipeInput } from './foods.js';
 
 const TYPES = new Set(['solo', 'clinic']);
 const CRN_REGION = /^CRN-([1-9]|1[01])$/;
@@ -74,6 +75,165 @@ export default {
         .orderBy('o.created_at')
         .select('o.id', 'o.name', 'o.slug', 'o.type', 'o.brand_color', 'o.plan', 'm.role');
       res.json({ data: rows });
+    });
+
+    // ── Alimentos próprios e preparações do consultório (RN-041, RN-042) ───────────────────────
+    // Gravação atômica (alimento + nutrientes; preparação + ingredientes + composição calculada).
+    // O consultório é sempre o do usuário (owner/nutricionista); os gatilhos da 0013 conferem de novo.
+    const bad = (res, errors, message = 'Revise os campos destacados.') =>
+      res.status(400).json({ errors: [{ message, extensions: { code: 'INVALID_PAYLOAD', fields: errors } }] });
+    const notFound = (res) => res.status(404).json({ errors: [{ message: 'Alimento não encontrado.', extensions: { code: 'NOT_FOUND' } }] });
+
+    async function clinicalOrg(userId, trx = database) {
+      const row = await trx('organization_members as m')
+        .join('organizations as o', 'o.id', 'm.organization_id')
+        .where('m.user_id', userId)
+        .whereIn('m.role', ['owner', 'nutritionist'])
+        .orderBy('o.created_at')
+        .first('o.id');
+      return row?.id ?? null;
+    }
+
+    async function writeNutrients(trx, foodId, per100g) {
+      const nutrients = await trx('nutrients').whereIn('code', CUSTOM_NUTRIENTS).select('id', 'code');
+      await trx('food_nutrients').where('food_id', foodId).del();
+      const rows = nutrients.filter((n) => per100g[n.code] !== null && per100g[n.code] !== undefined).map((n) => ({ food_id: foodId, nutrient_id: n.id, amount_per_100g: per100g[n.code], is_trace: false }));
+      if (rows.length) await trx('food_nutrients').insert(rows);
+    }
+
+    async function ownFood(trx, id, orgId, kind) {
+      if (!/^\d+$/.test(String(id))) return null;
+      const q = trx('foods').where({ id: Number(id), organization_id: orgId });
+      if (kind) q.andWhere('kind', kind);
+      return q.first('id', 'kind', 'archived');
+    }
+
+    async function saveFood(req, res, id) {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const check = validateFoodInput(req.body);
+      if (!check.ok) return bad(res, check.errors);
+      const v = check.value;
+      try {
+        const out = await database.transaction(async (trx) => {
+          const org = await clinicalOrg(user, trx);
+          if (!org) return { forbidden: true };
+          const source = await trx('food_sources').where('code', 'CUSTOM').first('id');
+          let foodId;
+          if (id) {
+            const own = await ownFood(trx, id, org, 'food');
+            if (!own) return { missing: true };
+            await trx('foods').where('id', own.id).update({ name: v.name, food_group: v.food_group, household_measures: JSON.stringify(v.household_measures) });
+            foodId = own.id;
+          } else {
+            const [row] = await trx('foods')
+              .insert({ source_id: source.id, organization_id: org, name: v.name, food_group: v.food_group, household_measures: JSON.stringify(v.household_measures), kind: 'food', user_created: user })
+              .returning('id');
+            foodId = row.id ?? row;
+          }
+          await writeNutrients(trx, foodId, v.per100g);
+          return { id: foodId };
+        });
+        if (out.forbidden) return res.status(403).json({ errors: [{ message: 'Você não tem consultório para cadastrar alimentos.', extensions: { code: 'FORBIDDEN' } }] });
+        if (out.missing) return notFound(res);
+        res.status(id ? 200 : 201).json({ data: { id: String(out.id), per100g: v.per100g } });
+      } catch (error) {
+        logger.error({ err: error }, 'rafanutri: falha ao salvar alimento');
+        res.status(500).json({ errors: [{ message: 'Não foi possível salvar o alimento.', extensions: { code: 'INTERNAL_SERVER_ERROR' } }] });
+      }
+    }
+    router.post('/foods', (req, res) => saveFood(req, res, null));
+    router.put('/foods/:id', (req, res) => saveFood(req, res, req.params.id));
+
+    // Arquivar some da busca; planos antigos continuam mostrando o alimento. Reativar com { archived: false }.
+    router.post('/foods/:id/archive', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const org = await clinicalOrg(user);
+      const own = org ? await ownFood(database, req.params.id, org) : null;
+      if (!own) return notFound(res);
+      await database('foods').where('id', own.id).update({ archived: req.body?.archived !== false });
+      res.json({ data: { id: String(own.id), archived: req.body?.archived !== false } });
+    });
+
+    async function saveRecipe(req, res, id) {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const check = validateRecipeInput(req.body);
+      if (!check.ok) return bad(res, check.errors);
+      const v = check.value;
+      try {
+        const out = await database.transaction(async (trx) => {
+          const org = await clinicalOrg(user, trx);
+          if (!org) return { forbidden: true };
+          let foodId = null;
+          if (id) {
+            const own = await ownFood(trx, id, org, 'recipe');
+            if (!own) return { missing: true };
+            foodId = own.id;
+          }
+          // Ingredientes: base pública ou do próprio consultório; nunca a própria preparação.
+          const ids = [...new Set(v.items.map((i) => Number(i.foodId)))];
+          const visible = await trx('foods')
+            .whereIn('id', ids)
+            .andWhere((q) => q.whereNull('organization_id').orWhere('organization_id', org))
+            .select('id');
+          if (visible.length !== ids.length || (foodId && ids.includes(foodId))) return { invalid: { items: 'Ingrediente inválido: use alimentos da base pública ou do próprio consultório.' } };
+          const values = await trx('food_nutrients as fn')
+            .join('nutrients as n', 'n.id', 'fn.nutrient_id')
+            .whereIn('fn.food_id', ids)
+            .whereIn('n.code', CUSTOM_NUTRIENTS)
+            .select('fn.food_id', 'n.code', 'fn.amount_per_100g');
+          const byFood = new Map(ids.map((i) => [i, {}]));
+          for (const r of values) byFood.get(r.food_id)[r.code] = r.amount_per_100g === null ? null : Number(r.amount_per_100g);
+          const { per100g, incomplete } = recipePer100g(v.items.map((i) => ({ quantityG: i.quantityG, per100g: byFood.get(Number(i.foodId)) })), v.yield_g);
+
+          const source = await trx('food_sources').where('code', 'CUSTOM').first('id');
+          if (foodId) {
+            await trx('foods').where('id', foodId).update({ name: v.name, food_group: v.food_group, household_measures: JSON.stringify(v.household_measures) });
+          } else {
+            const [row] = await trx('foods')
+              .insert({ source_id: source.id, organization_id: org, name: v.name, food_group: v.food_group ?? 'Preparações', household_measures: JSON.stringify(v.household_measures), kind: 'recipe', user_created: user })
+              .returning('id');
+            foodId = row.id ?? row;
+          }
+          const recipe = { food_id: foodId, yield_g: v.yield_g, servings: v.servings, instructions: v.instructions, items: JSON.stringify(v.items) };
+          await trx('recipes').insert(recipe).onConflict('food_id').merge();
+          await writeNutrients(trx, foodId, per100g);
+          return { id: foodId, per100g, incomplete };
+        });
+        if (out.forbidden) return res.status(403).json({ errors: [{ message: 'Você não tem consultório para cadastrar preparações.', extensions: { code: 'FORBIDDEN' } }] });
+        if (out.missing) return notFound(res);
+        if (out.invalid) return bad(res, out.invalid);
+        res.status(id ? 200 : 201).json({ data: { id: String(out.id), per100g: out.per100g, incomplete: out.incomplete } });
+      } catch (error) {
+        logger.error({ err: error }, 'rafanutri: falha ao salvar preparação');
+        res.status(500).json({ errors: [{ message: 'Não foi possível salvar a preparação.', extensions: { code: 'INTERNAL_SERVER_ERROR' } }] });
+      }
+    }
+    router.post('/recipes', (req, res) => saveRecipe(req, res, null));
+    router.put('/recipes/:id', (req, res) => saveRecipe(req, res, req.params.id));
+
+    // Detalhe da preparação (ingredientes com nome) para editar e para o PDF.
+    router.get('/recipes/:id', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const org = await clinicalOrg(user);
+      const own = org ? await ownFood(database, req.params.id, org, 'recipe') : null;
+      if (!own) return notFound(res);
+      const recipe = await database('recipes').where('food_id', own.id).first();
+      const items = recipe?.items ?? [];
+      const names = await database('foods').whereIn('id', items.map((i) => Number(i.foodId))).select('id', 'name');
+      const nameOf = new Map(names.map((n) => [String(n.id), n.name]));
+      res.json({
+        data: {
+          id: String(own.id),
+          yield_g: recipe ? Number(recipe.yield_g) : null,
+          servings: recipe?.servings == null ? null : Number(recipe.servings),
+          instructions: recipe?.instructions ?? null,
+          items: items.map((i) => ({ ...i, name: nameOf.get(String(i.foodId)) ?? null })),
+        },
+      });
     });
 
     // ── Anamnese por link público (RN-026), sem login ───────────────────────────────────────

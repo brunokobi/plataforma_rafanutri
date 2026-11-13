@@ -31,7 +31,7 @@ export async function searchFoodsRepo(text: string, limit = 12): Promise<Food[] 
 }
 
 export async function foodsInGroupRepo(group: string, limit = 120): Promise<Food[] | null> {
-  return query({ filter: { food_group: { _eq: group } }, limit, sort: ['name'] });
+  return query({ filter: { _and: [{ food_group: { _eq: group } }, { archived: { _eq: false } }] }, limit, sort: ['name'] });
 }
 
 /** Alimentos da TACO pelo código da tabela (ex.: "561" = feijão carioca cozido). */

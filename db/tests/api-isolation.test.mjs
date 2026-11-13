@@ -393,6 +393,34 @@ try {
     }
   });
 
+  console.log('Alimentos e preparações do consultório (RN-041, RN-042):');
+  const foodBody = (name) => ({ name, basis: 'portion', portion_g: 30, nutrients: { energy_kcal: 120, protein_g: 3 } });
+  const fa = await api('/rafanutri/foods', { token: a.token, method: 'POST', body: foodBody('Barra Teste A') });
+  const fb = await api('/rafanutri/foods', { token: b.token, method: 'POST', body: foodBody('Barra Teste B') });
+  await check('A cadastra alimento pelo rótulo (convertido para 100 g)', async () => {
+    assert.equal(fa.status, 201, JSON.stringify(fa.json));
+    assert.equal(fa.json.data.per100g.energy_kcal, 400);
+  });
+  await check('B não vê, não edita nem arquiva o alimento de A', async () => {
+    assert.deepEqual((await api(`/items/foods?fields=id&filter[id][_eq]=${fa.json.data.id}`, { token: b.token })).json.data, []);
+    assert.equal((await api(`/rafanutri/foods/${fa.json.data.id}`, { token: b.token, method: 'PUT', body: foodBody('Invadido') })).status, 404);
+    assert.equal((await api(`/rafanutri/foods/${fa.json.data.id}/archive`, { token: b.token, method: 'POST', body: {} })).status, 404);
+  });
+  await check('preparação não usa alimento de outro consultório; com ingredientes válidos calcula por 100 g', async () => {
+    const bad = await api('/rafanutri/recipes', { token: a.token, method: 'POST', body: { name: 'Receita invasora', yield_g: 100, items: [{ foodId: fb.json.data.id, quantityG: 50 }] } });
+    assert.equal(bad.status, 400);
+    const ok = await api('/rafanutri/recipes', { token: a.token, method: 'POST', body: { name: 'Receita Teste A', yield_g: 60, items: [{ foodId: fa.json.data.id, quantityG: 30 }] } });
+    assert.equal(ok.status, 201, JSON.stringify(ok.json));
+    assert.equal(ok.json.data.per100g.energy_kcal, 200); // 30 g × 400 kcal/100 g = 120 kcal em 60 g pronto
+    assert.equal((await api(`/rafanutri/recipes/${ok.json.data.id}`, { token: b.token })).status, 404);
+  });
+  await check('ninguém cria alimento na base pública nem altera a TACO pela API', async () => {
+    const r = await api('/items/foods', { token: a.token, method: 'POST', body: { name: 'TACO falsa', source_id: 1 } });
+    assert.equal(r.status, 403);
+    assert.equal((await api('/items/foods/1', { token: a.token, method: 'PATCH', body: { name: 'x' } })).status, 403);
+    assert.equal((await api('/rafanutri/foods', { method: 'POST', body: foodBody('Anônimo') })).status, 401);
+  });
+
   console.log(`${passed} verificações passaram.`);
 } finally {
   for (const id of created.orgs) await api(`/items/organizations/${id}`, { token: ADMIN, method: 'DELETE' });

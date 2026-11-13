@@ -20,7 +20,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { DemoMeal } from '@/lib/demo/foods';
 import { foodsInGroup, searchFoods, type FoodsResult } from '@/lib/foods/actions';
-import { normalizeSearch, substituteCandidates, type Food } from '@/lib/foods/food';
+import { foodOriginLabel, normalizeSearch, substituteCandidates, type Food } from '@/lib/foods/food';
 import { demoPatient } from '@/lib/demo/patient';
 import { formatMeasure } from '@/lib/format/measure';
 import { demoGuidelines, demoPractice } from '@/lib/demo/practice';
@@ -168,7 +168,10 @@ function FoodSearch({ onPick, search }: { onPick: (food: Food) => void; search: 
               >
                 <span>
                   {f.name}
-                  <span className="block text-xs text-muted-foreground">{f.group}</span>
+                  <span className="block text-xs text-muted-foreground">
+                    {f.group}
+                    {foodOriginLabel(f) ? ` · ${foodOriginLabel(f)}` : ''}
+                  </span>
                 </span>
                 <span className="shrink-0 text-xs text-muted-foreground">
                   {f.per100g.energy_kcal == null ? 's/ dado' : `${fmt(f.per100g.energy_kcal)} kcal/100 g`}

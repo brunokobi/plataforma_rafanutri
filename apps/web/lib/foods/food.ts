@@ -5,8 +5,10 @@ export interface Food {
   id: string;
   name: string;
   group: string;
-  /** Fonte dos dados (ex.: "TACO", "EXEMPLO"). */
+  /** Fonte dos dados (ex.: "TACO", "CUSTOM" = do consultório, "EXEMPLO"). */
   source: string;
+  /** "recipe" = preparação do consultório (composição calculada dos ingredientes). */
+  kind?: 'food' | 'recipe';
   per100g: NutrientValues;
   householdMeasures: HouseholdMeasure[];
 }
@@ -27,11 +29,18 @@ export function searchWords(query: string): string[] {
     .slice(0, 5);
 }
 
-/** Filtro do Directus: `search_name` contém todas as palavras. Null quando não há o que buscar. */
+/** Filtro do Directus: `search_name` contém todas as palavras, sem arquivados. Null quando não há o que buscar. */
 export function foodSearchFilter(query: string): Record<string, unknown> | null {
   const words = searchWords(query);
   if (words.length === 0) return null;
-  return { _and: words.map((w) => ({ search_name: { _contains: w } })) };
+  return { _and: [{ archived: { _eq: false } }, ...words.map((w) => ({ search_name: { _contains: w } }))] };
+}
+
+/** Rótulo curto da origem do alimento para a busca e as listas. */
+export function foodOriginLabel(food: Pick<Food, 'source' | 'kind'>): string | null {
+  if (food.kind === 'recipe') return 'Preparação';
+  if (food.source === 'CUSTOM') return 'Próprio';
+  return null;
 }
 
 /** Item de `foods` como vem da API do Directus (campos pedidos em `FOOD_FIELDS`). */
@@ -39,6 +48,7 @@ export interface DirectusFood {
   id: number;
   name: string;
   food_group: string | null;
+  kind?: 'food' | 'recipe';
   source_id?: { code?: string } | null;
   household_measures?: HouseholdMeasure[] | null;
   nutrients?: Array<{ amount_per_100g: string | number | null; is_trace?: boolean; nutrient_id?: { code?: string } | null }>;
@@ -48,6 +58,7 @@ export const FOOD_FIELDS = [
   'id',
   'name',
   'food_group',
+  'kind',
   'source_id.code',
   'household_measures',
   'nutrients.amount_per_100g',
@@ -77,6 +88,7 @@ export function mapDirectusFood(item: DirectusFood): Food {
     name: item.name,
     group: item.food_group ?? 'Outros',
     source: item.source_id?.code ?? 'TACO',
+    kind: item.kind ?? 'food',
     per100g,
     householdMeasures: measures,
   };

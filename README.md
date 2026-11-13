@@ -29,7 +29,7 @@
 
 A Rafanutri reúne as áreas da nutrição em um só lugar: atendimento clínico e esportivo, nutrição materno-infantil, saúde pública, Unidades de Alimentação e Nutrição (UAN) com gestão de qualidade, e gestão do negócio do nutricionista. Também traz assistentes de IA e um app para o paciente acompanhar o plano alimentar.
 
-> **Status (12/11/2026):** MVP em construção, **no ar em https://rafanutri.brunokobi.tech**. Já gravam no banco: cadastro com login automático, onboarding do consultório (plano gratuito), **pacientes** (cadastro, ficha, edição, limite de 20 ativos), **avaliações antropométricas**, **planos alimentares por paciente** (rascunho, publicação e versões), **agenda** de consultas **anamneses** com link público para o paciente responder e **modelos de plano** com ajuste à meta de calorias e a base de alimentos **TACO 4ª edição** usada pelo editor de plano alimentar.  Veja o [progresso](docs/plano/progresso.md).
+> **Status (12/11/2026):** MVP em construção, **no ar em https://rafanutri.brunokobi.tech**. Já gravam no banco: cadastro com login automático, onboarding do consultório (plano gratuito), **pacientes** (cadastro, ficha, edição, limite de 20 ativos), **avaliações antropométricas**, **planos alimentares por paciente** (rascunho, publicação e versões), **agenda** de consultas **anamneses** com link público para o paciente responder **modelos de plano** com ajuste à meta de calorias e **alimentos e preparações do consultório** e a base de alimentos **TACO 4ª edição** usada pelo editor de plano alimentar.  Veja o [progresso](docs/plano/progresso.md).
 
 ---
 
@@ -149,7 +149,7 @@ packages/
   forms/                  # formato dos questionários e validador das respostas (app + extensão do Directus)
   config/                 # tsconfig base
 db/
-  migrations/             # SQL versionado e idempotente (0001 alimentos … 0009 modelos de plano)
+  migrations/             # SQL versionado e idempotente (0001 alimentos … 0013 alimentos do consultório)
   seed/taco/              # TACO 4ª edição (CSV + importador + gerador a partir da planilha oficial)
   seed/dev/               # seed de nutricionista de teste com consultório e pacientes
   tests/                  # testes SQL das regras do banco + teste de isolamento pela API
@@ -191,6 +191,7 @@ O que está feito e o que falta: [docs/plano/progresso.md](docs/plano/progresso.
 | `pnpm lint` / `pnpm typecheck` | Qualidade de código (ESLint e TypeScript estrito) |
 | `pnpm test` | Testes unitários e de componente (Vitest + Testing Library) |
 | `pnpm test:e2e` | Testes end-to-end (Playwright); login real com `E2E_USER_EMAIL` e `E2E_USER_PASSWORD` |
+| `node --test db/tests/extension-foods.test.mjs` | Regras puras da extensão (conversão do rótulo, composição da preparação) |
 | `node db/tests/api-isolation.test.mjs` | Isolamento entre consultórios pela API (53 verificações; exige `DIRECTUS_URL` e `DIRECTUS_ADMIN_TOKEN` só para a limpeza) |
 
 ## Deploy

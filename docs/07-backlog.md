@@ -66,8 +66,8 @@ Status: `todo`, `doing`, `done`, `adiado` (fora do MVP, ver [ADR 0004](adr/0004-
 | [RN-038](plano/fase-1-mvp-clinico.md#rn-038--seed-de-dados-sintéticos) | Seed de dados sintéticos | infra | 2 | RN-020, RN-031 | todo |
 | [RN-039](plano/fase-1-mvp-clinico.md#rn-039--painel-inicial-do-nutricionista) | Painel inicial do nutricionista | feature | 3 | RN-022, RN-026 | todo |
 | [RN-040](plano/fase-1-mvp-clinico.md#rn-040--ficha-resumo-do-paciente) | Ficha resumo do paciente | feature | 3 | RN-023, RN-028, RN-031 | todo |
-| [RN-041](plano/fase-1-mvp-clinico.md#rn-041--alimentos-próprios-do-consultório) | Alimentos próprios do consultório | feature | 3 | RN-010 | todo |
-| [RN-042](plano/fase-1-mvp-clinico.md#rn-042--preparações-do-consultório) | Preparações do consultório | feature | 3 | RN-041 | todo |
+| [RN-041](plano/fase-1-mvp-clinico.md#rn-041--alimentos-próprios-do-consultório) | Alimentos próprios do consultório | feature | 3 | RN-010 | doing |
+| [RN-042](plano/fase-1-mvp-clinico.md#rn-042--preparações-do-consultório) | Preparações do consultório | feature | 3 | RN-041 | doing |
 | [RN-043](plano/fase-1-mvp-clinico.md#rn-043--avaliação-do-consumo-alimentar-atual) | Avaliação do consumo alimentar atual | feature | 3 | RN-025, RN-032 | todo |
 | [RN-044](plano/fase-1-mvp-clinico.md#rn-044--metas-de-micronutrientes-de-referência) | Metas de micronutrientes de referência | feature | 2 | RN-010 | todo |
 | [RN-045](plano/fase-1-mvp-clinico.md#rn-045--orientações-e-textos-reutilizáveis) | Orientações e textos reutilizáveis | feature | 2 | RN-031 | todo |
