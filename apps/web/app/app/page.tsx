@@ -4,8 +4,10 @@ import { AppHeader } from '@/components/app/app-header';
 import { ModuleCard } from '@/components/app/module-card';
 import { PlanSummary } from '@/components/app/plan-summary';
 import { PlansComparison } from '@/components/app/plans-comparison';
+import { TodayPanel } from '@/components/app/today-panel';
 import { getMyOrganizations, landingRedirect } from '@/lib/auth/organizations';
 import { getCurrentUser } from '@/lib/auth/session';
+import { loadDashboard, RETURN_DAYS } from '@/lib/dashboard-data';
 import { isSignupOpen } from '@/lib/flags';
 import { buildModuleSections } from '@/lib/modules/access';
 import { getPlan } from '@/lib/modules/plans';
@@ -26,6 +28,8 @@ export default async function AppHome() {
   const plan = getPlan(planCode);
   const { mine, others } = buildModuleSections(planCode);
   const name = user.first_name || user.email;
+  const clinical = organizations?.find((o) => o.role === 'owner' || o.role === 'nutritionist') ?? null;
+  const dashboard = clinical ? await loadDashboard(clinical.id) : null;
 
   return (
     <div className="min-h-dvh">
@@ -39,10 +43,13 @@ export default async function AppHome() {
               {organization.name}
             </p>
           )}
-          <p className="mt-2 text-muted-foreground">
-            Estes são os módulos da Rafanutri e o que o seu plano inclui. Cada módulo é liberado conforme o roadmap.
-          </p>
         </div>
+
+        {dashboard && <TodayPanel data={dashboard} returnDays={RETURN_DAYS} />}
+
+        <p className="text-muted-foreground">
+          Abaixo, os módulos da Rafanutri e o que o seu plano inclui. Cada módulo é liberado conforme o roadmap.
+        </p>
 
         <PlanSummary plan={plan} />
 
