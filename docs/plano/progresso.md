@@ -56,6 +56,7 @@ Atualizado em **13/11/2026**. O que já está no código (`main`), o que está s
 | RN-049 Endurecimento de segurança | ✅ código | Relatório em [docs/seguranca/revisao-fase-1.md](../seguranca/revisao-fase-1.md): CSP em produção, teste de IDOR, revisão de permissões e logs, token da anamnese fora da URL. **Pendência crítica de operação: backup diário automático** |
 | RN-041/042 Alimentos e preparações próprios | ✅ base | `/app/alimentos`: alimento pelo rótulo (porção → 100 g) ou por 100 g, medidas caseiras, copiar da TACO para ajustar, arquivar/reativar; preparações com ingredientes (TACO e próprios), rendimento, porções, modo de preparo e prévia da composição. Aparecem na busca do editor marcados como próprios. Modo de preparo no PDF do plano: feito |
 | RN-045 Orientações reutilizáveis | ✅ base | `/app/orientacoes`: textos por categoria (criar, editar, apagar); no editor de plano, botão "Inserir orientação" com busca ou `/` no começo de uma linha do campo de orientações. Biblioteca da plataforma (só leitura) pronta no banco. Falta: textos padrão da plataforma, a definir com a nutricionista |
+| RN-037 Testes de ponta a ponta | ✅ | `e2e/consulta.spec.ts`: paciente → agenda → anamnese respondida pelo link → avaliação → metas → plano com substituição → publicar → PDF → evolução assinada e retificada, no computador e no celular, contra o ambiente real com o usuário de teste. Limpa o que cria (cancela a consulta e arquiva o paciente). Estável em 5 rodadas seguidas (~20 s o fluxo). No CI depende dos secrets do usuário de teste |
 
 ## Fase 1B — Plano gratuito e área do paciente
 
@@ -73,11 +74,12 @@ Atualizado em **13/11/2026**. O que já está no código (`main`), o que está s
 
 ## Qualidade
 
-| Verificação | Resultado em 10/11/2026 |
+| Verificação | Resultado em 13/11/2026 |
 |---|---|
-| Testes do app web (Vitest + Testing Library) | 95 passando |
+| Testes do app web (Vitest + Testing Library) | 236 passando |
 | Testes do `nutrition-core` | 41 passando |
-| Testes de ponta a ponta (Playwright, computador e celular) | 16 passando; 2 pulados (login real, exige usuário de teste) |
+| Testes do banco (`db/tests/*.test.sql`) | 12 arquivos passando num banco novo com as 16 migrações e no banco real |
+| Testes de ponta a ponta (Playwright, computador e celular) | 20 passando contra produção, 5 rodadas seguidas sem falha; o fluxo completo de consulta leva ~20 s |
 | Lint e typecheck | Sem erros nem avisos |
 
 ## Próximos passos
@@ -86,5 +88,6 @@ Atualizado em **13/11/2026**. O que já está no código (`main`), o que está s
 |---|---|
 | Dev | Servidor de e-mail (SMTP) para verificação de cadastro e recuperação de senha |
 | Dev | Backup diário do banco (bloqueado pelo controle de permissões), UptimeRobot, webhook do GitHub, fechar a porta 8010 |
-| Nenhum | Página `/alimentos`; ampliar as medidas caseiras (RN-033) com a nutricionista |
-| Nenhum | Fase 1 com banco: pacientes (RN-020) com o limite de 20 do plano gratuito, avaliação e plano alimentar salvos |
+| Dev | Secrets `E2E_USER_EMAIL` e `E2E_USER_PASSWORD` no GitHub para o fluxo completo rodar no CI (sem eles, é pulado) |
+| Nutricionista | Medidas caseiras (RN-033), textos e métodos padrão (RN-035, RN-045), consumo alimentar (RN-043) e referência de micronutrientes (RN-044) |
+| Nenhum | Programa beta (RN-047) depois das pendências acima |

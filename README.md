@@ -191,7 +191,7 @@ O que está feito e o que falta: [docs/plano/progresso.md](docs/plano/progresso.
 | `pnpm build` | Build de produção |
 | `pnpm lint` / `pnpm typecheck` | Qualidade de código (ESLint e TypeScript estrito) |
 | `pnpm test` | Testes unitários e de componente (Vitest + Testing Library) |
-| `pnpm test:e2e` | Testes end-to-end (Playwright); login real com `E2E_USER_EMAIL` e `E2E_USER_PASSWORD` |
+| `pnpm test:e2e` | Testes end-to-end (Playwright). Com `E2E_USER_EMAIL` e `E2E_USER_PASSWORD` (usuário de teste com consultório) roda também o login real e o fluxo completo de consulta; `E2E_BASE_URL=https://rafanutri.brunokobi.tech` testa a produção. No WSL Ubuntu 20.04, instale o navegador com `PLAYWRIGHT_HOST_PLATFORM_OVERRIDE=ubuntu22.04-x64 npx playwright install chromium` e use a mesma variável ao rodar |
 | `node --test db/tests/extension-foods.test.mjs` | Regras puras da extensão (conversão do rótulo, composição da preparação) |
 | `node db/tests/api-isolation.test.mjs` | Isolamento entre consultórios pela API (53 verificações; exige `DIRECTUS_URL` e `DIRECTUS_ADMIN_TOKEN` só para a limpeza) |
 
