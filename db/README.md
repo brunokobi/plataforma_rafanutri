@@ -15,7 +15,8 @@ db/
 │   ├── 0008_anamneses.sql       # RN-024/026: modelos de questionário e anamneses com link público
 │   ├── 0009_meal_plan_templates.sql  # RN-035: modelos de plano alimentar
 │   ├── 0010_meal_plan_templates_tags_jsonb.sql  # etiquetas em jsonb (o Directus não grava text[])
-│   └── 0011_library_templates_guard.sql  # segurança: usuário não cria modelo sem consultório
+│   ├── 0011_library_templates_guard.sql  # segurança: usuário não cria modelo sem consultório
+│   └── 0012_require_author.sql  # segurança: autor obrigatório na criação; revisor só na revisão
 ├── tests/
 │   ├── 0002_organizations.test.sql  # regras do banco (transação desfeita no fim)
 │   ├── 0004_patients.test.sql       # limite de 20 ativos, CPF, responsável, formatos
@@ -24,6 +25,7 @@ db/
 │   ├── 0007_appointments.test.sql   # sobreposição, cancelar libera horário, consultório, remarcar
 │   ├── 0008_anamneses.test.sql      # cópia do questionário, versão, validade, link invalidado, transições
 │   ├── 0009_meal_plan_templates.test.sql  # autor, origem do mesmo consultório, etiquetas
+│   ├── 0012_require_author.test.sql   # nada é criado sem autor; seed da plataforma continua valendo
 │   └── api-isolation.test.mjs       # RN-008: isolamento entre consultórios pela API
 ├── directus/
 │   ├── 0005_anthropometric_assessments.mjs  # registra a coleção e as permissões no Directus (token de admin)
@@ -276,3 +278,21 @@ Modelos com `organization_id` nulo (questionários padrão e, no futuro, a bibli
 - cenários no teste de isolamento para as duas coleções.
 
 **Lição para as próximas coleções:** não confiar em `validation` do Directus para campos obrigatórios de segurança; garantir no banco (gatilho ou `not null`) e, se quiser mensagem clara, no gancho.
+
+## Revisão de segurança das permissões (12/11/2026)
+
+Levantamento de todas as políticas e permissões em vigor:
+
+| Política | Ligada a | Resultado |
+|---|---|---|
+| Pública (sem login) | acesso anônimo | **nenhuma permissão** sobre dados; só os endpoints públicos da extensão (anamnese por token) e o cadastro |
+| Administrator | admin | só para scripts de manutenção |
+| Profissional - próprio perfil | papel Profissional | 36 regras: leitura e edição filtradas pelo consultório (`$CURRENT_USER` como owner/nutricionista); criação sem filtro em 6 coleções, protegida por gatilhos |
+
+Achados e correções:
+
+1. **Criação sem filtro dependia de `user_created` preenchido** (avaliações, planos, agenda, anamneses, modelos): os gatilhos pulavam a checagem de consultório quando o autor vinha vazio — o que já aconteceu com as avaliações antes de o campo ter o preenchimento automático. **0012:** autor obrigatório na criação (seeds da plataforma, sem consultório, continuam valendo).
+2. **`validation` do Directus não vale para campo ausente** (`_nnull`, `_eq`, `_in`): não usar como proteção. Modelos sem consultório → **0011**; responsável do paciente → protegido pelo gancho e pelo gatilho; revisor da anamnese → **0012** (só muda ao marcar como revisada) e campo retirado da permissão de edição.
+3. Teste de isolamento ganhou os casos de criar no consultório alheio em todas as coleções, forjar o autor, revisor arbitrário, perfis e membros de outro consultório e acesso anônimo a todas as coleções de dados.
+
+**Regra para novas coleções:** leitura/edição com o filtro de consultório; criação protegida por gatilho que **exige** autor e confere o consultório; nada de segurança em `validation`; cenários novos no teste de isolamento.

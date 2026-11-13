@@ -22,13 +22,13 @@ begin
 
   -- nasce como rascunho
   ok := false;
-  begin insert into meal_plans (organization_id, patient_id, status) values (o1.id, p1, 'published');
+  begin insert into meal_plans (organization_id, patient_id, status, user_created) values (o1.id, p1, 'published', u1);
   exception when others then ok := sqlerrm like '%nasce como rascunho%'; end;
   assert ok, 'criar já publicado deveria falhar';
 
   -- paciente de outro consultório e autor de fora
   ok := false;
-  begin insert into meal_plans (organization_id, patient_id) values (o1.id, p2);
+  begin insert into meal_plans (organization_id, patient_id, user_created) values (o1.id, p2, u1);
   exception when others then ok := sqlerrm like '%não pertence a este consultório%'; end;
   assert ok, 'paciente de outro consultório deveria falhar';
   ok := false;
@@ -65,7 +65,7 @@ begin
 
   -- formatos
   ok := false;
-  begin insert into meal_plans (organization_id, patient_id, meals) values (o1.id, p1, '{"nao":"lista"}');
+  begin insert into meal_plans (organization_id, patient_id, meals, user_created) values (o1.id, p1, '{"nao":"lista"}', u1);
   exception when check_violation then ok := true; end;
   assert ok, 'meals precisa ser uma lista';
 

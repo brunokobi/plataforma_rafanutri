@@ -358,6 +358,41 @@ try {
     assert.equal((await api(`/items/meal_plan_templates/${tplA}`, { token: a.token, method: 'DELETE' })).status, 204);
   });
 
+  console.log('Revisão de segurança (criar no consultório alheio e forjar autor):');
+  await check('A não cria plano, anamnese nem modelos no consultório de B', async () => {
+    const sch = { version: 1, sections: [{ title: 'S', questions: [{ id: 'q', type: 'text', label: 'Q' }] }] };
+    const tries = {
+      plano: await api('/items/meal_plans', { token: a.token, method: 'POST', body: { organization_id: B, patient_id: patientB } }),
+      'plano para paciente de B no consultório de A': await api('/items/meal_plans', { token: a.token, method: 'POST', body: { organization_id: A, patient_id: patientB } }),
+      anamnese: await api('/items/anamneses', { token: a.token, method: 'POST', body: { organization_id: B, patient_id: patientB, template_id: CLINICA, public_token_hash: newLink().hash } }),
+      questionário: await api('/items/questionnaire_templates', { token: a.token, method: 'POST', body: { organization_id: B, name: 'Intruso', schema: sch } }),
+      'modelo de plano': await api('/items/meal_plan_templates', { token: a.token, method: 'POST', body: { organization_id: B, name: 'Intruso' } }),
+    };
+    for (const [what, r] of Object.entries(tries)) assert.ok(r.status >= 400, `${what}: ${r.status}`);
+  });
+  await check('ninguém forja o autor (user_created) ao criar', async () => {
+    const r = await api('/items/meal_plans', { token: a.token, method: 'POST', body: { organization_id: A, patient_id: patientAnam, user_created: created.users[1] } });
+    if (r.status === 200) {
+      const row = await api(`/items/meal_plans/${r.json.data.id}?fields=user_created`, { token: a.token });
+      assert.equal(row.json.data.user_created, created.users[0], 'autor deveria ser quem criou');
+    } else {
+      assert.ok(r.status >= 400);
+    }
+  });
+  await check('o profissional não grava revisor arbitrário na anamnese', async () => {
+    const r = await api(`/items/anamneses/${anamA}`, { token: a.token, method: 'PATCH', body: { reviewed_by: created.users[1] } });
+    assert.ok(r.status >= 400, `reviewed_by: ${r.status}`);
+  });
+  await check('B não lê o perfil profissional nem os membros do consultório de A', async () => {
+    assert.ok(!(await api('/items/professional_profiles?fields=user_id', { token: b.token })).json.data.some((p) => p.user_id === created.users[0]));
+    assert.ok(!(await api('/items/organization_members?fields=organization_id', { token: b.token })).json.data.some((m) => m.organization_id === A));
+  });
+  await check('anônimo não lê nenhuma coleção de dados', async () => {
+    for (const c of ['patients', 'appointments', 'anamneses', 'meal_plans', 'anthropometric_assessments', 'questionnaire_templates', 'meal_plan_templates', 'professional_profiles', 'organization_members']) {
+      assert.equal((await api(`/items/${c}?limit=1`)).status, 403, c);
+    }
+  });
+
   console.log(`${passed} verificações passaram.`);
 } finally {
   for (const id of created.orgs) await api(`/items/organizations/${id}`, { token: ADMIN, method: 'DELETE' });

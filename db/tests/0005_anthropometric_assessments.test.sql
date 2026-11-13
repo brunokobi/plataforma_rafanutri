@@ -50,15 +50,15 @@ begin
 
   -- valores fora da faixa e protocolo desconhecido
   ok := false;
-  begin insert into anthropometric_assessments (organization_id, patient_id, weight_kg, calc_version) values (o1.id, p1, 0, '0.1.0');
+  begin insert into anthropometric_assessments (organization_id, patient_id, weight_kg, calc_version, user_created) values (o1.id, p1, 0, '0.1.0', u1);
   exception when check_violation then ok := true; end;
   assert ok, 'peso zero deveria falhar';
   ok := false;
-  begin insert into anthropometric_assessments (organization_id, patient_id, protocol, calc_version) values (o1.id, p1, 'inventado', '0.1.0');
+  begin insert into anthropometric_assessments (organization_id, patient_id, protocol, calc_version, user_created) values (o1.id, p1, 'inventado', '0.1.0', u1);
   exception when check_violation then ok := true; end;
   assert ok, 'protocolo desconhecido deveria falhar';
   ok := false;
-  begin insert into anthropometric_assessments (organization_id, patient_id, assessed_at, calc_version) values (o1.id, p1, current_date + 1, '0.1.0');
+  begin insert into anthropometric_assessments (organization_id, patient_id, assessed_at, calc_version, user_created) values (o1.id, p1, current_date + 1, '0.1.0', u1);
   exception when check_violation then ok := true; end;
   assert ok, 'data futura deveria falhar';
 

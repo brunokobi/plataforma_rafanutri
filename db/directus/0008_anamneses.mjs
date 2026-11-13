@@ -75,7 +75,7 @@ for (const policy of policies) {
       // O gatilho copia o questionário, zera respostas e limita a validade.
       { action: 'create', permissions: null, fields: ['organization_id', 'patient_id', 'template_id', 'title', 'public_token_hash', 'token_expires_at'] },
       // O profissional só revisa ou cancela; respostas vêm do paciente pelo link público.
-      { action: 'update', permissions: org, validation: { status: { _in: ['reviewed', 'cancelled'] } }, fields: ['status', 'reviewed_by'] },
+      { action: 'update', permissions: org, validation: { status: { _in: ['reviewed', 'cancelled'] } }, fields: ['status'] },
     ],
   };
   for (const [collection, perms] of Object.entries(wanted)) {
