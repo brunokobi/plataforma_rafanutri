@@ -8,6 +8,9 @@ import { PatientForm } from '@/components/clinical/patient-form';
 import { formatPhoneBR } from '@/components/clinical/patients-list';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { PatientAlerts } from '@/components/patients/patient-alerts';
+import type { HealthAlerts } from '@/lib/anamneses/alerts';
+import { localTime, MODE_LABEL, TYPE_LABEL, type Appointment } from '@/lib/appointments/schema';
 import { setPatientStatus } from '@/lib/patients/actions';
 import type { Assessment } from '@/lib/assessments/schema';
 import type { MealPlanSummary } from '@/lib/meal-plans/schema';
@@ -45,9 +48,29 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
+/** "Peso −1,5 kg e gordura −0,8 ponto desde 20/10/2026" (comparação com a avaliação anterior). */
+export function variationText(latest: Assessment, previous: Assessment): string {
+  const parts: string[] = [];
+  const sign = (n: number) => (n > 0 ? '+' : n < 0 ? '−' : '±');
+  const fmt = (n: number) => Math.abs(n).toLocaleString('pt-BR', { maximumFractionDigits: 1 });
+  if (latest.weight_kg !== null && previous.weight_kg !== null) {
+    const d = latest.weight_kg - previous.weight_kg;
+    parts.push(`peso ${sign(d)}${fmt(d)} kg`);
+  }
+  const f1 = latest.results.body_fat_pct;
+  const f0 = previous.results.body_fat_pct;
+  if (f1 !== undefined && f0 !== undefined) {
+    const d = f1 - f0;
+    parts.push(`gordura ${sign(d)}${fmt(d)} ponto${Math.abs(d) >= 2 ? 's' : ''}`);
+  }
+  if (parts.length === 0) return `Sem medidas comparáveis com a avaliação de ${dateBR(previous.assessed_at)}.`;
+  const text = parts.join(' e ');
+  return `${text.charAt(0).toUpperCase()}${text.slice(1)} desde ${dateBR(previous.assessed_at)}.`;
+}
+
 const missing = <span className="font-normal text-muted-foreground">Não informado</span>;
 
-export function PatientHeader({ patient, activeLimitReached, active }: { patient: Patient; activeLimitReached: boolean; active: 'resumo' | 'avaliacoes' | 'planos' | 'anamneses' }) {
+export function PatientHeader({ patient, activeLimitReached, active, alerts = null }: { patient: Patient; activeLimitReached: boolean; active: 'resumo' | 'avaliacoes' | 'planos' | 'anamneses'; alerts?: HealthAlerts | null }) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [feedback, setFeedback] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
@@ -136,6 +159,7 @@ export function PatientHeader({ patient, activeLimitReached, active }: { patient
         />
       )}
 
+      <PatientAlerts alerts={alerts} patientId={patient.id} />
       <nav aria-label="Seções do paciente" className="-mx-5 flex gap-1 overflow-x-auto whitespace-nowrap border-b border-border px-5 sm:mx-0 sm:px-0">
         {(
           [
@@ -163,12 +187,18 @@ export function PatientRecord({
   patient,
   activeLimitReached,
   latestAssessment = null,
+  previousAssessment = null,
   publishedPlan = null,
+  nextAppointment = null,
+  alerts = null,
 }: {
   patient: Patient;
   activeLimitReached: boolean;
   latestAssessment?: Assessment | null;
+  previousAssessment?: Assessment | null;
   publishedPlan?: MealPlanSummary | null;
+  nextAppointment?: Appointment | null;
+  alerts?: HealthAlerts | null;
 }) {
   const [showCpf, setShowCpf] = useState(false);
   const age = patient.birth_date ? ageInYears(patient.birth_date) : null;
@@ -177,7 +207,7 @@ export function PatientRecord({
 
   return (
     <div className="space-y-6">
-      <PatientHeader patient={patient} activeLimitReached={activeLimitReached} active="resumo" />
+      <PatientHeader patient={patient} activeLimitReached={activeLimitReached} active="resumo" alerts={alerts} />
       <div className="grid gap-5 lg:grid-cols-3">
         <Card title="Dados pessoais" icon={<CalendarDays className="size-5" />} className="lg:col-span-2">
           <dl className="divide-y divide-border">
@@ -253,6 +283,11 @@ export function PatientRecord({
                   </div>
                 ))}
               </dl>
+              {previousAssessment && (
+                <p className="mt-2 text-xs text-muted-foreground" data-testid="assessment-variation">
+                  {variationText(latestAssessment, previousAssessment)}
+                </p>
+              )}
             </>
           ) : (
             <p className="text-sm text-muted-foreground">Nenhuma avaliação registrada ainda.</p>
@@ -260,6 +295,25 @@ export function PatientRecord({
           <Link href={`/app/pacientes/${patient.id}/avaliacoes`} className="mt-3 inline-block text-sm font-medium text-primary hover:underline">
             {latestAssessment ? 'Ver histórico e nova avaliação' : 'Registrar a primeira avaliação'}
           </Link>
+        </Card>
+
+        <Card title="Próxima consulta" icon={<CalendarDays className="size-5" />}>
+          {nextAppointment ? (
+            <>
+              <p className="font-medium" data-testid="next-appointment">
+                {new Date(nextAppointment.starts_at).toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short', timeZone: 'America/Sao_Paulo' })} às {localTime(nextAppointment.starts_at)}
+              </p>
+              <p className="text-sm text-muted-foreground">{TYPE_LABEL[nextAppointment.type]} · {MODE_LABEL[nextAppointment.mode]}</p>
+              <Link href="/app/agenda" className="mt-3 inline-block text-sm font-medium text-primary hover:underline">Abrir a agenda</Link>
+            </>
+          ) : (
+            <>
+              <p className="text-sm text-muted-foreground">Nenhuma consulta marcada.</p>
+              {patient.status === 'active' && (
+                <Link href={`/app/agenda?paciente=${patient.id}`} className="mt-3 inline-block text-sm font-medium text-primary hover:underline">Agendar a próxima</Link>
+              )}
+            </>
+          )}
         </Card>
 
         <Card title="Plano alimentar" icon={<Utensils className="size-5" />} className="lg:col-span-2">

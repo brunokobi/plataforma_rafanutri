@@ -9,6 +9,9 @@ import { getCurrentUser } from '@/lib/auth/session';
 import { isSignupOpen } from '@/lib/flags';
 import { getPlan } from '@/lib/modules/plans';
 import { getUserPlan } from '@/lib/modules/user-plan';
+import { extractHealthAlerts } from '@/lib/anamneses/alerts';
+import { listAnamneses } from '@/lib/anamneses/repository';
+import { getNextAppointment } from '@/lib/appointments/repository';
 import { listAssessments } from '@/lib/assessments/repository';
 import { listMealPlans } from '@/lib/meal-plans/repository';
 import { getPatient, listPatients } from '@/lib/patients/repository';
@@ -27,11 +30,13 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
   if (target) redirect(target);
 
   const organization = organizations?.find((o) => o.role === 'owner' || o.role === 'nutritionist') ?? null;
-  const [patient, all, assessments, plans] = await Promise.all([
+  const [patient, all, assessments, plans, anamneses, nextAppointment] = await Promise.all([
     getPatient(id),
     organization ? listPatients(organization.id) : null,
     listAssessments(id),
     listMealPlans(id),
+    listAnamneses(id),
+    getNextAppointment(id),
   ]);
   if (patient === undefined) notFound();
 
@@ -49,6 +54,9 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
           </Alert>
         ) : (
           <PatientRecord patient={patient} activeLimitReached={limit !== null && activeCount >= limit} latestAssessment={Array.isArray(assessments) ? (assessments[0] ?? null) : null}
+            previousAssessment={Array.isArray(assessments) ? (assessments[1] ?? null) : null}
+            nextAppointment={nextAppointment}
+            alerts={extractHealthAlerts(anamneses)}
             publishedPlan={Array.isArray(plans) ? (plans.find((p) => p.status === 'published') ?? null) : null}
           />
         )}

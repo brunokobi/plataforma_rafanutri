@@ -4,6 +4,8 @@ import { notFound, redirect } from 'next/navigation';
 import { AppHeader } from '@/components/app/app-header';
 import { PatientAssessments } from '@/components/patients/patient-assessments';
 import { PatientHeader } from '@/components/patients/patient-record';
+import { extractHealthAlerts } from '@/lib/anamneses/alerts';
+import { listAnamneses } from '@/lib/anamneses/repository';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { listAssessments } from '@/lib/assessments/repository';
 import { getMyOrganizations, landingRedirect } from '@/lib/auth/organizations';
@@ -29,6 +31,7 @@ export default async function PatientAssessmentsPage({ params }: { params: Promi
 
   const [patient, all, assessments] = await Promise.all([getPatient(id), organization ? listPatients(organization.id) : null, listAssessments(id)]);
   if (patient === undefined) notFound();
+  const alerts = extractHealthAlerts(await listAnamneses(id));
   const limit = getPlan(getUserPlan(organizations)).maxActivePatients;
   const activeLimitReached = limit !== null && (all ?? []).filter((p) => p.status === 'active').length >= limit;
 
@@ -43,7 +46,7 @@ export default async function PatientAssessmentsPage({ params }: { params: Promi
           </Alert>
         ) : (
           <>
-            <PatientHeader patient={patient} activeLimitReached={activeLimitReached} active="avaliacoes" />
+            <PatientHeader patient={patient} activeLimitReached={activeLimitReached} active="avaliacoes" alerts={alerts} />
             <PatientAssessments patient={patient} assessments={assessments} />
           </>
         )}

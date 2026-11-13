@@ -8,6 +8,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { getMyOrganizations, landingRedirect } from '@/lib/auth/organizations';
 import { getCurrentUser } from '@/lib/auth/session';
 import { isSignupOpen } from '@/lib/flags';
+import { extractHealthAlerts } from '@/lib/anamneses/alerts';
 import { listAnamneses } from '@/lib/anamneses/repository';
 import { listTemplates } from '@/lib/questionnaires/repository';
 import { getPlan } from '@/lib/modules/plans';
@@ -45,7 +46,7 @@ export default async function PatientAnamnesesPage({ params }: { params: Promise
           </Alert>
         ) : (
           <>
-            <PatientHeader patient={patient} activeLimitReached={activeLimitReached} active="anamneses" />
+            <PatientHeader patient={patient} activeLimitReached={activeLimitReached} active="anamneses" alerts={extractHealthAlerts(anamneses)} />
             <PatientAnamneses
               patientId={patient.id}
               patientFirstName={patient.full_name.split(/\s+/)[0] ?? patient.full_name}

@@ -45,3 +45,26 @@ export async function getAppointment(id: string): Promise<Appointment | null | u
     return null;
   }
 }
+
+/** Próxima consulta marcada (agendada ou confirmada) do paciente, a partir de agora. */
+export async function getNextAppointment(patientId: string): Promise<Appointment | null> {
+  const token = (await cookies()).get(ACCESS_COOKIE)?.value;
+  if (!token) return null;
+  try {
+    const rows = await directus().request<Appointment[]>(
+      withToken(
+        token,
+        readItems('appointments' as never, {
+          fields: FIELDS,
+          filter: { _and: [{ patient_id: { _eq: patientId } }, { status: { _in: ['scheduled', 'confirmed'] } }, { starts_at: { _gte: new Date().toISOString() } }] },
+          sort: ['starts_at'],
+          limit: 1,
+        } as never),
+      ),
+    );
+    return rows[0] ?? null;
+  } catch (error) {
+    console.error('appointments: falha ao ler a próxima consulta', directusErrorInfo(error));
+    return null;
+  }
+}

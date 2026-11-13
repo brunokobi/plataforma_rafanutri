@@ -49,6 +49,7 @@ Atualizado em **10/11/2026**. O que já está no código (`main`), o que está s
 | RN-034 Substituições | 🧪 | Equivalência em energia no mesmo grupo, já em medida caseira |
 | RN-036 PDF do plano | 🔒 | PDF gerado no navegador com o nome e a cor do consultório e o CRN do perfil, também nos planos do paciente (depende da 0006) |
 | RN-039 Painel inicial | ✅ base | Tela inicial (`/app`) com consultas de hoje (link para a ficha e para a chamada online), anamneses respondidas a revisar, pacientes sem retorno há mais de 60 dias (com atalho para marcar), aniversariantes dos próximos 7 dias e atalhos. Cada parte falha sozinha sem derrubar as outras. Falta: dias de retorno configuráveis |
+| RN-040 Ficha resumo | ✅ base | Alergias e restrições da anamnese respondida mais recente em destaque no cabeçalho de todas as abas da ficha e no editor de plano (com a fonte e se já foi revisada); variação de peso e gordura em relação à avaliação anterior; cartão da próxima consulta. Falta: última evolução (depende do prontuário com evoluções) |
 | RN-041/042 Alimentos e preparações próprios | ✅ base | `/app/alimentos`: alimento pelo rótulo (porção → 100 g) ou por 100 g, medidas caseiras, copiar da TACO para ajustar, arquivar/reativar; preparações com ingredientes (TACO e próprios), rendimento, porções, modo de preparo e prévia da composição. Aparecem na busca do editor marcados como próprios. Falta: modo de preparo no PDF do plano |
 
 ## Fase 1B — Plano gratuito e área do paciente

@@ -4,6 +4,8 @@ import { notFound, redirect } from 'next/navigation';
 import { AppHeader } from '@/components/app/app-header';
 import { PatientPlans } from '@/components/patients/patient-plans';
 import { PatientHeader } from '@/components/patients/patient-record';
+import { extractHealthAlerts } from '@/lib/anamneses/alerts';
+import { listAnamneses } from '@/lib/anamneses/repository';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { getMyOrganizations, landingRedirect } from '@/lib/auth/organizations';
 import { getCurrentUser } from '@/lib/auth/session';
@@ -31,6 +33,7 @@ export default async function PatientPlansPage({ params }: { params: Promise<{ i
   const [patient, all, plans, templates] = await Promise.all([getPatient(id), organization ? listPatients(organization.id) : null, listMealPlans(id), listPlanTemplates()]);
   const templateOptions = Array.isArray(templates) ? templates.map((t) => ({ id: t.id, name: t.name, energy_kcal: t.energy_kcal, own: Boolean(t.organization_id) })) : [];
   if (patient === undefined) notFound();
+  const alerts = extractHealthAlerts(await listAnamneses(id));
   const limit = getPlan(getUserPlan(organizations)).maxActivePatients;
   const activeLimitReached = limit !== null && (all ?? []).filter((p) => p.status === 'active').length >= limit;
 
@@ -45,7 +48,7 @@ export default async function PatientPlansPage({ params }: { params: Promise<{ i
           </Alert>
         ) : (
           <>
-            <PatientHeader patient={patient} activeLimitReached={activeLimitReached} active="planos" />
+            <PatientHeader patient={patient} activeLimitReached={activeLimitReached} active="planos" alerts={alerts} />
             <PatientPlans patientId={patient.id} plans={plans} templates={templateOptions} />
           </>
         )}

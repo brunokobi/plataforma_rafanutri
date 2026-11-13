@@ -3,7 +3,10 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { AppHeader } from '@/components/app/app-header';
+import { PatientAlerts } from '@/components/patients/patient-alerts';
 import { PlanEditorClient } from '@/components/patients/plan-editor-client';
+import { extractHealthAlerts } from '@/lib/anamneses/alerts';
+import { listAnamneses } from '@/lib/anamneses/repository';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { listAssessments } from '@/lib/assessments/repository';
@@ -33,7 +36,7 @@ export default async function PatientPlanPage({ params }: { params: Promise<{ id
   if (target) redirect(target);
   const organization = organizations?.find((o) => o.role === 'owner' || o.role === 'nutritionist') ?? null;
 
-  const [patient, plan, assessments, profile] = await Promise.all([getPatient(id), getMealPlan(id, planId), listAssessments(id), getMyProfessionalProfile(user.id)]);
+  const [patient, plan, assessments, profile, anamneses] = await Promise.all([getPatient(id), getMealPlan(id, planId), listAssessments(id), getMyProfessionalProfile(user.id), listAnamneses(id)]);
   if (patient === undefined || plan === undefined) notFound();
 
   const failed = patient === null || plan === null || plan === 'unavailable';
@@ -59,6 +62,7 @@ export default async function PatientPlanPage({ params }: { params: Promise<{ id
               <h1 className="font-display text-3xl font-semibold tracking-tight">{plan.title}</h1>
               <Badge variant={plan.status === 'published' ? 'default' : 'secondary'}>{STATUS_LABEL[plan.status]}</Badge>
             </div>
+            <PatientAlerts alerts={extractHealthAlerts(anamneses)} patientId={patient.id} />
             <PlanEditorClient
               key={`${plan.id}-${plan.status}-${plan.date_updated ?? ''}`}
               patientId={patient.id}
