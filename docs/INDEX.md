@@ -48,6 +48,9 @@
 ## Banco de dados
 - [db/README.md](../db/README.md): migrações SQL, base de alimentos (TACO 4ª edição), busca e permissões no Directus.
 
+## Segurança
+- [Revisão de segurança da Fase 1](seguranca/revisao-fase-1.md): isolamento, IDOR, cabeçalhos, logs e pendências.
+
 ## Runbooks
 - [Instalar o Directus na vpsrafa](runbooks/directus-vpsrafa.md)
 - [Deploy do app web no Coolify](runbooks/deploy-web-coolify.md)

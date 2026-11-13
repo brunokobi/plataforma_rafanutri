@@ -74,7 +74,7 @@ Status: `todo`, `doing`, `done`, `adiado` (fora do MVP, ver [ADR 0004](adr/0004-
 | [RN-046](plano/fase-1-mvp-clinico.md#rn-046--envio-do-plano-e-comunicação-manual) | Envio do plano e comunicação manual | feature | 2 | RN-036 | doing |
 | [RN-047](plano/fase-1-mvp-clinico.md#rn-047--programa-beta) | Programa beta | feature | 3 | RN-037 | todo |
 | [RN-048](plano/fase-1-mvp-clinico.md#rn-048--revisão-de-desempenho-e-acessibilidade) | Revisão de desempenho e acessibilidade | infra | 3 | RN-031, RN-039 | todo |
-| [RN-049](plano/fase-1-mvp-clinico.md#rn-049--endurecimento-de-segurança-antes-do-beta) | Endurecimento de segurança antes do beta | infra | 3 | RN-020 a RN-046 | todo |
+| [RN-049](plano/fase-1-mvp-clinico.md#rn-049--endurecimento-de-segurança-antes-do-beta) | Endurecimento de segurança antes do beta | infra | 3 | RN-020 a RN-046 | doing |
 
 ## Fase 1B — Plano gratuito e área do paciente
 
