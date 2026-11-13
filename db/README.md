@@ -18,7 +18,9 @@ db/
 │   ├── 0011_library_templates_guard.sql  # segurança: usuário não cria modelo sem consultório
 │   ├── 0012_require_author.sql  # segurança: autor obrigatório na criação; revisor só na revisão
 │   ├── 0013_custom_foods_recipes.sql  # RN-041/042: alimentos próprios e preparações do consultório
-│   └── 0014_text_snippets.sql         # RN-045: orientações reutilizáveis do consultório
+│   ├── 0014_text_snippets.sql         # RN-045: orientações reutilizáveis do consultório
+│   ├── 0015_clinical_notes.sql        # RN-023: evoluções do prontuário (assinatura e retificação)
+│   └── 0016_clinical_notes_cascade.sql # RN-023: exclusão em cascata leva as evoluções
 ├── tests/
 │   ├── 0002_organizations.test.sql  # regras do banco (transação desfeita no fim)
 │   ├── 0004_patients.test.sql       # limite de 20 ativos, CPF, responsável, formatos
@@ -30,6 +32,8 @@ db/
 │   ├── 0012_require_author.test.sql   # nada é criado sem autor; seed da plataforma continua valendo
 │   ├── 0013_custom_foods_recipes.test.sql  # fonte CUSTOM, autor, ingredientes do mesmo consultório
 │   ├── 0014_text_snippets.test.sql         # autor do consultório, biblioteca só por seed, campos aparados
+│   ├── 0015_clinical_notes.test.sql        # rascunho, assinatura imutável, retificação em cadeia
+│   ├── 0016_clinical_notes_cascade.test.sql # cascata apaga; DELETE/UPDATE direto de assinada barrado
 │   ├── extension-foods.test.mjs       # conversão porção → 100 g e composição da preparação (node --test)
 │   └── api-isolation.test.mjs       # RN-008: isolamento entre consultórios pela API
 ├── directus/
@@ -332,3 +336,18 @@ Migração `0014_text_snippets.sql` (**aplicada na vpsrafa em 12/11/2026**), tes
 | `GET /rafanutri/snippets` (biblioteca + consultório, com `own`), `POST`, `PUT /:id`, `DELETE /:id` — só no consultório do usuário logado | extensão `rafanutri` |
 
 Apagar uma orientação não altera planos que já usam o texto (a orientação é copiada para o plano).
+
+## Evoluções do prontuário (RN-023)
+
+Migrações `0015_clinical_notes.sql` e `0016_clinical_notes_cascade.sql` (**aplicadas na vpsrafa em 13/11/2026**), testes em `db/tests/0015_*.test.sql`, `db/tests/0016_*.test.sql` e no teste de isolamento. Sem permissão de coleção no Directus: leitura e gravação só pelos endpoints da extensão.
+
+| Regra | Onde |
+|---|---|
+| A evolução nasce como rascunho; só owner/nutricionista do consultório escreve, para paciente do próprio consultório | gatilho `clinical_notes_guard` |
+| Assinar grava a hora do servidor, o nome e o CRN do autor (como estavam no momento); a assinatura nunca vem do cliente | gatilho `clinical_notes_guard` |
+| Assinada não muda nem é apagada; corrigir = retificar (nova evolução com `supersedes_id`, mesmo paciente, cada versão retificada uma vez) | gatilho + índice único em `supersedes_id` |
+| Só o autor edita, assina ou apaga o próprio rascunho; qualquer owner/nutricionista do consultório retifica | extensão `rafanutri` |
+| Paciente ou consultório apagado pelo administrador leva as evoluções (cascata); consulta apagada só desfaz o vínculo | 0016 (`pg_trigger_depth()`) |
+| `GET/POST /rafanutri/patients/:id/notes`, `PUT/DELETE /rafanutri/notes/:id`, `POST /rafanutri/notes/:id/sign` (conflito → 409 com a mensagem do banco) | extensão `rafanutri` |
+
+Falta o registro de leitura do prontuário (`log_access`), que depende da auditoria (RN-009).

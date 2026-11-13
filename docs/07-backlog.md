@@ -48,7 +48,7 @@ Status: `todo`, `doing`, `done`, `adiado` (fora do MVP, ver [ADR 0004](adr/0004-
 | [RN-020](plano/fase-1-mvp-clinico.md#rn-020--pacientes-cadastro-busca-e-filtros) | Pacientes: cadastro, busca e filtros | feature | 5 | RN-008, RN-013 | doing |
 | [RN-021](plano/fase-1-mvp-clinico.md#rn-021--consentimento-lgpd-do-paciente) | Consentimento LGPD do paciente | feature | 3 | RN-016, RN-020 | adiado |
 | [RN-022](plano/fase-1-mvp-clinico.md#rn-022--agenda) | Agenda | feature | 8 | RN-020 | doing |
-| [RN-023](plano/fase-1-mvp-clinico.md#rn-023--prontuário-linha-do-tempo-e-evolução) | Prontuário: linha do tempo e evolução | feature | 5 | RN-020, RN-009 | todo |
+| [RN-023](plano/fase-1-mvp-clinico.md#rn-023--prontuário-linha-do-tempo-e-evolução) | Prontuário: linha do tempo e evolução | feature | 5 | RN-020, RN-009 | doing |
 | [RN-024](plano/fase-1-mvp-clinico.md#rn-024--anamnese-modelos-padrão) | Anamnese: modelos padrão | feature | 3 | RN-025 | doing |
 | [RN-025](plano/fase-1-mvp-clinico.md#rn-025--editor-de-questionário-customizável) | Editor de questionário customizável | feature | 8 | RN-013 | doing |
 | [RN-026](plano/fase-1-mvp-clinico.md#rn-026--link-público-de-anamnese) | Link público de anamnese | feature | 5 | RN-025 (RN-021 adiado: no MVP o formulário não exige consentimento) | doing |

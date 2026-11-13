@@ -290,6 +290,103 @@ export default {
       res.status(204).end();
     });
 
+    // ── Evoluções do prontuário (RN-023) ────────────────────────────────────────────────────
+    // Rascunho → assinar (imutável) → retificar (nova versão ligada à original). As regras ficam no
+    // gatilho clinical_notes_guard; aqui só se resolve o consultório e o autor pelo usuário logado.
+    const noteNotFound = (res) => res.status(404).json({ errors: [{ message: 'Evolução não encontrada.', extensions: { code: 'NOT_FOUND' } }] });
+    const conflict = (res, message) => res.status(409).json({ errors: [{ message, extensions: { code: 'CONFLICT' } }] });
+    const NOTE_FIELDS = ['id', 'patient_id', 'appointment_id', 'body', 'supersedes_id', 'user_created', 'date_created', 'date_updated', 'signed_at', 'signer_name', 'signer_crn'];
+    function noteBody(body) {
+      const text = typeof body?.body === 'string' ? body.body.trim() : '';
+      if (text.length < 1 || text.length > 20000) return { error: { body: 'Escreva a evolução (até 20.000 caracteres).' } };
+      const appointmentId = body?.appointment_id ?? null;
+      if (appointmentId !== null && !isUuid(appointmentId)) return { error: { appointment_id: 'Consulta inválida.' } };
+      return { text, appointmentId };
+    }
+    async function runNote(res, fn, what) {
+      try {
+        return await fn();
+      } catch (error) {
+        if (error?.code === 'P0001') return conflict(res, error.message.split('\n')[0].replace(/^.* - /, ''));
+        if (error?.code === '23505') return conflict(res, 'Esta versão já foi retificada; retifique a versão mais recente.');
+        logger.error({ err: error }, `rafanutri: falha ao ${what} evolução`);
+        return res.status(500).json({ errors: [{ message: 'Não foi possível salvar a evolução agora.', extensions: { code: 'INTERNAL_SERVER_ERROR' } }] });
+      }
+    }
+    async function ownNote(user, id) {
+      const org = await clinicalOrg(user);
+      if (!org || !isUuid(id)) return null;
+      return database('clinical_notes').where({ id, organization_id: org }).first(NOTE_FIELDS);
+    }
+
+    router.get('/patients/:id/notes', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const org = await clinicalOrg(user);
+      if (!org || !isUuid(req.params.id)) return noteNotFound(res);
+      const patient = await database('patients').where({ id: req.params.id, organization_id: org }).first('id');
+      if (!patient) return noteNotFound(res);
+      const rows = await database('clinical_notes').where({ patient_id: patient.id, organization_id: org }).orderBy('date_created', 'desc').select(NOTE_FIELDS);
+      res.json({ data: rows.map((r) => ({ ...r, own: r.user_created === user })) });
+    });
+
+    router.post('/patients/:id/notes', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const { error, text, appointmentId } = noteBody(req.body);
+      if (error) return bad(res, error);
+      const supersedes = req.body?.supersedes_id ?? null;
+      if (supersedes !== null && !isUuid(supersedes)) return bad(res, { supersedes_id: 'Versão inválida.' });
+      const org = await clinicalOrg(user);
+      if (!org || !isUuid(req.params.id)) return noteNotFound(res);
+      const patient = await database('patients').where({ id: req.params.id, organization_id: org }).first('id');
+      if (!patient) return noteNotFound(res);
+      await runNote(res, async () => {
+        const [row] = await database('clinical_notes')
+          .insert({ organization_id: org, patient_id: patient.id, appointment_id: appointmentId, supersedes_id: supersedes, body: text, user_created: user })
+          .returning('id');
+        res.status(201).json({ data: { id: row.id ?? row } });
+      }, 'criar');
+    });
+
+    router.put('/notes/:id', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const { error, text, appointmentId } = noteBody(req.body);
+      if (error) return bad(res, error);
+      const note = await ownNote(user, req.params.id);
+      if (!note) return noteNotFound(res);
+      if (note.user_created !== user) return conflict(res, 'Só quem escreveu a evolução pode alterá-la.');
+      await runNote(res, async () => {
+        await database('clinical_notes').where({ id: note.id }).update({ body: text, appointment_id: appointmentId });
+        res.json({ data: { id: note.id } });
+      }, 'alterar');
+    });
+
+    router.post('/notes/:id/sign', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const note = await ownNote(user, req.params.id);
+      if (!note) return noteNotFound(res);
+      if (note.user_created !== user) return conflict(res, 'Só quem escreveu a evolução pode assiná-la.');
+      await runNote(res, async () => {
+        const [row] = await database('clinical_notes').where({ id: note.id }).update({ signed_at: database.fn.now() }).returning(['signed_at', 'signer_name', 'signer_crn']);
+        res.json({ data: { id: note.id, ...row } });
+      }, 'assinar');
+    });
+
+    router.delete('/notes/:id', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const note = await ownNote(user, req.params.id);
+      if (!note) return noteNotFound(res);
+      if (note.user_created !== user) return conflict(res, 'Só quem escreveu a evolução pode apagá-la.');
+      await runNote(res, async () => {
+        await database('clinical_notes').where({ id: note.id }).del();
+        res.status(204).end();
+      }, 'apagar');
+    });
+
     // ── Anamnese por link público (RN-026), sem login ───────────────────────────────────────
     // Só o hash do token fica no banco. Devolve o mínimo: questionário, rascunho, primeiro nome
     // do paciente e marca do consultório. O limite de requisições por IP é o do Directus.

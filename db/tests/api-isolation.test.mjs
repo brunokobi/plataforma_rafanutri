@@ -442,6 +442,34 @@ try {
     assert.equal((await api(`/rafanutri/snippets/${sa.json.data.id}`, { token: a.token, method: 'DELETE' })).status, 204);
   });
 
+  console.log('Evoluções do prontuário (RN-023):');
+  const na = await api(`/rafanutri/patients/${patientA}/notes`, { token: a.token, method: 'POST', body: { body: 'Evolução Teste A' } });
+  await check('A registra evolução; B não lê, não edita, não assina nem apaga', async () => {
+    assert.equal(na.status, 201, JSON.stringify(na.json));
+    const id = na.json.data.id;
+    assert.equal((await api(`/rafanutri/patients/${patientA}/notes`, { token: b.token })).status, 404);
+    assert.equal((await api(`/rafanutri/notes/${id}`, { token: b.token, method: 'PUT', body: { body: 'Invadido' } })).status, 404);
+    assert.equal((await api(`/rafanutri/notes/${id}/sign`, { token: b.token, method: 'POST' })).status, 404);
+    assert.equal((await api(`/rafanutri/notes/${id}`, { token: b.token, method: 'DELETE' })).status, 404);
+    assert.equal((await api(`/rafanutri/patients/${patientA}/notes`, { token: b.token, method: 'POST', body: { body: 'Invasora' } })).status, 404);
+  });
+  await check('assinada não muda nem some; retificação guarda a original', async () => {
+    const id = na.json.data.id;
+    const s = await api(`/rafanutri/notes/${id}/sign`, { token: a.token, method: 'POST' });
+    assert.equal(s.status, 200, JSON.stringify(s.json));
+    assert.ok(s.json.data.signed_at && s.json.data.signer_name);
+    assert.equal((await api(`/rafanutri/notes/${id}`, { token: a.token, method: 'PUT', body: { body: 'Mudada' } })).status, 409);
+    assert.equal((await api(`/rafanutri/notes/${id}`, { token: a.token, method: 'DELETE' })).status, 409);
+    const r = await api(`/rafanutri/patients/${patientA}/notes`, { token: a.token, method: 'POST', body: { body: 'Retificação A', supersedes_id: id } });
+    assert.equal(r.status, 201);
+    const list = (await api(`/rafanutri/patients/${patientA}/notes`, { token: a.token })).json.data;
+    assert.ok(list.some((n) => n.id === id && n.body === 'Evolução Teste A') && list.some((n) => n.supersedes_id === id));
+  });
+  await check('evolução sem login ou pela coleção direta é recusada', async () => {
+    assert.equal((await api(`/rafanutri/patients/${patientA}/notes`)).status, 401);
+    assert.equal((await api('/items/clinical_notes?limit=1', { token: a.token })).status, 403);
+  });
+
   console.log(`${passed} verificações passaram.`);
 } finally {
   for (const id of created.orgs) await api(`/items/organizations/${id}`, { token: ADMIN, method: 'DELETE' });

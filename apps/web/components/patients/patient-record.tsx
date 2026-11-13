@@ -70,7 +70,7 @@ export function variationText(latest: Assessment, previous: Assessment): string 
 
 const missing = <span className="font-normal text-muted-foreground">Não informado</span>;
 
-export function PatientHeader({ patient, activeLimitReached, active, alerts = null }: { patient: Patient; activeLimitReached: boolean; active: 'resumo' | 'avaliacoes' | 'planos' | 'anamneses'; alerts?: HealthAlerts | null }) {
+export function PatientHeader({ patient, activeLimitReached, active, alerts = null }: { patient: Patient; activeLimitReached: boolean; active: 'resumo' | 'prontuario' | 'avaliacoes' | 'planos' | 'anamneses'; alerts?: HealthAlerts | null }) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [feedback, setFeedback] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
@@ -164,6 +164,7 @@ export function PatientHeader({ patient, activeLimitReached, active, alerts = nu
         {(
           [
             ['resumo', 'Resumo', `/app/pacientes/${patient.id}`],
+            ['prontuario', 'Prontuário', `/app/pacientes/${patient.id}/prontuario`],
             ['avaliacoes', 'Avaliações', `/app/pacientes/${patient.id}/avaliacoes`],
             ['planos', 'Plano alimentar', `/app/pacientes/${patient.id}/planos`],
             ['anamneses', 'Anamneses', `/app/pacientes/${patient.id}/anamneses`],

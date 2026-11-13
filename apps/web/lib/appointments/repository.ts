@@ -68,3 +68,17 @@ export async function getNextAppointment(patientId: string): Promise<Appointment
     return null;
   }
 }
+
+/** Todas as consultas do paciente (para a linha do tempo do prontuário), mais recentes primeiro. */
+export async function listPatientAppointments(patientId: string): Promise<Appointment[] | null> {
+  const token = (await cookies()).get(ACCESS_COOKIE)?.value;
+  if (!token) return null;
+  try {
+    return await directus().request<Appointment[]>(
+      withToken(token, readItems('appointments' as never, { fields: FIELDS, filter: { patient_id: { _eq: patientId } }, sort: ['-starts_at'], limit: 300 } as never)),
+    );
+  } catch (error) {
+    console.error('appointments: falha ao listar do paciente', directusErrorInfo(error));
+    return null;
+  }
+}

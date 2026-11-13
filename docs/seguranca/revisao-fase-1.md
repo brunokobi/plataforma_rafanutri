@@ -1,7 +1,7 @@
 # Revisão de segurança da Fase 1 (RN-049)
 
 - **Data:** 12 e 13/11/2026
-- **Escopo:** tudo o que a Fase 1 criou na vpsrafa — app web (`rafanutri.brunokobi.tech`), Directus (`rafanutri-api.brunokobi.tech`), banco (migrações 0001 a 0014), extensões `rafanutri` e `rafanutri-hooks`.
+- **Escopo:** tudo o que a Fase 1 criou na vpsrafa — app web (`rafanutri.brunokobi.tech`), Directus (`rafanutri-api.brunokobi.tech`), banco (migrações 0001 a 0016), extensões `rafanutri` e `rafanutri-hooks`.
 - **Resultado:** **nenhuma pendência crítica aberta no código.** Uma pendência crítica de **operação** continua aberta: o backup diário automático (ver o fim).
 
 ## 1. Isolamento entre consultórios (equivalente às políticas RLS)
@@ -15,13 +15,13 @@ O isolamento é feito por permissões do Directus filtradas pelo consultório, g
 | Criação sem filtro de permissão | gatilhos | **corrigido (0012):** os gatilhos pulavam a checagem de consultório quando o autor vinha vazio; o autor passou a ser obrigatório |
 | `validation` do Directus como proteção | testes | **corrigido (0011/0012):** a validação não vale para campo ausente; regras movidas para o banco/gancho |
 | Modelos "da plataforma" | teste de isolamento | **corrigido (0011):** usuário criava modelo sem consultório, visível a todos |
-| Teste automatizado | `db/tests/api-isolation.test.mjs` | **53 verificações passando** (antes de RN-041/042; a versão atual inclui também alimentos, preparações e orientações) |
+| Teste automatizado | `db/tests/api-isolation.test.mjs` | **53 verificações passando** (antes de RN-041/042; a versão atual inclui também alimentos, preparações, orientações e evoluções) |
 | Testes do banco | `db/tests/*.test.sql` | todos passando num banco novo com as 13 migrações e no banco real |
 
 ## 2. Rotas de servidor e acesso privilegiado
 
 - O app web **nunca** usa o token de administrador: todas as leituras e gravações vão ao Directus com o token do próprio usuário (cookie `httpOnly`), então as permissões valem sempre.
-- Os endpoints da extensão que gravam direto no banco (`/rafanutri/organizations`, `/foods`, `/recipes`, `/snippets`) resolvem o consultório a partir do usuário logado (owner/nutricionista) e só alteram registros desse consultório; os gatilhos conferem de novo.
+- Os endpoints da extensão que gravam direto no banco (`/rafanutri/organizations`, `/foods`, `/recipes`, `/snippets`, `/notes`) resolvem o consultório a partir do usuário logado (owner/nutricionista) e só alteram registros desse consultório; os gatilhos conferem de novo.
 - Os endpoints públicos da anamnese só aceitam token de 32 bytes, guardam só o hash e respondem o mínimo (questionário, rascunho, primeiro nome, marca do consultório).
 - O token de administrador só aparece em scripts de manutenção (`db/directus/*.mjs`, teste de isolamento), passado por variável de ambiente.
 

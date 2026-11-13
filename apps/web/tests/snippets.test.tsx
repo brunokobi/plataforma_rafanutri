@@ -12,8 +12,8 @@ const LIST: Snippet[] = [
 ];
 type R = { ok: true; id?: string } | { ok: false; message: string; fields?: Record<string, string> };
 const listSnippets = vi.fn(async (): Promise<Snippet[] | null> => LIST);
-const saveSnippet = vi.fn(async (_i: unknown, _id?: string): Promise<R> => ({ ok: true, id: 'n' }));
-const deleteSnippet = vi.fn(async (_id: string): Promise<R> => ({ ok: true }));
+const saveSnippet = vi.fn<(i: unknown, id?: string) => Promise<R>>(async () => ({ ok: true, id: 'n' }));
+const deleteSnippet = vi.fn<(id: string) => Promise<R>>(async () => ({ ok: true }));
 vi.mock('@/lib/snippets/actions', () => ({
   listSnippets: () => listSnippets(),
   saveSnippet: (i: unknown, id?: string) => saveSnippet(i, id),
