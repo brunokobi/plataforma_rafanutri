@@ -488,10 +488,10 @@ export function MealPlanEditor({
             return (
               <section key={meal.id} aria-labelledby={`meal-${meal.id}`} className="rounded-2xl border border-border bg-card">
                 <header className="flex items-center justify-between gap-3 border-b border-border px-5 py-3">
-                  <h3 id={`meal-${meal.id}`} className="font-semibold">
+                  <h2 id={`meal-${meal.id}`} className="font-semibold">
                     <span className="mr-2 tabular-nums text-muted-foreground">{meal.time}</span>
                     {meal.name}
-                  </h3>
+                  </h2>
                   {quantitative && (
                     <span className="text-sm tabular-nums text-muted-foreground">
                       {fmt(mealKcal)} kcal · {fmt(totals.energyShareByMeal[meal.id] ?? 0)}% do dia

@@ -51,6 +51,9 @@
 ## Segurança
 - [Revisão de segurança da Fase 1](seguranca/revisao-fase-1.md): isolamento, IDOR, cabeçalhos, logs e pendências.
 
+## Qualidade
+- [Desempenho e acessibilidade da Fase 1](qualidade/revisao-desempenho-acessibilidade-fase-1.md)
+
 ## Runbooks
 - [Instalar o Directus na vpsrafa](runbooks/directus-vpsrafa.md)
 - [Deploy do app web no Coolify](runbooks/deploy-web-coolify.md)

@@ -88,6 +88,20 @@ describe('MealPlanEditor com a TACO', () => {
     expect(screen.queryByText('Arroz, tipo 1, cru')).toBeNull();
   });
 
+  it('teclado: Enter na busca adiciona o primeiro resultado e os controles são focáveis', async () => {
+    vi.useFakeTimers();
+    render(<MealPlanEditor initialPlan={tacoPlan} initialFoods={[ARROZ]} />);
+    const search = screen.getByLabelText('Buscar alimento');
+    fireEvent.change(search, { target: { value: 'feijao' } });
+    await act(async () => { await vi.advanceTimersByTimeAsync(300); });
+    fireEvent.keyDown(search, { key: 'Enter' });
+    expect(screen.getByText('Feijão, carioca, cozido')).toBeTruthy();
+    expect((search as HTMLInputElement).value).toBe('');
+    // tudo que é clicável é botão/campo nativo (focável por Tab), sem div clicável
+    for (const el of screen.getAllByRole('button')) expect(el.tagName).toBe('BUTTON');
+    for (const el of screen.getAllByRole('radio')) expect(el.tagName).toBe('BUTTON');
+  });
+
   it('avisa quando a base está fora do ar', async () => {
     vi.useFakeTimers();
     searchFoods.mockResolvedValueOnce({ ok: false, message: 'A base de alimentos está indisponível agora.' } as never);

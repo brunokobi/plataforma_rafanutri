@@ -30,6 +30,8 @@ export default async function PublicAnamnesisPage({ params }: { params: Promise<
       </header>
       <main className="mx-auto max-w-2xl px-5 py-8">
         {!data ? (
+          <>
+          <h1 className="mb-4 font-display text-2xl font-semibold tracking-tight">Anamnese</h1>
           <Alert variant="destructive">
             <AlertCircle />
             <AlertTitle>{result.ok === false && result.reason === 'error' ? 'Não foi possível abrir agora' : 'Link indisponível'}</AlertTitle>
@@ -39,6 +41,7 @@ export default async function PublicAnamnesisPage({ params }: { params: Promise<
                 : 'Este link expirou, já foi respondido ou foi cancelado. Peça um novo ao seu nutricionista.'}
             </AlertDescription>
           </Alert>
+          </>
         ) : (
           <>
             <h1 className="font-display text-2xl font-semibold tracking-tight sm:text-3xl">
