@@ -4,7 +4,7 @@ import type { NextConfig } from 'next';
 /**
  * CSP (RN-049). Só em produção: em desenvolvimento o Next usa eval para o recarregamento rápido.
  * - 'unsafe-inline' em scripts: o App Router injeta scripts inline de inicialização (sem nonce por enquanto);
- * - 'wasm-unsafe-eval': o gerador de PDF (@react-pdf) usa WebAssembly para o layout;
+ * - 'wasm-unsafe-eval' e connect-src data:: o gerador de PDF (@react-pdf) carrega o WebAssembly do layout de um data: URI;
  * - Cloudflare Web Analytics: script e envio de métricas injetados pelo Cloudflare.
  */
 const csp = [
@@ -13,7 +13,7 @@ const csp = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob:",
   "font-src 'self' data:",
-  "connect-src 'self' https://cloudflareinsights.com",
+  "connect-src 'self' data: https://cloudflareinsights.com",
   "worker-src 'self' blob:",
   "frame-ancestors 'none'",
   "base-uri 'self'",
