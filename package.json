@@ -2,14 +2,17 @@
   "name": "rafanutri",
   "private": true,
   "packageManager": "pnpm@9.15.9",
-  "engines": { "node": ">=20.9" },
+  "engines": {
+    "node": ">=20.9"
+  },
   "scripts": {
     "dev": "turbo run dev --filter=@rafanutri/web",
     "build": "turbo run build",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
-    "test:e2e": "pnpm --filter @rafanutri/web test:e2e"
+    "test:e2e": "pnpm --filter @rafanutri/web test:e2e",
+    "db:seed:demo": "node db/seed/dev/seed-nutricionista.mjs && node db/seed/dev/seed-demo.mjs"
   },
   "devDependencies": {
     "turbo": "2.11.10",

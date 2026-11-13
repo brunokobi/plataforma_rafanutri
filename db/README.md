@@ -38,7 +38,8 @@ db/
 │   └── 0009_meal_plan_templates.mjs  # idem para os modelos de plano
 └── seed/
     ├── dev/
-    │   └── seed-nutricionista.mjs  # usuário de teste como nutricionista + consultório + 9 pacientes fictícios
+    │   ├── seed-nutricionista.mjs  # usuário de teste como nutricionista + consultório + 9 pacientes fictícios
+    │   └── seed-demo.mjs           # RN-038: agenda, avaliações com evolução, planos publicados e anamneses
     ├── questionnaires/  # RN-024: modelos padrão de anamnese (JSON) + seed-sql.mjs
     └── taco/            # RN-011: TACO 4ª edição
         ├── taco-4ed.csv         # 597 alimentos × 29 nutrientes (gerado, versionado)
@@ -75,6 +76,8 @@ SEED_CREATE_USER=1 SEED_EMAIL=<email> SEED_PASSWORD=<senha> SEED_FIRST_NAME=Ana 
 ```
 
 Já aplicada em 10/11/2026 para o usuário de teste `brunokobi2@hotmail.com`.
+
+**Demonstração completa (RN-038):** `SEED_EMAIL=<email> SEED_PASSWORD=<senha> pnpm db:seed:demo` roda a seed acima e depois `seed-demo.mjs`, que acrescenta, para cada paciente ativo, agenda de 4 semanas (consulta concluída e retorno marcado; um paciente fica sem retorno para aparecer no painel), 3 avaliações com evolução de peso, plano publicado com alimentos da TACO (5 primeiros) e anamnese clínica respondida (3 primeiros, um com intolerância à lactose para mostrar o destaque na ficha). Idempotente por paciente. No plano gratuito: 1 profissional e até 20 pacientes ativos (o RN-038 pedia 3 profissionais e 30 pacientes, o que exige plano pago). Aplicada em 13/11/2026 no usuário de teste.
 
 ## Consultórios e isolamento (Fase 0)
 

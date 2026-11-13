@@ -177,7 +177,8 @@ pnpm dev                                       # http://localhost:3000
 O app fala com o Directus de `https://rafanutri-api.brunokobi.tech`. Localmente, o cadastro e o onboarding só gravam com `SIGNUP_OPEN=true` (em produção já está ligado). Para ter um nutricionista pronto com consultório e pacientes fictícios:
 
 ```bash
-SEED_EMAIL=<email> SEED_PASSWORD=<senha> node db/seed/dev/seed-nutricionista.mjs   # SEED_CREATE_USER=1 cria a conta
+SEED_EMAIL=<email> SEED_PASSWORD=<senha> pnpm db:seed:demo   # consultório, pacientes, agenda, avaliações, planos e anamneses
+# só consultório e pacientes: node db/seed/dev/seed-nutricionista.mjs (SEED_CREATE_USER=1 cria a conta)
 ```
 
 O que está feito e o que falta: [docs/plano/progresso.md](docs/plano/progresso.md).
