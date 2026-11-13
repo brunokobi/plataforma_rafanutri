@@ -26,6 +26,8 @@ export interface MealPlanPdfData {
   meals: PdfMeal[];
   totals: { energy: number; protein: number; carbohydrate: number; lipid: number } | null;
   guidelines: string[];
+  /** Preparações do consultório usadas no plano (ingredientes e modo de preparo). */
+  recipes: PdfRecipe[];
 }
 
 export interface EditorMeal {
@@ -33,6 +35,41 @@ export interface EditorMeal {
   name: string;
   time: string;
   items: Array<{ foodId: string; quantityG: number; subs?: Array<{ foodId: string; quantityG: number }> }>;
+}
+
+/** Preparação para o PDF: ingredientes em texto e modo de preparo. */
+export interface PdfRecipe {
+  name: string;
+  yieldText: string;
+  ingredients: string[];
+  instructions: string | null;
+}
+/** Detalhe da preparação como vem do servidor (por id do alimento). */
+export interface RecipeForPdf {
+  yield_g: number | null;
+  servings: number | null;
+  instructions: string | null;
+  items: Array<{ name: string | null; quantityG: number }>;
+}
+
+/** Monta as preparações do PDF na ordem em que aparecem no plano (sem repetir). */
+export function pdfRecipes(meals: EditorMeal[], foodById: PdfFoodLookup, details: Record<string, RecipeForPdf>): PdfRecipe[] {
+  const out: PdfRecipe[] = [];
+  const seen = new Set<string>();
+  for (const m of meals) for (const i of m.items) for (const id of [i.foodId, ...(i.subs ?? []).map((s) => s.foodId)]) {
+    const d = details[id];
+    if (!d || seen.has(id)) continue;
+    seen.add(id);
+    const fmt = (n: number) => Math.round(n).toLocaleString('pt-BR');
+    const yieldText = d.yield_g ? `Rende ${fmt(d.yield_g)} g${d.servings ? ` (${d.servings.toLocaleString('pt-BR')} porções)` : ''}` : '';
+    out.push({
+      name: foodById(id)?.name ?? 'Preparação',
+      yieldText,
+      ingredients: d.items.map((it) => `${fmt(it.quantityG)} g de ${(it.name ?? 'ingrediente').toLowerCase()}`),
+      instructions: d.instructions,
+    });
+  }
+  return out;
 }
 
 /** Alimento mínimo que o PDF precisa: nome, composição e medidas caseiras. */
@@ -65,6 +102,8 @@ export function buildMealPlanPdfData(
     validDays?: number;
     /** De onde vêm os alimentos (padrão: base de exemplo). */
     foodById?: PdfFoodLookup;
+    /** Detalhes das preparações do consultório usadas no plano, por id do alimento. */
+    recipes?: Record<string, RecipeForPdf>;
   },
 ): MealPlanPdfData {
   const foodById = opts.foodById ?? demoFoodById;
@@ -108,5 +147,6 @@ export function buildMealPlanPdfData(
           }
         : null,
     guidelines: opts.guidelines,
+    recipes: pdfRecipes(meals, foodById, opts.recipes ?? {}),
   };
 }

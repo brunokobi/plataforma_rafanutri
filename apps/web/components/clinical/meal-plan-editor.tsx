@@ -12,7 +12,7 @@ import {
   totalEnergyExpenditure,
   type Sex,
 } from '@rafanutri/nutrition-core';
-import { ArrowLeftRight, FileDown, Info, Loader2, Plus, Save, Search, Send, Trash2 } from 'lucide-react';
+import { ArrowLeftRight, FileDown, Info, Loader2, MessageCircle, Plus, Save, Search, Send, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useState, useTransition, type ReactNode } from 'react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -20,6 +20,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { DemoMeal } from '@/lib/demo/foods';
 import { foodsInGroup, searchFoods, type FoodsResult } from '@/lib/foods/actions';
+import { recipesForPdf } from '@/lib/foods/custom-actions';
+import { planToWhatsappText, whatsappShareLink } from '@/lib/pdf/whatsapp';
 import { foodOriginLabel, normalizeSearch, substituteCandidates, type Food } from '@/lib/foods/food';
 import { demoPatient } from '@/lib/demo/patient';
 import { formatMeasure } from '@/lib/format/measure';
@@ -36,6 +38,8 @@ export interface EditorPatient {
   ageYears: number | null;
   weightKg: number | null;
   heightCm: number | null;
+  /** Celular em E.164, para enviar o plano publicado por WhatsApp. */
+  phone?: string | null;
 }
 
 const DEMO_EDITOR_PATIENT: EditorPatient = {
@@ -204,6 +208,8 @@ export interface MealPlanEditorProps {
   banner?: ReactNode;
   /** Plano publicado/arquivado: só leitura (o PDF continua disponível). */
   readOnly?: boolean;
+  /** Plano publicado: mostra "Enviar por WhatsApp" com o plano em texto. */
+  shareable?: boolean;
   onSave?: (content: PlanContent) => Promise<EditorResult>;
   onPublish?: (content: PlanContent) => Promise<EditorResult>;
   pdfFileName?: string;
@@ -221,6 +227,7 @@ export function MealPlanEditor({
   initialGuidelines = null,
   banner,
   readOnly = false,
+  shareable = false,
   onSave,
   onPublish,
   pdfFileName = 'plano-alimentar.pdf',
@@ -290,11 +297,12 @@ export function MealPlanEditor({
   const [showKcalPdf, setShowKcalPdf] = useState(false);
   const [pdfBusy, setPdfBusy] = useState(false);
 
-  async function downloadPdf() {
-    setPdfBusy(true);
-    try {
-      const [{ pdf }, { MealPlanDocument }] = await Promise.all([import('@react-pdf/renderer'), import('@/components/pdf/meal-plan-document')]);
-      const data = buildMealPlanPdfData(meals, {
+  /** Dados do plano para o PDF e para o WhatsApp (com as preparações do consultório usadas no plano). */
+  async function planData() {
+    const recipeIds = [...new Set(meals.flatMap((m) => m.items.flatMap((i) => [i.foodId, ...(i.subs ?? []).map((x) => x.foodId)])))].filter((id) => foods[id]?.kind === 'recipe');
+    const recipes = recipeIds.length ? await recipesForPdf(recipeIds).catch(() => ({})) : {};
+    return buildMealPlanPdfData(meals, {
+        recipes,
         foodById,
         mode,
         showKcal: showKcalPdf,
@@ -302,6 +310,24 @@ export function MealPlanEditor({
         patient: { name: p.name, objective: p.objective ?? '' },
         guidelines: guidelines.trim() ? guidelines.split('\n').map((g) => g.trim()).filter(Boolean) : patient ? [] : demoGuidelines,
       });
+  }
+
+  async function shareWhatsapp() {
+    // A janela abre no próprio clique (senão o bloqueador de pop-ups barra) e recebe o link depois.
+    const win = window.open('', '_blank');
+    if (win) win.opener = null;
+    const data = await planData();
+    const firstName = p.name.split(/\s+/)[0] ?? p.name;
+    const link = whatsappShareLink(patient?.phone ?? null, planToWhatsappText(data, firstName));
+    if (win) win.location.href = link;
+    else window.location.href = link;
+  }
+
+  async function downloadPdf() {
+    setPdfBusy(true);
+    try {
+      const [{ pdf }, { MealPlanDocument }] = await Promise.all([import('@react-pdf/renderer'), import('@/components/pdf/meal-plan-document')]);
+      const data = await planData();
       const blob = await pdf(<MealPlanDocument data={data} />).toBlob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -436,6 +462,11 @@ export function MealPlanEditor({
               <Button type="button" variant="outline" onClick={downloadPdf} disabled={pdfBusy} aria-busy={pdfBusy}>
                 {pdfBusy ? <Loader2 className="size-4 animate-spin" /> : <FileDown className="size-4" />} Baixar PDF
               </Button>
+              {shareable && (
+                <Button type="button" variant="outline" onClick={() => void shareWhatsapp()}>
+                  <MessageCircle className="size-4" /> Enviar por WhatsApp
+                </Button>
+              )}
               <Button
                 type="button"
                 disabled={!onPublish || readOnly || saving}

@@ -110,6 +110,20 @@ export function MealPlanDocument({ data }: { data: MealPlanPdfData }) {
             </View>
           )}
 
+          {data.recipes.length > 0 && (
+            <View>
+              <Text style={s.section}>Preparações</Text>
+              {data.recipes.map((r) => (
+                <View key={r.name} style={{ marginBottom: 10 }} wrap={false}>
+                  <Text style={{ fontFamily: 'Helvetica-Bold' }}>{r.name}</Text>
+                  {r.yieldText ? <Text style={s.muted}>{r.yieldText}</Text> : null}
+                  <Text style={{ marginTop: 3 }}>Ingredientes: {r.ingredients.join('; ')}.</Text>
+                  {r.instructions ? <Text style={{ marginTop: 3 }}>Modo de preparo: {r.instructions}</Text> : null}
+                </View>
+              ))}
+            </View>
+          )}
+
           <View style={s.signature} wrap={false}>
             <View style={s.line} />
             <Text>{data.practice.professionalName}</Text>

@@ -55,13 +55,13 @@ Status: `todo`, `doing`, `done`, `adiado` (fora do MVP, ver [ADR 0004](adr/0004-
 | [RN-027](plano/fase-1-mvp-clinico.md#rn-027--nutrition-core-antropometria-e-composição-corporal) | `nutrition-core`: antropometria e composição corporal | feature | 5 | RN-001 | todo |
 | [RN-028](plano/fase-1-mvp-clinico.md#rn-028--avaliação-antropométrica-e-gráficos-de-evolução) | Avaliação antropométrica e gráficos de evolução | feature | 5 | RN-027, RN-020 | todo |
 | [RN-029](plano/fase-1-mvp-clinico.md#rn-029--nutrition-core-gasto-energético) | `nutrition-core`: gasto energético | feature | 3 | RN-001 | todo |
-| [RN-030](plano/fase-1-mvp-clinico.md#rn-030--cálculo-energético-e-metas) | Cálculo energético e metas | feature | 3 | RN-029, RN-028 | todo |
+| [RN-030](plano/fase-1-mvp-clinico.md#rn-030--cálculo-energético-e-metas) | Cálculo energético e metas | feature | 3 | RN-029, RN-028 | doing |
 | [RN-031](plano/fase-1-mvp-clinico.md#rn-031--editor-de-plano-alimentar) | Editor de plano alimentar | feature | 8 | RN-030, RN-010 | todo |
-| [RN-032](plano/fase-1-mvp-clinico.md#rn-032--cálculo-em-tempo-real-de-nutrientes) | Cálculo em tempo real de nutrientes | feature | 5 | RN-031, RN-044 | todo |
+| [RN-032](plano/fase-1-mvp-clinico.md#rn-032--cálculo-em-tempo-real-de-nutrientes) | Cálculo em tempo real de nutrientes | feature | 5 | RN-031, RN-044 | doing |
 | [RN-033](plano/fase-1-mvp-clinico.md#rn-033--medidas-caseiras) | Medidas caseiras | feature | 3 | RN-011 | todo |
-| [RN-034](plano/fase-1-mvp-clinico.md#rn-034--substituições-por-equivalência) | Substituições por equivalência | feature | 5 | RN-032, RN-033 | todo |
+| [RN-034](plano/fase-1-mvp-clinico.md#rn-034--substituições-por-equivalência) | Substituições por equivalência | feature | 5 | RN-032, RN-033 | doing |
 | [RN-035](plano/fase-1-mvp-clinico.md#rn-035--modelos-de-plano-e-duplicação) | Modelos de plano e duplicação | feature | 3 | RN-031 | doing |
-| [RN-036](plano/fase-1-mvp-clinico.md#rn-036--pdf-do-plano-alimentar) | PDF do plano alimentar | feature | 5 | RN-031, RN-034 | todo |
+| [RN-036](plano/fase-1-mvp-clinico.md#rn-036--pdf-do-plano-alimentar) | PDF do plano alimentar | feature | 5 | RN-031, RN-034 | doing |
 | [RN-037](plano/fase-1-mvp-clinico.md#rn-037--testes-e2e-do-fluxo-completo-de-consulta) | Testes e2e do fluxo completo de consulta | infra | 5 | RN-020 a RN-036 | todo |
 | [RN-038](plano/fase-1-mvp-clinico.md#rn-038--seed-de-dados-sintéticos) | Seed de dados sintéticos | infra | 2 | RN-020, RN-031 | todo |
 | [RN-039](plano/fase-1-mvp-clinico.md#rn-039--painel-inicial-do-nutricionista) | Painel inicial do nutricionista | feature | 3 | RN-022, RN-026 | doing |
@@ -71,7 +71,7 @@ Status: `todo`, `doing`, `done`, `adiado` (fora do MVP, ver [ADR 0004](adr/0004-
 | [RN-043](plano/fase-1-mvp-clinico.md#rn-043--avaliação-do-consumo-alimentar-atual) | Avaliação do consumo alimentar atual | feature | 3 | RN-025, RN-032 | todo |
 | [RN-044](plano/fase-1-mvp-clinico.md#rn-044--metas-de-micronutrientes-de-referência) | Metas de micronutrientes de referência | feature | 2 | RN-010 | todo |
 | [RN-045](plano/fase-1-mvp-clinico.md#rn-045--orientações-e-textos-reutilizáveis) | Orientações e textos reutilizáveis | feature | 2 | RN-031 | todo |
-| [RN-046](plano/fase-1-mvp-clinico.md#rn-046--envio-do-plano-e-comunicação-manual) | Envio do plano e comunicação manual | feature | 2 | RN-036 | todo |
+| [RN-046](plano/fase-1-mvp-clinico.md#rn-046--envio-do-plano-e-comunicação-manual) | Envio do plano e comunicação manual | feature | 2 | RN-036 | doing |
 | [RN-047](plano/fase-1-mvp-clinico.md#rn-047--programa-beta) | Programa beta | feature | 3 | RN-037 | todo |
 | [RN-048](plano/fase-1-mvp-clinico.md#rn-048--revisão-de-desempenho-e-acessibilidade) | Revisão de desempenho e acessibilidade | infra | 3 | RN-031, RN-039 | todo |
 | [RN-049](plano/fase-1-mvp-clinico.md#rn-049--endurecimento-de-segurança-antes-do-beta) | Endurecimento de segurança antes do beta | infra | 3 | RN-020 a RN-046 | todo |

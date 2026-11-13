@@ -81,7 +81,9 @@ export default async function PatientPlanPage({ params }: { params: Promise<{ id
                 ageYears: patient.birth_date ? ageInYears(patient.birth_date) : null,
                 weightKg: lastWithWeight?.weight_kg ?? null,
                 heightCm: lastWithHeight?.height_cm ?? null,
+                phone: patient.phone,
               }}
+              shareable={plan.status === 'published'}
               practice={{
                 practiceName: organization?.name ?? 'Consultório',
                 professionalName: [user.first_name, user.last_name].filter(Boolean).join(' ') || user.email,

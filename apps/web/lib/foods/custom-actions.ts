@@ -4,6 +4,8 @@ import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 import { ACCESS_COOKIE } from '@/lib/auth/cookies';
 import { env } from '@/lib/env';
+import type { RecipeForPdf } from '@/lib/pdf/meal-plan-data';
+import { getRecipe } from './custom';
 
 export interface CustomFoodInput {
   name: string;
@@ -70,4 +72,13 @@ export async function saveRecipe(input: RecipeInput, id?: string): Promise<Custo
 export async function setFoodArchived(id: string, archived: boolean): Promise<CustomFoodResult> {
   if (!isId(id)) return { ok: false, message: 'Pedido inválido.' };
   return call(`/foods/${id}/archive`, 'POST', { archived });
+}
+
+/** Ingredientes e modo de preparo das preparações (por id), para o PDF do plano. Ignora ids que não são do consultório. */
+export async function recipesForPdf(ids: string[]): Promise<Record<string, RecipeForPdf>> {
+  const unique = [...new Set((Array.isArray(ids) ? ids : []).filter(isId))].slice(0, 30);
+  const entries = await Promise.all(unique.map(async (id) => [id, await getRecipe(id)] as const));
+  return Object.fromEntries(
+    entries.flatMap(([id, r]) => (r ? [[id, { yield_g: r.yield_g, servings: r.servings, instructions: r.instructions, items: r.items.map((i) => ({ name: i.name, quantityG: i.quantityG })) }]] : [])),
+  );
 }
