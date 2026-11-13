@@ -41,7 +41,7 @@ test('login, sessão httpOnly e logout', async ({ page, context }) => {
   await page.getByLabel('Senha', { exact: true }).fill(password!);
   await page.getByRole('button', { name: 'Entrar' }).click();
   await expect(page).toHaveURL(/\/app$/);
-  await expect(page.getByRole('heading', { name: /Bem-vindo/ })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: /Olá/ })).toBeVisible();
 
   const visibleToJs = await page.evaluate(() => document.cookie);
   expect(visibleToJs).not.toContain('rn_at');
@@ -52,16 +52,22 @@ test('login, sessão httpOnly e logout', async ({ page, context }) => {
   await expect(page).toHaveURL(/\/login$/);
 });
 
-test('cadastro válido em pré-lançamento avisa que nada foi salvo', async ({ page }) => {
+test('cadastro confere as senhas antes de criar a conta', async ({ page }) => {
+  // Não envia de verdade: com senhas diferentes o formulário para no navegador, sem criar conta.
   await page.goto('/cadastro');
-  await expect(page.getByText('Pré-lançamento')).toBeVisible();
+  await page.waitForLoadState('networkidle'); // o checkbox só responde depois da hidratação
   await page.getByLabel('Nome completo').fill('Ana Souza');
   await page.getByLabel('E-mail').fill('ana@exemplo.com.br');
   await page.getByLabel('Senha', { exact: true }).fill('nutri2026');
-  await page.getByLabel('Confirmar senha').fill('nutri2026');
-  await page.getByRole('checkbox').check();
+  await page.getByLabel('Confirmar senha').fill('nutri2027');
+  const terms = page.getByRole('checkbox');
+  await expect(async () => {
+    if ((await terms.getAttribute('aria-checked')) !== 'true') await terms.click();
+    await expect(terms).toHaveAttribute('aria-checked', 'true', { timeout: 1000 });
+  }).toPass();
   await page.getByRole('button', { name: 'Criar conta grátis' }).click();
-  await expect(page.getByText(/Nenhuma informação foi salva/)).toBeVisible();
+  await expect(page.getByText('As senhas não conferem.')).toBeVisible();
+  await expect(page).toHaveURL(/\/cadastro$/);
 });
 
 test('onboarding exige login', async ({ page }) => {

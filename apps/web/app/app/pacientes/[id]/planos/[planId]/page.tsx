@@ -64,7 +64,9 @@ export default async function PatientPlanPage({ params }: { params: Promise<{ id
             </div>
             <PatientAlerts alerts={extractHealthAlerts(anamneses)} patientId={patient.id} />
             <PlanEditorClient
-              key={`${plan.id}-${plan.status}-${plan.date_updated ?? ''}`}
+              // Sem date_updated na chave: salvar o rascunho revalida a página, e remontar o editor apagaria
+              // a confirmação "Rascunho salvo." (o conteúdo local já é o que foi salvo).
+              key={`${plan.id}-${plan.status}`}
               patientId={patient.id}
               planId={plan.id}
               editable={plan.status === 'draft'}

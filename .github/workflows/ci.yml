@@ -33,3 +33,7 @@ jobs:
           pnpm test:e2e -- --project=desktop
         env:
           DIRECTUS_URL: https://rafanutri-api.brunokobi.tech
+          # Fluxo completo de consulta (RN-037) e login real: só rodam com o usuário de teste nos secrets
+          # do repositório; sem eles, esses testes são pulados.
+          E2E_USER_EMAIL: ${{ secrets.E2E_USER_EMAIL }}
+          E2E_USER_PASSWORD: ${{ secrets.E2E_USER_PASSWORD }}
