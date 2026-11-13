@@ -55,6 +55,7 @@ Atualizado em **10/11/2026**. O que já está no código (`main`), o que está s
 | RN-048 Desempenho e acessibilidade | 🟡 | Revisão em [docs/qualidade](../qualidade/revisao-desempenho-acessibilidade-fase-1.md): LCP de 0,36 a 1,1 s em 9 telas; nenhum campo, botão ou imagem sem nome; estrutura de títulos corrigida. Falta: notas oficiais do Lighthouse (bloqueado nesta sessão) e teste manual com leitor de tela |
 | RN-049 Endurecimento de segurança | ✅ código | Relatório em [docs/seguranca/revisao-fase-1.md](../seguranca/revisao-fase-1.md): CSP em produção, teste de IDOR, revisão de permissões e logs, token da anamnese fora da URL. **Pendência crítica de operação: backup diário automático** |
 | RN-041/042 Alimentos e preparações próprios | ✅ base | `/app/alimentos`: alimento pelo rótulo (porção → 100 g) ou por 100 g, medidas caseiras, copiar da TACO para ajustar, arquivar/reativar; preparações com ingredientes (TACO e próprios), rendimento, porções, modo de preparo e prévia da composição. Aparecem na busca do editor marcados como próprios. Modo de preparo no PDF do plano: feito |
+| RN-045 Orientações reutilizáveis | ✅ base | `/app/orientacoes`: textos por categoria (criar, editar, apagar); no editor de plano, botão "Inserir orientação" com busca ou `/` no começo de uma linha do campo de orientações. Biblioteca da plataforma (só leitura) pronta no banco. Falta: textos padrão da plataforma, a definir com a nutricionista |
 
 ## Fase 1B — Plano gratuito e área do paciente
 

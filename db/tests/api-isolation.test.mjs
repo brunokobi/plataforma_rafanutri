@@ -425,6 +425,23 @@ try {
     assert.equal((await api('/rafanutri/foods', { method: 'POST', body: foodBody('Anônimo') })).status, 401);
   });
 
+  console.log('Orientações reutilizáveis (RN-045):');
+  const sa = await api('/rafanutri/snippets', { token: a.token, method: 'POST', body: { category: 'Hidratação', title: 'Água Teste A', body: 'Beba água ao longo do dia.' } });
+  await check('A cria orientação; B não a vê, não edita nem apaga', async () => {
+    assert.equal(sa.status, 201, JSON.stringify(sa.json));
+    const id = sa.json.data.id;
+    assert.ok(!(await api('/rafanutri/snippets', { token: b.token })).json.data.some((x) => x.id === id));
+    assert.equal((await api(`/rafanutri/snippets/${id}`, { token: b.token, method: 'PUT', body: { category: 'X', title: 'Invadido', body: 'Invadido' } })).status, 404);
+    assert.equal((await api(`/rafanutri/snippets/${id}`, { token: b.token, method: 'DELETE' })).status, 404);
+    assert.ok((await api('/rafanutri/snippets', { token: a.token })).json.data.some((x) => x.id === id && x.own));
+  });
+  await check('orientação inválida, sem login ou pela coleção direta é recusada', async () => {
+    assert.equal((await api('/rafanutri/snippets', { token: a.token, method: 'POST', body: { category: 'H', title: '', body: '' } })).status, 400);
+    assert.equal((await api('/rafanutri/snippets')).status, 401);
+    assert.equal((await api('/items/text_snippets', { token: a.token, method: 'POST', body: { category: 'Geral', title: 'Biblioteca falsa', body: 'Texto' } })).status, 403);
+    assert.equal((await api(`/rafanutri/snippets/${sa.json.data.id}`, { token: a.token, method: 'DELETE' })).status, 204);
+  });
+
   console.log(`${passed} verificações passaram.`);
 } finally {
   for (const id of created.orgs) await api(`/items/organizations/${id}`, { token: ADMIN, method: 'DELETE' });

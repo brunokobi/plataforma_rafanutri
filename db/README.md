@@ -17,7 +17,8 @@ db/
 │   ├── 0010_meal_plan_templates_tags_jsonb.sql  # etiquetas em jsonb (o Directus não grava text[])
 │   ├── 0011_library_templates_guard.sql  # segurança: usuário não cria modelo sem consultório
 │   ├── 0012_require_author.sql  # segurança: autor obrigatório na criação; revisor só na revisão
-│   └── 0013_custom_foods_recipes.sql  # RN-041/042: alimentos próprios e preparações do consultório
+│   ├── 0013_custom_foods_recipes.sql  # RN-041/042: alimentos próprios e preparações do consultório
+│   └── 0014_text_snippets.sql         # RN-045: orientações reutilizáveis do consultório
 ├── tests/
 │   ├── 0002_organizations.test.sql  # regras do banco (transação desfeita no fim)
 │   ├── 0004_patients.test.sql       # limite de 20 ativos, CPF, responsável, formatos
@@ -28,6 +29,7 @@ db/
 │   ├── 0009_meal_plan_templates.test.sql  # autor, origem do mesmo consultório, etiquetas
 │   ├── 0012_require_author.test.sql   # nada é criado sem autor; seed da plataforma continua valendo
 │   ├── 0013_custom_foods_recipes.test.sql  # fonte CUSTOM, autor, ingredientes do mesmo consultório
+│   ├── 0014_text_snippets.test.sql         # autor do consultório, biblioteca só por seed, campos aparados
 │   ├── extension-foods.test.mjs       # conversão porção → 100 g e composição da preparação (node --test)
 │   └── api-isolation.test.mjs       # RN-008: isolamento entre consultórios pela API
 ├── directus/
@@ -317,3 +319,16 @@ Migração `0013_custom_foods_recipes.sql` (**aplicada na vpsrafa em 12/11/2026*
 | `POST/PUT /rafanutri/foods[/:id]` (valores por 100 g ou pela porção do rótulo, convertidos), `POST /rafanutri/foods/:id/archive`, `POST/PUT /rafanutri/recipes[/:id]`, `GET /rafanutri/recipes/:id` — transação, consultório do próprio usuário | extensão `rafanutri` |
 
 Nutrientes informados: energia (obrigatória), proteínas, carboidratos, gorduras totais e saturadas, fibra e sódio. Limites por 100 g evitam erros de digitação (ex.: kJ no lugar de kcal; macros somando mais de 100 g).
+
+## Orientações reutilizáveis (RN-045)
+
+Migração `0014_text_snippets.sql` (**aplicada na vpsrafa em 12/11/2026**), testes em `db/tests/0014_text_snippets.test.sql` e no teste de isolamento. Sem permissão de coleção no Directus: leitura e gravação só pelos endpoints da extensão.
+
+| Regra | Onde |
+|---|---|
+| Texto do consultório (`organization_id`) com categoria (2–40), título (2–80) e texto (2–2000), aparados | tabela `text_snippets` + gatilho `text_snippets_guard` |
+| Texto sem consultório = biblioteca da plataforma, só por seed (sem autor); aparece para todos, só leitura | gatilho `text_snippets_guard` |
+| Autor owner/nutricionista do consultório; o texto não muda de consultório | gatilho `text_snippets_guard` |
+| `GET /rafanutri/snippets` (biblioteca + consultório, com `own`), `POST`, `PUT /:id`, `DELETE /:id` — só no consultório do usuário logado | extensão `rafanutri` |
+
+Apagar uma orientação não altera planos que já usam o texto (a orientação é copiada para o plano).

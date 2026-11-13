@@ -22,6 +22,7 @@ import type { DemoMeal } from '@/lib/demo/foods';
 import { foodsInGroup, searchFoods, type FoodsResult } from '@/lib/foods/actions';
 import { recipesForPdf } from '@/lib/foods/custom-actions';
 import { planToWhatsappText, whatsappShareLink } from '@/lib/pdf/whatsapp';
+import { SnippetPicker } from '@/components/snippets/snippet-picker';
 import { foodOriginLabel, normalizeSearch, substituteCandidates, type Food } from '@/lib/foods/food';
 import { demoPatient } from '@/lib/demo/patient';
 import { formatMeasure } from '@/lib/format/measure';
@@ -31,6 +32,12 @@ import { DEFAULT_TARGETS, type PlanContent, type PlanTargets } from '@/lib/meal-
 import { cn } from '@/lib/utils';
 
 /** Dados do paciente que o editor usa nas metas e no PDF. */
+/** Acrescenta uma orientação como nova linha (sem linhas vazias sobrando). */
+export function appendGuideline(current: string, text: string): string {
+  const base = current.replace(/\s+$/, '');
+  return base ? `${base}\n${text.trim()}` : text.trim();
+}
+
 export interface EditorPatient {
   name: string;
   objective: string | null;
@@ -270,6 +277,7 @@ export function MealPlanEditor({
   const [manualKcal, setManualKcal] = useState(t0.manualKcal);
   const [title, setTitle] = useState(initialTitle);
   const [guidelines, setGuidelines] = useState(initialGuidelines ?? '');
+  const [snippetSignal, setSnippetSignal] = useState(0);
   const [status, setStatus] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
   const [saving, startSaving] = useTransition();
 
@@ -605,16 +613,29 @@ export function MealPlanEditor({
           )}
           {(onSave || readOnly) && (
             <div className="space-y-1.5">
-              <Label htmlFor="plan-guidelines">Orientações para o paciente (uma por linha; vão no PDF)</Label>
+              <div className="flex flex-wrap items-end justify-between gap-2">
+                <Label htmlFor="plan-guidelines">Orientações para o paciente (uma por linha; vão no PDF)</Label>
+                {!readOnly && onSave && <SnippetPicker openSignal={snippetSignal} onPick={(sn) => setGuidelines((g) => appendGuideline(g, sn.body))} />}
+              </div>
               <textarea
                 id="plan-guidelines"
                 value={guidelines}
+                onKeyDown={(e) => {
+                  // "/" no começo de uma linha abre a biblioteca de orientações
+                  const el = e.currentTarget;
+                  if (e.key === '/' && onSave && !readOnly && (el.selectionStart === 0 || el.value[el.selectionStart - 1] === '\n')) {
+                    e.preventDefault();
+                    setSnippetSignal((n) => n + 1);
+                  }
+                }}
+                aria-describedby="plan-guidelines-help"
                 onChange={(e) => setGuidelines(e.target.value)}
                 rows={4}
                 maxLength={4000}
                 disabled={readOnly}
                 className="w-full rounded-md border border-input bg-transparent p-3 text-sm dark:bg-input/30"
               />
+              {!readOnly && onSave && <p id="plan-guidelines-help" className="text-xs text-muted-foreground">Dica: digite / no começo de uma linha para inserir uma orientação da biblioteca.</p>}
             </div>
           )}
         </div>

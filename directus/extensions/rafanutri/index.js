@@ -236,6 +236,60 @@ export default {
       });
     });
 
+    // ── Orientações e textos reutilizáveis (RN-045) ─────────────────────────────────────────────
+    // Biblioteca da plataforma (sem consultório) + textos do consultório do usuário.
+    function snippetInput(body) {
+      const errors = {};
+      const category = typeof body?.category === 'string' ? body.category.trim() : '';
+      const title = typeof body?.title === 'string' ? body.title.trim() : '';
+      const text = typeof body?.body === 'string' ? body.body.trim() : '';
+      if (category.length < 2 || category.length > 40) errors.category = 'Categoria de 2 a 40 caracteres.';
+      if (title.length < 2 || title.length > 80) errors.title = 'Título de 2 a 80 caracteres.';
+      if (text.length < 2 || text.length > 2000) errors.body = 'Texto de 2 a 2.000 caracteres.';
+      return { errors, value: { category, title, body: text } };
+    }
+
+    router.get('/snippets', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const org = await clinicalOrg(user);
+      const rows = await database('text_snippets')
+        .where((q) => {
+          q.whereNull('organization_id');
+          if (org) q.orWhere('organization_id', org);
+        })
+        .orderBy([{ column: 'category' }, { column: 'title' }])
+        .select('id', 'organization_id', 'category', 'title', 'body');
+      res.json({ data: rows.map((r) => ({ ...r, own: r.organization_id !== null })) });
+    });
+
+    async function saveSnippet(req, res, id) {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const { errors, value } = snippetInput(req.body);
+      if (Object.keys(errors).length) return bad(res, errors);
+      const org = await clinicalOrg(user);
+      if (!org) return res.status(403).json({ errors: [{ message: 'Você não tem consultório.', extensions: { code: 'FORBIDDEN' } }] });
+      if (id) {
+        const n = await database('text_snippets').where({ id, organization_id: org }).update(value);
+        if (!n) return res.status(404).json({ errors: [{ message: 'Texto não encontrado.', extensions: { code: 'NOT_FOUND' } }] });
+        return res.json({ data: { id } });
+      }
+      const [row] = await database('text_snippets').insert({ ...value, organization_id: org, user_created: user }).returning('id');
+      res.status(201).json({ data: { id: row.id ?? row } });
+    }
+    const isUuid = (v) => typeof v === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
+    router.post('/snippets', (req, res) => saveSnippet(req, res, null));
+    router.put('/snippets/:id', (req, res) => (isUuid(req.params.id) ? saveSnippet(req, res, req.params.id) : res.status(404).json({ errors: [{ message: 'Texto não encontrado.', extensions: { code: 'NOT_FOUND' } }] })));
+    router.delete('/snippets/:id', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const org = await clinicalOrg(user);
+      const n = org && isUuid(req.params.id) ? await database('text_snippets').where({ id: req.params.id, organization_id: org }).del() : 0;
+      if (!n) return res.status(404).json({ errors: [{ message: 'Texto não encontrado.', extensions: { code: 'NOT_FOUND' } }] });
+      res.status(204).end();
+    });
+
     // ── Anamnese por link público (RN-026), sem login ───────────────────────────────────────
     // Só o hash do token fica no banco. Devolve o mínimo: questionário, rascunho, primeiro nome
     // do paciente e marca do consultório. O limite de requisições por IP é o do Directus.

@@ -70,7 +70,7 @@ Status: `todo`, `doing`, `done`, `adiado` (fora do MVP, ver [ADR 0004](adr/0004-
 | [RN-042](plano/fase-1-mvp-clinico.md#rn-042--preparações-do-consultório) | Preparações do consultório | feature | 3 | RN-041 | doing |
 | [RN-043](plano/fase-1-mvp-clinico.md#rn-043--avaliação-do-consumo-alimentar-atual) | Avaliação do consumo alimentar atual | feature | 3 | RN-025, RN-032 | todo |
 | [RN-044](plano/fase-1-mvp-clinico.md#rn-044--metas-de-micronutrientes-de-referência) | Metas de micronutrientes de referência | feature | 2 | RN-010 | todo |
-| [RN-045](plano/fase-1-mvp-clinico.md#rn-045--orientações-e-textos-reutilizáveis) | Orientações e textos reutilizáveis | feature | 2 | RN-031 | todo |
+| [RN-045](plano/fase-1-mvp-clinico.md#rn-045--orientações-e-textos-reutilizáveis) | Orientações e textos reutilizáveis | feature | 2 | RN-031 | done |
 | [RN-046](plano/fase-1-mvp-clinico.md#rn-046--envio-do-plano-e-comunicação-manual) | Envio do plano e comunicação manual | feature | 2 | RN-036 | doing |
 | [RN-047](plano/fase-1-mvp-clinico.md#rn-047--programa-beta) | Programa beta | feature | 3 | RN-037 | todo |
 | [RN-048](plano/fase-1-mvp-clinico.md#rn-048--revisão-de-desempenho-e-acessibilidade) | Revisão de desempenho e acessibilidade | infra | 3 | RN-031, RN-039 | doing |
