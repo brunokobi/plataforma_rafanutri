@@ -18,13 +18,19 @@ export interface PublicAnamnesis {
 export type PublicLoad = { ok: true; data: PublicAnamnesis } | { ok: false; reason: 'unavailable' | 'error' };
 export type PublicSave = { ok: true; status: 'sent' | 'answered' } | { ok: false; message: string; fields?: Record<string, string>; gone?: boolean };
 
+// O token vai no corpo (POST), nunca na URL do Directus, para não entrar em logs de acesso.
 const base = () => `${env.DIRECTUS_URL}/rafanutri/public/anamneses/`;
 
 /** Lê o formulário pelo token (sem login). */
 export async function loadPublicAnamnesis(token: string): Promise<PublicLoad> {
   if (!isAnamnesisToken(token)) return { ok: false, reason: 'unavailable' };
   try {
-    const res = await fetch(base() + token, { cache: 'no-store' });
+    const res = await fetch(base() + 'open', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token }),
+      cache: 'no-store',
+    });
     if (res.status === 410 || res.status === 404) return { ok: false, reason: 'unavailable' };
     if (!res.ok) return { ok: false, reason: 'error' };
     return { ok: true, data: ((await res.json()) as { data: PublicAnamnesis }).data };
@@ -37,10 +43,10 @@ export async function loadPublicAnamnesis(token: string): Promise<PublicLoad> {
 export async function savePublicAnamnesis(token: string, answers: Answers, final: boolean): Promise<PublicSave> {
   if (!isAnamnesisToken(token)) return { ok: false, message: 'Link inválido.', gone: true };
   try {
-    const res = await fetch(base() + token, {
+    const res = await fetch(base() + 'save', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ answers, final: final === true }),
+      body: JSON.stringify({ token, answers, final: final === true }),
       cache: 'no-store',
     });
     const json = (await res.json().catch(() => null)) as { data?: { status: 'sent' | 'answered' }; errors?: Array<{ message: string; extensions?: { fields?: Record<string, string> } }> } | null;

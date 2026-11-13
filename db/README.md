@@ -247,7 +247,7 @@ Migração `0008_anamneses.sql`, testes em `db/tests/0008_anamneses.test.sql`, r
 | Responder ou cancelar **apaga o hash**: o link deixa de funcionar | gatilho |
 | Respostas só mudam enquanto a anamnese está enviada; transições `sent → answered/cancelled` e `answered → reviewed` | gatilho |
 | O profissional não lê o hash, não edita respostas e só muda a situação para revisada ou cancelada | permissões (campos e validação) |
-| `GET/POST /rafanutri/public/anamneses/:token` (sem login): devolve só o questionário, o rascunho, o primeiro nome do paciente e a marca do consultório; valida as respostas com o mesmo validador do app (rascunho não exige obrigatórias) | extensão `rafanutri` (`forms.js` é cópia de `packages/forms/src/forms.js`: `pnpm --filter @rafanutri/forms sync`) |
+| `POST /rafanutri/public/anamneses/open` e `POST /rafanutri/public/anamneses/save` (sem login; **o token vai no corpo, nunca na URL**, para não entrar em logs de acesso): devolve só o questionário, o rascunho, o primeiro nome do paciente e a marca do consultório; valida as respostas com o mesmo validador do app (rascunho não exige obrigatórias) | extensão `rafanutri` (`forms.js` é cópia de `packages/forms/src/forms.js`: `pnpm --filter @rafanutri/forms sync`) |
 
 ```bash
 ssh vpsrafa 'docker exec -i rafanutri-postgres psql -U rafanutri -d rafanutri -v ON_ERROR_STOP=1' < db/migrations/0008_anamneses.sql

@@ -260,7 +260,11 @@ try {
     const token = randomBytes(32).toString('base64url');
     return { token, hash: createHash('sha256').update(token).digest('hex') };
   };
-  const pub = (token, init) => api(`/rafanutri/public/anamneses/${token}`, init);
+  // Token no corpo (POST), nunca na URL (logs de acesso).
+  const pub = (token, init) =>
+    init?.method === 'POST'
+      ? api('/rafanutri/public/anamneses/save', { method: 'POST', body: { token, ...init.body } })
+      : api('/rafanutri/public/anamneses/open', { method: 'POST', body: { token } });
   // paciente ativo novo de A (o anterior foi arquivado nos testes de pacientes)
   const pa = await api('/items/patients?fields=id', { token: a.token, method: 'POST', body: { organization_id: A, full_name: 'Paciente Anamnese Teste', status: 'inactive' } });
   const patientAnam = pa.json.data.id;

@@ -249,9 +249,10 @@ export default {
       return row;
     }
 
-    router.get('/public/anamneses/:token', async (req, res) => {
+    // O token vai no corpo (POST), nunca na URL: URLs entram nos logs de acesso do Directus e de proxies.
+    router.post('/public/anamneses/open', async (req, res) => {
       try {
-        const row = await findByToken(req.params.token);
+        const row = await findByToken(req.body?.token);
         if (!row) return unavailable(res);
         const [patient, org, author, profile] = await Promise.all([
           database('patients').where({ id: row.patient_id }).first('full_name'),
@@ -279,7 +280,7 @@ export default {
     });
 
     // Salva o rascunho ({ final: false }) ou envia ({ final: true }). Depois do envio o link deixa de valer.
-    router.post('/public/anamneses/:token', async (req, res) => {
+    router.post('/public/anamneses/save', async (req, res) => {
       const body = req.body ?? {};
       const final = body.final === true;
       if (JSON.stringify(body.answers ?? {}).length > MAX_ANSWERS_BYTES) {
@@ -287,7 +288,7 @@ export default {
       }
       try {
         const result = await database.transaction(async (trx) => {
-          const row = await findByToken(req.params.token, trx);
+          const row = await findByToken(body.token, trx);
           if (!row) return { gone: true };
           const check = validateAnswers(row.schema_snapshot, body.answers, { partial: !final });
           if (!check.ok) return { invalid: check.errors };
