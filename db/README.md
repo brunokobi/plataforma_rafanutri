@@ -385,6 +385,18 @@ Migração `0020_patient_recommendations.sql` (idempotente; testes em `db/tests/
 
 `GET /rafanutri/me/patient` passa a trazer `recommendations_unread` por registro.
 
+## Marca do consultório (RN-204)
+
+Sem migração (`organizations.logo` e `brand_color` vêm da 0002). Só o owner do consultório muda:
+
+| Endpoint | O que faz |
+|---|---|
+| `POST /rafanutri/practices/:id/logo` (`{ image: dataURL }`, PNG ou JPEG até 600 KB, assinatura conferida) | grava o arquivo em `directus_files` e troca o logo (o anterior é apagado) |
+| `DELETE /rafanutri/practices/:id/logo` | remove o logo |
+| `PUT /rafanutri/practices/:id/brand` (`{ brand_color: "#RRGGBB" }`) | troca a cor |
+
+`GET /rafanutri/me/organizations` passa a trazer `has_logo`. A leitura continua em `GET /rafanutri/practices/:id/logo` (membros e pacientes com vínculo ativo).
+
 ## Documentos clínicos com a marca (RN-215)
 
 Migração `0023_clinical_documents.sql` (**aplicada na vpsrafa em 14/11/2026**; testes em `db/tests/0023_clinical_documents.test.sql` e `db/tests/extension-documents.test.mjs`):
