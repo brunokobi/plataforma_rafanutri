@@ -466,6 +466,121 @@ export default {
       });
     });
 
+    // ── Recomendações ao paciente (RN-208) ─────────────────────────────────────────────────────
+    const recNotFound = (res) => res.status(404).json({ errors: [{ message: 'Recomendação não encontrada.', extensions: { code: 'NOT_FOUND' } }] });
+    const REC_FIELDS = ['id', 'category', 'title', 'body', 'pinned', 'status', 'published_at', 'read_at', 'date_created', 'date_updated'];
+    /** Valida uma recomendação. Devolve { value } ou { errors }. */
+    function recInput(b) {
+      const errors = {};
+      const category = typeof b?.category === 'string' ? b.category.trim().replace(/\s+/g, ' ') : '';
+      const title = typeof b?.title === 'string' ? b.title.trim() : '';
+      const body = typeof b?.body === 'string' ? b.body.trim() : '';
+      if (category.length < 2 || category.length > 40) errors.category = 'Categoria de 2 a 40 caracteres.';
+      if (title.length < 2 || title.length > 120) errors.title = 'Título de 2 a 120 caracteres.';
+      if (body.length < 2 || body.length > 4000) errors.body = 'Texto de 2 a 4.000 caracteres.';
+      return Object.keys(errors).length ? { errors } : { value: { category, title, body, pinned: b?.pinned === true } };
+    }
+    const recConflict = (res, error) => {
+      if (error?.code === 'P0001') return conflict(res, error.message.split('\n')[0].replace(/^.* - /, ''));
+      logger.error({ err: error }, 'rafanutri: falha em recomendação');
+      return res.status(500).json({ errors: [{ message: 'Não foi possível salvar a recomendação agora.', extensions: { code: 'INTERNAL_SERVER_ERROR' } }] });
+    };
+    const recOrder = (q) => q.orderBy([{ column: 'pinned', order: 'desc' }, { column: 'date_created', order: 'desc' }]);
+
+    router.get('/patients/:id/recommendations', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const p = await clinicalPatient(user, req.params.id);
+      if (!p) return recNotFound(res);
+      res.json({ data: await recOrder(database('patient_recommendations').where('patient_id', p.id)).select(REC_FIELDS) });
+    });
+
+    // Cria uma ou várias (ex.: pacote da primeira consulta), em rascunho ou já publicadas.
+    router.post('/patients/:id/recommendations', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const p = await clinicalPatient(user, req.params.id);
+      if (!p) return recNotFound(res);
+      const list = Array.isArray(req.body?.items) ? req.body.items : [req.body];
+      if (list.length < 1 || list.length > 30) return bad(res, { items: 'Envie de 1 a 30 recomendações.' });
+      const rows = [];
+      for (const item of list) {
+        const r = recInput(item);
+        if (r.errors) return bad(res, r.errors);
+        rows.push({ ...r.value, organization_id: p.organization_id, patient_id: p.id, user_created: user, status: req.body?.publish === true ? 'published' : 'draft' });
+      }
+      try {
+        const ids = await database('patient_recommendations').insert(rows).returning('id');
+        res.status(201).json({ data: { ids: ids.map((x) => x.id ?? x) } });
+      } catch (error) {
+        recConflict(res, error);
+      }
+    });
+
+    async function ownRec(user, id) {
+      const org = await clinicalOrg(user);
+      if (!org || !isUuid(id)) return null;
+      return database('patient_recommendations').where({ id, organization_id: org }).first('id', 'patient_id');
+    }
+
+    // Edita conteúdo, fixar e status (draft/published). A leitura nunca vem daqui.
+    router.put('/recommendations/:id', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const own = await ownRec(user, req.params.id);
+      if (!own) return recNotFound(res);
+      const r = recInput(req.body);
+      if (r.errors) return bad(res, r.errors);
+      const status = req.body?.status === 'published' ? 'published' : 'draft';
+      try {
+        await database('patient_recommendations').where('id', own.id).update({ ...r.value, status });
+        res.json({ data: await database('patient_recommendations').where('id', own.id).first(REC_FIELDS) });
+      } catch (error) {
+        recConflict(res, error);
+      }
+    });
+
+    router.delete('/recommendations/:id', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const own = await ownRec(user, req.params.id);
+      if (!own) return recNotFound(res);
+      await database('patient_recommendations').where('id', own.id).del();
+      res.json({ data: { ok: true } });
+    });
+
+    // Área do paciente: só publicadas do registro ativo
+    router.get('/me/patient/recommendations', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const p = await myPatientRecord(user, isUuid(req.query.c) ? req.query.c : null);
+      if (!p) return res.json({ data: { patient_id: null, recommendations: [] } });
+      const list = await recOrder(database('patient_recommendations').where({ patient_id: p.id, organization_id: p.organization_id, status: 'published' }))
+        .select('id', 'category', 'title', 'body', 'pinned', 'published_at', 'read_at');
+      res.json({ data: { patient_id: p.id, recommendations: list } });
+    });
+
+    router.post('/me/patient/recommendations/:id/read', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      if (!isUuid(req.params.id)) return recNotFound(res);
+      const rec = await database('patient_recommendations as r').join('patients as p', 'p.id', 'r.patient_id')
+        .where({ 'r.id': req.params.id, 'r.status': 'published', 'p.app_user_id': user, 'p.status': 'active' })
+        .first('r.id', 'r.read_at');
+      if (!rec) return recNotFound(res);
+      if (rec.read_at) return res.json({ data: { read_at: rec.read_at } });
+      try {
+        const readAt = await database.transaction(async (trx) => {
+          await trx.raw("select set_config('rafanutri.patient_read', 'on', true)");
+          const [row] = await trx('patient_recommendations').where({ id: rec.id }).whereNull('read_at').update({ read_at: trx.fn.now() }).returning('read_at');
+          return row?.read_at ?? null;
+        });
+        res.json({ data: { read_at: readAt } });
+      } catch (error) {
+        recConflict(res, error);
+      }
+    });
+
     // ── Orientações e textos reutilizáveis (RN-045) ─────────────────────────────────────────────
     // Biblioteca da plataforma (sem consultório) + textos do consultório do usuário.
     function snippetInput(body) {
@@ -833,6 +948,11 @@ export default {
         ? await database('meal_plans').whereIn('patient_id', rows.map((r) => r.id)).where('status', 'published').select('id', 'patient_id', 'title', 'published_at', 'meals')
         : [];
       const planOf = new Map(plans.map((pl) => [pl.patient_id, pl]));
+      const unread = rows.length
+        ? await database('patient_recommendations').whereIn('patient_id', rows.map((r) => r.id)).where('status', 'published').whereNull('read_at')
+          .groupBy('patient_id').select('patient_id').count({ n: '*' })
+        : [];
+      const unreadOf = new Map(unread.map((u) => [u.patient_id, Number(u.n)]));
       res.json({
         data: { patient_account: await isPatientAccount(user), records: rows.map((r) => {
           const pl = planOf.get(r.id);
@@ -841,6 +961,7 @@ export default {
             first_name: r.full_name.trim().split(/\s+/)[0] ?? null,
             practice: { id: r.org_id, name: r.org_name, brand_color: r.brand_color },
             professional: { name: [r.first_name, r.last_name].filter(Boolean).join(' ') || null, crn: r.crn ? `${r.crn_region ?? 'CRN'} ${r.crn}` : null },
+            recommendations_unread: unreadOf.get(r.id) ?? 0,
             plan: pl
               ? { id: pl.id, title: pl.title, published_at: pl.published_at, meals: (pl.meals ?? []).map((m) => ({ id: m.id, name: m.name, time: m.time ?? null, items: (m.items ?? []).length })) }
               : null,

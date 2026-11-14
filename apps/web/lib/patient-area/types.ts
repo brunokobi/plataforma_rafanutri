@@ -7,6 +7,7 @@ export interface PatientRecordView {
   practice: { id: string; name: string; brand_color: string | null };
   professional: { name: string | null; crn: string | null };
   plan: { id: string; title: string; published_at: string | null; meals: PatientMealSummary[] } | null;
+  recommendations_unread?: number;
 }
 
 export interface PatientArea { patient_account: boolean; records: PatientRecordView[] }

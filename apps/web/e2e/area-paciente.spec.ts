@@ -147,6 +147,42 @@ test('convite e área do paciente', async ({ page, browser }) => {
       await expect(pp.getByText('Receita não encontrada')).toBeVisible();
     });
 
+    await test.step('recomendações: publicada da biblioteca, rascunho escondido, leitura registrada (RN-208)', async () => {
+      await page.goto(`${patientUrl}/recomendacoes`);
+      await page.getByRole('button', { name: 'Da biblioteca' }).click();
+      const lib = page.getByRole('group', { name: 'Biblioteca de orientações' });
+      const firstOption = lib.locator('label').first();
+      const libTitle = (await firstOption.locator('span.font-medium').innerText()).trim();
+      await firstOption.getByRole('checkbox').check();
+      await lib.getByRole('button', { name: /Publicar selecionadas \(1\)/ }).click();
+      await expect(page.getByRole('status').filter({ hasText: '1 recomendação publicada.' })).toBeVisible();
+
+      await page.getByRole('button', { name: 'Nova recomendação' }).click();
+      const form = page.getByRole('form', { name: 'Nova recomendação' });
+      await form.getByLabel('Categoria').fill('Sono');
+      await form.getByLabel('Título').fill(`Rascunho E2E ${stamp}`);
+      await form.getByLabel('Texto para o paciente').fill('Ainda não publicado.');
+      await form.getByRole('button', { name: 'Salvar rascunho' }).click();
+      await expect(page.getByRole('status').filter({ hasText: 'Rascunho salvo.' })).toBeVisible();
+      const items = page.getByRole('list', { name: 'Recomendações do paciente' });
+      await expect(items.getByRole('listitem').filter({ hasText: libTitle }).getByText('Ainda não lida')).toBeVisible();
+
+      await pp.goto('/p');
+      await expect(pp.getByRole('link', { name: /Recomendações\s*1 nova/ })).toBeVisible();
+      await pp.getByRole('link', { name: /Recomendações/ }).click();
+      await expect(pp.getByText(`Rascunho E2E ${stamp}`)).toHaveCount(0);
+      const summary = pp.locator('summary').filter({ hasText: libTitle });
+      await expect(summary.getByText('Nova')).toBeVisible();
+      await summary.click();
+      await expect(summary.getByText('Nova')).toHaveCount(0);
+      expect(await pp.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+
+      await expect.poll(async () => {
+        await page.reload();
+        return items.getByRole('listitem').filter({ hasText: libTitle }).getByText(/Lida em/).count();
+      }, { timeout: 15_000 }).toBe(1);
+    });
+
     await test.step('link usado não abre de novo; paciente não entra no painel do nutricionista', async () => {
       await pp.goto(link);
       await expect(pp.getByText('Convite indisponível')).toBeVisible();
