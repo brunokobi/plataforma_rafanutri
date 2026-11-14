@@ -386,6 +386,21 @@ Migração `0020_patient_recommendations.sql` (idempotente; testes em `db/tests/
 
 `GET /rafanutri/me/patient` passa a trazer `recommendations_unread` por registro.
 
+## Pacotes de consultas (RN-054)
+
+Migração `0026_packages.sql` (**aplicada na vpsrafa em 14/11/2026**; testes em `db/tests/0026_packages.test.sql` e `db/tests/extension-finance.test.mjs`):
+
+- `service_packages` (catálogo: nome, sessões 1–100, preço em centavos, validade em dias opcional, ativo); `patient_packages` (venda: cópia do nome, sessões e preço; `sessions_used`; `expires_at`; `status` active/finished/expired/cancelled); `appointments.patient_package_id`; `financial_transactions.patient_package_id`.
+- Gatilhos em `appointments`: ao concluir sem pacote, liga ao pacote ativo mais antigo do paciente com sessão sobrando; pacote de outro paciente, cancelado, cheio ou vencido é recusado; depois de qualquer mudança de status, `refresh_patient_package()` reconta as sessões (conclusão desfeita devolve a sessão) e a situação é recalculada.
+- `expire_patient_packages(org)`: marca os vencidos; os endpoints chamam antes de ler (não há cron).
+
+| Endpoint | O que faz |
+|---|---|
+| `GET`/`POST /rafanutri/packages`, `PUT /rafanutri/packages/:id` | catálogo (criar/alterar só owner/nutricionista) |
+| `GET`/`POST /rafanutri/patients/:id/packages` (`{ package_id, installments 1–12, first_due_date, paid_now, payment_method }`) | pacotes do paciente; venda gera as parcelas (categoria "Pacote") |
+| `POST /rafanutri/patient-packages/:id/cancel` | cancela o pacote e as parcelas em aberto |
+| `GET /rafanutri/packages/agenda?patients=` | pacote ativo de cada paciente (aviso da agenda) |
+
 ## Recibos (RN-055)
 
 Migração `0025_receipts.sql` (**aplicada na vpsrafa em 14/11/2026**; testes em `db/tests/0025_receipts.test.sql`):

@@ -105,7 +105,7 @@ Status: `todo`, `doing`, `done`, `adiado` (fora do MVP, ver [ADR 0004](adr/0004-
 | [RN-051](plano/fase-2-gestao.md#rn-051--lembrete-de-consulta-por-whatsapp-e-e-mail) | Lembrete de consulta por WhatsApp e e-mail | feature | 5 | RN-050, RN-059, RN-060, RN-063 | todo |
 | [RN-052](plano/fase-2-gestao.md#rn-052--lembrete-de-retorno-e-envio-de-link-de-anamnese) | Lembrete de retorno e envio de link de anamnese | feature | 3 | RN-051, RN-026, RN-056 | todo |
 | [RN-053](plano/fase-2-gestao.md#rn-053--financeiro-recebimentos-e-fluxo-de-caixa) | Financeiro: recebimentos e fluxo de caixa | feature | 5 | RN-008, RN-009 | done |
-| [RN-054](plano/fase-2-gestao.md#rn-054--pacotes-de-consultas) | Pacotes de consultas | feature | 3 | RN-053, RN-022 | todo |
+| [RN-054](plano/fase-2-gestao.md#rn-054--pacotes-de-consultas) | Pacotes de consultas | feature | 3 | RN-053, RN-022 | done |
 | [RN-055](plano/fase-2-gestao.md#rn-055--recibo-em-pdf) | Recibo em PDF | feature | 2 | RN-053, RN-036 | done |
 | [RN-056](plano/fase-2-gestao.md#rn-056--crm-funil-e-retornos-atrasados) | CRM: funil e retornos atrasados | feature | 5 | RN-020, RN-022 | todo |
 | [RN-057](plano/fase-2-gestao.md#rn-057--planos-pagos-do-saas-e-cobrança-recorrente) | Planos pagos do SaaS e cobrança recorrente | feature | 8 | RN-004, RN-062 | todo |
