@@ -431,7 +431,7 @@ try {
     assert.equal(sa.status, 201, JSON.stringify(sa.json));
     const id = sa.json.data.id;
     assert.ok(!(await api('/rafanutri/snippets', { token: b.token })).json.data.some((x) => x.id === id));
-    assert.equal((await api(`/rafanutri/snippets/${id}`, { token: b.token, method: 'PUT', body: { category: 'X', title: 'Invadido', body: 'Invadido' } })).status, 404);
+    assert.equal((await api(`/rafanutri/snippets/${id}`, { token: b.token, method: 'PUT', body: { category: 'Invasão', title: 'Invadido', body: 'Invadido' } })).status, 404);
     assert.equal((await api(`/rafanutri/snippets/${id}`, { token: b.token, method: 'DELETE' })).status, 404);
     assert.ok((await api('/rafanutri/snippets', { token: a.token })).json.data.some((x) => x.id === id && x.own));
   });
