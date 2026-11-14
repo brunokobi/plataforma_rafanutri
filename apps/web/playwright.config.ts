@@ -7,7 +7,7 @@ export default defineConfig({
   timeout: 30_000,
   retries: process.env.CI ? 1 : 0,
   reporter: [['list']],
-  use: { baseURL, trace: 'retain-on-failure', locale: 'pt-BR' },
+  use: { baseURL, trace: 'retain-on-failure', locale: 'pt-BR', actionTimeout: 20_000, navigationTimeout: 30_000 },
   projects: [
     { name: 'desktop', use: { ...devices['Desktop Chrome'] } },
     { name: 'mobile', use: { ...devices['Pixel 7'] } },

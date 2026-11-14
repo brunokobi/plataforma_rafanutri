@@ -8,9 +8,10 @@ import { createAssessment } from '@/lib/assessments/actions';
 import { PROTOCOLS } from '@/lib/assessments/compute';
 import type { Assessment, AssessmentInputData } from '@/lib/assessments/schema';
 import { ageInYears, type Patient } from '@/lib/patients/schema';
+import { dateBR as formatDateBR } from '@/lib/format/date';
 
-const shortDate = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
-const longDate = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
+const shortDate = (iso: string) => formatDateBR(iso, { day: '2-digit', month: 'short' });
+const longDate = (iso: string) => formatDateBR(iso);
 const n = (v: number | null | undefined, d = 1, suffix = '') => (v === null || v === undefined ? '—' : `${v.toLocaleString('pt-BR', { maximumFractionDigits: d })}${suffix}`);
 
 export function PatientAssessments({ patient, assessments }: { patient: Patient; assessments: Assessment[] | null | 'unavailable' }) {

@@ -87,7 +87,7 @@ function measureText(foodById: PdfFoodLookup, foodId: string, grams: number): st
   return formatMeasure(r.measure.quantity, r.measure.label);
 }
 
-const dateBR = (d: Date) => d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+const dateBR = (d: Date) => d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'America/Sao_Paulo' });
 
 /** Monta os dados do PDF a partir do estado do editor (função pura, testável). */
 export function buildMealPlanPdfData(

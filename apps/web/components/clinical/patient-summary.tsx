@@ -5,9 +5,10 @@ import type { ReactNode } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { DEMO_PLAN, foodById } from '@/lib/demo/foods';
 import { demoHistory, demoPatient } from '@/lib/demo/patient';
+import { dateBR as formatDateBR } from '@/lib/format/date';
 
 const fmt = (v: number, d = 1) => v.toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d });
-const dateBR = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
+const dateBR = (iso: string) => formatDateBR(iso);
 
 function Card({ title, icon, action, children }: { title: string; icon: ReactNode; action?: ReactNode; children: ReactNode }) {
   return (

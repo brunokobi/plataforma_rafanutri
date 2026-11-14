@@ -1,0 +1,9 @@
+[    2014ms] Error: Minified React error #418; visit https://react.dev/errors/418?args[]=text&args[]= for the full message or use the non-minified dev environment for full errors and additional helpful warnings.
+    at r1 (https://rafanutri.brunokobi.tech/_next/static/chunks/0utpcokw1lzvh.js:1:58495)
+    at https://rafanutri.brunokobi.tech/_next/static/chunks/0utpcokw1lzvh.js:1:156742
+    at sE (https://rafanutri.brunokobi.tech/_next/static/chunks/0utpcokw1lzvh.js:1:160310)
+    at sw (https://rafanutri.brunokobi.tech/_next/static/chunks/0utpcokw1lzvh.js:1:151561)
+    at https://rafanutri.brunokobi.tech/_next/static/chunks/0utpcokw1lzvh.js:1:146415
+    at su (https://rafanutri.brunokobi.tech/_next/static/chunks/0utpcokw1lzvh.js:1:146516)
+    at sJ (https://rafanutri.brunokobi.tech/_next/static/chunks/0utpcokw1lzvh.js:1:173063)
+    at MessagePort.z (https://rafanutri.brunokobi.tech/_next/static/chunks/0utpcokw1lzvh.js:1:226028)

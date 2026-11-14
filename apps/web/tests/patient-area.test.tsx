@@ -94,3 +94,12 @@ describe('CreatePasswordForm (paciente)', () => {
     expect(screen.getByRole('alert').textContent).toBe('As senhas não conferem.');
   });
 });
+
+describe('datas no horário de Brasília', async () => {
+  const { dateBR } = await import('@/lib/format/date');
+  it('data com hora em UTC cai no dia de Brasília; data sem hora é o próprio dia', () => {
+    expect(dateBR('2026-11-11T01:30:00Z')).toBe('10 de nov. de 2026');
+    expect(dateBR('2026-11-11')).toBe('11 de nov. de 2026');
+    expect(dateBR('2026-11-11', { day: '2-digit', month: 'short' })).toBe('11 de nov.');
+  });
+});

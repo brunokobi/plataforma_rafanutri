@@ -16,17 +16,13 @@ import type { Assessment } from '@/lib/assessments/schema';
 import type { MealPlanSummary } from '@/lib/meal-plans/schema';
 import { ageInYears, formatCpf, maskCpf, toFormValues, type Patient, type PatientStatus } from '@/lib/patients/schema';
 import { cn } from '@/lib/utils';
+import { dateBR as formatDateBR } from '@/lib/format/date';
 
 const STATUS_LABEL: Record<PatientStatus, string> = { active: 'Ativo', inactive: 'Inativo', archived: 'Arquivado' };
 const SEX_LABEL = { female: 'Feminino', male: 'Masculino' } as const;
 
 const dateBR = (iso: string, withTime = false) =>
-  new Date(iso.length === 10 ? `${iso}T12:00:00` : iso).toLocaleDateString('pt-BR', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    ...(withTime ? { hour: '2-digit', minute: '2-digit' } : {}),
-  });
+  formatDateBR(iso, { day: '2-digit', month: 'short', year: 'numeric', ...(withTime ? { hour: '2-digit', minute: '2-digit' } : {}) });
 
 function Card({ title, icon, children, className }: { title: string; icon: ReactNode; children: ReactNode; className?: string }) {
   return (

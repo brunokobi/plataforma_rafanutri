@@ -13,8 +13,9 @@ import { createMealPlan, deleteMealPlanDraft } from '@/lib/meal-plans/actions';
 import { applyTemplate, saveAsTemplate } from '@/lib/meal-plans/template-actions';
 import { STATUS_LABEL, type MealPlanSummary } from '@/lib/meal-plans/schema';
 import { cn } from '@/lib/utils';
+import { dateBR as formatDateBR } from '@/lib/format/date';
 
-const dateBR = (iso: string) => new Date(iso.length === 10 ? `${iso}T12:00:00` : iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
+const dateBR = (iso: string) => formatDateBR(iso);
 
 export interface PlanTemplateOption {
   id: string;

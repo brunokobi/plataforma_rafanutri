@@ -12,6 +12,7 @@ import { PROTOCOLS, computeAssessment, protocolSites, type AssessmentInput, type
 import type { AssessmentInputData } from '@/lib/assessments/schema';
 import { demoHistory, demoPatient } from '@/lib/demo/patient';
 import { cn } from '@/lib/utils';
+import { dateBR as formatDateBR } from '@/lib/format/date';
 
 const SITE_LABELS: Record<SkinfoldSite, string> = {
   triceps: 'Tríceps', biceps: 'Bíceps', subscapular: 'Subescapular', suprailiac: 'Suprailíaca',
@@ -233,7 +234,7 @@ export function AssessmentForm({ sex, ageYears, defaults = {}, history, previous
   );
 }
 
-const shortDate = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+const shortDate = (iso: string) => formatDateBR(iso, { day: '2-digit', month: 'short' });
 
 /** Demonstração com a paciente fictícia (nada é salvo). */
 export function DemoAssessmentForm() {
