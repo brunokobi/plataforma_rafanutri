@@ -587,6 +587,16 @@ try {
     assert.equal((await api(`/rafanutri/patient-packages/${sold.json.data.id}/cancel`, { token: b.token, method: 'POST' })).status, 404, 'B não cancela');
     assert.equal((await api(`/rafanutri/patients/${pid}/packages`, { token: pt })).status, 403, 'paciente não vê');
     assert.equal((await api('/items/patient_packages?limit=1', { token: a.token })).status, 403, 'coleção direta');
+    // RN-056: CRM — leads e quadro isolados; perdido exige motivo
+    const leadA = await api('/rafanutri/crm/leads', { token: a.token, method: 'POST', body: { full_name: 'Lead isolamento', phone: '(31) 99999-0000', source: 'instagram' } });
+    assert.equal(leadA.status, 201, JSON.stringify(leadA.json));
+    assert.equal(leadA.json.data.phone, '+5531999990000');
+    assert.ok(!(await api('/rafanutri/crm/board', { token: b.token })).json.data.leads.some((l) => l.id === leadA.json.data.id), 'B não vê o lead de A');
+    assert.equal((await api(`/rafanutri/crm/leads/${leadA.json.data.id}/stage`, { token: b.token, method: 'POST', body: { stage: 'contacted' } })).status, 404);
+    assert.equal((await api(`/rafanutri/crm/leads/${leadA.json.data.id}/convert`, { token: b.token, method: 'POST' })).status, 404);
+    assert.equal((await api(`/rafanutri/crm/leads/${leadA.json.data.id}/stage`, { token: a.token, method: 'POST', body: { stage: 'lost' } })).status, 400, 'perdido sem motivo');
+    assert.equal((await api('/rafanutri/crm/board', { token: pt })).status, 403, 'paciente não vê o CRM');
+    assert.equal((await api('/items/leads?limit=1', { token: a.token })).status, 403, 'coleção direta');
     // RN-210: peso só liberado; paciente não muda o que vê; outro consultório não lê nem muda
     assert.deepEqual((await api('/rafanutri/me/patient/weight', { token: pt })).json.data.weight, []);
     assert.equal((await api(`/rafanutri/patients/${pid}/share`, { token: pt, method: 'PUT', body: { show_kcal: true, show_macros: true, show_weight_history: true } })).status, 404);

@@ -16,6 +16,7 @@ export function AppHeader({ homeHref = '/app', patientsHref = '/app/pacientes', 
             <Link href={homeHref} className="hover:text-foreground">Módulos</Link>
             <Link href={patientsHref} className="hover:text-foreground">Pacientes</Link>
             <Link href="/app/agenda" className="hover:text-foreground">Agenda</Link>
+            <Link href="/app/crm" className="hover:text-foreground">CRM</Link>
             <Link href="/app/financeiro" className="hover:text-foreground">Financeiro</Link>
             <Link href="/app/questionarios" className="hover:text-foreground">Questionários</Link>
             <Link href="/app/modelos-de-plano" className="hover:text-foreground">Modelos de plano</Link>

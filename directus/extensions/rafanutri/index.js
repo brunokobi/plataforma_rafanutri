@@ -7,6 +7,7 @@ import { validateAnswers } from './forms.js';
 import { Readable } from 'node:stream';
 import { CUSTOM_NUTRIENTS, parseImageDataUrl, recipePer100g, validateFoodInput, validateRecipeInput } from './foods.js';
 import { validateDocumentInput } from './documents.js';
+import { validateLead } from './crm.js';
 import { fillMonths, isIsoDate, monthStart, splitInstallments, validatePackage, validateTransaction } from './finance.js';
 
 const TYPES = new Set(['solo', 'clinic']);
@@ -931,6 +932,165 @@ export default {
       const out = {};
       for (const r of rows) if (!out[r.patient_id]) out[r.patient_id] = { name: r.name, used: r.sessions_used, total: r.sessions_total };
       res.json({ data: out });
+    });
+
+    // ── CRM: funil e retornos (RN-056) ──────────────────────────────────────────────────────────
+    const leadNotFound = (res) => res.status(404).json({ errors: [{ message: 'Lead não encontrado.', extensions: { code: 'NOT_FOUND' } }] });
+    const LEAD_FIELDS = ['id', 'full_name', 'phone', 'email', 'source', 'stage', 'lost_reason', 'notes', 'patient_id', 'date_created', 'date_updated'];
+    const crmConflict = (res, error) => {
+      if (error?.code === 'P0001') return conflict(res, error.message.split('\n')[0].replace(/^.* - /, ''));
+      logger.error({ err: error }, 'rafanutri: falha no CRM');
+      return res.status(500).json({ errors: [{ message: 'Não foi possível salvar agora.', extensions: { code: 'INTERNAL_SERVER_ERROR' } }] });
+    };
+    async function withActor(user, fn) {
+      return database.transaction(async (trx) => {
+        await trx.raw("select set_config('rafanutri.actor', ?, true)", [user]);
+        return fn(trx);
+      });
+    }
+
+    // Quadro: leads (novos, em contato, perdidos nos últimos 90 dias) e pacientes ativos por etapa.
+    router.get('/crm/board', async (req, res) => {
+      const m = await finMember(req, res);
+      if (!m) return;
+      await database.raw('select crm_mark_inactive(?)', [m.org]);
+      const leads = await database('leads').where('organization_id', m.org)
+        .where((q) => q.whereIn('stage', ['new', 'contacted']).orWhere((q2) => q2.where('stage', 'lost').where('date_updated', '>', database.raw("now() - interval '90 days'"))))
+        .orderBy('date_created', 'desc').limit(500).select(LEAD_FIELDS);
+      const patients = await database('patients as p').where({ 'p.organization_id': m.org, 'p.status': 'active' }).whereNotNull('p.crm_stage')
+        .select('p.id', 'p.full_name', 'p.phone', 'p.crm_stage', 'p.lead_source',
+          database.raw("(select max(a.starts_at) from appointments a where a.patient_id = p.id and a.status = 'completed') as last_visit"),
+          database.raw("(select min(a.starts_at) from appointments a where a.patient_id = p.id and a.status in ('scheduled', 'confirmed') and a.starts_at > now()) as next_visit"))
+        .orderBy('p.full_name').limit(1000);
+      const waiting = await database('patients as p').where({ 'p.organization_id': m.org, 'p.status': 'active' }).whereNull('p.crm_stage').count({ n: '*' }).first();
+      res.json({ data: { leads, patients, without_visit: Number(waiting?.n ?? 0) } });
+    });
+
+    router.post('/crm/leads', async (req, res) => {
+      const m = await finMember(req, res);
+      if (!m) return;
+      const r = validateLead(req.body);
+      if (r.errors) return bad(res, r.errors);
+      try {
+        const [row] = await withActor(m.user, (trx) => trx('leads').insert({ ...r.value, organization_id: m.org, user_created: m.user, stage: req.body?.stage === 'contacted' ? 'contacted' : 'new' }).returning(LEAD_FIELDS));
+        res.status(201).json({ data: row });
+      } catch (error) {
+        crmConflict(res, error);
+      }
+    });
+
+    async function ownLead(m, id) {
+      if (!isUuid(id)) return null;
+      return database('leads').where({ id, organization_id: m.org }).first();
+    }
+
+    router.put('/crm/leads/:id', async (req, res) => {
+      const m = await finMember(req, res);
+      if (!m) return;
+      const lead = await ownLead(m, req.params.id);
+      if (!lead) return leadNotFound(res);
+      const r = validateLead(req.body);
+      if (r.errors) return bad(res, r.errors);
+      try {
+        const [row] = await withActor(m.user, (trx) => trx('leads').where('id', lead.id).update(r.value).returning(LEAD_FIELDS));
+        res.json({ data: row });
+      } catch (error) {
+        crmConflict(res, error);
+      }
+    });
+
+    // Mover no funil: novo, em contato ou perdido (com motivo). Converter tem endpoint próprio.
+    router.post('/crm/leads/:id/stage', async (req, res) => {
+      const m = await finMember(req, res);
+      if (!m) return;
+      const lead = await ownLead(m, req.params.id);
+      if (!lead) return leadNotFound(res);
+      const stage = ['new', 'contacted', 'lost'].includes(req.body?.stage) ? req.body.stage : null;
+      if (!stage) return bad(res, { stage: 'Etapa inválida.' });
+      const reason = typeof req.body?.note === 'string' ? req.body.note.trim() : '';
+      if (stage === 'lost' && (reason.length < 2 || reason.length > 300)) return bad(res, { note: 'Diga o motivo (2 a 300 caracteres).' });
+      try {
+        const [row] = await withActor(m.user, (trx) => trx('leads').where('id', lead.id).update({ stage, lost_reason: stage === 'lost' ? reason : null }).returning(LEAD_FIELDS));
+        res.json({ data: row });
+      } catch (error) {
+        crmConflict(res, error);
+      }
+    });
+
+    // Converter: cria o paciente (ocupa vaga do plano) e liga ao lead.
+    router.post('/crm/leads/:id/convert', async (req, res) => {
+      const m = await finMember(req, res);
+      if (!m) return;
+      const lead = await ownLead(m, req.params.id);
+      if (!lead) return leadNotFound(res);
+      if (lead.stage === 'converted') return res.json({ data: { patient_id: lead.patient_id } });
+      if (lead.full_name.length < 3) return bad(res, { full_name: 'Para virar paciente, o nome precisa de 3 letras ou mais.' });
+      try {
+        const patientId = await withActor(m.user, async (trx) => {
+          const [p] = await trx('patients').insert({ organization_id: m.org, responsible_user_id: m.user, full_name: lead.full_name, phone: lead.phone, email: lead.email, lead_source: lead.source }).returning('id');
+          const pid = p.id ?? p;
+          await trx('leads').where('id', lead.id).update({ stage: 'converted', patient_id: pid });
+          return pid;
+        });
+        res.status(201).json({ data: { patient_id: patientId } });
+      } catch (error) {
+        crmConflict(res, error);
+      }
+    });
+
+    // Retornos: pacientes ativos com consulta concluída, nada marcado, retorno previsto = última + intervalo.
+    // ?window=overdue | 7 | 30 (padrão: vencidos + próximos 30 dias)
+    router.get('/crm/returns', async (req, res) => {
+      const m = await finMember(req, res);
+      if (!m) return;
+      const today = todaySP();
+      const w = req.query.window;
+      const rows = await database.raw(`
+        select * from (
+          select p.id, p.full_name, p.phone, p.return_interval_days, p.crm_stage,
+                 (max(a.starts_at) at time zone 'America/Sao_Paulo')::date::text as last_visit,
+                 ((max(a.starts_at) at time zone 'America/Sao_Paulo')::date + p.return_interval_days)::text as due_date
+            from patients p join appointments a on a.patient_id = p.id and a.status = 'completed'
+           where p.organization_id = ? and p.status = 'active'
+             and not exists (select 1 from appointments x where x.patient_id = p.id and x.status in ('scheduled', 'confirmed') and x.starts_at > now())
+           group by p.id
+        ) r
+        where (? = 'overdue' and r.due_date < ?)
+           or (? in ('7', '30') and r.due_date >= ? and r.due_date::date <= ?::date + (?)::int)
+           or (? not in ('overdue', '7', '30') and r.due_date::date <= ?::date + 30)
+        order by r.due_date
+        limit 500`, [m.org, w ?? '', today, w ?? '', today, today, w === '7' ? 7 : 30, w ?? '', today]);
+      res.json({ data: { today, returns: rows.rows } });
+    });
+
+    router.put('/patients/:id/return-interval', async (req, res) => {
+      const m = await finMember(req, res);
+      if (!m) return;
+      if (!clinical(m)) return forbidClinical(res);
+      const p = await memberPatient(m, req.params.id);
+      if (!p) return leadNotFound(res);
+      const days = Number(req.body?.days);
+      if (!Number.isInteger(days) || days < 7 || days > 365) return bad(res, { days: 'De 7 a 365 dias.' });
+      await database('patients').where('id', p.id).update({ return_interval_days: days });
+      res.json({ data: { return_interval_days: days } });
+    });
+
+    // Indicadores dos últimos `days` dias (padrão 90): leads por origem e conversão em 1ª consulta.
+    router.get('/crm/metrics', async (req, res) => {
+      const m = await finMember(req, res);
+      if (!m) return;
+      const days = [30, 90, 180, 365].includes(Number(req.query.days)) ? Number(req.query.days) : 90;
+      const r = await database.raw(`
+        select l.source,
+               count(*)::int as leads,
+               count(*) filter (where l.stage = 'converted')::int as converted,
+               count(*) filter (where l.stage = 'lost')::int as lost,
+               count(*) filter (where l.stage = 'converted' and exists (
+                 select 1 from appointments a where a.patient_id = l.patient_id and a.status = 'completed'))::int as first_visit
+          from leads l
+         where l.organization_id = ? and l.date_created > now() - make_interval(days => ?)
+         group by l.source order by count(*) desc`, [m.org, days]);
+      res.json({ data: { days, by_source: r.rows } });
     });
 
     // ── Documentos clínicos com a marca (RN-215) ───────────────────────────────────────────────
