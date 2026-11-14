@@ -381,6 +381,20 @@ Migração `0020_patient_recommendations.sql` (idempotente; testes em `db/tests/
 
 `GET /rafanutri/me/patient` passa a trazer `recommendations_unread` por registro.
 
+## O que o paciente vê (RN-210)
+
+Migração `0021_patient_share_settings.sql` (idempotente; testes em `db/tests/0021_patient_share_settings.test.sql`):
+
+- `organizations.patient_share_defaults` (padrão do consultório) e `patients.share_settings` (nulo = segue o padrão), só com as chaves booleanas `show_kcal`, `show_macros`, `show_weight_history`;
+- `patient_share(paciente)` devolve o que vale; `patient_weight_history(paciente)` devolve data e peso, e nenhuma linha quando o histórico não está liberado.
+
+| Endpoint | Quem |
+|---|---|
+| `GET`/`PUT /rafanutri/patients/:id/share` (`as_default: true` grava o padrão; só owner), `GET /rafanutri/patients/:id/preview` | profissional |
+| `GET /rafanutri/me/patient/weight[?c=]` | paciente |
+
+`GET /rafanutri/me/patient/plan` passa a trazer `share` e, só quando liberado, `per100g` dos alimentos (energia e/ou macros).
+
 ## Documentos do paciente (RN-209)
 
 Sem migração. `GET /rafanutri/me/patient/plans[?c=]` lista os planos já publicados do registro (vigente e anteriores); `GET /rafanutri/me/patient/plan?p=<plano>` devolve um deles (só `published`/`archived` com `published_at`), com o cabeçalho do PDF em `document`. O app gera o PDF na hora em `/p/documentos/:id/pdf`.

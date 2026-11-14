@@ -90,7 +90,7 @@ Status: `todo`, `doing`, `done`, `adiado` (fora do MVP, ver [ADR 0004](adr/0004-
 | [RN-207](plano/fase-1b-freemium-area-paciente.md#rn-207--receitas-na-área-do-paciente) | Receitas na área do paciente | feature | 3 | RN-206, RN-204 | done |
 | [RN-208](plano/fase-1b-freemium-area-paciente.md#rn-208--recomendações-ao-paciente) | Recomendações ao paciente | feature | 5 | RN-045, RN-204 | done |
 | [RN-209](plano/fase-1b-freemium-area-paciente.md#rn-209--documentos-do-paciente) | Documentos do paciente | feature | 2 | RN-036, RN-204 | done |
-| [RN-210](plano/fase-1b-freemium-area-paciente.md#rn-210--o-que-o-paciente-vê-configurações-de-compartilhamento) | O que o paciente vê (configurações de compartilhamento) | feature | 2 | RN-205 | todo |
+| [RN-210](plano/fase-1b-freemium-area-paciente.md#rn-210--o-que-o-paciente-vê-configurações-de-compartilhamento) | O que o paciente vê (configurações de compartilhamento) | feature | 2 | RN-205 | done |
 | [RN-211](plano/fase-1b-freemium-area-paciente.md#rn-211--paciente-com-mais-de-um-nutricionista) | Paciente com mais de um nutricionista | feature | 2 | RN-203, RN-204 | todo |
 | [RN-212](plano/fase-1b-freemium-area-paciente.md#rn-212--avisos-por-e-mail-ao-paciente) | Avisos por e-mail ao paciente | feature | 2 | RN-205, RN-208 | todo |
 | [RN-213](plano/fase-1b-freemium-area-paciente.md#rn-213--testes-de-isolamento-e-e2e-da-área-do-paciente) | Testes de isolamento e e2e da área do paciente | infra | 3 | RN-201 a RN-212 | todo |

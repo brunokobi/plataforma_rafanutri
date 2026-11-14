@@ -534,6 +534,11 @@ try {
     // RN-209: documentos — só planos do próprio registro
     assert.deepEqual((await api(`/rafanutri/me/patient/plans?c=${patientB}`, { token: pt })).json.data.plans, []);
     assert.equal((await api(`/rafanutri/me/patient/plan?p=${randomUUID()}`, { token: pt })).status, 404);
+    // RN-210: peso só liberado; paciente não muda o que vê; outro consultório não lê nem muda
+    assert.deepEqual((await api('/rafanutri/me/patient/weight', { token: pt })).json.data.weight, []);
+    assert.equal((await api(`/rafanutri/patients/${pid}/share`, { token: pt, method: 'PUT', body: { show_kcal: true, show_macros: true, show_weight_history: true } })).status, 404);
+    assert.equal((await api(`/rafanutri/patients/${patientB}/share`, { token: a.token })).status, 404);
+    assert.equal((await api(`/rafanutri/patients/${patientB}/preview`, { token: a.token })).status, 404);
     assert.equal((await api('/rafanutri/public/patient-invites/accept', { method: 'POST', body: { token: inv.json.data.token, password: 'Senha-isolamento-2' } })).status, 410);
     await api(`/rafanutri/patients/${pid}/app-access/revoke`, { token: a.token, method: 'POST' });
     assert.deepEqual((await api('/rafanutri/me/patient', { token: pt })).json.data.records, []);
