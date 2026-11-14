@@ -246,6 +246,43 @@ test('convite e área do paciente', async ({ page, browser }) => {
       }, { timeout: 15_000 }).toBe(1);
     });
 
+    await test.step('documento clínico: rascunho escondido, publicado baixa o PDF com a marca (RN-215)', async () => {
+      await page.goto(`${patientUrl}/documentos`);
+      await page.getByRole('button', { name: 'Novo documento' }).click();
+      const form = page.getByRole('form', { name: 'Novo documento' });
+      await expect(form.getByLabel('Tipo')).toHaveValue('exam_request');
+      await form.getByLabel('Título').fill(`Pedido de exames E2E ${stamp}`);
+      await form.getByRole('checkbox', { name: 'Hemograma completo' }).check();
+      await form.getByRole('checkbox', { name: 'Ferritina' }).check();
+      await form.getByRole('button', { name: 'Salvar rascunho' }).click();
+      await expect(page.getByRole('status').filter({ hasText: 'Rascunho salvo.' })).toBeVisible();
+      const item = page.getByRole('list', { name: 'Documentos do paciente' }).getByRole('listitem').filter({ hasText: `Pedido de exames E2E ${stamp}` });
+      await expect(item.getByText('Rascunho')).toBeVisible();
+      const href = (await item.getByRole('link', { name: /Baixar PDF/ }).getAttribute('href'))!;
+      const docId = href.split('/').at(-2)!;
+      // Profissional baixa o rascunho; paciente não vê nem pelo id
+      const own = await page.request.get(href);
+      expect(own.status()).toBe(200);
+      expect((await own.body()).subarray(0, 5).toString()).toBe('%PDF-');
+      expect((await pp.request.get(`/p/documentos/doc/${docId}/pdf`)).status()).toBe(404);
+      await pp.goto('/p/documentos');
+      await expect(pp.getByRole('list', { name: 'Documentos do nutricionista' })).toHaveCount(0);
+
+      await item.getByRole('button', { name: 'Publicar' }).click();
+      await expect(page.getByRole('status').filter({ hasText: 'Documento publicado.' })).toBeVisible();
+      await pp.reload();
+      const docs = pp.getByRole('list', { name: 'Documentos do nutricionista' });
+      await expect(docs.getByRole('listitem')).toHaveCount(1);
+      await expect(docs).toContainText('Pedido de exames');
+      const download = pp.waitForEvent('download');
+      await docs.getByRole('link', { name: /Baixar PDF/ }).click();
+      const file = await download;
+      expect(file.suggestedFilename()).toMatch(/^pedido-de-exames-e2e-\d+-\d{4}-\d{2}-\d{2}\.pdf$/);
+      const { readFile } = await import('node:fs/promises');
+      expect((await readFile((await file.path())!)).subarray(0, 5).toString()).toBe('%PDF-');
+      expect(await pp.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+    });
+
     await test.step('link usado não abre de novo; paciente não entra no painel do nutricionista', async () => {
       await pp.goto(link);
       await expect(pp.getByText('Convite indisponível')).toBeVisible();

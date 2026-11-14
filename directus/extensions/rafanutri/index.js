@@ -6,6 +6,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import { validateAnswers } from './forms.js';
 import { Readable } from 'node:stream';
 import { CUSTOM_NUTRIENTS, parseImageDataUrl, recipePer100g, validateFoodInput, validateRecipeInput } from './foods.js';
+import { validateDocumentInput } from './documents.js';
 
 const TYPES = new Set(['solo', 'clinic']);
 const CRN_REGION = /^CRN-([1-9]|1[01])$/;
@@ -579,6 +580,150 @@ export default {
       } catch (error) {
         recConflict(res, error);
       }
+    });
+
+    // ── Documentos clínicos com a marca (RN-215) ───────────────────────────────────────────────
+    const docNotFound = (res) => res.status(404).json({ errors: [{ message: 'Documento não encontrado.', extensions: { code: 'NOT_FOUND' } }] });
+    const DOC_FIELDS = ['id', 'kind', 'title', 'body', 'exams', 'document_date', 'status', 'published_at', 'date_created', 'date_updated'];
+    const TPL_FIELDS = ['id', 'kind', 'title', 'body', 'exams', 'date_created'];
+    const docDate = (d) => (d instanceof Date ? d.toISOString().slice(0, 10) : typeof d === 'string' ? d.slice(0, 10) : d);
+    const docOut = (d) => (d ? { ...d, document_date: docDate(d.document_date) } : d);
+    const docConflict = (res, error) => {
+      if (error?.code === 'P0001' || error?.code === '23514') return conflict(res, error?.code === 'P0001' ? error.message.split('\n')[0].replace(/^.* - /, '') : 'Documento incompleto: revise o conteúdo.');
+      logger.error({ err: error }, 'rafanutri: falha em documento');
+      return res.status(500).json({ errors: [{ message: 'Não foi possível salvar o documento agora.', extensions: { code: 'INTERNAL_SERVER_ERROR' } }] });
+    };
+    /** Documento + cabeçalho do PDF (consultório, autor, paciente). */
+    async function documentPayload(doc) {
+      const patient = await database('patients').where('id', doc.patient_id).first('id', 'organization_id', 'full_name', 'objective', 'responsible_user_id');
+      const info = await planDocumentInfo(patient, { user_created: doc.user_created });
+      return { document: docOut(Object.fromEntries(DOC_FIELDS.map((k) => [k, doc[k]]))), header: { ...info, organization_id: patient.organization_id } };
+    }
+
+    router.get('/patients/:id/documents', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const p = await clinicalPatient(user, req.params.id);
+      if (!p) return docNotFound(res);
+      const rows = await database('clinical_documents').where('patient_id', p.id).orderBy([{ column: 'document_date', order: 'desc' }, { column: 'date_created', order: 'desc' }]).select(DOC_FIELDS);
+      res.json({ data: rows.map(docOut) });
+    });
+
+    router.post('/patients/:id/documents', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const p = await clinicalPatient(user, req.params.id);
+      if (!p) return docNotFound(res);
+      const r = validateDocumentInput(req.body);
+      if (r.errors) return bad(res, r.errors);
+      try {
+        const [row] = await database('clinical_documents')
+          .insert({ ...r.value, exams: JSON.stringify(r.value.exams), organization_id: p.organization_id, patient_id: p.id, user_created: user, status: req.body?.publish === true ? 'published' : 'draft' })
+          .returning(DOC_FIELDS);
+        res.status(201).json({ data: docOut(row) });
+      } catch (error) {
+        docConflict(res, error);
+      }
+    });
+
+    async function ownDoc(user, id) {
+      const org = await clinicalOrg(user);
+      if (!org || !isUuid(id)) return null;
+      return database('clinical_documents').where({ id, organization_id: org }).first();
+    }
+
+    router.get('/documents/:id', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const doc = await ownDoc(user, req.params.id);
+      if (!doc) return docNotFound(res);
+      res.json({ data: await documentPayload(doc) });
+    });
+
+    // Edita conteúdo, data e status (draft/published). O tipo não muda.
+    router.put('/documents/:id', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const doc = await ownDoc(user, req.params.id);
+      if (!doc) return docNotFound(res);
+      const r = validateDocumentInput({ ...req.body, kind: doc.kind });
+      if (r.errors) return bad(res, r.errors);
+      const status = req.body?.status === 'published' ? 'published' : 'draft';
+      try {
+        const [row] = await database('clinical_documents').where('id', doc.id)
+          .update({ title: r.value.title, body: r.value.body, exams: JSON.stringify(r.value.exams), document_date: r.value.document_date, status })
+          .returning(DOC_FIELDS);
+        res.json({ data: docOut(row) });
+      } catch (error) {
+        docConflict(res, error);
+      }
+    });
+
+    router.delete('/documents/:id', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const doc = await ownDoc(user, req.params.id);
+      if (!doc) return docNotFound(res);
+      await database('clinical_documents').where('id', doc.id).del();
+      res.json({ data: { ok: true } });
+    });
+
+    // Modelos do consultório
+    router.get('/document-templates', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const org = await clinicalOrg(user);
+      if (!org) return res.json({ data: [] });
+      res.json({ data: await database('clinical_document_templates').where('organization_id', org).orderBy(['kind', 'title']).select(TPL_FIELDS) });
+    });
+
+    router.post('/document-templates', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const org = await clinicalOrg(user);
+      if (!org) return docNotFound(res);
+      const r = validateDocumentInput(req.body, { withDate: false });
+      if (r.errors) return bad(res, r.errors);
+      const count = await database('clinical_document_templates').where('organization_id', org).count({ n: '*' }).first();
+      if (Number(count?.n ?? 0) >= 100) return conflict(res, 'Limite de 100 modelos por consultório.');
+      try {
+        const [row] = await database('clinical_document_templates').insert({ ...r.value, exams: JSON.stringify(r.value.exams), organization_id: org, user_created: user }).returning(TPL_FIELDS);
+        res.status(201).json({ data: row });
+      } catch (error) {
+        docConflict(res, error);
+      }
+    });
+
+    router.delete('/document-templates/:id', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const org = await clinicalOrg(user);
+      if (!org || !isUuid(req.params.id)) return docNotFound(res);
+      const n = await database('clinical_document_templates').where({ id: req.params.id, organization_id: org }).del();
+      if (!n) return docNotFound(res);
+      res.json({ data: { ok: true } });
+    });
+
+    // Área do paciente: só publicados do registro ativo
+    router.get('/me/patient/documents', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const p = await myPatientRecord(user, isUuid(req.query.c) ? req.query.c : null);
+      if (!p) return res.json({ data: { patient_id: null, documents: [] } });
+      const rows = await database('clinical_documents').where({ patient_id: p.id, organization_id: p.organization_id, status: 'published' })
+        .orderBy([{ column: 'document_date', order: 'desc' }, { column: 'published_at', order: 'desc' }]).select('id', 'kind', 'title', 'document_date', 'published_at');
+      res.json({ data: { patient_id: p.id, documents: rows.map(docOut) } });
+    });
+
+    router.get('/me/patient/documents/:id', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      if (!isUuid(req.params.id)) return docNotFound(res);
+      const doc = await database('clinical_documents as d').join('patients as p', function () { this.on('p.id', 'd.patient_id').andOn('p.organization_id', 'd.organization_id'); })
+        .where({ 'd.id': req.params.id, 'd.status': 'published', 'p.app_user_id': user, 'p.status': 'active' })
+        .first('d.*');
+      if (!doc) return docNotFound(res);
+      res.json({ data: await documentPayload(doc) });
     });
 
     // ── Orientações e textos reutilizáveis (RN-045) ─────────────────────────────────────────────
