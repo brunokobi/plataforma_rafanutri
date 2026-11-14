@@ -119,7 +119,7 @@ Status: `todo`, `doing`, `done`, `adiado` (fora do MVP, ver [ADR 0004](adr/0004-
 | [RN-065](plano/fase-2-gestao.md#rn-065--configurações-de-automação-por-organização) | Configurações de automação por organização | feature | 2 | RN-051 | todo |
 | [RN-066](plano/fase-2-gestao.md#rn-066--operação-do-n8n-monitoramento-backup-e-runbook) | Operação do n8n: monitoramento, backup e runbook | infra | 2 | RN-050 | todo |
 | [RN-067](plano/fase-2-gestao.md#rn-067--documentação-da-fase-e-atualização-de-termos) | Documentação da fase e atualização de termos | doc | 1 | RN-057, RN-059 | todo |
-| [RN-068](plano/fase-2-gestao.md#rn-068--página-pública-do-nutricionista-e-agendamento-online) | Página pública do nutricionista e agendamento online | feature | 5 | RN-022, RN-051 | todo |
+| [RN-068](plano/fase-2-gestao.md#rn-068--página-pública-do-nutricionista-e-agendamento-online) | Página pública do nutricionista e agendamento online | feature | 5 | RN-022, RN-051 | done |
 
 ## Fase 3 — App do paciente + IA
 

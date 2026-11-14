@@ -14,7 +14,7 @@ test('logo do consultório', async ({ page }) => {
   await page.getByLabel('E-mail').fill(email!);
   await page.getByLabel('Senha', { exact: true }).fill(password!);
   await page.getByRole('button', { name: 'Entrar' }).click();
-  await expect(page).toHaveURL(/\/app\/configuracoes\/consultorio$/);
+  await expect(page).toHaveURL(/^[^?]*\/app\/configuracoes\/consultorio$/);
   await expect(page.getByRole('heading', { name: 'Marca do consultório' })).toBeVisible();
 
   await page.getByLabel('Logo', { exact: true }).setInputFiles({ name: 'logo.png', mimeType: 'image/png', buffer: Buffer.from(PNG, 'base64') });

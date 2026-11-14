@@ -42,6 +42,7 @@ db/
 │   ├── extension-documents.test.mjs   # validação dos documentos clínicos (node --test)
 │   ├── extension-finance.test.mjs     # validação dos lançamentos e meses do gráfico (node --test)
 │   ├── extension-crm.test.mjs         # telefone E.164 e validação do lead (node --test)
+│   ├── extension-booking.test.mjs     # horários livres e validação do pedido online (node --test)
 │   └── api-isolation.test.mjs       # RN-008/RN-213: isolamento pela API (db/scripts/isolation-test.sh roda sem token)
 ├── directus/
 │   ├── 0005_anthropometric_assessments.mjs  # registra a coleção e as permissões no Directus (token de admin)
@@ -386,6 +387,20 @@ Migração `0020_patient_recommendations.sql` (idempotente; testes em `db/tests/
 | `GET /rafanutri/me/patient/recommendations[?c=]`, `POST /rafanutri/me/patient/recommendations/:id/read` | paciente (só publicadas) |
 
 `GET /rafanutri/me/patient` passa a trazer `recommendations_unread` por registro.
+
+## Página pública e agendamento online (RN-068)
+
+Migração `0029_public_booking.sql` (**aplicada na vpsrafa em 14/11/2026**; testes em `db/tests/0029_public_booking.test.sql` e `db/tests/extension-booking.test.mjs`):
+
+- `public_profiles` (uma por consultório; desligada por padrão; nutricionista da agenda precisa ser owner/nutricionista); `appointments.origin` (`manual`/`online_booking`).
+- `booking_requests` (nome, e-mail, telefone E.164, modalidade, horário, mensagem, `pending`/`confirmed`/`declined`/`cancelled`). O gatilho trava por consultório e recusa horário ocupado por consulta (agendada, confirmada ou concluída) ou por outro pedido pendente (`booking_slot_taken`); horário no passado e página desligada também são recusados. Decidido não muda.
+
+| Endpoint | Quem |
+|---|---|
+| `GET /rafanutri/public/practices/:slug`, `…/logo`, `…/slots?from=&days=` | público (só com a página ligada) |
+| `POST /rafanutri/public/practices/:slug/book` | público (campo-isca, 30 pedidos/dia por consultório, 2 pendentes por e-mail/telefone) |
+| `GET`/`PUT /rafanutri/practices/:id/public-profile` | owner |
+| `GET /rafanutri/booking-requests`, `POST /rafanutri/booking-requests/:id/confirm` \| `decline` | membros (confirmar/recusar: owner/nutricionista) |
 
 ## Indicadores do consultório (RN-064)
 

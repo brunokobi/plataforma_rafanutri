@@ -19,7 +19,7 @@ test('agendamento online pela página pública', async ({ page, browser }) => {
   await page.getByLabel('E-mail').fill(email!);
   await page.getByLabel('Senha', { exact: true }).fill(password!);
   await page.getByRole('button', { name: 'Entrar' }).click();
-  await expect(page).toHaveURL(/\/app\/configuracoes\/pagina-publica$/);
+  await expect(page).toHaveURL(/^[^?]*\/app\/configuracoes\/pagina-publica$/);
 
   const form = page.getByRole('form', { name: 'Página pública' });
   const setup = async (on: boolean) => {
