@@ -77,6 +77,12 @@ Atualizado em **13/11/2026**. O que já está no código (`main`), o que está s
 | RN-215 Documentos clínicos com a marca | ✅ | Migração 0023 (`clinical_documents` e `clinical_document_templates`). Ficha: aba **Documentos** com pedido de exames (26 exames comuns para marcar + outros), prescrição de suplementos, declaração de comparecimento (texto sugerido com nome e data) e orientações gerais; rascunho/publicação, data do documento e modelos reutilizáveis do consultório. PDF gerado na hora com logo (PNG/JPEG), nome do consultório na cor da marca, profissional e CRN, data por extenso e linha de assinatura; rascunho sai com marca d'água. Área do paciente: seção "Pedidos, prescrições e declarações" em `/p/documentos` (só publicados, também conferido pelo id) |
 | RN-212 | ⏳ | E-mails ao paciente (precisa do DNS do Resend) |
 
+## Fase 2 — Gestão do consultório
+
+| Item | Situação | Observação |
+|---|---|---|
+| RN-053 Financeiro | ✅ | Migração 0024: `financial_categories` (10 padrão + do consultório), `financial_transactions` (valores em centavos, vencimento, pago/em aberto/cancelado, forma de pagamento, paciente e consulta do mesmo consultório, um recebimento por consulta) e view `monthly_cash_flow` (regime de caixa). Qualquer membro lança; **só owner/nutricionista exclui** (o banco confere pelo ator da sessão; o assistente cancela). Tela `/app/financeiro`: mês a mês, recebido/pago/saldo, **a receber com atrasados**, gráfico de 6 meses (com tabela), filtros, marcar como pago, editar, cancelar, excluir e **exportar CSV** (pt-BR, protegido contra fórmula). **"Registrar pagamento"** no cartão da consulta (pré-preenche paciente, descrição, categoria e o último valor do paciente) |
+
 ## Página pública e marketing
 
 | Item | Situação |

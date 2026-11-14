@@ -40,6 +40,7 @@ db/
 │   ├── 0018_patient_app_access.test.sql     # vínculo só pelos endpoints, convite de uso único
 │   ├── extension-foods.test.mjs       # conversão porção → 100 g e composição da preparação (node --test)
 │   ├── extension-documents.test.mjs   # validação dos documentos clínicos (node --test)
+│   ├── extension-finance.test.mjs     # validação dos lançamentos e meses do gráfico (node --test)
 │   └── api-isolation.test.mjs       # RN-008/RN-213: isolamento pela API (db/scripts/isolation-test.sh roda sem token)
 ├── directus/
 │   ├── 0005_anthropometric_assessments.mjs  # registra a coleção e as permissões no Directus (token de admin)
@@ -384,6 +385,22 @@ Migração `0020_patient_recommendations.sql` (idempotente; testes em `db/tests/
 | `GET /rafanutri/me/patient/recommendations[?c=]`, `POST /rafanutri/me/patient/recommendations/:id/read` | paciente (só publicadas) |
 
 `GET /rafanutri/me/patient` passa a trazer `recommendations_unread` por registro.
+
+## Financeiro (RN-053)
+
+Migração `0024_finance.sql` (**aplicada na vpsrafa em 14/11/2026**; testes em `db/tests/0024_finance.test.sql` e `db/tests/extension-finance.test.mjs`):
+
+- `financial_categories`: padrão da plataforma (sem consultório: Consulta, Retorno, Pacote, Outros recebimentos, Aluguel, Software, Marketing, Impostos, Material, Outras despesas) e do consultório (owner/nutricionista cria).
+- `financial_transactions`: `kind` (`income`/`expense`), categoria do mesmo tipo, `amount_cents` (inteiro > 0), `due_date`, `status` (`open`/`paid`/`cancelled`; pago ⇔ `paid_at`), `payment_method`, `patient_id` e `appointment_id` (só receita, do mesmo consultório; a consulta precisa ser do paciente), `notes`. Um recebimento não cancelado por consulta. Qualquer membro lança e edita; **excluir** exige `rafanutri.actor` (definido pelo endpoint na transação) de owner/nutricionista.
+- View `monthly_cash_flow` (regime de caixa: pagos, pelo mês do pagamento).
+
+| Endpoint | O que faz |
+|---|---|
+| `GET`/`POST /rafanutri/finance/categories` | categorias (padrão + do consultório) |
+| `GET /rafanutri/finance/transactions?from=&to=&kind=&status=&patient=` | lançamentos por vencimento no período (padrão: mês atual) e `can_delete` |
+| `POST`/`PUT`/`DELETE /rafanutri/finance/transactions[/:id]` | lançar, editar, excluir (assistente recebe 403) |
+| `GET /rafanutri/finance/summary?month=aaaa-mm` | 6 meses de caixa e contas a receber (atrasadas à parte) |
+| `GET /rafanutri/finance/appointment/:id` | pré-preenchimento do "Registrar pagamento" |
 
 ## Marca do consultório (RN-204)
 
