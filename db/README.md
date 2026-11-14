@@ -381,6 +381,10 @@ Migração `0020_patient_recommendations.sql` (idempotente; testes em `db/tests/
 
 `GET /rafanutri/me/patient` passa a trazer `recommendations_unread` por registro.
 
+## Documentos do paciente (RN-209)
+
+Sem migração. `GET /rafanutri/me/patient/plans[?c=]` lista os planos já publicados do registro (vigente e anteriores); `GET /rafanutri/me/patient/plan?p=<plano>` devolve um deles (só `published`/`archived` com `published_at`), com o cabeçalho do PDF em `document`. O app gera o PDF na hora em `/p/documentos/:id/pdf`.
+
 ## Receitas: biblioteca e envio ao paciente (RN-206, RN-207)
 
 Migração `0019_recipe_library.sql` (idempotente; testes em `db/tests/0019_recipe_library.test.sql`):

@@ -531,6 +531,9 @@ try {
     assert.equal((await api(`/rafanutri/recommendations/${recs.json.data.ids[0]}`, { token: pt, method: 'PUT', body: { category: 'Sono', title: 'Hack', body: 'x', status: 'published' } })).status, 404);
     assert.equal((await api(`/rafanutri/patients/${patientB}/recommendations`, { token: a.token, method: 'POST', body: { category: 'Sono', title: 'Intruso', body: 'Texto.' } })).status, 404);
     assert.equal((await api('/items/patient_recommendations?limit=1', { token: pt })).status, 403);
+    // RN-209: documentos — só planos do próprio registro
+    assert.deepEqual((await api(`/rafanutri/me/patient/plans?c=${patientB}`, { token: pt })).json.data.plans, []);
+    assert.equal((await api(`/rafanutri/me/patient/plan?p=${randomUUID()}`, { token: pt })).status, 404);
     assert.equal((await api('/rafanutri/public/patient-invites/accept', { method: 'POST', body: { token: inv.json.data.token, password: 'Senha-isolamento-2' } })).status, 410);
     await api(`/rafanutri/patients/${pid}/app-access/revoke`, { token: a.token, method: 'POST' });
     assert.deepEqual((await api('/rafanutri/me/patient', { token: pt })).json.data.records, []);
