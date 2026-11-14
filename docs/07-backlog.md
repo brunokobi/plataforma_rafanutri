@@ -95,7 +95,7 @@ Status: `todo`, `doing`, `done`, `adiado` (fora do MVP, ver [ADR 0004](adr/0004-
 | [RN-212](plano/fase-1b-freemium-area-paciente.md#rn-212--avisos-por-e-mail-ao-paciente) | Avisos por e-mail ao paciente | feature | 2 | RN-205, RN-208 | todo |
 | [RN-213](plano/fase-1b-freemium-area-paciente.md#rn-213--testes-de-isolamento-e-e2e-da-área-do-paciente) | Testes de isolamento e e2e da área do paciente | infra | 3 | RN-201 a RN-212 | doing |
 | [RN-214](plano/fase-1b-freemium-area-paciente.md#rn-214--métricas-do-plano-gratuito) | Métricas do plano gratuito | feature | 2 | RN-202, RN-204 | done |
-| [RN-215](plano/fase-1b-freemium-area-paciente.md#rn-215--documentos-clínicos-com-a-marca) | Documentos clínicos com a marca | feature | 3 | RN-036, RN-209 | todo |
+| [RN-215](plano/fase-1b-freemium-area-paciente.md#rn-215--documentos-clínicos-com-a-marca) | Documentos clínicos com a marca | feature | 3 | RN-036, RN-209 | done |
 
 ## Fase 2 — Gestão do consultório
 

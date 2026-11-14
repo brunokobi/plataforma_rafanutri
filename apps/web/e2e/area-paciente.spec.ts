@@ -250,7 +250,7 @@ test('convite e área do paciente', async ({ page, browser }) => {
       await page.goto(`${patientUrl}/documentos`);
       await page.getByRole('button', { name: 'Novo documento' }).click();
       const form = page.getByRole('form', { name: 'Novo documento' });
-      await expect(form.getByLabel('Tipo')).toHaveValue('exam_request');
+      await expect(form.getByLabel('Tipo', { exact: true })).toHaveValue('exam_request');
       await form.getByLabel('Título').fill(`Pedido de exames E2E ${stamp}`);
       await form.getByRole('checkbox', { name: 'Hemograma completo' }).check();
       await form.getByRole('checkbox', { name: 'Ferritina' }).check();

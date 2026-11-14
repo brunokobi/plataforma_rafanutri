@@ -107,6 +107,7 @@ RATE_LIMITER_DURATION=1
 Observações:
 - **Postgres sem porta publicada**: só o Directus o acessa, pela rede interna. Para manutenção, use `docker compose exec db psql -U rafanutri`.
 - **Sem portas abertas no firewall**: o acesso passa pelo Traefik (80/443). Não é preciso mexer no iptables nem na Security List.
+- **Limite de requisições (`RATE_LIMITER_POINTS=50` por segundo, por IP)**: o app (Next) chama o Directus sempre do mesmo IP, então esse limite vale para **todos os usuários somados**. Em 14/11/2026 o e2e com dois navegadores em paralelo recebeu `429 REQUESTS_EXCEEDED`; a leitura da sessão falhou e o usuário foi mandado para `/app`. Pendente (decisão do dev): subir para algo como 300, por exemplo com `RATE_LIMITER_POINTS: 300` no `environment` do serviço `directus` no compose e `docker compose up -d directus`. A proteção contra força bruta no login continua com `LOGIN_STALL_TIME` e o bloqueio por tentativas do Directus.
 - Ao trocar uma variável do `.env`, rode `docker compose up -d --force-recreate directus`. Só `restart` não recarrega o `env_file`, como já aconteceu no BPMN Assistant.
 
 ## 3. Subir e conferir

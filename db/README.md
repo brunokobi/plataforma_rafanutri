@@ -39,6 +39,7 @@ db/
 │   ├── 0017_plan_waitlist.test.sql          # só o owner registra, um por consultório
 │   ├── 0018_patient_app_access.test.sql     # vínculo só pelos endpoints, convite de uso único
 │   ├── extension-foods.test.mjs       # conversão porção → 100 g e composição da preparação (node --test)
+│   ├── extension-documents.test.mjs   # validação dos documentos clínicos (node --test)
 │   └── api-isolation.test.mjs       # RN-008: isolamento entre consultórios pela API
 ├── directus/
 │   ├── 0005_anthropometric_assessments.mjs  # registra a coleção e as permissões no Directus (token de admin)
@@ -380,6 +381,20 @@ Migração `0020_patient_recommendations.sql` (idempotente; testes em `db/tests/
 | `GET /rafanutri/me/patient/recommendations[?c=]`, `POST /rafanutri/me/patient/recommendations/:id/read` | paciente (só publicadas) |
 
 `GET /rafanutri/me/patient` passa a trazer `recommendations_unread` por registro.
+
+## Documentos clínicos com a marca (RN-215)
+
+Migração `0023_clinical_documents.sql` (**aplicada na vpsrafa em 14/11/2026**; testes em `db/tests/0023_clinical_documents.test.sql` e `db/tests/extension-documents.test.mjs`):
+
+- `clinical_documents`: `kind` (`exam_request`, `supplement_prescription`, `attendance_declaration`, `general_guidance`), título (2–120), texto (≤ 6.000), `exams` (lista JSON de até 60 nomes; só no pedido de exames), `document_date`, `status` (`draft`/`published`) e `published_at`. Só owner/nutricionista cria, só para paciente ativo do consultório; paciente, tipo e autor não mudam. Pedido de exames precisa de exame ou texto; os outros tipos precisam de texto. Apagar o paciente leva os documentos.
+- `clinical_document_templates`: modelos do consultório (mesmos campos, sem paciente nem data), até 100 por consultório (limite no endpoint).
+- Nenhum papel do Directus tem permissão de coleção: tudo passa pelos endpoints abaixo. O PDF é gerado na hora pelo app (não há `pdf_path` nem arquivo guardado).
+
+| Endpoint | Quem |
+|---|---|
+| `GET`/`POST /rafanutri/patients/:id/documents`, `GET`/`PUT`/`DELETE /rafanutri/documents/:id` | profissional do consultório |
+| `GET`/`POST /rafanutri/document-templates`, `DELETE /rafanutri/document-templates/:id` | profissional do consultório |
+| `GET /rafanutri/me/patient/documents[?c=]`, `GET /rafanutri/me/patient/documents/:id` (só publicados do registro ligado à conta) | paciente |
 
 ## Métricas do plano gratuito (RN-214)
 
