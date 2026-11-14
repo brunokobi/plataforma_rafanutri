@@ -1443,7 +1443,7 @@ export default {
       if (!user) return;
       const doc = await ownDoc(user, req.params.id);
       if (!doc) return docNotFound(res);
-      logAccess(doc.organization_id, user, 'clinical_documents', doc.id, doc.patient_id, req.query?.export === '1' ? 'export' : 'read');
+      logAccess(doc.organization_id, user, 'clinical_documents', doc.id, doc.patient_id, req.query?.pdf === '1' ? 'export' : 'read');
       res.json({ data: await documentPayload(doc) });
     });
 

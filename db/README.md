@@ -361,7 +361,7 @@ Migrações `0015_clinical_notes.sql` e `0016_clinical_notes_cascade.sql` (**apl
 | Paciente ou consultório apagado pelo administrador leva as evoluções (cascata); consulta apagada só desfaz o vínculo | 0016 (`pg_trigger_depth()`) |
 | `GET/POST /rafanutri/patients/:id/notes`, `PUT/DELETE /rafanutri/notes/:id`, `POST /rafanutri/notes/:id/sign` (conflito → 409 com a mensagem do banco) | extensão `rafanutri` |
 
-Falta o registro de leitura do prontuário (`log_access`), que depende da auditoria (RN-009).
+A leitura do prontuário é registrada na auditoria (RN-009, `log_access`).
 
 ## Plano gratuito e lista de interesse (RN-200 a RN-202)
 
@@ -387,6 +387,20 @@ Migração `0020_patient_recommendations.sql` (idempotente; testes em `db/tests/
 | `GET /rafanutri/me/patient/recommendations[?c=]`, `POST /rafanutri/me/patient/recommendations/:id/read` | paciente (só publicadas) |
 
 `GET /rafanutri/me/patient` passa a trazer `recommendations_unread` por registro.
+
+## Auditoria (RN-009)
+
+Migração `0030_audit.sql` (**aplicada na vpsrafa em 14/11/2026**; testes em `db/tests/0030_audit.test.sql` e no teste de isolamento):
+
+- `audit_logs` (consultório, autor, `insert`/`update`/`delete`/`read`/`export`, tabela, id, paciente, nomes dos campos alterados, horário). Sem coleção no Directus; não muda nem é apagado (só some em cascata com o consultório).
+- `audit_trigger()` (AFTER, `security definer`) em `patients`, `clinical_notes`, `anamneses`, `anthropometric_assessments`, `meal_plans`, `clinical_documents`, `appointments`, `financial_transactions`, `receipts`, `organization_members`, `patient_app_invites`, `patient_recommendations` e `patient_packages`. Nunca grava valores; ignora `updated_at`/`date_updated`/`search_name` e alterações sem mudança.
+- Autor: `rafanutri.actor` (endpoints da extensão, via `withActor`) ou `user_created` na inserção; escritas pela API de itens ficam sem autor e o endpoint resolve pelo `directus_activity` (índice `rafanutri_activity_item`).
+- `log_access(org, autor, entidade, id, paciente, 'read'|'export')`: leitura das evoluções do paciente, exportação de documento clínico (PDF) e de recibo.
+- Mesma linha (autor, item, ação, campos) em até 10 minutos não se repete (`audit_write`).
+
+| Endpoint | Quem |
+|---|---|
+| `GET /rafanutri/audit?from=&to=&actor=&entity=&action=&patient=&before=` (100 por página, mais recente primeiro; `next` é o cursor; `members` para o filtro) | owner |
 
 ## Página pública e agendamento online (RN-068)
 
