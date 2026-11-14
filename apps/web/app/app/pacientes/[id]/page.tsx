@@ -2,6 +2,7 @@ import { AlertCircle } from 'lucide-react';
 import type { Metadata } from 'next';
 import { notFound, redirect } from 'next/navigation';
 import { AppHeader } from '@/components/app/app-header';
+import { PatientAppAccess } from '@/components/patients/patient-app-access';
 import { PatientRecord } from '@/components/patients/patient-record';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { getMyOrganizations, landingRedirect } from '@/lib/auth/organizations';
@@ -14,6 +15,7 @@ import { listAnamneses } from '@/lib/anamneses/repository';
 import { getNextAppointment } from '@/lib/appointments/repository';
 import { listAssessments } from '@/lib/assessments/repository';
 import { listMealPlans } from '@/lib/meal-plans/repository';
+import { getAppAccess } from '@/lib/patient-area/actions';
 import { getPatient, listPatients } from '@/lib/patients/repository';
 import { isUuid } from '@/lib/patients/schema';
 
@@ -30,13 +32,14 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
   if (target) redirect(target);
 
   const organization = organizations?.find((o) => o.role === 'owner' || o.role === 'nutritionist') ?? null;
-  const [patient, all, assessments, plans, anamneses, nextAppointment] = await Promise.all([
+  const [patient, all, assessments, plans, anamneses, nextAppointment, appAccess] = await Promise.all([
     getPatient(id),
     organization ? listPatients(organization.id) : null,
     listAssessments(id),
     listMealPlans(id),
     listAnamneses(id),
     getNextAppointment(id),
+    getAppAccess(id),
   ]);
   if (patient === undefined) notFound();
 
@@ -59,6 +62,11 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
             alerts={extractHealthAlerts(anamneses)}
             publishedPlan={Array.isArray(plans) ? (plans.find((p) => p.status === 'published') ?? null) : null}
           />
+        )}
+        {patient && (
+          <div className="mt-6">
+            <PatientAppAccess patientId={patient.id} access={appAccess} firstName={patient.full_name.split(/\s+/)[0] ?? patient.full_name} phone={patient.phone} />
+          </div>
         )}
       </main>
     </div>

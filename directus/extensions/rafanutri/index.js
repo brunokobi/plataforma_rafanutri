@@ -2,7 +2,7 @@
 // viram endpoint com transação). JavaScript puro, sem build: o Directus carrega direto.
 // forms.js é cópia de packages/forms/src/forms.js (pnpm --filter @rafanutri/forms sync).
 
-import { createHash } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { validateAnswers } from './forms.js';
 import { CUSTOM_NUTRIENTS, recipePer100g, validateFoodInput, validateRecipeInput } from './foods.js';
 
@@ -30,7 +30,14 @@ const MAX_ANSWERS_BYTES = 100_000;
 
 export default {
   id: 'rafanutri',
-  handler: (router, { database, logger }) => {
+  handler: (router, { database, logger, services, getSchema }) => {
+    // Papel "Paciente" (migração 0018): conta da área do paciente.
+    const PATIENT_ROLE = '5d1c7a3e-0002-4b6e-9a01-7e2a0c9a0002';
+    async function isPatientAccount(userId) {
+      const u = await database('directus_users').where({ id: userId }).first('role');
+      return u?.role === PATIENT_ROLE;
+    }
+
     const requireUser = (req, res) => {
       const user = req.accountability?.user;
       if (!user) {
@@ -45,6 +52,10 @@ export default {
     router.post('/organizations', async (req, res) => {
       const user = requireUser(req, res);
       if (!user) return;
+      if (await isPatientAccount(user)) {
+        res.status(403).json({ errors: [{ message: 'Contas de paciente não criam consultório.', extensions: { code: 'FORBIDDEN' } }] });
+        return;
+      }
       const problem = validateOrganization(req.body);
       if (problem) {
         res.status(400).json({ errors: [{ message: problem, extensions: { code: 'INVALID_PAYLOAD' } }] });
@@ -438,6 +449,185 @@ export default {
         await database('clinical_notes').where({ id: note.id }).del();
         res.status(204).end();
       }, 'apagar');
+    });
+
+    // ── Área do paciente: convite, vínculo e dados (RN-203, RN-204) ─────────────────────────
+    // O vínculo patients.app_user_id só muda numa transação com rafanutri.patient_link = on (gatilho 0018).
+    const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+    const gone = (res) => res.status(410).json({ errors: [{ message: 'Este convite não está mais disponível. Peça um novo ao seu nutricionista.', extensions: { code: 'INVITE_UNAVAILABLE' } }] });
+    const linkOn = (trx) => trx.raw("select set_config('rafanutri.patient_link', 'on', true)");
+    const maskEmail = (e) => e.replace(/^(.)(.*)(@.*)$/, (_, a, b, c) => `${a}${'•'.repeat(Math.min(6, b.length))}${c}`);
+    async function isProfessional(userId) {
+      return Boolean(await database('organization_members').where({ user_id: userId }).first('user_id'));
+    }
+    async function clinicalPatient(user, id) {
+      const org = await clinicalOrg(user);
+      if (!org || !isUuid(id)) return null;
+      return database('patients').where({ id, organization_id: org }).first('id', 'organization_id', 'status', 'email', 'app_user_id', 'app_activated_at');
+    }
+    async function pendingInvite(token, trx = database) {
+      if (typeof token !== 'string' || !TOKEN_FORMAT.test(token)) return null;
+      const inv = await trx('patient_app_invites as i')
+        .join('patients as p', 'p.id', 'i.patient_id')
+        .where('i.token_hash', hashToken(token))
+        .whereNull('i.used_at').whereNull('i.revoked_at')
+        .where('i.expires_at', '>', trx.fn.now())
+        .where('p.status', 'active')
+        .first('i.id', 'i.organization_id', 'i.patient_id', 'i.email', 'i.expires_at', 'p.full_name', 'p.responsible_user_id');
+      return inv ?? null;
+    }
+    async function linkInvite(inv, userId) {
+      return database.transaction(async (trx) => {
+        await linkOn(trx);
+        const n = await trx('patient_app_invites').where({ id: inv.id }).whereNull('used_at').whereNull('revoked_at').update({ used_at: trx.fn.now(), used_by: userId });
+        if (!n) return false;
+        // Se a conta já estava ligada a outro registro deste consultório, desfaz (um registro por conta e consultório)
+        await trx('patients').where({ organization_id: inv.organization_id, app_user_id: userId }).whereNot({ id: inv.patient_id }).update({ app_user_id: null, app_activated_at: null });
+        await trx('patients').where({ id: inv.patient_id }).update({ app_user_id: userId, app_activated_at: trx.fn.now() });
+        return true;
+      });
+    }
+
+    router.get('/patients/:id/app-access', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const p = await clinicalPatient(user, req.params.id);
+      if (!p) return res.status(404).json({ errors: [{ message: 'Paciente não encontrado.', extensions: { code: 'NOT_FOUND' } }] });
+      const invite = await database('patient_app_invites').where({ patient_id: p.id }).whereNull('used_at').whereNull('revoked_at')
+        .where('expires_at', '>', database.fn.now()).first('email', 'expires_at', 'date_created');
+      const account = p.app_user_id ? await database('directus_users').where({ id: p.app_user_id }).first('email') : null;
+      res.json({ data: { linked: Boolean(p.app_user_id), email: account?.email ?? null, activated_at: p.app_activated_at, invite: invite ?? null, patient_email: p.email, active: p.status === 'active' } });
+    });
+
+    router.post('/patients/:id/app-invite', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+      if (!EMAIL.test(email) || email.length > 254) return bad(res, { email: 'Informe um e-mail válido.' });
+      const p = await clinicalPatient(user, req.params.id);
+      if (!p) return res.status(404).json({ errors: [{ message: 'Paciente não encontrado.', extensions: { code: 'NOT_FOUND' } }] });
+      if (p.status !== 'active') return conflict(res, 'Reative o paciente antes de convidar.');
+      const existing = await database('directus_users').whereRaw('lower(email) = ?', [email]).first('id', 'role');
+      if (existing && existing.role !== PATIENT_ROLE) return conflict(res, 'Este e-mail é de uma conta de profissional; use outro e-mail para o paciente.');
+      const token = randomBytes(32).toString('base64url');
+      try {
+        const expires = await database.transaction(async (trx) => {
+          await trx('patient_app_invites').where({ patient_id: p.id }).whereNull('used_at').whereNull('revoked_at').update({ revoked_at: trx.fn.now() });
+          const [row] = await trx('patient_app_invites')
+            .insert({ organization_id: p.organization_id, patient_id: p.id, email, token_hash: hashToken(token), user_created: user })
+            .returning('expires_at');
+          return row.expires_at;
+        });
+        res.status(201).json({ data: { token, email, expires_at: expires } });
+      } catch (error) {
+        if (error?.code === 'P0001') return conflict(res, error.message.split('\n')[0].replace(/^.* - /, ''));
+        logger.error({ err: error }, 'rafanutri: falha ao criar convite do paciente');
+        res.status(500).json({ errors: [{ message: 'Não foi possível criar o convite agora.', extensions: { code: 'INTERNAL_SERVER_ERROR' } }] });
+      }
+    });
+
+    router.post('/patients/:id/app-access/revoke', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const p = await clinicalPatient(user, req.params.id);
+      if (!p) return res.status(404).json({ errors: [{ message: 'Paciente não encontrado.', extensions: { code: 'NOT_FOUND' } }] });
+      await database.transaction(async (trx) => {
+        await linkOn(trx);
+        await trx('patients').where({ id: p.id }).update({ app_user_id: null, app_activated_at: null });
+        await trx('patient_app_invites').where({ patient_id: p.id }).whereNull('used_at').whereNull('revoked_at').update({ revoked_at: trx.fn.now() });
+      });
+      res.json({ data: { ok: true } });
+    });
+
+    // Público (sem login): abrir o convite e criar a conta
+    router.post('/public/patient-invites/open', async (req, res) => {
+      const inv = await pendingInvite(req.body?.token);
+      if (!inv) return gone(res);
+      const [org, pro, account] = await Promise.all([
+        database('organizations').where({ id: inv.organization_id }).first('name', 'brand_color'),
+        database('directus_users as u').leftJoin('professional_profiles as pp', 'pp.user_id', 'u.id').where('u.id', inv.responsible_user_id)
+          .first('u.first_name', 'u.last_name', 'pp.crn', 'pp.crn_region'),
+        database('directus_users').whereRaw('lower(email) = ?', [inv.email]).first('id'),
+      ]);
+      res.json({
+        data: {
+          practice: org,
+          professional: pro ? { name: [pro.first_name, pro.last_name].filter(Boolean).join(' ') || null, crn: pro.crn ? `${pro.crn_region ?? 'CRN'} ${pro.crn}` : null } : null,
+          patient_first_name: inv.full_name.trim().split(/\s+/)[0] ?? null,
+          email: inv.email,
+          email_masked: maskEmail(inv.email),
+          account_exists: Boolean(account),
+          expires_at: inv.expires_at,
+        },
+      });
+    });
+
+    router.post('/public/patient-invites/accept', async (req, res) => {
+      const password = typeof req.body?.password === 'string' ? req.body.password : '';
+      if (password.length < 8 || password.length > 128) return bad(res, { password: 'A senha precisa ter de 8 a 128 caracteres.' });
+      const inv = await pendingInvite(req.body?.token);
+      if (!inv) return gone(res);
+      if (await database('directus_users').whereRaw('lower(email) = ?', [inv.email]).first('id')) {
+        return res.status(409).json({ errors: [{ message: 'Já existe uma conta com este e-mail. Entre com ela para aceitar o convite.', extensions: { code: 'ACCOUNT_EXISTS' } }] });
+      }
+      let userId = null;
+      try {
+        const users = new services.UsersService({ schema: await getSchema(), accountability: null });
+        userId = await users.createOne({ email: inv.email, password, role: PATIENT_ROLE, status: 'active', first_name: inv.full_name.trim().split(/\s+/)[0] ?? null });
+        if (!(await linkInvite(inv, userId))) {
+          await users.deleteOne(userId);
+          return gone(res);
+        }
+        res.status(201).json({ data: { email: inv.email } });
+      } catch (error) {
+        logger.error({ err: error }, 'rafanutri: falha ao aceitar convite do paciente');
+        if (userId) await database('directus_users').where({ id: userId }).del().catch(() => {});
+        res.status(500).json({ errors: [{ message: 'Não foi possível criar seu acesso agora. Tente de novo em instantes.', extensions: { code: 'INTERNAL_SERVER_ERROR' } }] });
+      }
+    });
+
+    // Com login: conta de paciente já existente aceita o convite (mesmo e-mail)
+    router.post('/patient-invites/accept', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const inv = await pendingInvite(req.body?.token);
+      if (!inv) return gone(res);
+      const me = await database('directus_users').where({ id: user }).first('email', 'role');
+      if (me?.role !== PATIENT_ROLE || (await isProfessional(user))) return res.status(403).json({ errors: [{ message: 'Esta é uma conta de profissional. Entre com a conta de paciente.', extensions: { code: 'FORBIDDEN' } }] });
+      if ((me.email ?? '').toLowerCase() !== inv.email) return res.status(403).json({ errors: [{ message: 'Este convite é para outro e-mail.', extensions: { code: 'EMAIL_MISMATCH' } }] });
+      if (!(await linkInvite(inv, user))) return gone(res);
+      res.json({ data: { ok: true } });
+    });
+
+    // Dados da área do paciente: registros ativos ligados à conta, com o plano publicado
+    router.get('/me/patient', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const rows = await database('patients as p')
+        .join('organizations as o', 'o.id', 'p.organization_id')
+        .leftJoin('directus_users as u', 'u.id', 'p.responsible_user_id')
+        .leftJoin('professional_profiles as pp', 'pp.user_id', 'p.responsible_user_id')
+        .where('p.app_user_id', user).where('p.status', 'active')
+        .orderBy('p.app_activated_at', 'desc')
+        .select('p.id', 'p.full_name', 'o.id as org_id', 'o.name as org_name', 'o.brand_color', 'u.first_name', 'u.last_name', 'pp.crn', 'pp.crn_region');
+      const plans = rows.length
+        ? await database('meal_plans').whereIn('patient_id', rows.map((r) => r.id)).where('status', 'published').select('id', 'patient_id', 'title', 'published_at', 'meals')
+        : [];
+      const planOf = new Map(plans.map((pl) => [pl.patient_id, pl]));
+      res.json({
+        data: { patient_account: await isPatientAccount(user), records: rows.map((r) => {
+          const pl = planOf.get(r.id);
+          return {
+            patient_id: r.id,
+            first_name: r.full_name.trim().split(/\s+/)[0] ?? null,
+            practice: { id: r.org_id, name: r.org_name, brand_color: r.brand_color },
+            professional: { name: [r.first_name, r.last_name].filter(Boolean).join(' ') || null, crn: r.crn ? `${r.crn_region ?? 'CRN'} ${r.crn}` : null },
+            plan: pl
+              ? { id: pl.id, title: pl.title, published_at: pl.published_at, meals: (pl.meals ?? []).map((m) => ({ id: m.id, name: m.name, time: m.time ?? null, items: (m.items ?? []).length })) }
+              : null,
+          };
+        }) },
+      });
     });
 
     // ── Anamnese por link público (RN-026), sem login ───────────────────────────────────────

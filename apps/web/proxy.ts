@@ -20,7 +20,9 @@ async function refresh(refreshToken: string): Promise<TokenSet | null> {
 
 export async function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
-  const isProtected = ['/app', '/onboarding'].some((p) => pathname === p || pathname.startsWith(`${p}/`));
+  // A área do paciente (/p) exige login, menos o convite (/p/convite/…), que é público.
+  const isPatientInvite = pathname.startsWith('/p/convite/');
+  const isProtected = ['/app', '/onboarding', '/p'].some((p) => pathname === p || pathname.startsWith(`${p}/`)) && !isPatientInvite;
   const isLogin = pathname === '/login';
 
   let hasSession = request.cookies.has(ACCESS_COOKIE);
@@ -56,5 +58,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/app/:path*', '/onboarding/:path*', '/login'],
+  matcher: ['/app/:path*', '/onboarding/:path*', '/p', '/p/:path*', '/login'],
 };

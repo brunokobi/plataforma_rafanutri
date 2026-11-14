@@ -4,6 +4,7 @@ import { Logo } from '@/components/brand/logo';
 import { OnboardingWizard } from '@/components/onboarding/onboarding-wizard';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { getMyOrganizations, landingRedirect } from '@/lib/auth/organizations';
+import { getPatientArea } from '@/lib/patient-area/actions';
 import { getCurrentUser } from '@/lib/auth/session';
 import { isSignupOpen } from '@/lib/flags';
 
@@ -12,6 +13,8 @@ export const metadata: Metadata = { title: 'Configure seu consultório', robots:
 export default async function OnboardingPage() {
   const user = await getCurrentUser();
   if (!user) redirect('/login?next=/onboarding');
+  // Conta de paciente vai para a área do paciente (não cria consultório)
+  if ((await getPatientArea())?.patient_account) redirect('/p');
   const target = landingRedirect('onboarding', await getMyOrganizations(), isSignupOpen());
   if (target) redirect(target);
   const name = [user.first_name, user.last_name].filter(Boolean).join(' ');
