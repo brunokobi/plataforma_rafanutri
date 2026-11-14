@@ -673,6 +673,29 @@ try {
     created.users.push(uid); // apagado no fim
   });
 
+  // RN-009: auditoria só do próprio consultório, só para o owner, sem acesso pela API de itens
+  await check('auditoria: o owner vê o próprio log, com autor e leituras, e não o de outro consultório', async () => {
+    assert.equal((await api('/rafanutri/audit')).status, 401, 'anônimo');
+    assert.equal((await api('/rafanutri/audit?entity=directus_users', { token: a.token })).status, 400, 'filtro inválido');
+    assert.notEqual((await api('/items/audit_logs', { token: a.token })).status, 200, 'sem API de itens');
+    const uidA = (await api('/users/me?fields=id', { token: a.token })).json.data.id;
+    const somePatient = (await api('/items/patients?fields=id&limit=1', { token: a.token })).json.data[0].id;
+    assert.equal((await api(`/rafanutri/patients/${somePatient}/notes`, { token: a.token })).status, 200);
+    await new Promise((r) => setTimeout(r, 500));
+    const la = await api('/rafanutri/audit', { token: a.token });
+    assert.equal(la.status, 200, JSON.stringify(la.json));
+    assert.ok(la.json.members.some((m) => m.id === uidA), 'membros para o filtro');
+    assert.ok(la.json.data.some((e) => e.entity === 'patients' && e.action === 'insert' && e.actor?.id === uidA), 'autor da escrita pela API de itens');
+    const reads = (await api(`/rafanutri/audit?action=read&entity=clinical_notes&patient=${somePatient}`, { token: a.token })).json.data;
+    assert.ok(reads.length === 1 && reads[0].actor?.id === uidA, 'leitura do prontuário registrada');
+    const mineA = new Set(la.json.data.map((e) => e.patient?.id).filter(Boolean));
+    const lb = await api('/rafanutri/audit', { token: b.token });
+    assert.equal(lb.status, 200);
+    assert.ok(lb.json.data.every((e) => !mineA.has(e.patient?.id)), 'B não vê registros de A');
+    assert.ok(!lb.json.members.some((m) => m.id === uidA), 'B não vê membros de A');
+    assert.deepEqual((await api(`/rafanutri/audit?patient=${somePatient}`, { token: b.token })).json.data, [], 'filtro por paciente de A');
+  });
+
   console.log(`${passed} verificações passaram.`);
 } finally {
   if (ADMIN) {

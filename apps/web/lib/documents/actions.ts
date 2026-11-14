@@ -75,7 +75,7 @@ export async function deleteDocument(patientId: string, id: string): Promise<Doc
 export async function getDocument(id: string): Promise<DocumentPayload | null> {
   if (!isUuid(id)) return null;
   try {
-    const r = await call(`/documents/${id}`);
+    const r = await call(`/documents/${id}?export=1`);
     return r.status === 200 ? (r.json?.data as DocumentPayload) : null;
   } catch {
     return null;

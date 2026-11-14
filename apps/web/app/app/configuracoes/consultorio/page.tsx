@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { AppHeader } from '@/components/app/app-header';
 import { BrandSettings } from '@/components/practice/brand-settings';
@@ -27,6 +28,13 @@ export default async function PracticeSettingsPage() {
           <BrandSettings orgId={org.id} name={org.name} color={org.brand_color} hasLogo={org.has_logo === true} canEdit={org.role === 'owner'} taxId={org.receipt_tax_id ?? null} />
         ) : (
           <Alert variant="destructive"><AlertDescription>Não foi possível carregar o consultório agora. Atualize a página em instantes.</AlertDescription></Alert>
+        )}
+        {org?.role === 'owner' && (
+          <section className="space-y-1 rounded-lg border p-4">
+            <h2 className="font-medium">Auditoria</h2>
+            <p className="text-sm text-muted-foreground">Veja quem criou, alterou, abriu ou exportou dados de pacientes e do financeiro.</p>
+            <Link href="/app/configuracoes/auditoria" className="text-sm font-medium text-primary underline-offset-4 hover:underline">Abrir auditoria</Link>
+          </section>
         )}
       </main>
     </div>

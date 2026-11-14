@@ -537,7 +537,7 @@ export default {
       if (r.errors) return bad(res, r.errors);
       const status = req.body?.status === 'published' ? 'published' : 'draft';
       try {
-        await database('patient_recommendations').where('id', own.id).update({ ...r.value, status });
+        await withActor(user, (trx) => trx('patient_recommendations').where('id', own.id).update({ ...r.value, status }));
         res.json({ data: await database('patient_recommendations').where('id', own.id).first(REC_FIELDS) });
       } catch (error) {
         recConflict(res, error);
@@ -549,7 +549,7 @@ export default {
       if (!user) return;
       const own = await ownRec(user, req.params.id);
       if (!own) return recNotFound(res);
-      await database('patient_recommendations').where('id', own.id).del();
+      await withActor(user, (trx) => trx('patient_recommendations').where('id', own.id).del());
       res.json({ data: { ok: true } });
     });
 
@@ -698,7 +698,7 @@ export default {
       const r = validateTransaction(req.body);
       if (r.errors) return bad(res, r.errors);
       try {
-        await database('financial_transactions').where('id', own.id).update(r.value);
+        await withActor(m.user, (trx) => trx('financial_transactions').where('id', own.id).update(r.value));
         res.json({ data: txOut(await txQuery(m.org).where('t.id', own.id).first(TX_FIELDS)) });
       } catch (error) {
         finConflict(res, error);
@@ -805,6 +805,7 @@ export default {
       if (!isUuid(req.params.id)) return finNotFound(res);
       const p = await receiptPayload(m.org, req.params.id);
       if (!p) return finNotFound(res);
+      logAccess(m.org, m.user, 'receipts', req.params.id, null, 'export');
       res.json({ data: p });
     });
 
@@ -911,7 +912,7 @@ export default {
       const pp = await database('patient_packages').where({ id: req.params.id, organization_id: m.org }).first('id', 'status');
       if (!pp) return pkgNotFound(res);
       try {
-        await database.transaction(async (trx) => {
+        await withActor(m.user, async (trx) => {
           await trx('patient_packages').where('id', pp.id).update({ status: 'cancelled' });
           await trx('financial_transactions').where({ patient_package_id: pp.id, status: 'open' }).update({ status: 'cancelled', paid_at: null });
         });
@@ -1072,7 +1073,7 @@ export default {
       if (!p) return leadNotFound(res);
       const days = Number(req.body?.days);
       if (!Number.isInteger(days) || days < 7 || days > 365) return bad(res, { days: 'De 7 a 365 dias.' });
-      await database('patients').where('id', p.id).update({ return_interval_days: days });
+      await withActor(m.user, (trx) => trx('patients').where('id', p.id).update({ return_interval_days: days }));
       res.json({ data: { return_interval_days: days } });
     });
 
@@ -1318,6 +1319,75 @@ export default {
     router.post('/booking-requests/:id/confirm', (req, res) => decide(req, res, true));
     router.post('/booking-requests/:id/decline', (req, res) => decide(req, res, false));
 
+    // ── Auditoria (RN-009) ──────────────────────────────────────────────────────────────────────
+    // Escritas: gatilho audit_trigger (migração 0030). Leituras e exportações: logAccess aqui.
+    // Escritas pela API de itens chegam sem autor e ganham o do directus_activity (mesma coleção, item,
+    // ação e minuto). Só o owner lê; o log tem só nomes de campos, nunca valores.
+    function logAccess(org, user, entity, entityId, patientId = null, action = 'read') {
+      database.raw('select log_access(?, ?, ?, ?, ?, ?)', [org, user, entity, String(entityId), patientId, action])
+        .catch((err) => logger.error({ err }, 'rafanutri: falha ao registrar acesso'));
+    }
+    const AUDIT_ENTITIES = new Set(['patients', 'clinical_notes', 'anamneses', 'anthropometric_assessments', 'meal_plans', 'clinical_documents',
+      'appointments', 'financial_transactions', 'receipts', 'organization_members', 'patient_app_invites', 'patient_recommendations', 'patient_packages']);
+    const AUDIT_ACTIONS = new Set(['insert', 'update', 'delete', 'read', 'export']);
+
+    router.get('/audit', async (req, res) => {
+      const m = await finMember(req, res);
+      if (!m) return;
+      if (m.role !== 'owner') return res.status(403).json({ errors: [{ message: 'Só o responsável pelo consultório vê a auditoria.', extensions: { code: 'FORBIDDEN' } }] });
+      const q = req.query ?? {};
+      const errors = {};
+      if (q.from && !isIsoDate(q.from)) errors.from = 'Data inválida.';
+      if (q.to && !isIsoDate(q.to)) errors.to = 'Data inválida.';
+      if (q.actor && !isUuid(q.actor)) errors.actor = 'Usuário inválido.';
+      if (q.patient && !isUuid(q.patient)) errors.patient = 'Paciente inválido.';
+      if (q.entity && !AUDIT_ENTITIES.has(q.entity)) errors.entity = 'Tipo inválido.';
+      if (q.action && !AUDIT_ACTIONS.has(q.action)) errors.action = 'Ação inválida.';
+      if (q.before && !/^\d{1,18}$/.test(String(q.before))) errors.before = 'Cursor inválido.';
+      if (Object.keys(errors).length) return bad(res, errors);
+      const where = ['l.organization_id = ?'];
+      const args = [m.org];
+      if (q.from) { where.push("l.occurred_at >= (?::date)::timestamp at time zone 'America/Sao_Paulo'"); args.push(q.from); }
+      if (q.to) { where.push("l.occurred_at < (?::date + 1)::timestamp at time zone 'America/Sao_Paulo'"); args.push(q.to); }
+      if (q.patient) { where.push('l.patient_id = ?'); args.push(q.patient); }
+      if (q.entity) { where.push('l.entity = ?'); args.push(q.entity); }
+      if (q.action) { where.push('l.action = ?'); args.push(q.action); }
+      if (q.before) { where.push('l.id < ?'); args.push(String(q.before)); }
+      const LIMIT = 100;
+      const { rows } = await database.raw(`
+        select x.id::text as id, x.action, x.entity, x.entity_id, x.changed_fields, x.occurred_at, x.patient_id, x.actor_id,
+               p.full_name as patient_name, u.first_name, u.last_name, u.email
+          from (
+            select l.id, l.action, l.entity, l.entity_id, l.changed_fields, l.occurred_at, l.patient_id, coalesce(l.actor_id, act."user") as actor_id
+              from audit_logs l
+              left join lateral (
+                select a."user" from directus_activity a
+                 where l.actor_id is null and l.action in ('insert', 'update', 'delete')
+                   and a.collection = l.entity and a.item = l.entity_id
+                   and a.action = case l.action when 'insert' then 'create' else l.action end
+                   and a."timestamp" between l.occurred_at - interval '1 minute' and l.occurred_at + interval '1 minute'
+                 order by abs(extract(epoch from a."timestamp" - l.occurred_at)) limit 1
+              ) act on true
+             where ${where.join(' and ')}
+          ) x
+          left join patients p on p.id = x.patient_id and p.organization_id = ?
+          left join directus_users u on u.id = x.actor_id
+         where (?::uuid is null or x.actor_id = ?::uuid)
+         order by x.id desc
+         limit ${LIMIT + 1}`, [...args, m.org, q.actor || null, q.actor || null]);
+      const more = rows.length > LIMIT;
+      const data = rows.slice(0, LIMIT).map((r) => ({
+        id: r.id, action: r.action, entity: r.entity, entity_id: r.entity_id, changed_fields: r.changed_fields ?? [],
+        occurred_at: r.occurred_at,
+        patient: r.patient_id ? { id: r.patient_id, name: r.patient_name ?? null } : null,
+        actor: r.actor_id ? { id: r.actor_id, name: [r.first_name, r.last_name].filter(Boolean).join(' ') || r.email || null } : null,
+      }));
+      const members = (await database('organization_members as om').join('directus_users as u', 'u.id', 'om.user_id')
+          .where('om.organization_id', m.org).select('u.id', 'u.first_name', 'u.last_name', 'u.email', 'om.role'))
+        .map((u) => ({ id: u.id, name: [u.first_name, u.last_name].filter(Boolean).join(' ') || u.email, role: u.role }));
+      res.json({ data, next: more ? data[data.length - 1].id : null, members });
+    });
+
     // ── Documentos clínicos com a marca (RN-215) ───────────────────────────────────────────────
     const docNotFound = (res) => res.status(404).json({ errors: [{ message: 'Documento não encontrado.', extensions: { code: 'NOT_FOUND' } }] });
     const DOC_FIELDS = ['id', 'kind', 'title', 'body', 'exams', 'document_date', 'status', 'published_at', 'date_created', 'date_updated'];
@@ -1373,6 +1443,7 @@ export default {
       if (!user) return;
       const doc = await ownDoc(user, req.params.id);
       if (!doc) return docNotFound(res);
+      logAccess(doc.organization_id, user, 'clinical_documents', doc.id, doc.patient_id, req.query?.export === '1' ? 'export' : 'read');
       res.json({ data: await documentPayload(doc) });
     });
 
@@ -1386,9 +1457,9 @@ export default {
       if (r.errors) return bad(res, r.errors);
       const status = req.body?.status === 'published' ? 'published' : 'draft';
       try {
-        const [row] = await database('clinical_documents').where('id', doc.id)
+        const [row] = await withActor(user, (trx) => trx('clinical_documents').where('id', doc.id)
           .update({ title: r.value.title, body: r.value.body, exams: JSON.stringify(r.value.exams), document_date: r.value.document_date, status })
-          .returning(DOC_FIELDS);
+          .returning(DOC_FIELDS));
         res.json({ data: docOut(row) });
       } catch (error) {
         docConflict(res, error);
@@ -1400,7 +1471,7 @@ export default {
       if (!user) return;
       const doc = await ownDoc(user, req.params.id);
       if (!doc) return docNotFound(res);
-      await database('clinical_documents').where('id', doc.id).del();
+      await withActor(user, (trx) => trx('clinical_documents').where('id', doc.id).del());
       res.json({ data: { ok: true } });
     });
 
@@ -1606,6 +1677,7 @@ export default {
       const patient = await database('patients').where({ id: req.params.id, organization_id: org }).first('id');
       if (!patient) return noteNotFound(res);
       const rows = await database('clinical_notes').where({ patient_id: patient.id, organization_id: org }).orderBy('date_created', 'desc').select(NOTE_FIELDS);
+      logAccess(org, user, 'clinical_notes', patient.id, patient.id);
       res.json({ data: rows.map((r) => ({ ...r, own: r.user_created === user })) });
     });
 
@@ -1637,7 +1709,7 @@ export default {
       if (!note) return noteNotFound(res);
       if (note.user_created !== user) return conflict(res, 'Só quem escreveu a evolução pode alterá-la.');
       await runNote(res, async () => {
-        await database('clinical_notes').where({ id: note.id }).update({ body: text, appointment_id: appointmentId });
+        await withActor(user, (trx) => trx('clinical_notes').where({ id: note.id }).update({ body: text, appointment_id: appointmentId }));
         res.json({ data: { id: note.id } });
       }, 'alterar');
     });
@@ -1649,7 +1721,7 @@ export default {
       if (!note) return noteNotFound(res);
       if (note.user_created !== user) return conflict(res, 'Só quem escreveu a evolução pode assiná-la.');
       await runNote(res, async () => {
-        const [row] = await database('clinical_notes').where({ id: note.id }).update({ signed_at: database.fn.now() }).returning(['signed_at', 'signer_name', 'signer_crn']);
+        const [row] = await withActor(user, (trx) => trx('clinical_notes').where({ id: note.id }).update({ signed_at: trx.fn.now() }).returning(['signed_at', 'signer_name', 'signer_crn']));
         res.json({ data: { id: note.id, ...row } });
       }, 'assinar');
     });
@@ -1661,7 +1733,7 @@ export default {
       if (!note) return noteNotFound(res);
       if (note.user_created !== user) return conflict(res, 'Só quem escreveu a evolução pode apagá-la.');
       await runNote(res, async () => {
-        await database('clinical_notes').where({ id: note.id }).del();
+        await withActor(user, (trx) => trx('clinical_notes').where({ id: note.id }).del());
         res.status(204).end();
       }, 'apagar');
     });
@@ -1748,6 +1820,7 @@ export default {
       if (!p) return res.status(404).json({ errors: [{ message: 'Paciente não encontrado.', extensions: { code: 'NOT_FOUND' } }] });
       await database.transaction(async (trx) => {
         await linkOn(trx);
+        await trx.raw("select set_config('rafanutri.actor', ?, true)", [user]);
         await trx('patients').where({ id: p.id }).update({ app_user_id: null, app_activated_at: null });
         await trx('patient_app_invites').where({ patient_id: p.id }).whereNull('used_at').whereNull('revoked_at').update({ revoked_at: trx.fn.now() });
       });
@@ -2092,7 +2165,7 @@ export default {
         if (role?.role !== 'owner') return res.status(403).json({ errors: [{ message: 'Só o responsável pelo consultório muda o padrão.', extensions: { code: 'FORBIDDEN' } }] });
         await database('organizations').where('id', p.organization_id).update({ patient_share_defaults: JSON.stringify(settings) });
       }
-      await database('patients').where('id', p.id).update({ share_settings: JSON.stringify(settings) });
+      await withActor(user, (trx) => trx('patients').where('id', p.id).update({ share_settings: JSON.stringify(settings) }));
       res.json({ data: { effective: await shareOf(p.id) } });
     });
 
