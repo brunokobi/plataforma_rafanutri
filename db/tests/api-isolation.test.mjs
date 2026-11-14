@@ -521,6 +521,16 @@ try {
     assert.deepEqual((await api('/rafanutri/recipes', { token: pt })).json.data, []);
     assert.equal((await api(`/rafanutri/patients/${patientB}/recipes`, { token: a.token })).status, 404);
     assert.equal((await api(`/rafanutri/patients/${patientB}/recipes`, { token: a.token, method: 'POST', body: { recipe_id: '1' } })).status, 404);
+    // RN-208: recomendações — rascunho não aparece; paciente só marca a própria leitura; outro consultório não cria
+    const recs = await api(`/rafanutri/patients/${pid}/recommendations`, { token: a.token, method: 'POST', body: { items: [{ category: 'Sono', title: 'Publicada', body: 'Texto.' }], publish: true } });
+    assert.equal(recs.status, 201);
+    await api(`/rafanutri/patients/${pid}/recommendations`, { token: a.token, method: 'POST', body: { category: 'Sono', title: 'Rascunho', body: 'Texto.' } });
+    const mine = (await api('/rafanutri/me/patient/recommendations', { token: pt })).json.data.recommendations;
+    assert.deepEqual(mine.map((r) => r.title), ['Publicada']);
+    assert.equal((await api(`/rafanutri/me/patient/recommendations/${recs.json.data.ids[0]}/read`, { token: pt, method: 'POST' })).status, 200);
+    assert.equal((await api(`/rafanutri/recommendations/${recs.json.data.ids[0]}`, { token: pt, method: 'PUT', body: { category: 'Sono', title: 'Hack', body: 'x', status: 'published' } })).status, 404);
+    assert.equal((await api(`/rafanutri/patients/${patientB}/recommendations`, { token: a.token, method: 'POST', body: { category: 'Sono', title: 'Intruso', body: 'Texto.' } })).status, 404);
+    assert.equal((await api('/items/patient_recommendations?limit=1', { token: pt })).status, 403);
     assert.equal((await api('/rafanutri/public/patient-invites/accept', { method: 'POST', body: { token: inv.json.data.token, password: 'Senha-isolamento-2' } })).status, 410);
     await api(`/rafanutri/patients/${pid}/app-access/revoke`, { token: a.token, method: 'POST' });
     assert.deepEqual((await api('/rafanutri/me/patient', { token: pt })).json.data.records, []);

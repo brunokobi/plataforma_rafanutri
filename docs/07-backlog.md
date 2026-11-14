@@ -88,7 +88,7 @@ Status: `todo`, `doing`, `done`, `adiado` (fora do MVP, ver [ADR 0004](adr/0004-
 | [RN-205](plano/fase-1b-freemium-area-paciente.md#rn-205--plano-alimentar-na-área-do-paciente) | Plano alimentar na área do paciente | feature | 3 | RN-204, RN-031, RN-034 | done |
 | [RN-206](plano/fase-1b-freemium-area-paciente.md#rn-206--biblioteca-de-receitas-compartilháveis) | Biblioteca de receitas compartilháveis | feature | 5 | RN-042 | doing |
 | [RN-207](plano/fase-1b-freemium-area-paciente.md#rn-207--receitas-na-área-do-paciente) | Receitas na área do paciente | feature | 3 | RN-206, RN-204 | done |
-| [RN-208](plano/fase-1b-freemium-area-paciente.md#rn-208--recomendações-ao-paciente) | Recomendações ao paciente | feature | 5 | RN-045, RN-204 | todo |
+| [RN-208](plano/fase-1b-freemium-area-paciente.md#rn-208--recomendações-ao-paciente) | Recomendações ao paciente | feature | 5 | RN-045, RN-204 | done |
 | [RN-209](plano/fase-1b-freemium-area-paciente.md#rn-209--documentos-do-paciente) | Documentos do paciente | feature | 2 | RN-036, RN-204 | todo |
 | [RN-210](plano/fase-1b-freemium-area-paciente.md#rn-210--o-que-o-paciente-vê-configurações-de-compartilhamento) | O que o paciente vê (configurações de compartilhamento) | feature | 2 | RN-205 | todo |
 | [RN-211](plano/fase-1b-freemium-area-paciente.md#rn-211--paciente-com-mais-de-um-nutricionista) | Paciente com mais de um nutricionista | feature | 2 | RN-203, RN-204 | todo |

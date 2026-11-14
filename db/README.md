@@ -367,6 +367,20 @@ Migração `0017_plan_waitlist.sql` (**aplicada na vpsrafa em 14/11/2026**), tes
 | Interesse no plano pago: um por consultório, só o owner registra, guarda o plano desejado e o uso no momento | `plan_waitlist` + gatilho `plan_waitlist_guard` |
 | `GET /rafanutri/plan` (plano, uso e interesse do próprio consultório) e `POST /rafanutri/plan/waitlist` | extensão `rafanutri` |
 
+## Recomendações ao paciente (RN-208)
+
+Migração `0020_patient_recommendations.sql` (idempotente; testes em `db/tests/0020_patient_recommendations.test.sql`):
+
+- `patient_recommendations` (categoria, título, texto ≤ 4.000, `pinned`, `status` `draft`/`published`, `published_at`, `read_at`). Só owner/nutricionista cria, para paciente ativo do consultório.
+- `read_at` só muda com a variável de sessão `rafanutri.patient_read` (endpoint do paciente), uma vez, em recomendação publicada e sem alterar mais nada. Editar título/texto de uma publicada ou voltar para rascunho zera a leitura.
+
+| Endpoint | Quem |
+|---|---|
+| `GET`/`POST /rafanutri/patients/:id/recommendations` (`{ items: [...], publish }` cria várias), `PUT`/`DELETE /rafanutri/recommendations/:id` | profissional |
+| `GET /rafanutri/me/patient/recommendations[?c=]`, `POST /rafanutri/me/patient/recommendations/:id/read` | paciente (só publicadas) |
+
+`GET /rafanutri/me/patient` passa a trazer `recommendations_unread` por registro.
+
 ## Receitas: biblioteca e envio ao paciente (RN-206, RN-207)
 
 Migração `0019_recipe_library.sql` (idempotente; testes em `db/tests/0019_recipe_library.test.sql`):
