@@ -290,6 +290,59 @@ export default {
       res.status(204).end();
     });
 
+    // ── Plano do consultório e lista de interesse no plano pago (RN-200, RN-202) ────────────
+    async function memberOrg(userId) {
+      return database('organization_members as m')
+        .join('organizations as o', 'o.id', 'm.organization_id')
+        .where('m.user_id', userId)
+        .orderBy('o.created_at')
+        .first('o.id', 'o.plan', 'm.role');
+    }
+    const PAID_PLANS = new Set(['essential', 'professional', 'clinic']);
+
+    router.get('/plan', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const org = await memberOrg(user);
+      if (!org) return res.status(404).json({ errors: [{ message: 'Você não tem consultório.', extensions: { code: 'NOT_FOUND' } }] });
+      const [plan, counts, members, waitlist] = await Promise.all([
+        database('plans').where({ code: org.plan }).first('code', 'name', 'max_active_patients', 'max_members'),
+        database('patients').where({ organization_id: org.id }).select('status').count('* as n').groupBy('status'),
+        database('organization_members').where({ organization_id: org.id }).count('* as n').first(),
+        database('plan_waitlist').where({ organization_id: org.id }).first('desired_plan', 'date_created'),
+      ]);
+      const byStatus = Object.fromEntries(counts.map((c) => [c.status, Number(c.n)]));
+      res.json({
+        data: {
+          plan,
+          role: org.role,
+          usage: { active_patients: byStatus.active ?? 0, archived_patients: byStatus.archived ?? 0, members: Number(members?.n ?? 0) },
+          waitlist: waitlist ?? null,
+        },
+      });
+    });
+
+    router.post('/plan/waitlist', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const desired = req.body?.desired_plan ?? null;
+      const note = typeof req.body?.note === 'string' ? req.body.note.trim().slice(0, 500) : null;
+      if (desired !== null && !PAID_PLANS.has(desired)) return bad(res, { desired_plan: 'Plano inválido.' });
+      const org = await memberOrg(user);
+      if (!org || org.role !== 'owner') return res.status(403).json({ errors: [{ message: 'Só o responsável pelo consultório pode registrar o interesse.', extensions: { code: 'FORBIDDEN' } }] });
+      try {
+        const active = await database('patients').where({ organization_id: org.id, status: 'active' }).count('* as n').first();
+        await database('plan_waitlist')
+          .insert({ organization_id: org.id, user_id: user, desired_plan: desired, note, active_patients: Number(active?.n ?? 0) })
+          .onConflict('organization_id')
+          .merge(['user_id', 'desired_plan', 'note', 'active_patients']);
+        res.status(201).json({ data: { ok: true } });
+      } catch (error) {
+        logger.error({ err: error }, 'rafanutri: falha ao registrar interesse no plano pago');
+        res.status(500).json({ errors: [{ message: 'Não foi possível registrar agora.', extensions: { code: 'INTERNAL_SERVER_ERROR' } }] });
+      }
+    });
+
     // ── Evoluções do prontuário (RN-023) ────────────────────────────────────────────────────
     // Rascunho → assinar (imutável) → retificar (nova versão ligada à original). As regras ficam no
     // gatilho clinical_notes_guard; aqui só se resolve o consultório e o autor pelo usuário logado.

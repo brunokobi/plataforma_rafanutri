@@ -20,7 +20,8 @@ db/
 │   ├── 0013_custom_foods_recipes.sql  # RN-041/042: alimentos próprios e preparações do consultório
 │   ├── 0014_text_snippets.sql         # RN-045: orientações reutilizáveis do consultório
 │   ├── 0015_clinical_notes.sql        # RN-023: evoluções do prontuário (assinatura e retificação)
-│   └── 0016_clinical_notes_cascade.sql # RN-023: exclusão em cascata leva as evoluções
+│   ├── 0016_clinical_notes_cascade.sql # RN-023: exclusão em cascata leva as evoluções
+│   └── 0017_plan_waitlist.sql          # RN-200/202: lista de interesse no plano pago
 ├── tests/
 │   ├── 0002_organizations.test.sql  # regras do banco (transação desfeita no fim)
 │   ├── 0004_patients.test.sql       # limite de 20 ativos, CPF, responsável, formatos
@@ -34,6 +35,7 @@ db/
 │   ├── 0014_text_snippets.test.sql         # autor do consultório, biblioteca só por seed, campos aparados
 │   ├── 0015_clinical_notes.test.sql        # rascunho, assinatura imutável, retificação em cadeia
 │   ├── 0016_clinical_notes_cascade.test.sql # cascata apaga; DELETE/UPDATE direto de assinada barrado
+│   ├── 0017_plan_waitlist.test.sql          # só o owner registra, um por consultório
 │   ├── extension-foods.test.mjs       # conversão porção → 100 g e composição da preparação (node --test)
 │   └── api-isolation.test.mjs       # RN-008: isolamento entre consultórios pela API
 ├── directus/
@@ -351,3 +353,14 @@ Migrações `0015_clinical_notes.sql` e `0016_clinical_notes_cascade.sql` (**apl
 | `GET/POST /rafanutri/patients/:id/notes`, `PUT/DELETE /rafanutri/notes/:id`, `POST /rafanutri/notes/:id/sign` (conflito → 409 com a mensagem do banco) | extensão `rafanutri` |
 
 Falta o registro de leitura do prontuário (`log_access`), que depende da auditoria (RN-009).
+
+## Plano gratuito e lista de interesse (RN-200 a RN-202)
+
+Migração `0017_plan_waitlist.sql` (**aplicada na vpsrafa em 14/11/2026**), testes em `db/tests/0017_plan_waitlist.test.sql` e no teste de isolamento.
+
+| Regra | Onde |
+|---|---|
+| Plano do consultório em `organizations.plan` (só `free` no MVP: 20 pacientes ativos, 1 profissional). A tabela `subscriptions` do plano original fica para a cobrança (RN-057) | `plans` (0002) |
+| Limite de pacientes ativos no banco, com trava por consultório contra cadastros simultâneos; reativar ocupa vaga | gatilho `enforce_active_patient_limit` (0004) + gancho com a mensagem "Você atingiu o limite de 20 pacientes ativos do plano Gratuito" |
+| Interesse no plano pago: um por consultório, só o owner registra, guarda o plano desejado e o uso no momento | `plan_waitlist` + gatilho `plan_waitlist_guard` |
+| `GET /rafanutri/plan` (plano, uso e interesse do próprio consultório) e `POST /rafanutri/plan/waitlist` | extensão `rafanutri` |

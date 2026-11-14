@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { setPatientStatus } from '@/lib/patients/actions';
 import { ageInYears, type Patient, type PatientStatus } from '@/lib/patients/schema';
+import { seatsInfo, seatsMessage } from '@/lib/plan/seats';
 import { cn } from '@/lib/utils';
 
 const STATUS: Record<PatientStatus, string> = { active: 'Ativos', inactive: 'Inativos', archived: 'Arquivados' };
@@ -110,7 +111,16 @@ export function PatientsList({ patients, limit, planName, demoHref }: PatientsLi
         <Alert>
           <AlertCircle />
           <AlertDescription>
-            Você chegou ao limite de {limit} pacientes ativos do plano {planName}. Arquive quem não está mais em acompanhamento para liberar vagas.
+            Você chegou ao limite de {limit} pacientes ativos do plano {planName}. Arquive quem não está mais em acompanhamento para liberar vagas, ou{' '}
+            <Link href="/app/configuracoes/plano#interesse" className="font-medium text-primary hover:underline">registre interesse no plano pago</Link>.
+          </AlertDescription>
+        </Alert>
+      )}
+      {!full && seatsInfo(activeCount, limit).level === 'warning' && (
+        <Alert>
+          <AlertCircle />
+          <AlertDescription>
+            {seatsMessage(activeCount, limit)} <Link href="/app/configuracoes/plano" className="font-medium text-primary hover:underline">Ver meu plano</Link>
           </AlertDescription>
         </Alert>
       )}

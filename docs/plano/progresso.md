@@ -62,7 +62,7 @@ Atualizado em **13/11/2026**. O que já está no código (`main`), o que está s
 
 | Item | Situação | Observação |
 |---|---|---|
-| RN-200 a RN-202 Plano gratuito e limite | 🧪 | Tela principal com os módulos por plano ([spec](../specs/tela-principal-modulos.md)); hoje todo usuário é tratado como plano gratuito |
+| RN-200 a RN-202 Plano gratuito e limite | ✅ | Limite de 20 ativos no banco (com trava para cadastros simultâneos) e mensagem do critério de aceite; contador na lista, aviso a partir de 18 e bloqueio no limite com atalho para o plano pago; tela **Meu plano** (`/app/configuracoes/plano`) com uso, o que está incluído e **lista de interesse no plano pago** (migração 0017). `getEntitlements` no app. Assinaturas (`subscriptions`) ficam para a cobrança (RN-057) |
 | RN-203 a RN-215 Área do paciente | ⏳ | |
 
 ## Página pública e marketing

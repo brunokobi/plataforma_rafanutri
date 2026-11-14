@@ -40,7 +40,7 @@ export default ({ filter }, { database }) => {
     if (excludeIds.length) q.whereNotIn('id', excludeIds);
     const { count } = await q.count({ count: '*' }).first();
     if (Number(count) >= row.lim) {
-      throw invalid(`O plano ${row.plan} permite até ${row.lim} pacientes ativos. Arquive um paciente para liberar a vaga.`);
+      throw invalid(`Você atingiu o limite de ${row.lim} pacientes ativos do plano ${row.plan}. Arquive um paciente para liberar a vaga.`);
     }
   }
 

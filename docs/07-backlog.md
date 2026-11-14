@@ -80,9 +80,9 @@ Status: `todo`, `doing`, `done`, `adiado` (fora do MVP, ver [ADR 0004](adr/0004-
 
 | ID | Item | Tipo | Pts | Depende de | Status |
 |---|---|---|---|---|---|
-| [RN-200](plano/fase-1b-freemium-area-paciente.md#rn-200--planos-assinatura-e-plano-gratuito) | Planos, assinatura e plano gratuito | feature | 3 | RN-004 | todo |
-| [RN-201](plano/fase-1b-freemium-area-paciente.md#rn-201--limite-de-20-pacientes-ativos-no-banco) | Limite de 20 pacientes ativos no banco | feature | 3 | RN-200, RN-020 | todo |
-| [RN-202](plano/fase-1b-freemium-area-paciente.md#rn-202--uso-do-plano-e-aviso-de-limite-na-interface) | Uso do plano e aviso de limite na interface | feature | 2 | RN-201, RN-013 | todo |
+| [RN-200](plano/fase-1b-freemium-area-paciente.md#rn-200--planos-assinatura-e-plano-gratuito) | Planos, assinatura e plano gratuito | feature | 3 | RN-004 | done |
+| [RN-201](plano/fase-1b-freemium-area-paciente.md#rn-201--limite-de-20-pacientes-ativos-no-banco) | Limite de 20 pacientes ativos no banco | feature | 3 | RN-200, RN-020 | done |
+| [RN-202](plano/fase-1b-freemium-area-paciente.md#rn-202--uso-do-plano-e-aviso-de-limite-na-interface) | Uso do plano e aviso de limite na interface | feature | 2 | RN-201, RN-013 | done |
 | [RN-203](plano/fase-1b-freemium-area-paciente.md#rn-203--convite-do-paciente-e-vínculo-da-conta) | Convite do paciente e vínculo da conta | feature | 5 | RN-005, RN-020 | todo |
 | [RN-204](plano/fase-1b-freemium-area-paciente.md#rn-204--área-do-paciente-autenticação-layout-e-início) | Área do paciente: autenticação, layout e início | feature | 5 | RN-203, RN-019 | todo |
 | [RN-205](plano/fase-1b-freemium-area-paciente.md#rn-205--plano-alimentar-na-área-do-paciente) | Plano alimentar na área do paciente | feature | 3 | RN-204, RN-031, RN-034 | todo |

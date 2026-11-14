@@ -149,7 +149,7 @@ packages/
   forms/                  # formato dos questionários e validador das respostas (app + extensão do Directus)
   config/                 # tsconfig base
 db/
-  migrations/             # SQL versionado e idempotente (0001 alimentos … 0016 evoluções do prontuário)
+  migrations/             # SQL versionado e idempotente (0001 alimentos … 0017 lista de interesse no plano pago)
   seed/taco/              # TACO 4ª edição (CSV + importador + gerador a partir da planilha oficial)
   seed/dev/               # seed de nutricionista de teste com consultório e pacientes
   tests/                  # testes SQL das regras do banco + teste de isolamento pela API

@@ -1,7 +1,7 @@
 # Revisão de segurança da Fase 1 (RN-049)
 
 - **Data:** 12 e 13/11/2026
-- **Escopo:** tudo o que a Fase 1 criou na vpsrafa — app web (`rafanutri.brunokobi.tech`), Directus (`rafanutri-api.brunokobi.tech`), banco (migrações 0001 a 0016), extensões `rafanutri` e `rafanutri-hooks`.
+- **Escopo:** tudo o que a Fase 1 criou na vpsrafa — app web (`rafanutri.brunokobi.tech`), Directus (`rafanutri-api.brunokobi.tech`), banco (migrações 0001 a 0017), extensões `rafanutri` e `rafanutri-hooks`.
 - **Resultado:** **nenhuma pendência crítica aberta no código.** Uma pendência crítica de **operação** continua aberta: o backup diário automático (ver o fim).
 
 ## 1. Isolamento entre consultórios (equivalente às políticas RLS)

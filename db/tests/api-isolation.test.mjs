@@ -160,7 +160,7 @@ try {
     }
     const r = await api('/items/patients', { token: a.token, method: 'POST', body: { organization_id: A, full_name: 'Paciente Limite 21' } });
     assert.equal(r.status, 400);
-    assert.match(r.json.errors[0].message, /até 20 pacientes ativos/);
+    assert.match(r.json.errors[0].message, /limite de 20 pacientes ativos/);
     const reativar = await api(`/items/patients/${patientA}`, { token: a.token, method: 'PATCH', body: { status: 'active' } });
     assert.equal(reativar.status, 400, 'reativar com o limite cheio deveria falhar');
   });
@@ -468,6 +468,24 @@ try {
   await check('evolução sem login ou pela coleção direta é recusada', async () => {
     assert.equal((await api(`/rafanutri/patients/${patientA}/notes`)).status, 401);
     assert.equal((await api('/items/clinical_notes?limit=1', { token: a.token })).status, 403);
+  });
+
+  console.log('Plano e lista de interesse (RN-200, RN-202):');
+  await check('cada um vê só o uso do próprio consultório', async () => {
+    const ra = await api('/rafanutri/plan', { token: a.token });
+    const rb = await api('/rafanutri/plan', { token: b.token });
+    assert.equal(ra.status, 200);
+    assert.equal(ra.json.data.plan.code, 'free');
+    assert.ok(ra.json.data.usage.active_patients >= 20, 'A tem os pacientes do teste de limite');
+    assert.ok(rb.json.data.usage.active_patients < ra.json.data.usage.active_patients, 'B não conta os pacientes de A');
+  });
+  await check('interesse no plano pago: owner registra; inválido, sem login e coleção direta recusados', async () => {
+    assert.equal((await api('/rafanutri/plan/waitlist', { token: a.token, method: 'POST', body: { desired_plan: 'professional', note: 'teste' } })).status, 201);
+    assert.equal((await api('/rafanutri/plan', { token: a.token })).json.data.waitlist.desired_plan, 'professional');
+    assert.equal((await api('/rafanutri/plan', { token: b.token })).json.data.waitlist, null);
+    assert.equal((await api('/rafanutri/plan/waitlist', { token: a.token, method: 'POST', body: { desired_plan: 'gratis' } })).status, 400);
+    assert.equal((await api('/rafanutri/plan/waitlist', { method: 'POST', body: {} })).status, 401);
+    assert.equal((await api('/items/plan_waitlist', { token: a.token })).status, 403);
   });
 
   console.log(`${passed} verificações passaram.`);
