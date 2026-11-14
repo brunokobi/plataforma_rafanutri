@@ -8,6 +8,7 @@ import { Readable } from 'node:stream';
 import { CUSTOM_NUTRIENTS, parseImageDataUrl, recipePer100g, validateFoodInput, validateRecipeInput } from './foods.js';
 import { validateDocumentInput } from './documents.js';
 import { validateLead } from './crm.js';
+import { isOfferedSlot, localDateOf, publicSlots, validateBooking } from './booking.js';
 import { fillMonths, isIsoDate, monthStart, splitInstallments, validatePackage, validateTransaction } from './finance.js';
 
 const TYPES = new Set(['solo', 'clinic']);
@@ -1112,6 +1113,210 @@ export default {
         },
       });
     });
+
+    // ── Página pública e agendamento online (RN-068) ────────────────────────────────────────────
+    const pubNotFound = (res) => res.status(404).json({ errors: [{ message: 'Página não encontrada.', extensions: { code: 'NOT_FOUND' } }] });
+    const PROFILE_FIELDS = ['enabled', 'headline', 'bio', 'specialties', 'address', 'city', 'in_person', 'online', 'price_first_cents', 'price_return_cents',
+      'booking_enabled', 'require_approval', 'nutritionist_id', 'weekdays', database.raw("to_char(day_start, 'HH24:MI') as day_start"), database.raw("to_char(day_end, 'HH24:MI') as day_end"),
+      'slot_minutes', 'min_notice_hours', 'max_days_ahead'];
+    const profileOut = (p) => p && ({ ...p, price_first_cents: p.price_first_cents == null ? null : Number(p.price_first_cents), price_return_cents: p.price_return_cents == null ? null : Number(p.price_return_cents) });
+    async function publicPractice(slug) {
+      if (typeof slug !== 'string' || !/^[a-z0-9-]{1,80}$/.test(slug)) return null;
+      const org = await database('organizations').where('slug', slug).first('id', 'name', 'brand_color', 'logo');
+      if (!org) return null;
+      const profile = profileOut(await database('public_profiles').where({ organization_id: org.id, enabled: true }).first(PROFILE_FIELDS));
+      if (!profile) return null;
+      const nutri = profile.nutritionist_id ?? (await database('organization_members').where({ organization_id: org.id, role: 'owner' }).first('user_id'))?.user_id;
+      return { org, profile: { ...profile, nutritionist_id: nutri } };
+    }
+    async function busyIntervals(orgId, nutri, from, to) {
+      const a = await database('appointments').where({ organization_id: orgId, nutritionist_id: nutri }).whereIn('status', ['scheduled', 'confirmed', 'completed'])
+        .where('starts_at', '<', to).where('ends_at', '>', from).select('starts_at', 'ends_at');
+      const r = await database('booking_requests').where({ organization_id: orgId, nutritionist_id: nutri, status: 'pending' })
+        .where('starts_at', '<', to).where('ends_at', '>', from).select('starts_at', 'ends_at');
+      return [...a, ...r].map((x) => [new Date(x.starts_at).getTime(), new Date(x.ends_at).getTime()]);
+    }
+
+    router.get('/public/practices/:slug', async (req, res) => {
+      const p = await publicPractice(req.params.slug);
+      if (!p) return pubNotFound(res);
+      const u = await database('directus_users').where('id', p.profile.nutritionist_id).first('first_name', 'last_name');
+      const prof = await database('professional_profiles').where('user_id', p.profile.nutritionist_id).first('crn', 'crn_region');
+      const { nutritionist_id: _n, require_approval, ...rest } = p.profile;
+      res.setHeader('Cache-Control', 'public, max-age=60');
+      res.json({
+        data: {
+          name: p.org.name, brand_color: p.org.brand_color, has_logo: Boolean(p.org.logo), require_approval,
+          professional: { name: [u?.first_name, u?.last_name].filter(Boolean).join(' ') || null, crn: prof?.crn ? `${prof.crn_region ?? 'CRN'} ${prof.crn}` : null },
+          ...rest,
+        },
+      });
+    });
+
+    router.get('/public/practices/:slug/logo', async (req, res) => {
+      const p = await publicPractice(req.params.slug);
+      if (!p?.org.logo) return pubNotFound(res);
+      try {
+        const assets = new services.AssetsService({ schema: await getSchema(), accountability: null });
+        const { stream, file } = await assets.getAsset(p.org.logo);
+        res.setHeader('Content-Type', file.type ?? 'application/octet-stream');
+        res.setHeader('Cache-Control', 'public, max-age=3600');
+        res.setHeader('X-Content-Type-Options', 'nosniff');
+        res.setHeader('Content-Security-Policy', "default-src 'none'; style-src 'unsafe-inline'; sandbox");
+        stream.pipe(res);
+      } catch {
+        pubNotFound(res);
+      }
+    });
+
+    // Horários livres (só horários, nada sobre as consultas). ?from=aaaa-mm-dd&days=1..14
+    router.get('/public/practices/:slug/slots', async (req, res) => {
+      const p = await publicPractice(req.params.slug);
+      if (!p || !p.profile.booking_enabled) return pubNotFound(res);
+      const now = new Date();
+      const from = isIsoDate(req.query.from) && req.query.from >= localDateOf(now) ? req.query.from : localDateOf(now);
+      const days = Math.min(14, Math.max(1, Number(req.query.days) || 7));
+      const start = new Date(`${from}T00:00:00-03:00`);
+      const end = new Date(start.getTime() + (days + 1) * 86_400_000);
+      const busy = await busyIntervals(p.org.id, p.profile.nutritionist_id, start, end);
+      res.setHeader('Cache-Control', 'no-store');
+      res.json({ data: { from, days: publicSlots(p.profile, busy, from, days, now), slot_minutes: p.profile.slot_minutes } });
+    });
+
+    /** Confirma o pedido: paciente (o mesmo e-mail no consultório ou novo, dentro do limite) + consulta. */
+    async function confirmBooking(reqRow, actor) {
+      return database.transaction(async (trx) => {
+        await trx.raw("select set_config('rafanutri.actor', ?, true)", [actor]);
+        let patient = await trx('patients').where({ organization_id: reqRow.organization_id }).whereRaw('lower(email) = ?', [reqRow.email]).whereNot('status', 'archived')
+          .orderByRaw("status = 'active' desc").first('id', 'status');
+        if (!patient) {
+          const [p] = await trx('patients').insert({ organization_id: reqRow.organization_id, responsible_user_id: reqRow.nutritionist_id, full_name: reqRow.full_name, email: reqRow.email, phone: reqRow.phone, lead_source: 'site' }).returning('id');
+          patient = { id: p.id ?? p };
+        }
+        const [a] = await trx('appointments').insert({
+          organization_id: reqRow.organization_id, patient_id: patient.id, nutritionist_id: reqRow.nutritionist_id, starts_at: reqRow.starts_at, ends_at: reqRow.ends_at,
+          type: 'first', mode: reqRow.mode, status: 'scheduled', origin: 'online_booking', notes: reqRow.message ? `Agendamento online: ${reqRow.message}`.slice(0, 500) : 'Agendamento online', user_created: reqRow.nutritionist_id,
+        }).returning('id');
+        await trx('booking_requests').where('id', reqRow.id).update({ status: 'confirmed', patient_id: patient.id, appointment_id: a.id ?? a, decided_by: actor, decided_at: trx.fn.now() });
+        return { patient_id: patient.id, appointment_id: a.id ?? a };
+      });
+    }
+
+    router.post('/public/practices/:slug/book', async (req, res) => {
+      const p = await publicPractice(req.params.slug);
+      if (!p || !p.profile.booking_enabled) return pubNotFound(res);
+      const v = validateBooking(req.body, p.profile);
+      if (v.spam) return res.status(201).json({ data: { status: 'pending' } }); // campo-isca: finge sucesso
+      if (v.errors) return bad(res, v.errors);
+      const now = new Date();
+      const s = new Date(v.value.starts_at);
+      const e = new Date(s.getTime() + p.profile.slot_minutes * 60_000);
+      const busy = await busyIntervals(p.org.id, p.profile.nutritionist_id, new Date(s.getTime() - 86_400_000), new Date(e.getTime() + 86_400_000));
+      if (!isOfferedSlot(p.profile, busy, v.value.starts_at, now)) return conflict(res, 'Esse horário não está mais disponível. Escolha outro.');
+      const today = await database('booking_requests').where('organization_id', p.org.id).where('created_at', '>', database.raw("now() - interval '1 day'")).count({ n: '*' }).first();
+      if (Number(today?.n ?? 0) >= 30) return res.status(429).json({ errors: [{ message: 'Muitos pedidos hoje. Tente amanhã ou fale direto com o consultório.', extensions: { code: 'TOO_MANY' } }] });
+      const mine = await database('booking_requests').where({ organization_id: p.org.id, status: 'pending' }).where((q) => q.where('email', v.value.email).orWhere('phone', v.value.phone)).count({ n: '*' }).first();
+      if (Number(mine?.n ?? 0) >= 2) return conflict(res, 'Você já tem pedidos aguardando confirmação. O consultório vai entrar em contato.');
+      let row;
+      try {
+        [row] = await database('booking_requests').insert({ organization_id: p.org.id, nutritionist_id: p.profile.nutritionist_id, ...v.value, ends_at: e.toISOString() }).returning('*');
+      } catch (error) {
+        if (error?.code === 'P0001') return conflict(res, 'Esse horário não está mais disponível. Escolha outro.');
+        logger.error({ err: error }, 'rafanutri: falha no agendamento online');
+        return res.status(500).json({ errors: [{ message: 'Não foi possível agendar agora.', extensions: { code: 'INTERNAL_SERVER_ERROR' } }] });
+      }
+      if (!p.profile.require_approval) {
+        try {
+          await confirmBooking(row, p.profile.nutritionist_id);
+          return res.status(201).json({ data: { status: 'confirmed', starts_at: row.starts_at } });
+        } catch (error) {
+          logger.warn({ err: error?.message }, 'rafanutri: agendamento online ficou pendente');
+        }
+      }
+      res.status(201).json({ data: { status: 'pending', starts_at: row.starts_at } });
+    });
+
+    // Configuração da página (owner)
+    router.get('/practices/:id/public-profile', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const org = await ownedOrg(user, req.params.id);
+      if (!org) return orgNotFound(res);
+      const o = await database('organizations').where('id', org.id).first('slug');
+      const profile = profileOut(await database('public_profiles').where('organization_id', org.id).first(PROFILE_FIELDS));
+      const nutritionists = await database('organization_members as om').join('directus_users as u', 'u.id', 'om.user_id')
+        .where('om.organization_id', org.id).whereIn('om.role', ['owner', 'nutritionist'])
+        .select('u.id', database.raw("trim(coalesce(u.first_name, '') || ' ' || coalesce(u.last_name, '')) as name"), 'u.email');
+      res.json({ data: { slug: o.slug, profile, nutritionists: nutritionists.map((n) => ({ id: n.id, name: n.name || n.email })) } });
+    });
+
+    router.put('/practices/:id/public-profile', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const org = await ownedOrg(user, req.params.id);
+      if (!org) return orgNotFound(res);
+      const b = req.body ?? {};
+      const errors = {};
+      const text = (v, max, key, label) => {
+        if (v == null || String(v).trim() === '') return null;
+        const t = String(v).trim();
+        if (t.length > max) errors[key] = `${label} de até ${max} caracteres.`;
+        return t;
+      };
+      const time = (v, key) => (typeof v === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(v) ? v : ((errors[key] = 'Horário inválido.'), null));
+      const cents = (v, key) => (v == null || v === '' ? null : Number.isSafeInteger(Number(v)) && Number(v) > 0 ? Number(v) : ((errors[key] = 'Valor inválido.'), null));
+      const specialties = Array.isArray(b.specialties) ? [...new Set(b.specialties.map((s) => String(s).trim()).filter(Boolean))] : [];
+      if (specialties.length > 10 || specialties.some((s) => s.length > 40)) errors.specialties = 'Até 10 especialidades de até 40 caracteres.';
+      const weekdays = Array.isArray(b.weekdays) ? [...new Set(b.weekdays.map(Number))].filter((d) => d >= 1 && d <= 7).sort() : [];
+      if (!weekdays.length) errors.weekdays = 'Escolha ao menos um dia.';
+      const value = {
+        enabled: b.enabled === true, booking_enabled: b.booking_enabled === true, require_approval: b.require_approval !== false,
+        headline: text(b.headline, 120, 'headline', 'Chamada'), bio: text(b.bio, 1500, 'bio', 'Apresentação'), address: text(b.address, 200, 'address', 'Endereço'), city: text(b.city, 80, 'city', 'Cidade'),
+        specialties: JSON.stringify(specialties), in_person: b.in_person !== false, online: b.online !== false,
+        price_first_cents: cents(b.price_first_cents, 'price_first_cents'), price_return_cents: cents(b.price_return_cents, 'price_return_cents'),
+        nutritionist_id: isUuid(b.nutritionist_id) ? b.nutritionist_id : null, weekdays,
+        day_start: time(b.day_start, 'day_start'), day_end: time(b.day_end, 'day_end'),
+        slot_minutes: [30, 45, 60, 90].includes(Number(b.slot_minutes)) ? Number(b.slot_minutes) : 60,
+        min_notice_hours: Math.min(168, Math.max(0, Number(b.min_notice_hours) || 0)), max_days_ahead: Math.min(90, Math.max(1, Number(b.max_days_ahead) || 30)),
+      };
+      if (!value.in_person && !value.online) errors.in_person = 'Escolha ao menos uma modalidade.';
+      if (value.day_start && value.day_end && value.day_end <= value.day_start) errors.day_end = 'O fim do expediente precisa ser depois do início.';
+      if (Object.keys(errors).length) return bad(res, errors);
+      try {
+        await database('public_profiles').insert({ organization_id: org.id, ...value }).onConflict('organization_id').merge();
+        res.json({ data: profileOut(await database('public_profiles').where('organization_id', org.id).first(PROFILE_FIELDS)) });
+      } catch (error) {
+        crmConflict(res, error);
+      }
+    });
+
+    // Pedidos de agendamento (agenda do consultório)
+    router.get('/booking-requests', async (req, res) => {
+      const m = await finMember(req, res);
+      if (!m) return;
+      const rows = await database('booking_requests').where({ organization_id: m.org, status: 'pending' }).orderBy('starts_at')
+        .select('id', 'full_name', 'email', 'phone', 'mode', 'starts_at', 'ends_at', 'message', 'created_at');
+      res.json({ data: rows });
+    });
+
+    async function decide(req, res, confirm) {
+      const m = await finMember(req, res);
+      if (!m) return;
+      if (!clinical(m)) return forbidClinical(res);
+      if (!isUuid(req.params.id)) return pubNotFound(res);
+      const row = await database('booking_requests').where({ id: req.params.id, organization_id: m.org, status: 'pending' }).first();
+      if (!row) return res.status(404).json({ errors: [{ message: 'Pedido não encontrado ou já decidido.', extensions: { code: 'NOT_FOUND' } }] });
+      try {
+        if (confirm) return res.json({ data: await confirmBooking(row, m.user) });
+        await database('booking_requests').where('id', row.id).update({ status: 'declined', decided_by: m.user, decided_at: database.fn.now() });
+        res.json({ data: { ok: true } });
+      } catch (error) {
+        if (error?.code === 'P0001' && /limite|permite no máximo/i.test(error.message)) return conflict(res, 'Limite de pacientes ativos do plano: arquive um paciente para confirmar.');
+        crmConflict(res, error);
+      }
+    }
+    router.post('/booking-requests/:id/confirm', (req, res) => decide(req, res, true));
+    router.post('/booking-requests/:id/decline', (req, res) => decide(req, res, false));
 
     // ── Documentos clínicos com a marca (RN-215) ───────────────────────────────────────────────
     const docNotFound = (res) => res.status(404).json({ errors: [{ message: 'Documento não encontrado.', extensions: { code: 'NOT_FOUND' } }] });

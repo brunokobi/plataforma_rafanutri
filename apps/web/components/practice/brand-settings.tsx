@@ -110,6 +110,7 @@ export function BrandSettings({ orgId, name, color: initialColor, hasLogo, canEd
         </>
       )}
       {feedback && <p role="status" className={feedback.ok ? 'text-sm text-muted-foreground' : 'text-sm text-destructive'}>{feedback.text}</p>}
+      {canEdit && <p className="text-sm"><a href="/app/configuracoes/pagina-publica" className="font-medium text-primary hover:underline">Página pública e agendamento online →</a></p>}
     </section>
   );
 }

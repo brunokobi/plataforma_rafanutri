@@ -4,6 +4,8 @@ import { AgendaWeek } from '@/components/agenda/agenda-week';
 import { AppHeader } from '@/components/app/app-header';
 import { listAppointments } from '@/lib/appointments/repository';
 import { getAgendaPackages } from '@/lib/packages/actions';
+import { BookingRequests } from '@/components/booking/booking-requests';
+import { listBookingRequests } from '@/lib/booking/actions';
 import { addDays, isDate, today, toInstant, weekStart } from '@/lib/appointments/schema';
 import { getMyOrganizations, landingRedirect } from '@/lib/auth/organizations';
 import { getCurrentUser } from '@/lib/auth/session';
@@ -33,7 +35,10 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
       ])
     : [null, null];
   const options = (patients ?? []).filter((p) => p.status === 'active').map((p) => ({ id: p.id, full_name: p.full_name }));
-  const packages = await getAgendaPackages((appointments ?? []).map((a) => a.patient_id?.id ?? '').filter(Boolean));
+  const [packages, requests] = await Promise.all([
+    getAgendaPackages((appointments ?? []).map((a) => a.patient_id?.id ?? '').filter(Boolean)),
+    organization ? listBookingRequests() : null,
+  ]);
   const defaultPatientId = isUuid(paciente) && options.some((p) => p.id === paciente) ? paciente : undefined;
 
   return (
@@ -42,6 +47,7 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
       <main className="mx-auto max-w-7xl px-5 py-10">
         <h1 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">Agenda</h1>
         {organization && <p className="mt-1 text-sm text-muted-foreground">{organization.name} · horário de Brasília</p>}
+        {requests && requests.length > 0 && <div className="mt-6"><BookingRequests list={requests} /></div>}
         <div className="mt-6">
           <AgendaWeek start={start} todayDate={todayDate} appointments={appointments} patients={options} defaultPatientId={defaultPatientId} packages={packages} />
         </div>
