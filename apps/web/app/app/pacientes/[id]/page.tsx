@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { notFound, redirect } from 'next/navigation';
 import { AppHeader } from '@/components/app/app-header';
 import { PatientAppAccess } from '@/components/patients/patient-app-access';
+import { PatientRecipes } from '@/components/recipes/patient-recipes';
 import { PatientRecord } from '@/components/patients/patient-record';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { getMyOrganizations, landingRedirect } from '@/lib/auth/organizations';
@@ -17,6 +18,7 @@ import { listAssessments } from '@/lib/assessments/repository';
 import { listMealPlans } from '@/lib/meal-plans/repository';
 import { getAppAccess } from '@/lib/patient-area/actions';
 import { getPatient, listPatients } from '@/lib/patients/repository';
+import { listPatientRecipes, listRecipes } from '@/lib/recipes/actions';
 import { isUuid } from '@/lib/patients/schema';
 
 export const metadata: Metadata = { title: 'Ficha do paciente', robots: { index: false } };
@@ -32,7 +34,7 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
   if (target) redirect(target);
 
   const organization = organizations?.find((o) => o.role === 'owner' || o.role === 'nutritionist') ?? null;
-  const [patient, all, assessments, plans, anamneses, nextAppointment, appAccess] = await Promise.all([
+  const [patient, all, assessments, plans, anamneses, nextAppointment, appAccess, patientRecipes, library] = await Promise.all([
     getPatient(id),
     organization ? listPatients(organization.id) : null,
     listAssessments(id),
@@ -40,6 +42,8 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
     listAnamneses(id),
     getNextAppointment(id),
     getAppAccess(id),
+    listPatientRecipes(id),
+    listRecipes(),
   ]);
   if (patient === undefined) notFound();
 
@@ -66,6 +70,11 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
         {patient && (
           <div className="mt-6">
             <PatientAppAccess patientId={patient.id} access={appAccess} firstName={patient.full_name.split(/\s+/)[0] ?? patient.full_name} phone={patient.phone} />
+          </div>
+        )}
+        {patient && patient.status === 'active' && (
+          <div className="mt-6">
+            <PatientRecipes patientId={patient.id} rows={patientRecipes} library={library} hasAppAccess={Boolean(appAccess?.linked)} />
           </div>
         )}
       </main>

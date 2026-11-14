@@ -12,7 +12,7 @@ export function RecipeEditor({ initial, missing }: { initial: RecipeInitial; mis
           {missing} ingrediente(s) não estão mais disponíveis e foram retirados. Revise antes de salvar.
         </p>
       )}
-      <RecipeForm initial={initial} onCancel={() => router.push('/app/alimentos')} onDone={() => router.push('/app/alimentos')} />
+      <RecipeForm initial={initial} onCancel={() => router.push('/app/receitas')} onDone={() => router.push('/app/receitas')} />
     </>
   );
 }

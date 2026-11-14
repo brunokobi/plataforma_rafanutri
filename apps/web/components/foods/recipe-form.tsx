@@ -1,7 +1,7 @@
 'use client';
 
 import { recipeNutrition } from '@rafanutri/nutrition-core';
-import { AlertCircle, Loader2, Search, Trash2 } from 'lucide-react';
+import { AlertCircle, ImagePlus, Loader2, Search, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useState, useTransition } from 'react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,10 @@ import { Label } from '@/components/ui/label';
 import { saveRecipe } from '@/lib/foods/custom-actions';
 import { foodOriginLabel, type Food } from '@/lib/foods/food';
 import { searchFoods } from '@/lib/foods/actions';
+import { removeRecipeImage, uploadRecipeImage } from '@/lib/recipes/actions';
+import { parseTags } from '@/lib/recipes/filter';
+import { resizeImage } from '@/lib/recipes/resize-image';
+import { DIFFICULTY_LABEL, type Difficulty } from '@/lib/recipes/types';
 
 type Line = { food: Food; quantity: string };
 const toNum = (v: string) => Number(v.replace(',', '.'));
@@ -33,6 +37,11 @@ export interface RecipeInitial {
   servings: number | null;
   instructions: string | null;
   lines: Array<{ food: Food; quantityG: number }>;
+  description?: string | null;
+  prep_minutes?: number | null;
+  difficulty?: Difficulty | null;
+  tags?: string[];
+  has_image?: boolean;
 }
 
 export function RecipeForm({ initial, onDone, onCancel }: { initial?: RecipeInitial; onDone: (msg: string) => void; onCancel: () => void }) {
@@ -42,6 +51,14 @@ export function RecipeForm({ initial, onDone, onCancel }: { initial?: RecipeInit
   const [yieldG, setYieldG] = useState(initial?.yield_g ? String(initial.yield_g) : '');
   const [servings, setServings] = useState(initial?.servings ? String(initial.servings) : '');
   const [instructions, setInstructions] = useState(initial?.instructions ?? '');
+  const [description, setDescription] = useState(initial?.description ?? '');
+  const [prep, setPrep] = useState(initial?.prep_minutes ? String(initial.prep_minutes) : '');
+  const [difficulty, setDifficulty] = useState<Difficulty | ''>(initial?.difficulty ?? '');
+  const [tagsText, setTagsText] = useState((initial?.tags ?? []).join(', '));
+  // Foto: 'keep' (sem mudança), data URL nova ou 'remove'
+  const [photo, setPhoto] = useState<string | 'keep' | 'remove'>('keep');
+  const [photoError, setPhotoError] = useState<string | null>(null);
+  const [photoVersion] = useState(() => Date.now());
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [message, setMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -74,9 +91,19 @@ export function RecipeForm({ initial, onDone, onCancel }: { initial?: RecipeInit
     setMessage(null);
     startTransition(async () => {
       const r = await saveRecipe(
-        { name, food_group: group, yield_g: yieldG, servings: servings || null, instructions, items: lines.map((l) => ({ foodId: l.food.id, quantityG: l.quantity })) },
+        {
+          name, food_group: group, yield_g: yieldG, servings: servings || null, instructions, items: lines.map((l) => ({ foodId: l.food.id, quantityG: l.quantity })),
+          description, prep_minutes: prep || null, difficulty: difficulty || null, tags: parseTags(tagsText),
+        },
         initial?.id,
       );
+      if (r.ok && photo !== 'keep') {
+        const p = photo === 'remove' ? await removeRecipeImage(r.id) : await uploadRecipeImage(r.id, photo);
+        if (!p.ok) {
+          setMessage(`Receita salva, mas a foto não: ${p.message}`);
+          return;
+        }
+      }
       if (r.ok) onDone(initial ? 'Preparação atualizada.' : `Preparação cadastrada (${fmt(r.per100g?.energy_kcal ?? 0, 0)} kcal em 100 g). Ela já aparece na busca do plano alimentar.`);
       else {
         setErrors(r.fields ?? {});
@@ -164,6 +191,61 @@ export function RecipeForm({ initial, onDone, onCancel }: { initial?: RecipeInit
           <Label htmlFor="rf-servings">Porções (opcional)</Label>
           <Input id="rf-servings" inputMode="decimal" value={servings} onChange={(e) => setServings(e.target.value)} />
         </div>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-3">
+        <div className="space-y-1.5">
+          <Label htmlFor="rf-prep">Tempo de preparo (min, opcional)</Label>
+          <Input id="rf-prep" inputMode="numeric" value={prep} onChange={(e) => setPrep(e.target.value)} aria-invalid={Boolean(errors.prep_minutes)} />
+          {errors.prep_minutes && <p className="text-sm text-destructive">{errors.prep_minutes}</p>}
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="rf-difficulty">Dificuldade (opcional)</Label>
+          <select id="rf-difficulty" value={difficulty} onChange={(e) => setDifficulty(e.target.value as Difficulty | '')} className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm">
+            <option value="">—</option>
+            {(Object.keys(DIFFICULTY_LABEL) as Difficulty[]).map((d) => <option key={d} value={d}>{DIFFICULTY_LABEL[d]}</option>)}
+          </select>
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="rf-tags">Tags (separadas por vírgula)</Label>
+          <Input id="rf-tags" value={tagsText} placeholder="café da manhã, sem lactose" onChange={(e) => setTagsText(e.target.value)} aria-invalid={Boolean(errors.tags)} />
+          {errors.tags && <p className="text-sm text-destructive">{errors.tags}</p>}
+        </div>
+      </div>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="rf-description">Descrição curta (opcional, aparece para o paciente)</Label>
+        <textarea id="rf-description" rows={2} maxLength={600} value={description} onChange={(e) => setDescription(e.target.value)} className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm" />
+        {errors.description && <p className="text-sm text-destructive">{errors.description}</p>}
+      </div>
+
+      <div className="space-y-2">
+        <p className="text-sm font-medium">Foto (opcional)</p>
+        <div className="flex flex-wrap items-center gap-3">
+          {(photo !== 'keep' && photo !== 'remove') || (photo === 'keep' && initial?.has_image) ? (
+            // eslint-disable-next-line @next/next/no-img-element -- data URL local ou rota privada
+            <img src={photo !== 'keep' && photo !== 'remove' ? photo : `/api/receitas/${initial!.id}/foto?v=${photoVersion}`} alt="Foto da receita" className="size-24 rounded-lg object-cover" />
+          ) : null}
+          <label className="inline-flex min-h-9 cursor-pointer items-center gap-1.5 rounded-md border border-input px-3 text-sm hover:bg-muted">
+            <ImagePlus className="size-4" aria-hidden="true" /> {initial?.has_image || (photo !== 'keep' && photo !== 'remove') ? 'Trocar foto' : 'Escolher foto'}
+            <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" aria-label="Foto da receita"
+              onChange={async (e) => {
+                const f = e.target.files?.[0];
+                e.target.value = '';
+                if (!f) return;
+                setPhotoError(null);
+                try {
+                  setPhoto(await resizeImage(f));
+                } catch (err) {
+                  setPhotoError(err instanceof Error ? err.message : 'Não foi possível ler a foto.');
+                }
+              }} />
+          </label>
+          {(initial?.has_image && photo !== 'remove') || (photo !== 'keep' && photo !== 'remove') ? (
+            <Button type="button" variant="ghost" size="sm" onClick={() => setPhoto(initial?.has_image ? 'remove' : 'keep')}>Remover foto</Button>
+          ) : null}
+        </div>
+        {photoError && <p className="text-sm text-destructive">{photoError}</p>}
       </div>
 
       <div className="space-y-1.5">

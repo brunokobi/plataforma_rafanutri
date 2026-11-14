@@ -4,7 +4,8 @@
 
 import { createHash, randomBytes } from 'node:crypto';
 import { validateAnswers } from './forms.js';
-import { CUSTOM_NUTRIENTS, recipePer100g, validateFoodInput, validateRecipeInput } from './foods.js';
+import { Readable } from 'node:stream';
+import { CUSTOM_NUTRIENTS, parseImageDataUrl, recipePer100g, validateFoodInput, validateRecipeInput } from './foods.js';
 
 const TYPES = new Set(['solo', 'clinic']);
 const CRN_REGION = /^CRN-([1-9]|1[01])$/;
@@ -208,7 +209,7 @@ export default {
               .returning('id');
             foodId = row.id ?? row;
           }
-          const recipe = { food_id: foodId, yield_g: v.yield_g, servings: v.servings, instructions: v.instructions, items: JSON.stringify(v.items) };
+          const recipe = { food_id: foodId, yield_g: v.yield_g, servings: v.servings, instructions: v.instructions, items: JSON.stringify(v.items), description: v.description, prep_minutes: v.prep_minutes, difficulty: v.difficulty, tags: JSON.stringify(v.tags) };
           await trx('recipes').insert(recipe).onConflict('food_id').merge();
           await writeNutrients(trx, foodId, per100g);
           return { id: foodId, per100g, incomplete };
@@ -243,6 +244,224 @@ export default {
           servings: recipe?.servings == null ? null : Number(recipe.servings),
           instructions: recipe?.instructions ?? null,
           items: items.map((i) => ({ ...i, name: nameOf.get(String(i.foodId)) ?? null })),
+          description: recipe?.description ?? null,
+          prep_minutes: recipe?.prep_minutes ?? null,
+          difficulty: recipe?.difficulty ?? null,
+          tags: recipe?.tags ?? [],
+          has_image: Boolean(recipe?.image),
+        },
+      });
+    });
+
+    // ── Biblioteca de receitas (RN-206) e receitas do paciente (RN-207) ─────────────────────────
+    const recipeNotFound = (res) => res.status(404).json({ errors: [{ message: 'Receita não encontrada.', extensions: { code: 'NOT_FOUND' } }] });
+    const kcalOf = async (ids) => {
+      if (!ids.length) return new Map();
+      const rows = await database('food_nutrients as fn').join('nutrients as n', 'n.id', 'fn.nutrient_id')
+        .whereIn('fn.food_id', ids).where('n.code', 'energy_kcal').select('fn.food_id', 'fn.amount_per_100g');
+      return new Map(rows.map((r) => [r.food_id, r.amount_per_100g == null ? null : Number(r.amount_per_100g)]));
+    };
+    /** Resumo de receitas para listas (kcal por porção quando há porções; senão por 100 g). */
+    async function recipeSummaries(foodIds) {
+      if (!foodIds.length) return [];
+      const rows = await database('foods as f').join('recipes as r', 'r.food_id', 'f.id').whereIn('f.id', foodIds)
+        .select('f.id', 'f.name', 'f.archived', 'r.yield_g', 'r.servings', 'r.description', 'r.prep_minutes', 'r.difficulty', 'r.tags', 'r.image')
+        .orderBy('f.name');
+      const kcal = await kcalOf(rows.map((r) => r.id));
+      return rows.map((r) => {
+        const per100 = kcal.get(r.id) ?? null;
+        const yieldG = Number(r.yield_g);
+        const servings = r.servings == null ? null : Number(r.servings);
+        return {
+          id: String(r.id), name: r.name, archived: Boolean(r.archived), description: r.description ?? null,
+          prep_minutes: r.prep_minutes ?? null, difficulty: r.difficulty ?? null, tags: r.tags ?? [], has_image: Boolean(r.image),
+          yield_g: yieldG, servings,
+          kcal_per_serving: per100 != null && servings ? Math.round((per100 * yieldG) / 100 / servings) : null,
+          kcal_per_100g: per100 != null ? Math.round(per100) : null,
+        };
+      });
+    }
+
+    router.get('/recipes', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const org = await clinicalOrg(user);
+      if (!org) return res.json({ data: [] });
+      const ids = await database('foods').where({ organization_id: org, kind: 'recipe' }).pluck('id');
+      res.json({ data: await recipeSummaries(ids) });
+    });
+
+    // Foto: data URL (jpeg/png/webp, já reduzida no navegador). Substitui a anterior.
+    router.post('/recipes/:id/image', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const org = await clinicalOrg(user);
+      const own = org ? await ownFood(database, req.params.id, org, 'recipe') : null;
+      if (!own) return recipeNotFound(res);
+      const img = parseImageDataUrl(req.body?.image);
+      if (!img) return bad(res, { image: 'Envie uma foto JPG, PNG ou WebP de até 600 KB.' });
+      const recipe = await database('recipes').where('food_id', own.id).first('image');
+      if (!recipe) return recipeNotFound(res);
+      try {
+        const files = new services.FilesService({ schema: await getSchema(), accountability: null });
+        const ext = img.type.split('/')[1].replace('jpeg', 'jpg');
+        const fileId = await files.uploadOne(Readable.from(img.buffer), { filename_download: `receita-${own.id}.${ext}`, type: img.type, title: `Receita ${own.id}` });
+        await database('recipes').where('food_id', own.id).update({ image: fileId });
+        if (recipe.image) await files.deleteOne(recipe.image).catch(() => {});
+        res.json({ data: { has_image: true } });
+      } catch (error) {
+        logger.error({ err: error }, 'rafanutri: falha ao salvar foto da receita');
+        res.status(500).json({ errors: [{ message: 'Não foi possível salvar a foto.', extensions: { code: 'INTERNAL_SERVER_ERROR' } }] });
+      }
+    });
+
+    router.delete('/recipes/:id/image', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const org = await clinicalOrg(user);
+      const own = org ? await ownFood(database, req.params.id, org, 'recipe') : null;
+      if (!own) return recipeNotFound(res);
+      const recipe = await database('recipes').where('food_id', own.id).first('image');
+      if (recipe?.image) {
+        await database('recipes').where('food_id', own.id).update({ image: null });
+        const files = new services.FilesService({ schema: await getSchema(), accountability: null });
+        await files.deleteOne(recipe.image).catch(() => {});
+      }
+      res.json({ data: { has_image: false } });
+    });
+
+    /** Receitas que o paciente (registro ativo) vê: enviadas + usadas no plano publicado. Map id → { sent, note, in_plan }. */
+    async function visibleRecipes(patient) {
+      const out = new Map();
+      const sent = await database('patient_recipes as pr').join('foods as f', 'f.id', 'pr.recipe_food_id')
+        .where({ 'pr.patient_id': patient.id, 'f.organization_id': patient.organization_id, 'f.kind': 'recipe' })
+        .select('pr.recipe_food_id', 'pr.note', 'pr.date_created');
+      for (const r of sent) out.set(r.recipe_food_id, { sent: true, note: r.note ?? null, sent_at: r.date_created, in_plan: false });
+      const plan = await database('meal_plans').where({ patient_id: patient.id, organization_id: patient.organization_id, status: 'published' })
+        .orderBy('published_at', 'desc').first('meals');
+      const ids = [...new Set((plan?.meals ?? []).flatMap((m) => (m.items ?? []).flatMap((i) => [i.foodId, ...(i.subs ?? []).map((s) => s.foodId)])))]
+        .map(String).filter((id) => /^\d+$/.test(id)).map(Number);
+      if (ids.length) {
+        const inPlan = await database('foods').whereIn('id', ids).where({ organization_id: patient.organization_id, kind: 'recipe' }).pluck('id');
+        for (const id of inPlan) out.set(id, { ...(out.get(id) ?? { sent: false, note: null, sent_at: null }), in_plan: true });
+      }
+      return out;
+    }
+    async function myPatientRecord(user, c) {
+      let q = database('patients').where('app_user_id', user).where('status', 'active');
+      if (c) q = q.where('id', c);
+      return q.orderBy('app_activated_at', 'desc').first('id', 'organization_id');
+    }
+
+    // Foto da receita: profissional do consultório ou paciente que vê a receita.
+    router.get('/recipes/:id/image', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user || !/^\d+$/.test(req.params.id)) return user ? recipeNotFound(res) : undefined;
+      const row = await database('foods as f').join('recipes as r', 'r.food_id', 'f.id')
+        .where({ 'f.id': Number(req.params.id), 'f.kind': 'recipe' }).first('f.id', 'f.organization_id', 'r.image');
+      if (!row?.image) return recipeNotFound(res);
+      let allowed = (await clinicalOrg(user)) === row.organization_id
+        || Boolean(await database('organization_members').where({ user_id: user, organization_id: row.organization_id }).first('user_id'));
+      if (!allowed) {
+        const records = await database('patients').where({ app_user_id: user, status: 'active', organization_id: row.organization_id }).select('id', 'organization_id');
+        for (const p of records) if ((await visibleRecipes(p)).has(row.id)) { allowed = true; break; }
+      }
+      if (!allowed) return recipeNotFound(res);
+      try {
+        const assets = new services.AssetsService({ schema: await getSchema(), accountability: null });
+        const { stream, file } = await assets.getAsset(row.image);
+        res.setHeader('Content-Type', file.type ?? 'application/octet-stream');
+        res.setHeader('Cache-Control', 'private, max-age=3600');
+        res.setHeader('X-Content-Type-Options', 'nosniff');
+        stream.pipe(res);
+      } catch (error) {
+        logger.error({ err: error }, 'rafanutri: falha ao ler foto da receita');
+        recipeNotFound(res);
+      }
+    });
+
+    // Envio de receitas ao paciente (ficha do paciente)
+    router.get('/patients/:id/recipes', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const p = await clinicalPatient(user, req.params.id);
+      if (!p) return res.status(404).json({ errors: [{ message: 'Paciente não encontrado.', extensions: { code: 'NOT_FOUND' } }] });
+      const vis = await visibleRecipes(p);
+      const list = await recipeSummaries([...vis.keys()]);
+      res.json({ data: list.map((r) => ({ ...r, ...vis.get(Number(r.id)) })) });
+    });
+
+    router.post('/patients/:id/recipes', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const p = await clinicalPatient(user, req.params.id);
+      if (!p) return res.status(404).json({ errors: [{ message: 'Paciente não encontrado.', extensions: { code: 'NOT_FOUND' } }] });
+      const own = await ownFood(database, req.body?.recipe_id, p.organization_id, 'recipe');
+      if (!own || own.archived) return recipeNotFound(res);
+      const note = typeof req.body?.note === 'string' ? req.body.note.trim().slice(0, 500) : '';
+      try {
+        await database('patient_recipes')
+          .insert({ organization_id: p.organization_id, patient_id: p.id, recipe_food_id: own.id, note: note || null, user_created: user })
+          .onConflict(['patient_id', 'recipe_food_id']).merge({ note: note || null });
+        res.status(201).json({ data: { ok: true } });
+      } catch (error) {
+        if (error?.code === 'P0001') return res.status(409).json({ errors: [{ message: error.message.split('\n')[0].replace(/^.* - /, ''), extensions: { code: 'CONFLICT' } }] });
+        throw error;
+      }
+    });
+
+    router.delete('/patients/:id/recipes/:recipeId', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const p = await clinicalPatient(user, req.params.id);
+      if (!p || !/^\d+$/.test(req.params.recipeId)) return recipeNotFound(res);
+      await database('patient_recipes').where({ patient_id: p.id, recipe_food_id: Number(req.params.recipeId) }).del();
+      res.json({ data: { ok: true } });
+    });
+
+    // Área do paciente: lista e detalhe (ingredientes com medidas caseiras)
+    router.get('/me/patient/recipes', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const c = isUuid(req.query.c) ? req.query.c : null;
+      const p = await myPatientRecord(user, c);
+      if (!p) return res.json({ data: { patient_id: null, recipes: [] } });
+      const vis = await visibleRecipes(p);
+      const list = await recipeSummaries([...vis.keys()]);
+      res.json({
+        data: {
+          patient_id: p.id,
+          recipes: list.map(({ archived: _a, kcal_per_serving: _k, kcal_per_100g: _h, ...r }) => ({ ...r, ...vis.get(Number(r.id)) })),
+        },
+      });
+    });
+
+    router.get('/me/patient/recipes/:id', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const c = isUuid(req.query.c) ? req.query.c : null;
+      const p = await myPatientRecord(user, c);
+      const id = /^\d+$/.test(req.params.id) ? Number(req.params.id) : null;
+      if (!p || !id) return recipeNotFound(res);
+      const vis = await visibleRecipes(p);
+      if (!vis.has(id)) return recipeNotFound(res);
+      const [summary] = await recipeSummaries([id]);
+      const recipe = await database('recipes').where('food_id', id).first('instructions', 'items');
+      if (!summary || !recipe) return recipeNotFound(res);
+      const items = recipe.items ?? [];
+      const ing = await database('foods').whereIn('id', items.map((i) => Number(i.foodId))).select('id', 'name', 'household_measures');
+      const ingOf = new Map(ing.map((f) => [String(f.id), f]));
+      const { archived: _a, kcal_per_serving: _k, kcal_per_100g: _h, ...rest } = summary;
+      res.json({
+        data: {
+          patient_id: p.id,
+          ...rest,
+          ...vis.get(id),
+          instructions: recipe.instructions ?? null,
+          ingredients: items.map((i) => {
+            const f = ingOf.get(String(i.foodId));
+            return { name: f?.name ?? null, quantityG: Number(i.quantityG) || 0, household_measures: Array.isArray(f?.household_measures) ? f.household_measures : [] };
+          }),
         },
       });
     });

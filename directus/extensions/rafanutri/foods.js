@@ -104,8 +104,51 @@ export function validateRecipeInput(body) {
       items.push({ foodId: id, quantityG: round(q, 1) });
     }
   }
+  const library = cleanLibrary(body, errors);
   if (Object.keys(errors).length) return { ok: false, errors, value: null };
-  return { ok: true, errors: {}, value: { ...base, yield_g: round(yieldG, 1), servings, instructions: instructions || null, items } };
+  return { ok: true, errors: {}, value: { ...base, yield_g: round(yieldG, 1), servings, instructions: instructions || null, items, ...library } };
+}
+
+export const DIFFICULTIES = ['easy', 'medium', 'hard'];
+
+/** Campos da biblioteca de receitas (RN-206): descrição, tempo, dificuldade e tags (minúsculas, sem repetir). */
+export function cleanLibrary(body, errors) {
+  const description = typeof body.description === 'string' ? body.description.trim() : '';
+  if (description.length > 600) errors.description = 'Descrição de até 600 caracteres.';
+  const rawMin = body.prep_minutes;
+  const prep = rawMin === undefined || rawMin === null || rawMin === '' ? null : num(rawMin);
+  if (prep !== null && !(Number.isInteger(prep) && prep >= 1 && prep <= 1440)) errors.prep_minutes = 'Tempo de preparo em minutos (1 a 1440).';
+  const difficulty = body.difficulty === undefined || body.difficulty === null || body.difficulty === '' ? null : body.difficulty;
+  if (difficulty !== null && !DIFFICULTIES.includes(difficulty)) errors.difficulty = 'Dificuldade inválida.';
+  const tags = [];
+  if (body.tags != null) {
+    if (!Array.isArray(body.tags)) errors.tags = 'Tags inválidas.';
+    else for (const t of body.tags) {
+      const tag = typeof t === 'string' ? t.trim().toLowerCase().replace(/\s+/g, ' ') : '';
+      if (!tag) continue;
+      if (tag.length > 30) { errors.tags = 'Cada tag com até 30 caracteres.'; break; }
+      if (!tags.includes(tag)) tags.push(tag);
+    }
+    if (tags.length > 10) errors.tags = 'Até 10 tags.';
+  }
+  return { description: description || null, prep_minutes: prep, difficulty, tags };
+}
+
+/** Foto da receita enviada como data URL (o navegador já reduz para até 1200 px). Devolve { type, buffer } ou null. */
+export const MAX_IMAGE_BYTES = 600_000;
+export function parseImageDataUrl(value) {
+  if (typeof value !== 'string') return null;
+  const m = /^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)$/.exec(value);
+  if (!m) return null;
+  const buffer = Buffer.from(m[2], 'base64');
+  if (buffer.length === 0 || buffer.length > MAX_IMAGE_BYTES) return null;
+  // Confere a assinatura do arquivo (não confia só no tipo declarado)
+  const sig = buffer.subarray(0, 12);
+  const isJpeg = sig[0] === 0xff && sig[1] === 0xd8 && sig[2] === 0xff;
+  const isPng = sig[0] === 0x89 && sig.toString('ascii', 1, 4) === 'PNG';
+  const isWebp = sig.toString('ascii', 0, 4) === 'RIFF' && sig.toString('ascii', 8, 12) === 'WEBP';
+  const ok = (m[1] === 'image/jpeg' && isJpeg) || (m[1] === 'image/png' && isPng) || (m[1] === 'image/webp' && isWebp);
+  return ok ? { type: m[1], buffer } : null;
 }
 
 /**

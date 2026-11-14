@@ -22,6 +22,8 @@ test('convite e área do paciente', async ({ page, browser }) => {
   const name = `Paciente App E2E ${stamp}`;
   const patientEmail = `e2e.paciente.${stamp}@example.com`;
   let patientUrl = '';
+  const recipeName = `Panqueca E2E ${stamp}`;
+  let recipeCreated = false;
 
   try {
     await test.step('nutricionista cadastra e convida', async () => {
@@ -92,6 +94,59 @@ test('convite e área do paciente', async ({ page, browser }) => {
       expect(await pp.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
     });
 
+    await test.step('nutricionista cria receita com foto e envia; paciente vê (RN-206, RN-207)', async () => {
+      await page.goto('/app/receitas');
+      await page.getByRole('button', { name: 'Nova receita' }).click();
+      const form = page.getByRole('form', { name: 'Nova preparação' });
+      await form.getByLabel('Nome').fill(recipeName);
+      await form.getByLabel('Buscar ingrediente').fill('aveia');
+      await form.getByRole('option').first().click();
+      await form.getByLabel('Rendimento: peso pronto (g)').fill('200');
+      await form.getByLabel('Porções (opcional)').fill('2');
+      await form.getByLabel('Tempo de preparo (min, opcional)').fill('15');
+      await form.getByLabel('Dificuldade (opcional)').selectOption('easy');
+      await form.getByLabel(/Tags/).fill(`e2e ${stamp}, café da manhã`);
+      await form.getByLabel('Modo de preparo (opcional)').fill('Misture tudo e leve à frigideira.');
+      const png = await page.evaluate(() => {
+        const c = document.createElement('canvas');
+        c.width = 64; c.height = 48;
+        const ctx = c.getContext('2d')!;
+        ctx.fillStyle = '#c0703a'; ctx.fillRect(0, 0, 64, 48);
+        return c.toDataURL('image/png').split(',')[1]!;
+      });
+      await form.getByLabel('Foto da receita').setInputFiles({ name: 'foto.png', mimeType: 'image/png', buffer: Buffer.from(png, 'base64') });
+      await expect(form.getByRole('img', { name: 'Foto da receita' })).toBeVisible();
+      await form.getByRole('button', { name: /Salvar preparação/ }).click();
+      await expect(page.getByRole('status').filter({ hasText: 'Preparação cadastrada' })).toBeVisible({ timeout: 20_000 });
+      recipeCreated = true;
+      await page.getByRole('group', { name: 'Filtrar por tag' }).getByRole('button', { name: `e2e ${stamp}` }).click();
+      const cards = page.getByRole('list', { name: 'Receitas' }).getByRole('listitem');
+      await expect(cards).toHaveCount(1);
+      await expect(cards.first()).toContainText('2 porções · 15 min · Fácil');
+      await expect.poll(() => cards.first().locator('img').evaluate((i: HTMLImageElement) => i.complete && i.naturalWidth > 0)).toBe(true);
+
+      await page.goto(patientUrl);
+      const box = page.getByRole('region', { name: 'Receitas do paciente' });
+      await box.getByLabel('Receita').selectOption({ label: recipeName });
+      await box.getByLabel('Observação (opcional)').fill('Boa opção para o café.');
+      await box.getByRole('button', { name: 'Enviar' }).click();
+      await expect(box.getByRole('list', { name: 'Receitas visíveis para o paciente' })).toContainText(recipeName);
+
+      await pp.goto('/p');
+      await pp.getByRole('link', { name: /Receitas/ }).first().click();
+      await expect(pp).toHaveURL(/\/p\/receitas/);
+      await pp.getByRole('link', { name: new RegExp(recipeName) }).click();
+      await expect(pp.getByRole('heading', { level: 1, name: recipeName })).toBeVisible();
+      await expect(pp.getByText('Boa opção para o café.')).toBeVisible();
+      await expect(pp.getByRole('region', { name: 'Ingredientes' })).toContainText(/aveia/i);
+      await expect(pp.getByText('Misture tudo e leve à frigideira.')).toBeVisible();
+      await expect.poll(() => pp.getByRole('img', { name: `Foto de ${recipeName}` }).evaluate((i: HTMLImageElement) => i.complete && i.naturalWidth > 0)).toBe(true);
+      expect(await pp.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+      // Receita de outro id que não foi enviada: não encontrada
+      await pp.goto('/p/receitas/1');
+      await expect(pp.getByText('Receita não encontrada')).toBeVisible();
+    });
+
     await test.step('link usado não abre de novo; paciente não entra no painel do nutricionista', async () => {
       await pp.goto(link);
       await expect(pp.getByText('Convite indisponível')).toBeVisible();
@@ -114,6 +169,12 @@ test('convite e área do paciente', async ({ page, browser }) => {
       await page.goto(patientUrl);
       await page.getByRole('button', { name: 'Arquivar' }).click();
       await expect(page.getByRole('button', { name: 'Reativar' })).toBeVisible();
+    }
+    if (recipeCreated) {
+      await page.goto('/app/alimentos');
+      await page.getByRole('tab', { name: 'Preparações' }).click();
+      await page.getByRole('button', { name: `Arquivar ${recipeName}` }).click();
+      await expect(page.getByRole('button', { name: `Reativar ${recipeName}` })).toBeVisible();
     }
   }
 });

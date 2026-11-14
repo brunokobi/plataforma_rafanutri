@@ -23,6 +23,10 @@ export interface RecipeInput {
   instructions?: string;
   items: Array<{ foodId: string; quantityG: number | string }>;
   household_measures?: Array<{ label: string; grams: number | string }>;
+  description?: string;
+  prep_minutes?: number | string | null;
+  difficulty?: 'easy' | 'medium' | 'hard' | null;
+  tags?: string[];
 }
 export type CustomFoodResult =
   | { ok: true; id: string; per100g?: Record<string, number | null>; incomplete?: string[] }
@@ -45,6 +49,7 @@ async function call(path: string, method: 'POST' | 'PUT', body: unknown): Promis
     } | null;
     if (res.ok && json?.data) {
       revalidatePath('/app/alimentos');
+      revalidatePath('/app/receitas');
       return { ok: true, id: json.data.id, per100g: json.data.per100g, incomplete: json.data.incomplete };
     }
     if (res.status === 400) return { ok: false, message: json?.errors?.[0]?.message ?? 'Revise os campos.', fields: json?.errors?.[0]?.extensions?.fields };

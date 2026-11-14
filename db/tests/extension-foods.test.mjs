@@ -61,3 +61,22 @@ test('validação da preparação', () => {
   assert.ok(validateRecipeInput({ name: 'Sem itens', yield_g: 100, items: [] }).errors.items);
   assert.ok(validateRecipeInput({ name: 'Item ruim', yield_g: 100, items: [{ foodId: 'abc', quantityG: 1 }] }).errors.items);
 });
+
+test('RN-206: campos da biblioteca de receitas', async () => {
+  const { cleanLibrary, parseImageDataUrl } = await import('../../directus/extensions/rafanutri/foods.js');
+  const e = {};
+  assert.deepEqual(cleanLibrary({ description: ' Rápida ', prep_minutes: '15', difficulty: 'easy', tags: [' Café da  Manhã', 'café da manhã', '', 'Sem lactose'] }, e), {
+    description: 'Rápida', prep_minutes: 15, difficulty: 'easy', tags: ['café da manhã', 'sem lactose'],
+  });
+  assert.deepEqual(e, {});
+  const bad = {};
+  cleanLibrary({ description: 'x'.repeat(601), prep_minutes: 0, difficulty: 'impossível', tags: Array.from({ length: 11 }, (_, i) => `t${i}`) }, bad);
+  assert.deepEqual(Object.keys(bad).sort(), ['description', 'difficulty', 'prep_minutes', 'tags']);
+  assert.deepEqual(cleanLibrary({}, {}), { description: null, prep_minutes: null, difficulty: null, tags: [] });
+
+  const jpeg = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0, 0, 0, 0, 0, 0, 0, 0]).toString('base64');
+  assert.equal(parseImageDataUrl(`data:image/jpeg;base64,${jpeg}`).type, 'image/jpeg');
+  assert.equal(parseImageDataUrl(`data:image/png;base64,${jpeg}`), null, 'tipo declarado diferente do arquivo');
+  assert.equal(parseImageDataUrl('data:image/svg+xml;base64,PHN2Zz4='), null, 'svg recusado');
+  assert.equal(parseImageDataUrl(`data:image/jpeg;base64,${Buffer.alloc(800_000, 0xff).toString('base64')}`), null, 'grande demais');
+});

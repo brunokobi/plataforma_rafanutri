@@ -34,11 +34,11 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
     <div className="min-h-dvh">
       <AppHeader />
       <main className="mx-auto max-w-4xl space-y-6 px-5 py-10">
-        <Link href="/app/alimentos" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="size-4" /> Voltar aos alimentos
+        <Link href="/app/receitas" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+          <ArrowLeft className="size-4" /> Voltar às receitas
         </Link>
         <RecipeEditor
-          initial={{ id, name: self?.name ?? '', group: self?.group ?? 'Preparações', yield_g: recipe.yield_g, servings: recipe.servings, instructions: recipe.instructions, lines }}
+          initial={{ id, name: self?.name ?? '', group: self?.group ?? 'Preparações', yield_g: recipe.yield_g, servings: recipe.servings, instructions: recipe.instructions, lines, description: recipe.description, prep_minutes: recipe.prep_minutes, difficulty: recipe.difficulty, tags: recipe.tags, has_image: recipe.has_image }}
           missing={recipe.items.length - lines.length}
         />
       </main>

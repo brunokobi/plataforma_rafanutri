@@ -15,6 +15,11 @@ export interface RecipeDetail {
   servings: number | null;
   instructions: string | null;
   items: Array<{ foodId: string; quantityG: number; name: string | null }>;
+  description: string | null;
+  prep_minutes: number | null;
+  difficulty: 'easy' | 'medium' | 'hard' | null;
+  tags: string[];
+  has_image: boolean;
 }
 
 async function token() {

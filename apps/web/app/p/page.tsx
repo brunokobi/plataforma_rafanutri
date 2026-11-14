@@ -63,6 +63,7 @@ export default async function PatientHome({ searchParams }: { searchParams: Prom
           <Utensils className="mx-auto size-8 text-muted-foreground" aria-hidden="true" />
           <h2 className="mt-3 font-semibold">Seu plano ainda não foi publicado</h2>
           <p className="mt-1 text-sm text-muted-foreground">Assim que {record.professional.name ?? 'seu nutricionista'} publicar o plano alimentar, ele aparece aqui.</p>
+          <Link href={`/p/receitas${q}`} className="mt-4 inline-flex min-h-11 items-center text-sm font-medium text-primary underline-offset-4 hover:underline">Ver receitas</Link>
         </section>
       ) : (
         <>
@@ -93,6 +94,9 @@ export default async function PatientHome({ searchParams }: { searchParams: Prom
               Ver plano completo
             </Link>
           </section>
+          <Link href={`/p/receitas${q}`} className="flex min-h-11 items-center justify-between rounded-2xl border border-border bg-card px-5 py-4 font-medium">
+            Receitas <span aria-hidden="true">→</span>
+          </Link>
         </>
       )}
     </PatientShell>
