@@ -7,6 +7,7 @@ import { validateAnswers } from './forms.js';
 import { Readable } from 'node:stream';
 import { CUSTOM_NUTRIENTS, parseImageDataUrl, recipePer100g, validateFoodInput, validateRecipeInput } from './foods.js';
 import { validateDocumentInput } from './documents.js';
+import { fillMonths, isIsoDate, monthStart, validateTransaction } from './finance.js';
 
 const TYPES = new Set(['solo', 'clinic']);
 const CRN_REGION = /^CRN-([1-9]|1[01])$/;
@@ -580,6 +581,156 @@ export default {
       } catch (error) {
         recConflict(res, error);
       }
+    });
+
+    // ── Financeiro (RN-053) ─────────────────────────────────────────────────────────────────────
+    // Qualquer membro do consultório lança e edita; excluir só owner/nutricionista (o banco confere
+    // pela variável rafanutri.actor). Valores sempre em centavos.
+    const finNotFound = (res) => res.status(404).json({ errors: [{ message: 'Lançamento não encontrado.', extensions: { code: 'NOT_FOUND' } }] });
+    const todaySP = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
+    const finDate = (d) => (d instanceof Date ? d.toISOString().slice(0, 10) : d == null ? null : String(d).slice(0, 10));
+    const TX_FIELDS = ['t.id', 't.kind', 't.category_id', 'c.name as category_name', 't.description', 't.amount_cents', database.raw('t.due_date::text as due_date'), 't.status', database.raw('t.paid_at::text as paid_at'),
+      't.payment_method', 't.patient_id', 'p.full_name as patient_name', 't.appointment_id', 't.notes', 't.date_created'];
+    const txOut = (r) => ({ ...r, amount_cents: Number(r.amount_cents), due_date: finDate(r.due_date), paid_at: finDate(r.paid_at) });
+    const finConflict = (res, error) => {
+      if (error?.code === 'P0001') return conflict(res, error.message.split('\n')[0].replace(/^.* - /, ''));
+      if (error?.code === '23505') return conflict(res, 'Esta consulta já tem um recebimento registrado.');
+      logger.error({ err: error }, 'rafanutri: falha no financeiro');
+      return res.status(500).json({ errors: [{ message: 'Não foi possível salvar o lançamento agora.', extensions: { code: 'INTERNAL_SERVER_ERROR' } }] });
+    };
+    async function finMember(req, res) {
+      const user = requireUser(req, res);
+      if (!user) return null;
+      const m = await memberOrg(user);
+      if (!m) {
+        res.status(403).json({ errors: [{ message: 'Você não tem consultório.', extensions: { code: 'FORBIDDEN' } }] });
+        return null;
+      }
+      return { user, org: m.id, role: m.role };
+    }
+    const txQuery = (org) => database('financial_transactions as t')
+      .join('financial_categories as c', 'c.id', 't.category_id')
+      .leftJoin('patients as p', 'p.id', 't.patient_id')
+      .where('t.organization_id', org);
+
+    router.get('/finance/categories', async (req, res) => {
+      const m = await finMember(req, res);
+      if (!m) return;
+      const rows = await database('financial_categories').where((q) => q.whereNull('organization_id').orWhere('organization_id', m.org)).where('archived', false)
+        .orderBy([{ column: 'kind' }, { column: 'name' }]).select('id', 'kind', 'name', database.raw('(organization_id is not null) as own'));
+      res.json({ data: rows });
+    });
+
+    router.post('/finance/categories', async (req, res) => {
+      const m = await finMember(req, res);
+      if (!m) return;
+      const kind = req.body?.kind === 'income' || req.body?.kind === 'expense' ? req.body.kind : null;
+      const name = typeof req.body?.name === 'string' ? req.body.name.trim().replace(/\s+/g, ' ') : '';
+      if (!kind || name.length < 2 || name.length > 40) return bad(res, { name: 'Nome de 2 a 40 caracteres e tipo (receita ou despesa).' });
+      try {
+        const [row] = await database('financial_categories').insert({ organization_id: m.org, kind, name, user_created: m.user }).returning(['id', 'kind', 'name']);
+        res.status(201).json({ data: { ...row, own: true } });
+      } catch (error) {
+        if (error?.code === '23505') return conflict(res, 'Já existe uma categoria com esse nome.');
+        finConflict(res, error);
+      }
+    });
+
+    // Lista por vencimento no período (padrão: mês atual). ?from=aaaa-mm-dd&to=aaaa-mm-dd&kind=&status=
+    router.get('/finance/transactions', async (req, res) => {
+      const m = await finMember(req, res);
+      if (!m) return;
+      const today = todaySP();
+      const from = isIsoDate(req.query.from) ? req.query.from : `${today.slice(0, 7)}-01`;
+      const to = isIsoDate(req.query.to) ? req.query.to : monthStart(today.slice(0, 7), 1);
+      let q = txQuery(m.org).where('t.due_date', '>=', from).where('t.due_date', '<', to);
+      if (req.query.kind === 'income' || req.query.kind === 'expense') q = q.where('t.kind', req.query.kind);
+      if (['open', 'paid', 'cancelled'].includes(req.query.status)) q = q.where('t.status', req.query.status);
+      if (isUuid(req.query.patient)) q = q.where('t.patient_id', req.query.patient);
+      const rows = await q.orderBy([{ column: 't.due_date', order: 'asc' }, { column: 't.date_created', order: 'asc' }]).limit(2000).select(TX_FIELDS);
+      res.json({ data: { from, to, today, transactions: rows.map(txOut), can_delete: m.role !== 'assistant' } });
+    });
+
+    // Resumo: 6 meses de caixa (pagos, pelo mês do pagamento) e contas a receber em aberto (atrasadas à parte).
+    router.get('/finance/summary', async (req, res) => {
+      const m = await finMember(req, res);
+      if (!m) return;
+      const today = todaySP();
+      const ym = /^\d{4}-\d{2}$/.test(req.query.month ?? '') ? req.query.month : today.slice(0, 7);
+      const rows = await database('monthly_cash_flow').where('organization_id', m.org)
+        .where('month', '>=', monthStart(ym, -5)).where('month', '<', monthStart(ym, 1)).select(database.raw('month::text as month'), 'income_cents', 'expense_cents');
+      const open = await database('financial_transactions').where({ organization_id: m.org, kind: 'income', status: 'open' })
+        .select(database.raw('coalesce(sum(amount_cents), 0)::bigint as total'), database.raw('count(*)::int as n'),
+          database.raw('coalesce(sum(amount_cents) filter (where due_date < ?), 0)::bigint as overdue', [today]),
+          database.raw('(count(*) filter (where due_date < ?))::int as overdue_n', [today])).first();
+      res.json({
+        data: {
+          today,
+          months: fillMonths(rows, ym, 6),
+          receivable: { total_cents: Number(open?.total ?? 0), count: open?.n ?? 0, overdue_cents: Number(open?.overdue ?? 0), overdue_count: open?.overdue_n ?? 0 },
+        },
+      });
+    });
+
+    router.post('/finance/transactions', async (req, res) => {
+      const m = await finMember(req, res);
+      if (!m) return;
+      const r = validateTransaction(req.body);
+      if (r.errors) return bad(res, r.errors);
+      try {
+        const [row] = await database('financial_transactions').insert({ ...r.value, organization_id: m.org, user_created: m.user }).returning('id');
+        res.status(201).json({ data: txOut(await txQuery(m.org).where('t.id', row.id ?? row).first(TX_FIELDS)) });
+      } catch (error) {
+        finConflict(res, error);
+      }
+    });
+
+    router.put('/finance/transactions/:id', async (req, res) => {
+      const m = await finMember(req, res);
+      if (!m) return;
+      if (!isUuid(req.params.id)) return finNotFound(res);
+      const own = await database('financial_transactions').where({ id: req.params.id, organization_id: m.org }).first('id');
+      if (!own) return finNotFound(res);
+      const r = validateTransaction(req.body);
+      if (r.errors) return bad(res, r.errors);
+      try {
+        await database('financial_transactions').where('id', own.id).update(r.value);
+        res.json({ data: txOut(await txQuery(m.org).where('t.id', own.id).first(TX_FIELDS)) });
+      } catch (error) {
+        finConflict(res, error);
+      }
+    });
+
+    router.delete('/finance/transactions/:id', async (req, res) => {
+      const m = await finMember(req, res);
+      if (!m) return;
+      if (!isUuid(req.params.id)) return finNotFound(res);
+      const own = await database('financial_transactions').where({ id: req.params.id, organization_id: m.org }).first('id');
+      if (!own) return finNotFound(res);
+      if (m.role === 'assistant') return res.status(403).json({ errors: [{ message: 'Só owner ou nutricionista exclui lançamentos. Você pode cancelar.', extensions: { code: 'FORBIDDEN' } }] });
+      try {
+        await database.transaction(async (trx) => {
+          await trx.raw("select set_config('rafanutri.actor', ?, true)", [m.user]);
+          await trx('financial_transactions').where('id', own.id).del();
+        });
+        res.json({ data: { ok: true } });
+      } catch (error) {
+        finConflict(res, error);
+      }
+    });
+
+    // Pré-preenchimento do "Registrar pagamento" na consulta.
+    router.get('/finance/appointment/:id', async (req, res) => {
+      const m = await finMember(req, res);
+      if (!m) return;
+      if (!isUuid(req.params.id)) return finNotFound(res);
+      const a = await database('appointments as a').join('patients as p', 'p.id', 'a.patient_id')
+        .where({ 'a.id': req.params.id, 'a.organization_id': m.org }).first('a.id', 'a.patient_id', 'p.full_name as patient_name', 'a.starts_at', 'a.type', 'a.status');
+      if (!a) return finNotFound(res);
+      const existing = await database('financial_transactions').where('appointment_id', a.id).whereNot('status', 'cancelled').first('id', 'status');
+      const last = await database('financial_transactions').where({ organization_id: m.org, patient_id: a.patient_id, kind: 'income' }).whereNot('status', 'cancelled')
+        .orderBy('date_created', 'desc').first('amount_cents');
+      res.json({ data: { ...a, existing: existing ?? null, last_amount_cents: last ? Number(last.amount_cents) : null } });
     });
 
     // ── Documentos clínicos com a marca (RN-215) ───────────────────────────────────────────────

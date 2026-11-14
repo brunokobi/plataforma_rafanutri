@@ -147,6 +147,34 @@ test('consulta de ponta a ponta', async ({ page }) => {
         await expect(page.getByRole('main').getByText(t).first()).toBeVisible();
       }
     });
+    await test.step('registrar o pagamento da consulta no financeiro (RN-053)', async () => {
+      await page.goto(`/app/agenda?semana=${appointmentDate}`);
+      await page.getByRole('link', { name: `Registrar pagamento da consulta de ${name}` }).click();
+      await expect(page).toHaveURL(/\/app\/financeiro\?consulta=/);
+      const form = page.getByRole('form', { name: 'Novo lançamento' });
+      await expect(form.getByLabel('Descrição')).toHaveValue(`Consulta — ${name}`);
+      await expect(form.getByLabel('Situação')).toHaveValue('paid');
+      await form.getByLabel('Valor (R$)').fill('250,50');
+      await form.getByRole('button', { name: 'Salvar' }).click();
+      await expect(page.getByRole('status').filter({ hasText: 'Lançamento registrado como pago.' })).toBeVisible();
+      // O lançamento vence hoje: aparece no mês atual
+      await page.goto('/app/financeiro');
+      const item = page.getByRole('list', { name: 'Lançamentos' }).getByRole('listitem').filter({ hasText: `Consulta — ${name}` });
+      await expect(item).toContainText('R$ 250,50');
+      await expect(item).toContainText('Pago');
+      const csv = await page.request.get(`/app/financeiro/csv?mes=${new Date(Date.now() - 3 * 3600e3).toISOString().slice(0, 7)}`);
+      expect(csv.status()).toBe(200);
+      expect(await csv.text()).toContain(`Consulta — ${name};${name};250,50`);
+      // Segunda vez na mesma consulta: avisa que já existe
+      await page.goto(`/app/agenda?semana=${appointmentDate}`);
+      await page.getByRole('link', { name: `Registrar pagamento da consulta de ${name}` }).click();
+      await expect(page.getByRole('status').filter({ hasText: 'já tem um recebimento registrado' })).toBeVisible();
+      // Limpeza: o owner exclui
+      await page.goto('/app/financeiro');
+      await item.getByRole('button', { name: /^Excluir/ }).click();
+      await expect(page.getByRole('status').filter({ hasText: 'Lançamento excluído.' })).toBeVisible();
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+    });
   } finally {
     if (appointmentDate) {
       // A limpeza não pode impedir o arquivamento do paciente logo abaixo

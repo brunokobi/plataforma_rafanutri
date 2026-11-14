@@ -93,8 +93,11 @@ function AppointmentCard({ a, onMessage }: { a: Appointment; onMessage: (m: { ki
           {pending && <Loader2 className="size-4 animate-spin self-center" aria-label="Salvando" />}
         </div>
       )}
-      {a.status === 'completed' && a.patient_id && (
-        <Link href={`/app/pacientes/${a.patient_id.id}`} className="mt-2 inline-block text-xs font-medium text-primary hover:underline">Abrir ficha do paciente</Link>
+      {a.status !== 'cancelled' && a.patient_id && (
+        <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1">
+          {a.status === 'completed' && <Link href={`/app/pacientes/${a.patient_id.id}`} className="text-xs font-medium text-primary hover:underline">Abrir ficha do paciente</Link>}
+          <Link href={`/app/financeiro?consulta=${a.id}`} className="text-xs font-medium text-primary hover:underline" aria-label={`Registrar pagamento da consulta de ${name}`}>Registrar pagamento</Link>
+        </div>
       )}
 
       {rescheduling && (

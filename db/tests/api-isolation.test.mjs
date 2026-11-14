@@ -550,6 +550,19 @@ try {
     assert.equal((await api(`/rafanutri/documents/${docDraft.json.data.id}`, { token: b.token })).status, 404, 'outro consultório lendo o rascunho');
     assert.equal((await api(`/rafanutri/patients/${patientB}/documents`, { token: a.token, method: 'POST', body: { kind: 'general_guidance', title: 'Intruso', body: 'Texto.', document_date: today } })).status, 404);
     assert.equal((await api('/items/clinical_documents?limit=1', { token: pt })).status, 403);
+    // RN-053: financeiro — outro consultório não lê, não edita nem exclui; paciente e coleção direta recusados
+    const cats = (await api('/rafanutri/finance/categories', { token: a.token })).json.data;
+    const catIn = cats.find((c) => c.kind === 'income').id;
+    const txA = await api('/rafanutri/finance/transactions', { token: a.token, method: 'POST', body: { kind: 'income', category_id: catIn, description: 'Consulta isolamento', amount_cents: 25050, due_date: today, status: 'paid', patient_id: pid } });
+    assert.equal(txA.status, 201, JSON.stringify(txA.json));
+    assert.equal(txA.json.data.amount_cents, 25050);
+    assert.ok(!(await api('/rafanutri/finance/transactions', { token: b.token })).json.data.transactions.some((t) => t.id === txA.json.data.id), 'B não lista');
+    assert.equal((await api(`/rafanutri/finance/transactions/${txA.json.data.id}`, { token: b.token, method: 'PUT', body: { kind: 'income', category_id: catIn, description: 'Invadido', amount_cents: 1, due_date: today } })).status, 404);
+    assert.equal((await api(`/rafanutri/finance/transactions/${txA.json.data.id}`, { token: b.token, method: 'DELETE' })).status, 404);
+    assert.equal((await api('/rafanutri/finance/transactions', { token: b.token, method: 'POST', body: { kind: 'income', category_id: catIn, description: 'Paciente de A', amount_cents: 100, due_date: today, patient_id: pid } })).status, 409, 'B não lança para paciente de A');
+    assert.equal((await api('/rafanutri/finance/transactions', { token: pt })).status, 403, 'paciente não vê o financeiro');
+    assert.equal((await api('/items/financial_transactions?limit=1', { token: a.token })).status, 403, 'coleção direta');
+    assert.equal((await api(`/rafanutri/finance/transactions/${txA.json.data.id}`, { token: a.token, method: 'DELETE' })).status, 200, 'owner exclui');
     // RN-210: peso só liberado; paciente não muda o que vê; outro consultório não lê nem muda
     assert.deepEqual((await api('/rafanutri/me/patient/weight', { token: pt })).json.data.weight, []);
     assert.equal((await api(`/rafanutri/patients/${pid}/share`, { token: pt, method: 'PUT', body: { show_kcal: true, show_macros: true, show_weight_history: true } })).status, 404);
