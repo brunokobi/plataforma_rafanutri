@@ -973,16 +973,49 @@ export default {
     // RN-205 — Plano publicado completo para o paciente. A conta do paciente não lê coleções: os
     // nomes dos alimentos, as medidas caseiras e as preparações são resolvidos aqui, só para o
     // registro ativo ligado à conta e só com alimentos da base pública ou do próprio consultório.
+    /** Cabeçalho do PDF: consultório, profissional que fez o plano (ou o responsável) e paciente. */
+    async function planDocumentInfo(patient, plan) {
+      const org = await database('organizations').where('id', patient.organization_id).first('name', 'brand_color');
+      const authorId = plan.user_created ?? patient.responsible_user_id;
+      const author = authorId ? await database('directus_users').where('id', authorId).first('first_name', 'last_name', 'email') : null;
+      const prof = authorId ? await database('professional_profiles').where('user_id', authorId).first('crn', 'crn_region') : null;
+      return {
+        practice_name: org?.name ?? 'Consultório',
+        brand_color: org?.brand_color ?? null,
+        professional_name: [author?.first_name, author?.last_name].filter(Boolean).join(' ') || null,
+        crn: prof?.crn ?? '',
+        crn_region: prof?.crn_region ?? 'CRN',
+        contact: author?.email ?? '',
+        patient_name: patient.full_name,
+        objective: patient.objective ?? '',
+      };
+    }
+
+    // RN-209 — Planos que o paciente pode baixar: o vigente e os anteriores (já publicados).
+    router.get('/me/patient/plans', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const p = await myPatientRecord(user, isUuid(req.query.c) ? req.query.c : null);
+      if (!p) return res.json({ data: { patient_id: null, plans: [] } });
+      const plans = await database('meal_plans').where({ patient_id: p.id, organization_id: p.organization_id })
+        .whereIn('status', ['published', 'archived']).whereNotNull('published_at')
+        .orderBy('published_at', 'desc').select('id', 'title', 'status', 'published_at', 'valid_until');
+      res.json({ data: { patient_id: p.id, plans: plans.map((pl) => ({ ...pl, valid_until: pl.valid_until ? new Date(pl.valid_until).toISOString().slice(0, 10) : null })) } });
+    });
+
     router.get('/me/patient/plan', async (req, res) => {
       const user = requireUser(req, res);
       if (!user) return;
       const c = typeof req.query.c === 'string' && isUuid(req.query.c) ? req.query.c : null;
       let q = database('patients').where('app_user_id', user).where('status', 'active');
       if (c) q = q.where('id', c);
-      const patient = await q.orderBy('app_activated_at', 'desc').first('id', 'organization_id');
+      const patient = await q.orderBy('app_activated_at', 'desc').first('id', 'organization_id', 'full_name', 'objective', 'responsible_user_id');
+      // p = plano específico (RN-209: documentos); só planos que já foram publicados (vigente ou anteriores)
+      const planId = typeof req.query.p === 'string' && isUuid(req.query.p) ? req.query.p : null;
+      let pq = database('meal_plans').where({ patient_id: patient?.id ?? null, organization_id: patient?.organization_id ?? null });
+      pq = planId ? pq.where('id', planId).whereIn('status', ['published', 'archived']).whereNotNull('published_at') : pq.where('status', 'published');
       const plan = patient
-        ? await database('meal_plans').where({ patient_id: patient.id, organization_id: patient.organization_id, status: 'published' })
-          .orderBy('published_at', 'desc').first('id', 'title', 'mode', 'published_at', 'valid_until', 'guidelines', 'meals')
+        ? await pq.orderBy('published_at', 'desc').first('id', 'title', 'mode', 'status', 'published_at', 'valid_until', 'guidelines', 'meals', 'user_created')
         : null;
       if (!plan) return res.status(404).json({ errors: [{ message: 'Plano não encontrado.', extensions: { code: 'NOT_FOUND' } }] });
       const meals = (Array.isArray(plan.meals) ? plan.meals : []).map((m) => ({
@@ -1014,7 +1047,8 @@ export default {
       res.json({
         data: {
           patient_id: patient.id,
-          plan: { id: plan.id, title: plan.title, mode: plan.mode, published_at: plan.published_at, valid_until: plan.valid_until ? new Date(plan.valid_until).toISOString().slice(0, 10) : null, guidelines: plan.guidelines, meals },
+          document: await planDocumentInfo(patient, plan),
+          plan: { id: plan.id, title: plan.title, mode: plan.mode, status: plan.status, published_at: plan.published_at, valid_until: plan.valid_until ? new Date(plan.valid_until).toISOString().slice(0, 10) : null, guidelines: plan.guidelines, meals },
           foods,
           recipes,
         },

@@ -7,7 +7,7 @@ import { redirect } from 'next/navigation';
 import { ACCESS_COOKIE, sessionCookies } from '@/lib/auth/cookies';
 import { directus } from '@/lib/auth/directus';
 import { env } from '@/lib/env';
-import type { ActionResult, AppAccess, InvitePreview, PatientArea, PatientPlanPayload } from './types';
+import type { ActionResult, AppAccess, InvitePreview, PatientArea, PatientPlanDocument, PatientPlanPayload } from './types';
 
 type Json = null | { data?: unknown; errors?: Array<{ message: string; extensions?: { code?: string; fields?: Record<string, string> } }> };
 
@@ -84,10 +84,23 @@ export async function getPatientArea(): Promise<PatientArea | null> {
 }
 
 /** Plano publicado completo do registro escolhido (c = id do paciente). Null se não houver. */
-export async function getPatientPlan(c?: string): Promise<PatientPlanPayload | null> {
+export async function getPatientPlan(c?: string, planId?: string): Promise<PatientPlanPayload | null> {
   try {
-    const r = await call(`/me/patient/plan${isId(c) ? `?c=${c}` : ''}`, 'GET');
+    const qs = new URLSearchParams();
+    if (isId(c)) qs.set('c', c);
+    if (isId(planId)) qs.set('p', planId);
+    const r = await call(`/me/patient/plan${qs.size ? `?${qs}` : ''}`, 'GET');
     return r.status === 200 ? (r.json?.data as PatientPlanPayload) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** RN-209 — Planos já publicados do registro (vigente e anteriores). */
+export async function getMyPlanDocuments(c?: string): Promise<{ patient_id: string | null; plans: PatientPlanDocument[] } | null> {
+  try {
+    const r = await call(`/me/patient/plans${isId(c) ? `?c=${c}` : ''}`, 'GET');
+    return r.status === 200 ? (r.json?.data as { patient_id: string | null; plans: PatientPlanDocument[] }) : null;
   } catch {
     return null;
   }

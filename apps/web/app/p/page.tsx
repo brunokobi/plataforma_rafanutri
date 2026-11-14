@@ -64,6 +64,9 @@ export default async function PatientHome({ searchParams }: { searchParams: Prom
           <span className="rounded-full bg-primary px-2 py-0.5 text-xs font-medium text-primary-foreground">{record.recommendations_unread} {record.recommendations_unread === 1 ? 'nova' : 'novas'}</span>
         ) : <span aria-hidden="true">→</span>}
       </Link>
+      <Link href={`/p/documentos${q}`} className="flex min-h-11 items-center justify-between gap-3 rounded-2xl border border-border bg-card px-5 py-4 font-medium">
+        <span>Documentos</span><span aria-hidden="true">→</span>
+      </Link>
       {!record.plan ? (
         <section className="rounded-2xl border border-dashed border-border p-6 text-center">
           <Utensils className="mx-auto size-8 text-muted-foreground" aria-hidden="true" />

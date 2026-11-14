@@ -36,10 +36,22 @@ export type ActionResult<T = undefined> = { ok: true; data?: T } | { ok: false; 
 /** Plano publicado completo (GET /rafanutri/me/patient/plan), com alimentos e preparações resolvidos no servidor. */
 export interface PatientPlanPayload {
   patient_id: string;
+  /** Cabeçalho do PDF (RN-209). */
+  document?: {
+    practice_name: string;
+    brand_color: string | null;
+    professional_name: string | null;
+    crn: string;
+    crn_region: string;
+    contact: string;
+    patient_name: string;
+    objective: string;
+  };
   plan: {
     id: string;
     title: string;
     mode: 'quantitative' | 'qualitative';
+    status?: 'published' | 'archived';
     published_at: string | null;
     valid_until: string | null;
     guidelines: string | null;
@@ -47,4 +59,13 @@ export interface PatientPlanPayload {
   };
   foods: Record<string, { name: string; household_measures: Array<{ label: string; grams: number }> }>;
   recipes: Record<string, { yield_g: number | null; servings: number | null; instructions: string | null; items: Array<{ name: string | null; quantityG: number }> }>;
+}
+
+/** Plano que o paciente pode baixar (vigente ou anterior). */
+export interface PatientPlanDocument {
+  id: string;
+  title: string;
+  status: 'published' | 'archived';
+  published_at: string;
+  valid_until: string | null;
 }

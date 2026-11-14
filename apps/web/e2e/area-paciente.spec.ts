@@ -94,6 +94,22 @@ test('convite e área do paciente', async ({ page, browser }) => {
       expect(await pp.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
     });
 
+    await test.step('paciente baixa o PDF do plano; plano de outro não abre (RN-209)', async () => {
+      await pp.goto('/p');
+      await pp.getByRole('link', { name: /Documentos/ }).click();
+      const list = pp.getByRole('list', { name: 'Planos alimentares' });
+      await expect(list.getByRole('listitem')).toHaveCount(1);
+      await expect(list).toContainText('Plano atual');
+      const download = pp.waitForEvent('download');
+      await list.getByRole('link', { name: /Baixar PDF/ }).click();
+      const file = await download;
+      expect(file.suggestedFilename()).toMatch(/^plano-alimentar-\d{4}-\d{2}-\d{2}\.pdf$/);
+      const { readFile } = await import('node:fs/promises');
+      expect((await readFile((await file.path())!)).subarray(0, 5).toString()).toBe('%PDF-');
+      const other = await pp.request.get('/p/documentos/00000000-0000-4000-8000-000000000000/pdf');
+      expect(other.status()).toBe(404);
+    });
+
     await test.step('nutricionista cria receita com foto e envia; paciente vê (RN-206, RN-207)', async () => {
       await page.goto('/app/receitas');
       await page.getByRole('button', { name: 'Nova receita' }).click();

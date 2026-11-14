@@ -1,4 +1,4 @@
-import { ArrowLeft, ChefHat, Repeat, Utensils } from 'lucide-react';
+import { ArrowLeft, ChefHat, FileDown, Repeat, Utensils } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
@@ -45,6 +45,11 @@ export default async function PatientPlanPage({ searchParams }: { searchParams: 
           {plan.validUntil ? ` · válido até ${dateBR(plan.validUntil)}` : ''}
         </p>
       </div>
+
+      <a href={`/p/documentos/${payload.plan.id}/pdf${record && (area?.records.length ?? 0) > 1 ? `?c=${record.patient_id}` : ''}`} download
+        className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg border border-border px-4 text-sm font-medium hover:bg-muted">
+        <FileDown className="size-4" aria-hidden="true" /> Baixar PDF
+      </a>
 
       <nav aria-label="Refeições" className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
         {plan.meals.map((m) => (
