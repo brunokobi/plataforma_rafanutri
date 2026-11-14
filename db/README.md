@@ -41,6 +41,7 @@ db/
 │   ├── extension-foods.test.mjs       # conversão porção → 100 g e composição da preparação (node --test)
 │   ├── extension-documents.test.mjs   # validação dos documentos clínicos (node --test)
 │   ├── extension-finance.test.mjs     # validação dos lançamentos e meses do gráfico (node --test)
+│   ├── extension-crm.test.mjs         # telefone E.164 e validação do lead (node --test)
 │   └── api-isolation.test.mjs       # RN-008/RN-213: isolamento pela API (db/scripts/isolation-test.sh roda sem token)
 ├── directus/
 │   ├── 0005_anthropometric_assessments.mjs  # registra a coleção e as permissões no Directus (token de admin)
@@ -385,6 +386,23 @@ Migração `0020_patient_recommendations.sql` (idempotente; testes em `db/tests/
 | `GET /rafanutri/me/patient/recommendations[?c=]`, `POST /rafanutri/me/patient/recommendations/:id/read` | paciente (só publicadas) |
 
 `GET /rafanutri/me/patient` passa a trazer `recommendations_unread` por registro.
+
+## CRM (RN-056)
+
+Migração `0027_crm.sql` (**aplicada na vpsrafa em 14/11/2026**; testes em `db/tests/0027_crm.test.sql` e `db/tests/extension-crm.test.mjs`):
+
+- `leads` (nome, telefone E.164, e-mail, origem `instagram`/`referral`/`google`/`site`/`whatsapp`/`other`, etapa `new`/`contacted`/`lost`/`converted`, `lost_reason` obrigatório em perdido, `patient_id` ao converter). Qualquer membro cadastra; convertido não volta.
+- `crm_events` (lead ou paciente, de/para, nota, `auto`, usuário de `rafanutri.actor`). Gatilhos registram toda mudança de etapa.
+- `patients.crm_stage` (`scheduled`/`first_visit`/`follow_up`/`inactive`), `return_interval_days` (7–365, padrão 30), `lead_source`. `crm_refresh_patient()` roda depois de cada mudança em consultas; `crm_mark_inactive(org)` (90 dias sem consulta, nada marcado) é chamada pelo endpoint do quadro. A migração preencheu a etapa atual dos pacientes que já tinham consultas.
+
+| Endpoint | O que faz |
+|---|---|
+| `GET /rafanutri/crm/board` | leads abertos (e perdidos dos últimos 90 dias) e pacientes ativos por etapa |
+| `POST /rafanutri/crm/leads`, `PUT /rafanutri/crm/leads/:id` | cadastrar e editar lead |
+| `POST /rafanutri/crm/leads/:id/stage` (`{ stage, note }`), `POST /rafanutri/crm/leads/:id/convert` | mover no funil; converter em paciente (respeita o limite do plano) |
+| `GET /rafanutri/crm/returns?window=overdue\|7\|30` | retornos previstos sem consulta marcada |
+| `PUT /rafanutri/patients/:id/return-interval` (`{ days }`) | intervalo de retorno do paciente |
+| `GET /rafanutri/crm/metrics?days=` | leads por origem, convertidos, 1ª consulta e perdidos |
 
 ## Pacotes de consultas (RN-054)
 
