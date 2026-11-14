@@ -115,7 +115,7 @@ Status: `todo`, `doing`, `done`, `adiado` (fora do MVP, ver [ADR 0004](adr/0004-
 | [RN-061](plano/fase-2-gestao.md#rn-061--bloqueio-por-inadimplência-e-régua-de-cobrança) | Bloqueio por inadimplência e régua de cobrança | feature | 5 | RN-057, RN-062 | todo |
 | [RN-062](plano/fase-2-gestao.md#rn-062--webhooks-do-gateway-com-idempotência) | Webhooks do gateway com idempotência | infra | 3 | RN-057 (pode ser desenvolvido em paralelo) | todo |
 | [RN-063](plano/fase-2-gestao.md#rn-063--modelos-de-mensagem-e-aprovação-de-templates-whatsapp) | Modelos de mensagem e aprovação de templates WhatsApp | feature | 3 | RN-050 | todo |
-| [RN-064](plano/fase-2-gestao.md#rn-064--painel-financeiro-e-indicadores-do-consultório) | Painel financeiro e indicadores do consultório | feature | 3 | RN-053, RN-054, RN-056 | todo |
+| [RN-064](plano/fase-2-gestao.md#rn-064--painel-financeiro-e-indicadores-do-consultório) | Painel financeiro e indicadores do consultório | feature | 3 | RN-053, RN-054, RN-056 | done |
 | [RN-065](plano/fase-2-gestao.md#rn-065--configurações-de-automação-por-organização) | Configurações de automação por organização | feature | 2 | RN-051 | todo |
 | [RN-066](plano/fase-2-gestao.md#rn-066--operação-do-n8n-monitoramento-backup-e-runbook) | Operação do n8n: monitoramento, backup e runbook | infra | 2 | RN-050 | todo |
 | [RN-067](plano/fase-2-gestao.md#rn-067--documentação-da-fase-e-atualização-de-termos) | Documentação da fase e atualização de termos | doc | 1 | RN-057, RN-059 | todo |

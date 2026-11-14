@@ -387,6 +387,10 @@ Migração `0020_patient_recommendations.sql` (idempotente; testes em `db/tests/
 
 `GET /rafanutri/me/patient` passa a trazer `recommendations_unread` por registro.
 
+## Indicadores do consultório (RN-064)
+
+Migração `0028_dashboard.sql` (**aplicada na vpsrafa em 14/11/2026**; testes com dados conhecidos em `db/tests/0028_dashboard.test.sql`): `dashboard_month(org, data, nutricionista)` e `dashboard_indicators(org, data, nutricionista)` (json com o mês e o anterior, a receber, atrasado e retornos atrasados; definições no cabeçalho da migração). Lida só por `GET /rafanutri/dashboard?month=aaaa-mm&nutritionist=<id>`, que confere o consultório do usuário e só aceita nutricionista do próprio consultório.
+
 ## CRM (RN-056)
 
 Migração `0027_crm.sql` (**aplicada na vpsrafa em 14/11/2026**; testes em `db/tests/0027_crm.test.sql` e `db/tests/extension-crm.test.mjs`):
