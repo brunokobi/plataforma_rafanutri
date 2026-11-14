@@ -7,7 +7,7 @@ import { validateAnswers } from './forms.js';
 import { Readable } from 'node:stream';
 import { CUSTOM_NUTRIENTS, parseImageDataUrl, recipePer100g, validateFoodInput, validateRecipeInput } from './foods.js';
 import { validateDocumentInput } from './documents.js';
-import { fillMonths, isIsoDate, monthStart, validateTransaction } from './finance.js';
+import { fillMonths, isIsoDate, monthStart, splitInstallments, validatePackage, validateTransaction } from './finance.js';
 
 const TYPES = new Set(['solo', 'clinic']);
 const CRN_REGION = /^CRN-([1-9]|1[01])$/;
@@ -804,6 +804,133 @@ export default {
       const p = await receiptPayload(m.org, req.params.id);
       if (!p) return finNotFound(res);
       res.json({ data: p });
+    });
+
+    // ── Pacotes de consultas (RN-054) ───────────────────────────────────────────────────────────
+    const pkgNotFound = (res) => res.status(404).json({ errors: [{ message: 'Pacote não encontrado.', extensions: { code: 'NOT_FOUND' } }] });
+    const PKG_FIELDS = ['id', 'name', 'sessions', 'price_cents', 'validity_days', 'active'];
+    const pkgOut = (p) => ({ ...p, price_cents: Number(p.price_cents) });
+    const PP_FIELDS = ['id', 'name', 'sessions_total', 'sessions_used', 'price_cents', database.raw('sold_at::text as sold_at'), database.raw('expires_at::text as expires_at'), 'status', 'package_id'];
+    const ppOut = (p) => ({ ...p, price_cents: Number(p.price_cents) });
+    const clinical = (m) => m.role === 'owner' || m.role === 'nutritionist';
+    const forbidClinical = (res) => res.status(403).json({ errors: [{ message: 'Só owner ou nutricionista gerencia pacotes.', extensions: { code: 'FORBIDDEN' } }] });
+
+    router.get('/packages', async (req, res) => {
+      const m = await finMember(req, res);
+      if (!m) return;
+      const rows = await database('service_packages').where('organization_id', m.org).orderBy([{ column: 'active', order: 'desc' }, { column: 'name' }]).select(PKG_FIELDS);
+      res.json({ data: rows.map(pkgOut) });
+    });
+
+    async function savePackage(req, res, id) {
+      const m = await finMember(req, res);
+      if (!m) return;
+      if (!clinical(m)) return forbidClinical(res);
+      const r = validatePackage(req.body);
+      if (r.errors) return bad(res, r.errors);
+      try {
+        if (id) {
+          if (!isUuid(id)) return pkgNotFound(res);
+          const [row] = await database('service_packages').where({ id, organization_id: m.org }).update(r.value).returning(PKG_FIELDS);
+          return row ? res.json({ data: pkgOut(row) }) : pkgNotFound(res);
+        }
+        const [row] = await database('service_packages').insert({ ...r.value, organization_id: m.org, user_created: m.user }).returning(PKG_FIELDS);
+        res.status(201).json({ data: pkgOut(row) });
+      } catch (error) {
+        finConflict(res, error);
+      }
+    }
+    router.post('/packages', (req, res) => savePackage(req, res, null));
+    router.put('/packages/:id', (req, res) => savePackage(req, res, req.params.id));
+
+    async function memberPatient(m, id) {
+      if (!isUuid(id)) return null;
+      return database('patients').where({ id, organization_id: m.org }).first('id', 'full_name', 'status');
+    }
+
+    router.get('/patients/:id/packages', async (req, res) => {
+      const m = await finMember(req, res);
+      if (!m) return;
+      const p = await memberPatient(m, req.params.id);
+      if (!p) return pkgNotFound(res);
+      await database.raw('select expire_patient_packages(?)', [m.org]);
+      const rows = await database('patient_packages').where('patient_id', p.id).orderBy('date_created', 'desc').select(PP_FIELDS);
+      const uses = rows.length
+        ? await database('appointments').whereIn('patient_package_id', rows.map((r) => r.id)).where('status', 'completed').orderBy('starts_at').select('patient_package_id', 'starts_at')
+        : [];
+      res.json({ data: rows.map((r) => ({ ...ppOut(r), sessions: uses.filter((u) => u.patient_package_id === r.id).map((u) => u.starts_at) })) });
+    });
+
+    // Venda: pacote do catálogo, à vista (1) ou em até 12 parcelas; gera os lançamentos no financeiro.
+    router.post('/patients/:id/packages', async (req, res) => {
+      const m = await finMember(req, res);
+      if (!m) return;
+      if (!clinical(m)) return forbidClinical(res);
+      const p = await memberPatient(m, req.params.id);
+      if (!p) return pkgNotFound(res);
+      const b = req.body ?? {};
+      const pkg = isUuid(b.package_id) ? await database('service_packages').where({ id: b.package_id, organization_id: m.org, active: true }).first() : null;
+      if (!pkg) return bad(res, { package_id: 'Escolha um pacote ativo do catálogo.' });
+      const today = todaySP();
+      const n = Number(b.installments ?? 1);
+      const parts = splitInstallments(Number(pkg.price_cents), n, isIsoDate(b.first_due_date) ? b.first_due_date : today);
+      if (!parts) return bad(res, { installments: 'De 1 a 12 parcelas e data válida.' });
+      const method = b.payment_method == null || b.payment_method === '' ? null : String(b.payment_method);
+      if (method && !['pix', 'cash', 'debit', 'credit', 'transfer', 'boleto', 'other'].includes(method)) return bad(res, { payment_method: 'Forma de pagamento inválida.' });
+      const cat = await database('financial_categories').whereNull('organization_id').where({ kind: 'income', name: 'Pacote' }).first('id');
+      try {
+        const id = await database.transaction(async (trx) => {
+          const expires = pkg.validity_days ? new Date(Date.parse(`${today}T12:00:00Z`) + pkg.validity_days * 86_400_000).toISOString().slice(0, 10) : null;
+          const [pp] = await trx('patient_packages').insert({
+            organization_id: m.org, patient_id: p.id, package_id: pkg.id, name: pkg.name, sessions_total: pkg.sessions,
+            price_cents: pkg.price_cents, sold_at: today, expires_at: expires, user_created: m.user,
+          }).returning('id');
+          const ppId = pp.id ?? pp;
+          await trx('financial_transactions').insert(parts.map((x) => ({
+            organization_id: m.org, kind: 'income', category_id: cat.id, user_created: m.user, patient_id: p.id, patient_package_id: ppId,
+            description: `${pkg.name}${n > 1 ? ` (${x.number}/${n})` : ''} — ${p.full_name}`.slice(0, 200),
+            amount_cents: x.amount_cents, due_date: x.due_date, payment_method: method,
+            status: x.number === 1 && b.paid_now === true ? 'paid' : 'open', paid_at: x.number === 1 && b.paid_now === true ? today : null,
+          })));
+          return ppId;
+        });
+        res.status(201).json({ data: ppOut(await database('patient_packages').where('id', id).first(PP_FIELDS)) });
+      } catch (error) {
+        finConflict(res, error);
+      }
+    });
+
+    // Cancela o pacote vendido e as parcelas ainda em aberto (as pagas ficam).
+    router.post('/patient-packages/:id/cancel', async (req, res) => {
+      const m = await finMember(req, res);
+      if (!m) return;
+      if (!clinical(m)) return forbidClinical(res);
+      if (!isUuid(req.params.id)) return pkgNotFound(res);
+      const pp = await database('patient_packages').where({ id: req.params.id, organization_id: m.org }).first('id', 'status');
+      if (!pp) return pkgNotFound(res);
+      try {
+        await database.transaction(async (trx) => {
+          await trx('patient_packages').where('id', pp.id).update({ status: 'cancelled' });
+          await trx('financial_transactions').where({ patient_package_id: pp.id, status: 'open' }).update({ status: 'cancelled', paid_at: null });
+        });
+        res.json({ data: ppOut(await database('patient_packages').where('id', pp.id).first(PP_FIELDS)) });
+      } catch (error) {
+        finConflict(res, error);
+      }
+    });
+
+    // Agenda: pacote ativo de cada paciente (para mostrar "sessão x de y" e avisar a última).
+    router.get('/packages/agenda', async (req, res) => {
+      const m = await finMember(req, res);
+      if (!m) return;
+      const ids = String(req.query.patients ?? '').split(',').filter(isUuid).slice(0, 200);
+      if (!ids.length) return res.json({ data: {} });
+      await database.raw('select expire_patient_packages(?)', [m.org]);
+      const rows = await database('patient_packages').where('organization_id', m.org).whereIn('patient_id', ids).where('status', 'active')
+        .orderBy([{ column: 'sold_at' }, { column: 'date_created' }]).select('patient_id', 'name', 'sessions_used', 'sessions_total');
+      const out = {};
+      for (const r of rows) if (!out[r.patient_id]) out[r.patient_id] = { name: r.name, used: r.sessions_used, total: r.sessions_total };
+      res.json({ data: out });
     });
 
     // ── Documentos clínicos com a marca (RN-215) ───────────────────────────────────────────────

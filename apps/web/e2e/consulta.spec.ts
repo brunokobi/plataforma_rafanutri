@@ -184,6 +184,39 @@ test('consulta de ponta a ponta', async ({ page }) => {
       await expect(page.getByRole('status').filter({ hasText: 'Lançamento cancelado.' })).toBeVisible();
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
     });
+    await test.step('pacote: criar, vender e aviso de última sessão na agenda (RN-054)', async () => {
+      const pkgName = `Pacote E2E ${stamp}`;
+      await page.goto('/app/financeiro/pacotes');
+      await page.getByRole('button', { name: 'Novo pacote' }).click();
+      const form = page.getByRole('form', { name: 'Novo pacote' });
+      await form.getByLabel('Nome').fill(pkgName);
+      await form.getByLabel('Sessões').fill('1');
+      await form.getByLabel('Preço (R$)').fill('1,00');
+      await form.getByRole('button', { name: 'Salvar pacote' }).click();
+      await expect(page.getByRole('status').filter({ hasText: 'Pacote criado.' })).toBeVisible();
+
+      await page.goto(patientUrl);
+      await page.getByRole('button', { name: 'Vender pacote' }).click();
+      const sale = page.getByRole('form', { name: 'Vender pacote' });
+      await sale.getByLabel('Pacote').selectOption({ label: `${pkgName} — 1 sessão · R$ 1,00` });
+      await sale.getByLabel('Já foi pago').uncheck();
+      await sale.getByRole('button', { name: 'Confirmar venda' }).click();
+      await expect(page.getByRole('status').filter({ hasText: 'Pacote vendido' })).toBeVisible();
+      const owned = page.getByRole('list', { name: 'Pacotes do paciente' }).getByRole('listitem').filter({ hasText: pkgName });
+      await expect(owned).toContainText('0 de 1 sessões usadas');
+
+      await page.goto(`/app/agenda?semana=${appointmentDate}`);
+      const card = page.getByRole('listitem').filter({ hasText: name }).first();
+      await expect(card.getByText('Última sessão do pacote')).toBeVisible();
+
+      // Limpeza: cancela o pacote (a parcela em aberto é cancelada junto) e desativa no catálogo
+      await page.goto(patientUrl);
+      await owned.getByRole('button', { name: `Cancelar pacote ${pkgName}` }).click();
+      await expect(page.getByRole('status').filter({ hasText: 'Pacote cancelado.' })).toBeVisible();
+      await page.goto('/app/financeiro/pacotes');
+      await page.getByRole('list', { name: 'Pacotes' }).getByRole('listitem').filter({ hasText: pkgName }).getByRole('button', { name: 'Desativar' }).click();
+      await expect(page.getByRole('status').filter({ hasText: 'Pacote desativado' })).toBeVisible();
+    });
   } finally {
     if (appointmentDate) {
       // A limpeza não pode impedir o arquivamento do paciente logo abaixo

@@ -4,6 +4,8 @@ import { notFound, redirect } from 'next/navigation';
 import { AppHeader } from '@/components/app/app-header';
 import { PatientAppAccess } from '@/components/patients/patient-app-access';
 import { PatientShareSettings } from '@/components/patients/patient-share-settings';
+import { PatientPackages } from '@/components/packages/patient-packages';
+import { listPackages, listPatientPackages } from '@/lib/packages/actions';
 import { PatientRecipes } from '@/components/recipes/patient-recipes';
 import { PatientRecord } from '@/components/patients/patient-record';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -35,7 +37,7 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
   if (target) redirect(target);
 
   const organization = organizations?.find((o) => o.role === 'owner' || o.role === 'nutritionist') ?? null;
-  const [patient, all, assessments, plans, anamneses, nextAppointment, appAccess, patientRecipes, library, shareConfig] = await Promise.all([
+  const [patient, all, assessments, plans, anamneses, nextAppointment, appAccess, patientRecipes, library, shareConfig, patientPackages, packageCatalog] = await Promise.all([
     getPatient(id),
     organization ? listPatients(organization.id) : null,
     listAssessments(id),
@@ -46,6 +48,8 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
     listPatientRecipes(id),
     listRecipes(),
     getShareConfig(id),
+    listPatientPackages(id),
+    listPackages(),
   ]);
   if (patient === undefined) notFound();
 
@@ -72,6 +76,11 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
         {patient && (
           <div className="mt-6">
             <PatientAppAccess patientId={patient.id} access={appAccess} firstName={patient.full_name.split(/\s+/)[0] ?? patient.full_name} phone={patient.phone} />
+          </div>
+        )}
+        {patient && (
+          <div className="mt-6">
+            <PatientPackages patientId={patient.id} list={patientPackages} catalog={packageCatalog} archived={patient.status !== 'active'} />
           </div>
         )}
         {patient && (

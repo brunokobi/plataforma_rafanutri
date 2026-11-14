@@ -574,6 +574,19 @@ try {
     assert.equal((await api(`/rafanutri/finance/receipts/${rec.json.data.receipt.id}`, { token: pt })).status, 403, 'paciente não lê');
     assert.equal((await api(`/rafanutri/finance/transactions/${txR.json.data.id}`, { token: a.token, method: 'DELETE' })).status, 409, 'com recibo não exclui');
     assert.equal((await api('/items/receipts?limit=1', { token: a.token })).status, 403, 'coleção direta');
+    // RN-054: pacotes — catálogo e vendas isolados; venda gera as parcelas no financeiro
+    const pkA = await api('/rafanutri/packages', { token: a.token, method: 'POST', body: { name: 'Trimestral isolamento', sessions: 3, price_cents: 30000, validity_days: 90 } });
+    assert.equal(pkA.status, 201, JSON.stringify(pkA.json));
+    assert.ok(!(await api('/rafanutri/packages', { token: b.token })).json.data.some((x) => x.id === pkA.json.data.id), 'B não vê o catálogo de A');
+    assert.equal((await api(`/rafanutri/packages/${pkA.json.data.id}`, { token: b.token, method: 'PUT', body: { name: 'Invadido', sessions: 1, price_cents: 1 } })).status, 404);
+    const sold = await api(`/rafanutri/patients/${pid}/packages`, { token: a.token, method: 'POST', body: { package_id: pkA.json.data.id, installments: 3, first_due_date: today } });
+    assert.equal(sold.status, 201, JSON.stringify(sold.json));
+    const parcels = (await api('/rafanutri/finance/transactions?from=2000-01-01&to=2100-01-01', { token: a.token })).json.data.transactions.filter((t) => t.description.startsWith('Trimestral isolamento'));
+    assert.deepEqual(parcels.map((t) => t.amount_cents).sort((x, y) => y - x), [10000, 10000, 10000], '3 parcelas');
+    assert.equal((await api(`/rafanutri/patients/${pid}/packages`, { token: b.token })).status, 404, 'B não lista pacotes do paciente de A');
+    assert.equal((await api(`/rafanutri/patient-packages/${sold.json.data.id}/cancel`, { token: b.token, method: 'POST' })).status, 404, 'B não cancela');
+    assert.equal((await api(`/rafanutri/patients/${pid}/packages`, { token: pt })).status, 403, 'paciente não vê');
+    assert.equal((await api('/items/patient_packages?limit=1', { token: a.token })).status, 403, 'coleção direta');
     // RN-210: peso só liberado; paciente não muda o que vê; outro consultório não lê nem muda
     assert.deepEqual((await api('/rafanutri/me/patient/weight', { token: pt })).json.data.weight, []);
     assert.equal((await api(`/rafanutri/patients/${pid}/share`, { token: pt, method: 'PUT', body: { show_kcal: true, show_macros: true, show_weight_history: true } })).status, 404);

@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { rescheduleAppointment, setAppointmentStatus } from '@/lib/appointments/actions';
+import { packageBadge, type AgendaPackages } from '@/lib/packages/types';
 import {
   addDays,
   durationOf,
@@ -39,7 +40,7 @@ const STATUS_STYLE: Record<AppointmentStatus, string> = {
   no_show: 'border-l-tomato opacity-70',
 };
 
-function AppointmentCard({ a, onMessage }: { a: Appointment; onMessage: (m: { kind: 'ok' | 'error'; text: string }) => void }) {
+function AppointmentCard({ a, onMessage, pkg }: { a: Appointment; onMessage: (m: { kind: 'ok' | 'error'; text: string }) => void; pkg?: { name: string; used: number; total: number } }) {
   const [pending, startTransition] = useTransition();
   const [rescheduling, setRescheduling] = useState(false);
   const [date, setDate] = useState(localDate(a.starts_at));
@@ -68,6 +69,15 @@ function AppointmentCard({ a, onMessage }: { a: Appointment; onMessage: (m: { ki
         <p className="mt-1 truncate font-medium">{name}</p>
       )}
       <p className="text-xs text-muted-foreground">{TYPE_LABEL[a.type]} · {MODE_LABEL[a.mode]}</p>
+      {pkg && open && (() => {
+        const b = packageBadge(pkg, true);
+        return (
+          <p className="mt-1 text-xs">
+            <span className="text-muted-foreground">{b.text}</span>
+            {b.last && <span className="ml-1 rounded-full bg-amber-100 px-1.5 py-0.5 font-medium text-amber-900 dark:bg-amber-900/40 dark:text-amber-100">Última sessão do pacote</span>}
+          </p>
+        );
+      })()}
       {a.notes && <p className="mt-1 text-xs text-muted-foreground">{a.notes}</p>}
       {a.mode === 'online' && a.meeting_url && open && (
         <a href={a.meeting_url} target="_blank" rel="noopener noreferrer" className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline">
@@ -135,7 +145,10 @@ export function AgendaWeek({
   appointments,
   patients,
   defaultPatientId,
+  packages = {},
 }: {
+  /** Pacote ativo de cada paciente (RN-054). */
+  packages?: AgendaPackages;
   /** Segunda-feira da semana exibida (AAAA-MM-DD). */
   start: string;
   todayDate: string;
@@ -218,7 +231,7 @@ export function AgendaWeek({
                 ) : (
                   <ul className="space-y-2">
                     {list.map((a) => (
-                      <AppointmentCard key={a.id} a={a} onMessage={setMessage} />
+                      <AppointmentCard key={a.id} a={a} onMessage={setMessage} pkg={a.patient_id ? packages[a.patient_id.id] : undefined} />
                     ))}
                   </ul>
                 )}

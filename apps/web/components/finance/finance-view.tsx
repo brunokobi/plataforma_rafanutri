@@ -56,6 +56,7 @@ export function FinanceView({ month, list, summary, categories: initialCategorie
       <div className="flex flex-wrap items-center gap-3">
         <h1 className="font-display text-3xl font-semibold tracking-tight">Financeiro</h1>
         <div className="ml-auto flex flex-wrap items-center gap-2">
+          <Button asChild variant="ghost" size="sm"><Link href="/app/financeiro/pacotes">Pacotes</Link></Button>
           <Button asChild variant="outline" size="sm"><a href={`/app/financeiro/csv?mes=${month}`} download><Download className="size-4" /> Exportar CSV</a></Button>
           {mode === 'none' && <Button type="button" onClick={() => { setMode('new'); setFeedback(null); }}><Plus className="size-4" /> Novo lançamento</Button>}
         </div>

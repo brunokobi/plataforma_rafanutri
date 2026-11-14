@@ -36,3 +36,22 @@ test('meses do gráfico: 6 meses com zero onde não houve movimento, virando o a
   assert.deepEqual(m[4], { month: '2026-01-01', income_cents: 500, expense_cents: 200 });
   assert.equal(m[5].income_cents, 0);
 });
+
+import { splitInstallments, validatePackage } from '../../directus/extensions/rafanutri/finance.js';
+
+test('parcelas: sobra na primeira, mensais, dia 31 ajustado', () => {
+  assert.deepEqual(splitInstallments(100000, 3, '2026-01-31'), [
+    { number: 1, amount_cents: 33334, due_date: '2026-01-31' },
+    { number: 2, amount_cents: 33333, due_date: '2026-02-28' },
+    { number: 3, amount_cents: 33333, due_date: '2026-03-31' },
+  ]);
+  assert.equal(splitInstallments(60000, 1, '2026-11-14').length, 1);
+  assert.equal(splitInstallments(60000, 13, '2026-11-14'), null);
+  assert.equal(splitInstallments(0, 2, '2026-11-14'), null);
+  assert.equal(splitInstallments(100, 2, '2026-11-31'), null);
+});
+
+test('pacote do catálogo', () => {
+  assert.deepEqual(validatePackage({ name: ' Trimestral ', sessions: '3', price_cents: 60000, validity_days: '' }).value, { name: 'Trimestral', sessions: 3, price_cents: 60000, validity_days: null, active: true });
+  assert.deepEqual(Object.keys(validatePackage({ name: 'X', sessions: 0, price_cents: -1, validity_days: 1000 }).errors).sort(), ['name', 'price_cents', 'sessions', 'validity_days']);
+});

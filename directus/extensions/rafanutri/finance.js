@@ -63,3 +63,36 @@ export function fillMonths(rows, ym, n = 6) {
   }
   return out;
 }
+
+/**
+ * RN-054 — Parcelas da venda de pacote: divide em `n` parcelas mensais a partir de `firstDue` (aaaa-mm-dd).
+ * Centavos que sobram vão na primeira; dia 31 vira o último dia dos meses mais curtos.
+ */
+export function splitInstallments(totalCents, n, firstDue) {
+  if (!Number.isSafeInteger(totalCents) || totalCents <= 0 || !Number.isInteger(n) || n < 1 || n > 12 || !isIsoDate(firstDue)) return null;
+  const base = Math.floor(totalCents / n);
+  const rest = totalCents - base * n;
+  const [y, m, d] = firstDue.split('-').map(Number);
+  const out = [];
+  for (let i = 0; i < n; i += 1) {
+    const last = new Date(Date.UTC(y, m - 1 + i + 1, 0)).getUTCDate();
+    const due = new Date(Date.UTC(y, m - 1 + i, Math.min(d, last))).toISOString().slice(0, 10);
+    out.push({ number: i + 1, amount_cents: base + (i === 0 ? rest : 0), due_date: due });
+  }
+  return out;
+}
+
+/** Valida o pacote do catálogo. */
+export function validatePackage(b) {
+  const errors = {};
+  const name = typeof b?.name === 'string' ? b.name.trim().replace(/\s+/g, ' ') : '';
+  if (name.length < 2 || name.length > 80) errors.name = 'Nome de 2 a 80 caracteres.';
+  const sessions = Number(b?.sessions);
+  if (!Number.isInteger(sessions) || sessions < 1 || sessions > 100) errors.sessions = 'De 1 a 100 sessões.';
+  const price = Number(b?.price_cents);
+  if (!Number.isSafeInteger(price) || price <= 0 || price > MAX_AMOUNT_CENTS) errors.price_cents = 'Preço maior que zero.';
+  let validity = b?.validity_days == null || b.validity_days === '' ? null : Number(b.validity_days);
+  if (validity !== null && (!Number.isInteger(validity) || validity < 1 || validity > 730)) errors.validity_days = 'Validade de 1 a 730 dias.';
+  if (Object.keys(errors).length) return { errors };
+  return { value: { name, sessions, price_cents: price, validity_days: validity, active: b?.active !== false } };
+}

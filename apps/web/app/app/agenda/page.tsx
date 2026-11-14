@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { AgendaWeek } from '@/components/agenda/agenda-week';
 import { AppHeader } from '@/components/app/app-header';
 import { listAppointments } from '@/lib/appointments/repository';
+import { getAgendaPackages } from '@/lib/packages/actions';
 import { addDays, isDate, today, toInstant, weekStart } from '@/lib/appointments/schema';
 import { getMyOrganizations, landingRedirect } from '@/lib/auth/organizations';
 import { getCurrentUser } from '@/lib/auth/session';
@@ -32,6 +33,7 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
       ])
     : [null, null];
   const options = (patients ?? []).filter((p) => p.status === 'active').map((p) => ({ id: p.id, full_name: p.full_name }));
+  const packages = await getAgendaPackages((appointments ?? []).map((a) => a.patient_id?.id ?? '').filter(Boolean));
   const defaultPatientId = isUuid(paciente) && options.some((p) => p.id === paciente) ? paciente : undefined;
 
   return (
@@ -41,7 +43,7 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
         <h1 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">Agenda</h1>
         {organization && <p className="mt-1 text-sm text-muted-foreground">{organization.name} · horário de Brasília</p>}
         <div className="mt-6">
-          <AgendaWeek start={start} todayDate={todayDate} appointments={appointments} patients={options} defaultPatientId={defaultPatientId} />
+          <AgendaWeek start={start} todayDate={todayDate} appointments={appointments} patients={options} defaultPatientId={defaultPatientId} packages={packages} />
         </div>
       </main>
     </div>
