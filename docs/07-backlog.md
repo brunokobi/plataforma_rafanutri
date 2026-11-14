@@ -85,7 +85,7 @@ Status: `todo`, `doing`, `done`, `adiado` (fora do MVP, ver [ADR 0004](adr/0004-
 | [RN-202](plano/fase-1b-freemium-area-paciente.md#rn-202--uso-do-plano-e-aviso-de-limite-na-interface) | Uso do plano e aviso de limite na interface | feature | 2 | RN-201, RN-013 | done |
 | [RN-203](plano/fase-1b-freemium-area-paciente.md#rn-203--convite-do-paciente-e-vínculo-da-conta) | Convite do paciente e vínculo da conta | feature | 5 | RN-005, RN-020 | done |
 | [RN-204](plano/fase-1b-freemium-area-paciente.md#rn-204--área-do-paciente-autenticação-layout-e-início) | Área do paciente: autenticação, layout e início | feature | 5 | RN-203, RN-019 | doing |
-| [RN-205](plano/fase-1b-freemium-area-paciente.md#rn-205--plano-alimentar-na-área-do-paciente) | Plano alimentar na área do paciente | feature | 3 | RN-204, RN-031, RN-034 | todo |
+| [RN-205](plano/fase-1b-freemium-area-paciente.md#rn-205--plano-alimentar-na-área-do-paciente) | Plano alimentar na área do paciente | feature | 3 | RN-204, RN-031, RN-034 | done |
 | [RN-206](plano/fase-1b-freemium-area-paciente.md#rn-206--biblioteca-de-receitas-compartilháveis) | Biblioteca de receitas compartilháveis | feature | 5 | RN-042 | todo |
 | [RN-207](plano/fase-1b-freemium-area-paciente.md#rn-207--receitas-na-área-do-paciente) | Receitas na área do paciente | feature | 3 | RN-206, RN-204 | todo |
 | [RN-208](plano/fase-1b-freemium-area-paciente.md#rn-208--recomendações-ao-paciente) | Recomendações ao paciente | feature | 5 | RN-045, RN-204 | todo |

@@ -100,7 +100,7 @@ test('convite e área do paciente', async ({ page, browser }) => {
     });
 
     await test.step('nutricionista vê o acesso ativo e revoga', async () => {
-      await page.reload();
+      await page.goto(patientUrl);
       const card = page.getByRole('region', { name: 'Área do paciente' });
       await expect(card.getByText('Acesso ativo')).toBeVisible();
       await card.getByRole('button', { name: 'Revogar acesso' }).click();

@@ -513,6 +513,9 @@ try {
     for (const c of ['patients', 'meal_plans', 'anamneses', 'appointments', 'organizations']) assert.equal((await api(`/items/${c}?limit=1`, { token: pt })).status, 403, c);
     assert.equal((await api('/rafanutri/organizations', { token: pt, method: 'POST', body: { name: 'Consultório do paciente', type: 'solo', crn: '1', crn_region: 'CRN-1' } })).status, 403);
     assert.equal((await api(`/rafanutri/patients/${pid}/notes`, { token: pt })).status, 404);
+    // RN-205: plano completo só do próprio registro; id de paciente de outro consultório não abre nada
+    assert.equal((await api(`/rafanutri/me/patient/plan?c=${patientB}`, { token: pt })).status, 404);
+    assert.equal((await api(`/rafanutri/me/patient/plan`, { token: a.token })).status, 404);
     assert.equal((await api('/rafanutri/public/patient-invites/accept', { method: 'POST', body: { token: inv.json.data.token, password: 'Senha-isolamento-2' } })).status, 410);
     await api(`/rafanutri/patients/${pid}/app-access/revoke`, { token: a.token, method: 'POST' });
     assert.deepEqual((await api('/rafanutri/me/patient', { token: pt })).json.data.records, []);

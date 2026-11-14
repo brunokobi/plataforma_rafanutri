@@ -378,7 +378,7 @@ Migração `0018_patient_app_access.sql` (**aplicada na vpsrafa em 14/11/2026**)
 | Convite: token de 32 bytes guardado só como hash, uso único, até 7 dias, um pendente por paciente, só para paciente ativo, criado por owner/nutricionista | `patient_app_invites` + gatilho |
 | Papel **Paciente** no Directus (política que só lê o próprio usuário); nada de coleções. Conta de paciente não cria consultório; e-mail de profissional não vira conta de paciente | migração + extensão |
 | Arquivar o paciente tira o acesso (a área só mostra registros ativos); revogar desfaz o vínculo e cancela o convite pendente | extensão |
-| `GET /rafanutri/patients/:id/app-access`, `POST …/app-invite`, `POST …/app-access/revoke`; públicos `POST /rafanutri/public/patient-invites/open` e `/accept` (token no corpo); `POST /rafanutri/patient-invites/accept` (conta já existente, logada); `GET /rafanutri/me/patient` | extensão `rafanutri` |
+| `GET /rafanutri/patients/:id/app-access`, `POST …/app-invite`, `POST …/app-access/revoke`; públicos `POST /rafanutri/public/patient-invites/open` e `/accept` (token no corpo); `POST /rafanutri/patient-invites/accept` (conta já existente, logada); `GET /rafanutri/me/patient`; `GET /rafanutri/me/patient/plan?c=<paciente>` (RN-205: plano publicado com nomes, medidas caseiras, substituições e preparações resolvidos no servidor, só alimentos públicos ou do consultório do registro) | extensão `rafanutri` |
 
 Sem SMTP ainda: o convite é um link copiável (WhatsApp) e o paciente cria a senha no primeiro acesso. Convite por e-mail e entrada por link mágico entram com o Resend.
 
