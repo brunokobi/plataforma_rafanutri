@@ -138,6 +138,25 @@ test('convite e área do paciente', async ({ page, browser }) => {
       expect(await pp.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
     });
 
+    await test.step('ids trocados nas rotas do paciente não abrem nada (RN-213)', async () => {
+      // Rascunho de um plano novo do mesmo paciente: nem pelo id
+      await page.goto(`${patientUrl}/planos`);
+      await page.getByRole('button', { name: 'Novo plano' }).click();
+      await expect(page).toHaveURL(/\/planos\/[0-9a-f-]{36}$/);
+      const draftId = page.url().split('/').pop()!;
+      expect((await pp.request.get(`/p/documentos/${draftId}/pdf`)).status()).toBe(404);
+      await pp.goto('/p/documentos');
+      await expect(pp.getByRole('list', { name: 'Planos alimentares' }).getByRole('listitem')).toHaveCount(1);
+      // Registro de outra pessoa (id do próprio rascunho como se fosse paciente) e foto inexistente
+      await pp.goto(`/p/plano?c=${draftId}`);
+      await expect(pp.getByRole('heading', { level: 1 })).not.toHaveText(/Rascunho/);
+      expect((await pp.request.get('/api/receitas/999999999/foto')).status()).toBe(404);
+      expect((await pp.request.get(`/api/consultorio/${draftId}/logo`)).status()).toBe(404);
+      // Paciente não abre telas do nutricionista
+      await pp.goto(`${patientUrl.replace(/^https?:\/\/[^/]+/, '')}/planos`);
+      await expect(pp).toHaveURL(/\/p$/);
+    });
+
     await test.step('nutricionista cria receita com foto e envia; paciente vê (RN-206, RN-207)', async () => {
       await page.goto('/app/receitas');
       await page.getByRole('button', { name: 'Nova receita' }).click();

@@ -540,6 +540,42 @@ try {
     assert.equal((await api(`/rafanutri/patients/${patientB}/share`, { token: a.token })).status, 404);
     assert.equal((await api(`/rafanutri/patients/${patientB}/preview`, { token: a.token })).status, 404);
     assert.equal((await api('/rafanutri/public/patient-invites/accept', { method: 'POST', body: { token: inv.json.data.token, password: 'Senha-isolamento-2' } })).status, 410);
+    // RN-213: a conta de paciente não lê nenhuma coleção pela API de itens (todas as tabelas do produto)
+    const collections = (await api('/collections?limit=-1', { token: ADMIN })).json.data.map((c) => c.collection).filter((c) => !c.startsWith('directus_'));
+    assert.ok(collections.length >= 15, `coleções: ${collections.length}`);
+    for (const c of collections) assert.equal((await api(`/items/${c}?limit=1`, { token: pt })).status, 403, `paciente lendo ${c}`);
+    // Rascunho de plano nunca chega ao paciente, nem pedindo pelo id
+    const draft = await api('/items/meal_plans?fields=id', { token: a.token, method: 'POST', body: { organization_id: A, patient_id: pid, title: 'Rascunho IDOR' } });
+    assert.equal(draft.status, 200, JSON.stringify(draft.json));
+    assert.equal((await api(`/rafanutri/me/patient/plan?p=${draft.json.data.id}`, { token: pt })).status, 404, 'rascunho pelo id');
+    assert.ok(!(await api('/rafanutri/me/patient/plans', { token: pt })).json.data.plans.some((x) => x.id === draft.json.data.id), 'rascunho na lista');
+    // Outro paciente do mesmo consultório (outra conta): nenhum id trocado abre nada
+    const email2 = `teste-isolamento-paciente2-${randomUUID().slice(0, 8)}@example.com`;
+    // A está no limite de 20 ativos (teste do limite): libera uma vaga arquivando outro paciente
+    const spare = (await api(`/items/patients?fields=id&limit=1&filter[organization_id][_eq]=${A}&filter[status][_eq]=active&filter[id][_neq]=${pid}`, { token: a.token })).json.data[0].id;
+    assert.equal((await api(`/items/patients/${spare}`, { token: a.token, method: 'PATCH', body: { status: 'archived' } })).status, 200);
+    const p2 = await api('/items/patients?fields=id', { token: a.token, method: 'POST', body: { organization_id: A, full_name: 'Paciente Dois A' } });
+    assert.equal(p2.status, 200, JSON.stringify(p2.json));
+    const pid2 = p2.json.data.id;
+    const inv2 = await api(`/rafanutri/patients/${pid2}/app-invite`, { token: a.token, method: 'POST', body: { email: email2 } });
+    assert.equal((await api('/rafanutri/public/patient-invites/accept', { method: 'POST', body: { token: inv2.json.data.token, password: 'Senha-isolamento-2b' } })).status, 201);
+    const pt2 = (await api('/auth/login', { method: 'POST', body: { email: email2, password: 'Senha-isolamento-2b' } })).json.data.access_token;
+    created.users.push((await api('/users/me?fields=id', { token: pt2 })).json.data.id);
+    for (const [tok, other] of [[pt, pid2], [pt2, pid]]) {
+      assert.equal((await api(`/rafanutri/me/patient/plan?c=${other}`, { token: tok })).status, 404, 'plano de outro paciente');
+      assert.equal((await api(`/rafanutri/me/patient/recommendations?c=${other}`, { token: tok })).json.data.patient_id, null, 'recomendações de outro paciente');
+      assert.equal((await api(`/rafanutri/me/patient/recipes?c=${other}`, { token: tok })).json.data.patient_id, null, 'receitas de outro paciente');
+      assert.equal((await api(`/rafanutri/me/patient/plans?c=${other}`, { token: tok })).json.data.patient_id, null, 'documentos de outro paciente');
+      assert.equal((await api(`/rafanutri/me/patient/weight?c=${other}`, { token: tok })).json.data.patient_id, null, 'peso de outro paciente');
+      assert.equal((await api(`/rafanutri/patients/${other}/notes`, { token: tok })).status, 404, 'notas clínicas');
+    }
+    const recRead = (await api('/rafanutri/me/patient/recommendations', { token: pt })).json.data.recommendations[0];
+    assert.equal((await api(`/rafanutri/me/patient/recommendations/${recRead.id}/read`, { token: pt2, method: 'POST' })).status, 404, 'marcar leitura de outro');
+    // Registro arquivado: some da área do paciente
+    assert.equal((await api(`/items/patients/${pid2}`, { token: a.token, method: 'PATCH', body: { status: 'archived' } })).status, 200);
+    assert.deepEqual((await api('/rafanutri/me/patient', { token: pt2 })).json.data.records, []);
+    assert.equal((await api('/rafanutri/me/patient/plan', { token: pt2 })).status, 404);
+
     // RN-211: a mesma conta também paciente de B; cada consultório só aparece no próprio registro
     const pb = await api('/items/patients?fields=id', { token: b.token, method: 'POST', body: { organization_id: B, full_name: 'Paciente Comum B' } });
     assert.equal(pb.status, 200, JSON.stringify(pb.json));

@@ -30,7 +30,7 @@ export default ({ filter }, { database }) => {
     if (!member) throw forbidden('Você não tem acesso a este consultório.');
   }
 
-  async function assertActiveSlot(organizationId, excludeIds = []) {
+  async function assertActiveSlot(organizationId, userId, excludeIds = []) {
     const row = await database('organizations as o')
       .join('plans as p', 'p.code', 'o.plan')
       .where('o.id', organizationId)
@@ -40,6 +40,10 @@ export default ({ filter }, { database }) => {
     if (excludeIds.length) q.whereNotIn('id', excludeIds);
     const { count } = await q.count({ count: '*' }).first();
     if (Number(count) >= row.lim) {
+      // RN-214: registra a tentativa bloqueada (fora da transação do insert, que vai falhar)
+      await database('product_events')
+        .insert({ event: 'limit_reached', organization_id: organizationId, user_id: userId ?? null, data: JSON.stringify({ active: Number(count), limit: row.lim }) })
+        .catch(() => {});
       throw invalid(`Você atingiu o limite de ${row.lim} pacientes ativos do plano ${row.plan}. Arquive um paciente para liberar a vaga.`);
     }
   }
@@ -52,7 +56,7 @@ export default ({ filter }, { database }) => {
       throw forbidden('O responsável pelo paciente é sempre quem cadastra.');
     }
     await assertClinicalMember(organizationId, accountability.user);
-    if ((payload.status ?? 'active') === 'active') await assertActiveSlot(organizationId);
+    if ((payload.status ?? 'active') === 'active') await assertActiveSlot(organizationId, accountability.user);
     // O responsável é sempre quem cadastra (não vem do cliente).
     return { ...payload, responsible_user_id: accountability.user };
   });
@@ -66,7 +70,7 @@ export default ({ filter }, { database }) => {
       const keys = meta?.keys ?? [];
       const rows = await database('patients').whereIn('id', keys).select('id', 'organization_id', 'status');
       for (const orgId of new Set(rows.filter((r) => r.status !== 'active').map((r) => r.organization_id))) {
-        await assertActiveSlot(orgId);
+        await assertActiveSlot(orgId, accountability.user);
       }
     }
     return payload;
