@@ -381,6 +381,10 @@ Migração `0020_patient_recommendations.sql` (idempotente; testes em `db/tests/
 
 `GET /rafanutri/me/patient` passa a trazer `recommendations_unread` por registro.
 
+## Paciente com mais de um nutricionista (RN-211)
+
+Sem migração (o vínculo por consultório vem da 0018). `GET /rafanutri/me/patient` traz um registro por consultório, com `practice.has_logo`; os endpoints `/rafanutri/me/patient/*` aceitam `?c=<registro>` e só devolvem dados desse registro. `GET /rafanutri/practices/:id/logo` entrega o logo a membros do consultório e a pacientes com vínculo ativo nele.
+
 ## O que o paciente vê (RN-210)
 
 Migração `0021_patient_share_settings.sql` (idempotente; testes em `db/tests/0021_patient_share_settings.test.sql`):
