@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 import { ACCESS_COOKIE } from '@/lib/auth/cookies';
 import { env } from '@/lib/env';
-import type { AppointmentPrefill, FinanceCategory, FinanceResult, FinanceSummary, TransactionInput, TransactionList, TxKind } from './types';
+import type { AppointmentPrefill, FinanceCategory, FinanceResult, FinanceSummary, ReceiptPayload, TransactionInput, TransactionList, TxKind } from './types';
 
 type Json = null | { data?: unknown; errors?: Array<{ message: string; extensions?: { fields?: Record<string, string> } }> };
 
@@ -88,4 +88,24 @@ export async function createFinanceCategory(kind: TxKind, name: string): Promise
   } catch {
     return { ok: false, message: 'Não foi possível criar a categoria agora.' };
   }
+}
+
+/** RN-055 — Emite (ou devolve o já emitido) o recibo de um recebimento pago. */
+export async function issueReceipt(transactionId: string, payer?: { payer_name?: string; payer_cpf?: string }): Promise<{ ok: true; receiptId: string } | { ok: false; message: string }> {
+  if (!isUuid(transactionId)) return { ok: false, message: 'Pedido inválido.' };
+  try {
+    const r = await call(`/finance/transactions/${transactionId}/receipt`, 'POST', payer ?? {});
+    if (r.status === 200 || r.status === 201) {
+      revalidatePath('/app/financeiro');
+      return { ok: true, receiptId: (r.json?.data as ReceiptPayload).receipt.id };
+    }
+    const e = r.json?.errors?.[0];
+    return { ok: false, message: (e?.extensions?.fields ? Object.values(e.extensions.fields)[0] : null) ?? e?.message ?? 'Não foi possível emitir o recibo agora.' };
+  } catch {
+    return { ok: false, message: 'Não foi possível emitir o recibo agora.' };
+  }
+}
+
+export async function getReceipt(id: string): Promise<ReceiptPayload | null> {
+  return isUuid(id) ? get<ReceiptPayload>(`/finance/receipts/${id}`) : null;
 }

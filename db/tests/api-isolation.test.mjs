@@ -563,6 +563,17 @@ try {
     assert.equal((await api('/rafanutri/finance/transactions', { token: pt })).status, 403, 'paciente não vê o financeiro');
     assert.equal((await api('/items/financial_transactions?limit=1', { token: a.token })).status, 403, 'coleção direta');
     assert.equal((await api(`/rafanutri/finance/transactions/${txA.json.data.id}`, { token: a.token, method: 'DELETE' })).status, 200, 'owner exclui');
+    // RN-055: recibo — número sequencial, outro consultório não lê nem emite; lançamento com recibo não é excluído
+    const txR = await api('/rafanutri/finance/transactions', { token: a.token, method: 'POST', body: { kind: 'income', category_id: catIn, description: 'Consulta recibo', amount_cents: 1000, due_date: today, status: 'paid', patient_id: pid } });
+    const rec = await api(`/rafanutri/finance/transactions/${txR.json.data.id}/receipt`, { token: a.token, method: 'POST', body: {} });
+    assert.equal(rec.status, 201, JSON.stringify(rec.json));
+    assert.equal(rec.json.data.receipt.number, 1);
+    assert.equal((await api(`/rafanutri/finance/transactions/${txR.json.data.id}/receipt`, { token: a.token, method: 'POST', body: {} })).json.data.receipt.id, rec.json.data.receipt.id, 'emitir de novo devolve o mesmo');
+    assert.equal((await api(`/rafanutri/finance/receipts/${rec.json.data.receipt.id}`, { token: b.token })).status, 404, 'B não lê o recibo');
+    assert.equal((await api(`/rafanutri/finance/transactions/${txR.json.data.id}/receipt`, { token: b.token, method: 'POST', body: {} })).status, 404, 'B não emite');
+    assert.equal((await api(`/rafanutri/finance/receipts/${rec.json.data.receipt.id}`, { token: pt })).status, 403, 'paciente não lê');
+    assert.equal((await api(`/rafanutri/finance/transactions/${txR.json.data.id}`, { token: a.token, method: 'DELETE' })).status, 409, 'com recibo não exclui');
+    assert.equal((await api('/items/receipts?limit=1', { token: a.token })).status, 403, 'coleção direta');
     // RN-210: peso só liberado; paciente não muda o que vê; outro consultório não lê nem muda
     assert.deepEqual((await api('/rafanutri/me/patient/weight', { token: pt })).json.data.weight, []);
     assert.equal((await api(`/rafanutri/patients/${pid}/share`, { token: pt, method: 'PUT', body: { show_kcal: true, show_macros: true, show_weight_history: true } })).status, 404);

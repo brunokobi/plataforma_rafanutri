@@ -169,10 +169,19 @@ test('consulta de ponta a ponta', async ({ page }) => {
       await page.goto(`/app/agenda?semana=${appointmentDate}`);
       await page.getByRole('link', { name: `Registrar pagamento da consulta de ${name}` }).click();
       await expect(page.getByRole('status').filter({ hasText: 'já tem um recebimento registrado' })).toBeVisible();
-      // Limpeza: o owner exclui
+      // Recibo numerado (RN-055): emite, baixa o PDF; lançamento com recibo não se exclui, só se cancela
       await page.goto('/app/financeiro');
-      await item.getByRole('button', { name: /^Excluir/ }).click();
-      await expect(page.getByRole('status').filter({ hasText: 'Lançamento excluído.' })).toBeVisible();
+      const download = page.waitForEvent('download');
+      await item.getByRole('button', { name: /^Emitir recibo/ }).click();
+      const file = await download;
+      expect(file.suggestedFilename()).toMatch(/^recibo-\d{6}\.pdf$/);
+      const { readFile } = await import('node:fs/promises');
+      expect((await readFile((await file.path())!)).subarray(0, 5).toString()).toBe('%PDF-');
+      await page.reload();
+      await expect(item.getByRole('link', { name: /^Baixar recibo/ })).toBeVisible();
+      await expect(item.getByRole('button', { name: /^Excluir/ })).toHaveCount(0);
+      await item.getByRole('button', { name: /^Cancelar/ }).click();
+      await expect(page.getByRole('status').filter({ hasText: 'Lançamento cancelado.' })).toBeVisible();
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
     });
   } finally {

@@ -86,6 +86,12 @@ begin
   assert not exists (select 1 from financial_transactions where id = t2), 'owner exclui';
   perform set_config('rafanutri.actor', '', true);
 
+  -- Apagar o consultório leva os lançamentos (cascata, sem ator) — corrigido na 0025
+  if exists (select 1 from schema_migrations where version = '0025_receipts') then
+    delete from organizations where id = o1.id;
+    assert not exists (select 1 from financial_transactions where organization_id = o1.id), 'cascata do consultório';
+  end if;
+
   raise notice '0024_finance: todos os testes passaram';
 end $$;
 

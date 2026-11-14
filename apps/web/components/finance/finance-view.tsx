@@ -1,12 +1,12 @@
 'use client';
 
-import { Check, ChevronLeft, ChevronRight, Download, Loader2, Pencil, Plus, Trash2, X } from 'lucide-react';
+import { Check, ChevronLeft, ChevronRight, Download, FileText, Loader2, Pencil, Plus, Trash2, X } from 'lucide-react';
 import Link from 'next/link';
 import { useMemo, useState, useTransition } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { createFinanceCategory, createTransaction, deleteTransaction, updateTransaction } from '@/lib/finance/actions';
+import { createFinanceCategory, createTransaction, deleteTransaction, issueReceipt, updateTransaction } from '@/lib/finance/actions';
 import { centsToInput, formatCents, parseMoneyToCents } from '@/lib/finance/money';
 import {
   isOverdue, KIND_LABEL, monthLong, PAYMENT_LABEL, periodTotals, shiftMonth, STATUS_LABEL,
@@ -129,6 +129,30 @@ export function FinanceView({ month, list, summary, categories: initialCategorie
                     <p className={cn('text-xs', overdue ? 'font-medium text-destructive' : t.status === 'paid' ? 'text-primary' : 'text-muted-foreground')}>{overdue ? 'Atrasado' : STATUS_LABEL[t.status]}</p>
                   </div>
                   <div className="flex flex-wrap gap-1">
+                    {t.kind === 'income' && t.status === 'paid' && (
+                      t.receipt_id ? (
+                        <Button asChild size="sm" variant="outline"><a href={`/app/financeiro/recibos/${t.receipt_id}/pdf`} download aria-label={`Baixar recibo: ${t.description}`}><FileText className="size-4" /> Recibo</a></Button>
+                      ) : (
+                        <Button type="button" size="sm" variant="outline" disabled={pending} aria-label={`Emitir recibo: ${t.description}`}
+                          onClick={() => {
+                            const payer = t.patient_name ? undefined : window.prompt('Nome de quem pagou (vai no recibo):')?.trim();
+                            if (!t.patient_name && !payer) return;
+                            setFeedback(null);
+                            start(async () => {
+                              const r = await issueReceipt(t.id, payer ? { payer_name: payer } : undefined);
+                              if (!r.ok) return setFeedback({ ok: false, text: r.message });
+                              setFeedback({ ok: true, text: 'Recibo emitido.' });
+                              // baixa o PDF (rota de arquivo, não página)
+                              const a = document.createElement('a');
+                              a.href = `/app/financeiro/recibos/${r.receiptId}/pdf`;
+                              a.download = '';
+                              document.body.appendChild(a);
+                              a.click();
+                              a.remove();
+                            });
+                          }}><FileText className="size-4" /> Emitir recibo</Button>
+                      )
+                    )}
                     {t.status === 'open' && (
                       <Button type="button" size="sm" variant="outline" disabled={pending} aria-label={`Marcar como pago: ${t.description}`}
                         onClick={() => run(() => updateTransaction(t.id, { ...inputOf(t), status: 'paid', paid_at: list.today }), 'Marcado como pago.')}><Check className="size-4" /> Pago</Button>
@@ -138,7 +162,7 @@ export function FinanceView({ month, list, summary, categories: initialCategorie
                       <Button type="button" size="sm" variant="ghost" disabled={pending} aria-label={`Cancelar ${t.description}`}
                         onClick={() => { if (window.confirm(`Cancelar "${t.description}"? Ele deixa de contar no caixa e no a receber.`)) run(() => updateTransaction(t.id, { ...inputOf(t), status: 'cancelled', paid_at: null }), 'Lançamento cancelado.'); }}><X className="size-4" /></Button>
                     )}
-                    {list.can_delete && (
+                    {list.can_delete && !t.receipt_id && (
                       <Button type="button" size="sm" variant="ghost" disabled={pending} aria-label={`Excluir ${t.description}`}
                         onClick={() => { if (window.confirm(`Excluir "${t.description}"? Não dá para desfazer.`)) run(() => deleteTransaction(t.id), 'Lançamento excluído.'); }}><Trash2 className="size-4" /></Button>
                     )}

@@ -53,3 +53,10 @@ export async function savePracticeColor(orgId: string, color: string): Promise<P
   if (!isUuid(orgId) || !/^#[0-9a-f]{6}$/i.test(color)) return { ok: false, message: 'Cor inválida.' };
   return run(`/practices/${orgId}/brand`, 'PUT', { brand_color: color }, 'Não foi possível salvar a cor agora.');
 }
+
+/** RN-055 — CPF ou CNPJ que sai no recibo (só dígitos; vazio apaga). */
+export async function savePracticeTaxId(orgId: string, taxId: string): Promise<PracticeResult> {
+  const d = typeof taxId === 'string' ? taxId.replace(/\D/g, '') : '';
+  if (!isUuid(orgId) || (d && d.length !== 11 && d.length !== 14)) return { ok: false, message: 'Informe um CPF (11 dígitos) ou CNPJ (14 dígitos).' };
+  return run(`/practices/${orgId}/brand`, 'PUT', { receipt_tax_id: d }, 'Não foi possível salvar agora.');
+}

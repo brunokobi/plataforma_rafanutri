@@ -25,6 +25,8 @@ export interface Transaction {
   patient_name: string | null;
   appointment_id: string | null;
   notes: string | null;
+  /** Recibo já emitido (RN-055). */
+  receipt_id?: string | null;
 }
 
 export interface TransactionInput {
@@ -61,6 +63,24 @@ export interface AppointmentPrefill {
 }
 
 export type FinanceResult = { ok: true } | { ok: false; message: string };
+
+export interface Receipt {
+  id: string;
+  number: number;
+  issued_at: string;
+  amount_cents: number;
+  paid_at: string;
+  payment_method: PaymentMethod | null;
+  service: string;
+  payer_name: string;
+  payer_cpf: string | null;
+  issuer_name: string;
+  issuer_crn: string | null;
+  issuer_tax_id: string | null;
+  practice_name: string;
+  transaction_id: string;
+}
+export interface ReceiptPayload { receipt: Receipt; header: { organization_id: string; brand_color: string | null } }
 
 /** Lançamento em aberto com vencimento antes de hoje. */
 export const isOverdue = (t: Pick<Transaction, 'status' | 'due_date'>, today: string) => t.status === 'open' && t.due_date < today;

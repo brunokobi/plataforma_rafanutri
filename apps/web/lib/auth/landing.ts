@@ -12,6 +12,8 @@ export interface UserOrganization {
   role: MemberRole;
   /** Consultório com logo enviado (RN-204). */
   has_logo?: boolean;
+  /** CPF ou CNPJ do recibo (RN-055). */
+  receipt_tax_id?: string | null;
 }
 
 /**

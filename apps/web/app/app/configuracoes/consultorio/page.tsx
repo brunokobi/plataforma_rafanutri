@@ -24,7 +24,7 @@ export default async function PracticeSettingsPage() {
       <main className="mx-auto max-w-3xl space-y-8 px-5 py-8">
         <h1 className="font-display text-3xl font-semibold tracking-tight">Consultório</h1>
         {org ? (
-          <BrandSettings orgId={org.id} name={org.name} color={org.brand_color} hasLogo={org.has_logo === true} canEdit={org.role === 'owner'} />
+          <BrandSettings orgId={org.id} name={org.name} color={org.brand_color} hasLogo={org.has_logo === true} canEdit={org.role === 'owner'} taxId={org.receipt_tax_id ?? null} />
         ) : (
           <Alert variant="destructive"><AlertDescription>Não foi possível carregar o consultório agora. Atualize a página em instantes.</AlertDescription></Alert>
         )}

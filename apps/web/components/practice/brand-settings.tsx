@@ -5,12 +5,14 @@ import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { removePracticeLogo, savePracticeColor, uploadPracticeLogo, type PracticeResult } from '@/lib/practice/actions';
+import { removePracticeLogo, savePracticeColor, savePracticeTaxId, uploadPracticeLogo, type PracticeResult } from '@/lib/practice/actions';
+import { Input } from '@/components/ui/input';
 import { resizeLogo } from '@/lib/practice/resize-logo';
 import { BRAND_COLORS } from '@/lib/validation/onboarding';
 
 /** RN-204 — Logo e cor do consultório: aparecem na área do paciente e nos PDFs. Só o owner muda. */
-export function BrandSettings({ orgId, name, color: initialColor, hasLogo, canEdit }: { orgId: string; name: string; color: string | null; hasLogo: boolean; canEdit: boolean }) {
+export function BrandSettings({ orgId, name, color: initialColor, hasLogo, canEdit, taxId: initialTaxId = null }: { orgId: string; name: string; color: string | null; hasLogo: boolean; canEdit: boolean; taxId?: string | null }) {
+  const [taxId, setTaxId] = useState(initialTaxId ?? '');
   const router = useRouter();
   const [color, setColor] = useState(initialColor ?? BRAND_COLORS[0]!);
   const [preview, setPreview] = useState<string | null>(null);
@@ -95,6 +97,15 @@ export function BrandSettings({ orgId, name, color: initialColor, hasLogo, canEd
               <input type="color" value={color} onChange={(e) => setColor(e.target.value)} className="h-9 w-12 cursor-pointer rounded border border-input bg-transparent" aria-label="Escolher outra cor" />
             </div>
             <Button type="button" disabled={pending || color.toUpperCase() === (initialColor ?? '').toUpperCase()} onClick={() => run(() => savePracticeColor(orgId, color), 'Cor salva.')}>Salvar cor</Button>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="practice-tax-id">CPF ou CNPJ no recibo (opcional)</Label>
+            <div className="flex flex-wrap gap-2">
+              <Input id="practice-tax-id" inputMode="numeric" className="max-w-60" placeholder="Só números" value={taxId} maxLength={18} onChange={(e) => setTaxId(e.target.value)} />
+              <Button type="button" variant="outline" disabled={pending || taxId.replace(/\D/g, '') === (initialTaxId ?? '')} onClick={() => run(() => savePracticeTaxId(orgId, taxId), 'CPF/CNPJ do recibo salvo.')}>Salvar</Button>
+            </div>
+            <p className="text-xs text-muted-foreground">Sai no cabeçalho e na assinatura dos recibos do financeiro.</p>
           </div>
         </>
       )}

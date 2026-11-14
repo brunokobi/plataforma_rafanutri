@@ -87,7 +87,7 @@ export default {
         .join('organizations as o', 'o.id', 'm.organization_id')
         .where('m.user_id', user)
         .orderBy('o.created_at')
-        .select('o.id', 'o.name', 'o.slug', 'o.type', 'o.brand_color', 'o.plan', 'm.role', database.raw('(o.logo is not null) as has_logo'));
+        .select('o.id', 'o.name', 'o.slug', 'o.type', 'o.brand_color', 'o.plan', 'm.role', database.raw('(o.logo is not null) as has_logo'), 'o.receipt_tax_id');
       res.json({ data: rows });
     });
 
@@ -590,11 +590,13 @@ export default {
     const todaySP = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
     const finDate = (d) => (d instanceof Date ? d.toISOString().slice(0, 10) : d == null ? null : String(d).slice(0, 10));
     const TX_FIELDS = ['t.id', 't.kind', 't.category_id', 'c.name as category_name', 't.description', 't.amount_cents', database.raw('t.due_date::text as due_date'), 't.status', database.raw('t.paid_at::text as paid_at'),
-      't.payment_method', 't.patient_id', 'p.full_name as patient_name', 't.appointment_id', 't.notes', 't.date_created'];
+      't.payment_method', 't.patient_id', 'p.full_name as patient_name', 't.appointment_id', 't.notes', 't.date_created',
+      database.raw('(select r.id from receipts r where r.transaction_id = t.id) as receipt_id')];
     const txOut = (r) => ({ ...r, amount_cents: Number(r.amount_cents), due_date: finDate(r.due_date), paid_at: finDate(r.paid_at) });
     const finConflict = (res, error) => {
       if (error?.code === 'P0001') return conflict(res, error.message.split('\n')[0].replace(/^.* - /, ''));
       if (error?.code === '23505') return conflict(res, 'Esta consulta já tem um recebimento registrado.');
+      if (error?.code === '23503') return conflict(res, 'Este lançamento tem recibo emitido: cancele em vez de excluir.');
       logger.error({ err: error }, 'rafanutri: falha no financeiro');
       return res.status(500).json({ errors: [{ message: 'Não foi possível salvar o lançamento agora.', extensions: { code: 'INTERNAL_SERVER_ERROR' } }] });
     };
@@ -731,6 +733,77 @@ export default {
       const last = await database('financial_transactions').where({ organization_id: m.org, patient_id: a.patient_id, kind: 'income' }).whereNot('status', 'cancelled')
         .orderBy('date_created', 'desc').first('amount_cents');
       res.json({ data: { ...a, existing: existing ?? null, last_amount_cents: last ? Number(last.amount_cents) : null } });
+    });
+
+    // ── Recibos (RN-055) ────────────────────────────────────────────────────────────────────────
+    const RECEIPT_FIELDS = ['id', 'number', 'issued_at', 'amount_cents', database.raw('paid_at::text as paid_at'), 'payment_method', 'service', 'payer_name', 'payer_cpf',
+      'issuer_name', 'issuer_crn', 'issuer_tax_id', 'practice_name', 'transaction_id'];
+    const receiptOut = (r) => (r ? { ...r, amount_cents: Number(r.amount_cents) } : r);
+    async function receiptPayload(orgId, id) {
+      const r = await database('receipts').where({ id, organization_id: orgId }).first(RECEIPT_FIELDS);
+      if (!r) return null;
+      const org = await database('organizations').where('id', orgId).first('brand_color');
+      return { receipt: receiptOut(r), header: { organization_id: orgId, brand_color: org?.brand_color ?? null } };
+    }
+    /** Quem assina: o nutricionista da consulta, senão quem emite (se clínico), senão o owner. */
+    async function receiptIssuer(orgId, tx, user, role) {
+      let issuerId = null;
+      if (tx.appointment_id) issuerId = (await database('appointments').where('id', tx.appointment_id).first('nutritionist_id'))?.nutritionist_id ?? null;
+      if (!issuerId && role !== 'assistant') issuerId = user;
+      if (!issuerId) issuerId = (await database('organization_members').where({ organization_id: orgId, role: 'owner' }).first('user_id'))?.user_id ?? user;
+      const u = await database('directus_users').where('id', issuerId).first('first_name', 'last_name', 'email');
+      const prof = await database('professional_profiles').where('user_id', issuerId).first('crn', 'crn_region');
+      return {
+        issuer_name: [u?.first_name, u?.last_name].filter(Boolean).join(' ') || u?.email || 'Nutricionista',
+        issuer_crn: prof?.crn ? `${prof.crn_region ?? 'CRN'} ${prof.crn}` : null,
+      };
+    }
+
+    // Emite (ou devolve o já emitido) o recibo de um recebimento pago. Corpo opcional: { payer_name, payer_cpf, service }.
+    router.post('/finance/transactions/:id/receipt', async (req, res) => {
+      const m = await finMember(req, res);
+      if (!m) return;
+      if (!isUuid(req.params.id)) return finNotFound(res);
+      const tx = await database('financial_transactions').where({ id: req.params.id, organization_id: m.org }).first();
+      if (!tx) return finNotFound(res);
+      const existing = await database('receipts').where('transaction_id', tx.id).first('id');
+      if (existing) return res.json({ data: await receiptPayload(m.org, existing.id) });
+      if (tx.kind !== 'income' || tx.status !== 'paid') return conflict(res, 'Recibo só de recebimento pago.');
+      const patient = tx.patient_id ? await database('patients').where('id', tx.patient_id).first('full_name', 'cpf') : null;
+      const b = req.body ?? {};
+      const payerName = (typeof b.payer_name === 'string' && b.payer_name.trim() ? b.payer_name : patient?.full_name ?? '').trim().replace(/\s+/g, ' ');
+      const cpfRaw = typeof b.payer_cpf === 'string' ? b.payer_cpf.replace(/\D/g, '') : patient?.cpf ?? '';
+      const service = (typeof b.service === 'string' && b.service.trim() ? b.service : tx.description).trim().replace(/\s+/g, ' ');
+      const errors = {};
+      if (payerName.length < 2 || payerName.length > 160) errors.payer_name = 'Informe o nome de quem pagou.';
+      if (cpfRaw && cpfRaw.length !== 11) errors.payer_cpf = 'CPF com 11 dígitos.';
+      if (service.length < 2 || service.length > 200) errors.service = 'Descreva o serviço (2 a 200 caracteres).';
+      if (Object.keys(errors).length) return bad(res, errors);
+      const org = await database('organizations').where('id', m.org).first('name', 'receipt_tax_id');
+      try {
+        const issuer = await receiptIssuer(m.org, tx, m.user, m.role);
+        const [row] = await database('receipts').insert({
+          organization_id: m.org, transaction_id: tx.id, number: 0, amount_cents: tx.amount_cents, paid_at: tx.paid_at,
+          service, payer_name: payerName, payer_cpf: cpfRaw || null, ...issuer, issuer_tax_id: org?.receipt_tax_id ?? null,
+          practice_name: org?.name ?? 'Consultório', user_created: m.user,
+        }).returning('id');
+        res.status(201).json({ data: await receiptPayload(m.org, row.id ?? row) });
+      } catch (error) {
+        if (error?.code === '23505') {
+          const again = await database('receipts').where('transaction_id', tx.id).first('id');
+          if (again) return res.json({ data: await receiptPayload(m.org, again.id) });
+        }
+        finConflict(res, error);
+      }
+    });
+
+    router.get('/finance/receipts/:id', async (req, res) => {
+      const m = await finMember(req, res);
+      if (!m) return;
+      if (!isUuid(req.params.id)) return finNotFound(res);
+      const p = await receiptPayload(m.org, req.params.id);
+      if (!p) return finNotFound(res);
+      res.json({ data: p });
     });
 
     // ── Documentos clínicos com a marca (RN-215) ───────────────────────────────────────────────
@@ -1337,10 +1410,20 @@ export default {
       if (!user) return;
       const org = await ownedOrg(user, req.params.id);
       if (!org) return orgNotFound(res);
-      const color = req.body?.brand_color;
-      if (color !== null && !(typeof color === 'string' && /^#[0-9a-f]{6}$/i.test(color))) return bad(res, { brand_color: 'Cor inválida.' });
-      await database('organizations').where('id', org.id).update({ brand_color: color === null ? null : color.toUpperCase() });
-      res.json({ data: { brand_color: color === null ? null : color.toUpperCase() } });
+      const patch = {};
+      if ('brand_color' in (req.body ?? {})) {
+        const color = req.body.brand_color;
+        if (color !== null && !(typeof color === 'string' && /^#[0-9a-f]{6}$/i.test(color))) return bad(res, { brand_color: 'Cor inválida.' });
+        patch.brand_color = color === null ? null : color.toUpperCase();
+      }
+      if ('receipt_tax_id' in (req.body ?? {})) {
+        const tax = typeof req.body.receipt_tax_id === 'string' ? req.body.receipt_tax_id.replace(/\D/g, '') : '';
+        if (tax && tax.length !== 11 && tax.length !== 14) return bad(res, { receipt_tax_id: 'CPF (11 dígitos) ou CNPJ (14 dígitos).' });
+        patch.receipt_tax_id = tax || null;
+      }
+      if (!Object.keys(patch).length) return bad(res, { brand_color: 'Nada para salvar.' });
+      await database('organizations').where('id', org.id).update(patch);
+      res.json({ data: patch });
     });
 
     // RN-205 — Plano publicado completo para o paciente. A conta do paciente não lê coleções: os

@@ -8,7 +8,7 @@ import { clinicalDocumentPdfData } from './pdf-data';
 import { documentFileName, type DocumentPayload } from './types';
 
 /** Logo do consultório (PNG ou JPEG; o PDF não desenha SVG nem WebP). Sem logo, o PDF sai só com o nome. */
-async function practiceLogo(organizationId: string): Promise<PdfLogo | null> {
+export async function practiceLogo(organizationId: string): Promise<PdfLogo | null> {
   const token = (await cookies()).get(ACCESS_COOKIE)?.value;
   if (!token || !/^[0-9a-f-]{36}$/i.test(organizationId)) return null;
   try {
