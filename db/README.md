@@ -386,6 +386,20 @@ Migração `0020_patient_recommendations.sql` (idempotente; testes em `db/tests/
 
 `GET /rafanutri/me/patient` passa a trazer `recommendations_unread` por registro.
 
+## Recibos (RN-055)
+
+Migração `0025_receipts.sql` (**aplicada na vpsrafa em 14/11/2026**; testes em `db/tests/0025_receipts.test.sql`):
+
+- `organizations.receipt_tax_id` (CPF ou CNPJ, só dígitos).
+- `receipts`: número por consultório (`unique (organization_id, number)`, preenchido pelo gatilho com `next_receipt_number(org)`, que trava por consultório até o fim da transação), cópia dos dados no momento da emissão, valor e data vindos do lançamento (o cliente não forja). Só de receita paga do consultório, um por lançamento; não muda nem é apagado (só na cascata do consultório). `transaction_id` com `on delete no action`: lançamento com recibo não é excluído.
+- Corrige a 0024: a trava "só owner/nutricionista exclui" deixa passar a cascata quando o consultório é apagado.
+
+| Endpoint | O que faz |
+|---|---|
+| `POST /rafanutri/finance/transactions/:id/receipt` (`{ payer_name?, payer_cpf?, service? }`) | emite ou devolve o recibo já emitido |
+| `GET /rafanutri/finance/receipts/:id` | dados do recibo para o PDF (`/app/financeiro/recibos/:id/pdf`) |
+| `PUT /rafanutri/practices/:id/brand` (`{ receipt_tax_id }`) | CPF/CNPJ do emitente (owner) |
+
 ## Financeiro (RN-053)
 
 Migração `0024_finance.sql` (**aplicada na vpsrafa em 14/11/2026**; testes em `db/tests/0024_finance.test.sql` e `db/tests/extension-finance.test.mjs`):
