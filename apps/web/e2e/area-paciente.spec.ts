@@ -34,6 +34,8 @@ test('convite e área do paciente', async ({ page, browser }) => {
       await page.getByRole('link', { name }).first().click();
       await expect(page.getByRole('heading', { level: 1, name })).toBeVisible();
       patientUrl = page.url();
+      // E-mail longo não pode criar rolagem horizontal na ficha (celular)
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
 
       const card = page.getByRole('region', { name: 'Área do paciente' });
       await expect(card.getByText('Sem acesso')).toBeVisible();
@@ -44,7 +46,7 @@ test('convite e área do paciente', async ({ page, browser }) => {
     });
 
     const link = await page.getByLabel('Link do convite').inputValue();
-    const patientCtx = await browser.newContext({ viewport: { width: 360, height: 740 }, locale: 'pt-BR' });
+    const patientCtx = await browser.newContext({ viewport: { width: 360, height: 740 }, locale: 'pt-BR', reducedMotion: 'reduce' });
     const pp = await patientCtx.newPage();
     const pwd = `Senha-${stamp}`;
 

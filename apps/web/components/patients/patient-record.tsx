@@ -228,8 +228,8 @@ export function PatientRecord({
             </Row>
             <Row label="E-mail">
               {patient.email ? (
-                <a href={`mailto:${patient.email}`} className="inline-flex items-center gap-1 hover:underline">
-                  <Mail className="size-3.5" aria-hidden="true" /> {patient.email}
+                <a href={`mailto:${patient.email}`} className="inline-flex max-w-full items-center gap-1 hover:underline">
+                  <Mail className="size-3.5 shrink-0" aria-hidden="true" /> <span className="min-w-0 break-all">{patient.email}</span>
                 </a>
               ) : (
                 missing
