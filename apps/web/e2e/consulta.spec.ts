@@ -53,6 +53,7 @@ test('consulta de ponta a ponta', async ({ page }) => {
       await expect(form.getByText('É a mesma pessoa?')).toBeVisible({ timeout: 15_000 });
       await expect(form.getByRole('link', { name })).toHaveAttribute('href', new URL(patientUrl).pathname);
       await form.getByRole('button', { name: 'Cancelar' }).click();
+      await page.goto(patientUrl);
     });
 
     await test.step('marcar a consulta', async () => {

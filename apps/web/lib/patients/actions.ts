@@ -6,7 +6,7 @@ import { cookies } from 'next/headers';
 import { ACCESS_COOKIE } from '@/lib/auth/cookies';
 import { directus } from '@/lib/auth/directus';
 import { getMyOrganizations } from '@/lib/auth/organizations';
-import { type DuplicateCandidate, findDuplicates, isUuid, patientFormSchema, toPatientUpdate, type PatientFormInput, type PatientStatus } from './schema';
+import { comparableName, type DuplicateCandidate, findDuplicates, isUuid, patientFormSchema, toPatientUpdate, type PatientFormInput, type PatientStatus } from './schema';
 
 export type PatientActionResult =
   | { ok: true }
@@ -57,13 +57,14 @@ export async function createPatient(input: PatientFormInput, opts: { force?: boo
   if (!org) return { ok: false, message: 'Configure seu consultório antes de cadastrar pacientes.' };
 
   if (!opts.force) {
-    const first = parsed.data.full_name.trim().split(/\s+/)[0] ?? '';
+    const name = parsed.data.full_name.trim().replace(/\s+/g, ' ');
     try {
       const rows = (await directus().request(
         withToken(token, readItems('patients' as never, {
           fields: ['id', 'full_name', 'birth_date', 'status'],
-          filter: { organization_id: { _eq: org.id }, full_name: { _icontains: first } },
-          limit: 200,
+          // search_name = lower(unaccent(full_name)) no banco; o nome digitado também cobre espaços repetidos
+          filter: { organization_id: { _eq: org.id }, _or: [{ search_name: { _eq: comparableName(name) } }, { full_name: { _icontains: name } }] },
+          limit: 50,
         } as never)),
       )) as unknown as DuplicateCandidate[];
       const duplicates = findDuplicates(parsed.data, rows).slice(0, 5);
