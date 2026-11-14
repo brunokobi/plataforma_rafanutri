@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import { PatientPlanBody } from '@/components/patient-area/patient-plan-body';
 import { PatientShell } from '@/components/patient-area/patient-shell';
 import { getCurrentUser } from '@/lib/auth/session';
+import { patientContextId } from '@/lib/patient-area/context';
 import { dateBR } from '@/lib/format/date';
 import { getPatientArea, getPatientPlan } from '@/lib/patient-area/actions';
 import { buildPatientPlanView } from '@/lib/patient-area/plan-view';
@@ -16,7 +17,7 @@ export const dynamic = 'force-dynamic';
 export default async function PatientPlanPage({ searchParams }: { searchParams: Promise<{ c?: string }> }) {
   const user = await getCurrentUser();
   if (!user) redirect('/login?next=/p/plano');
-  const { c } = await searchParams;
+  const c = await patientContextId((await searchParams).c);
   const [area, payload] = await Promise.all([getPatientArea(), getPatientPlan(c)]);
   if (area && !area.patient_account) redirect('/app');
   const record = area?.records.find((r) => r.patient_id === (payload?.patient_id ?? c)) ?? area?.records[0] ?? null;
@@ -24,7 +25,7 @@ export default async function PatientPlanPage({ searchParams }: { searchParams: 
 
   if (!payload) {
     return (
-      <PatientShell practice={record?.practice ?? null} professional={record?.professional}>
+      <PatientShell practice={record?.practice ?? null} professional={record?.professional} canSwitch={(area?.records.length ?? 0) > 1}>
         <BackLink href={back} />
         <section className="rounded-2xl border border-dashed border-border p-6 text-center">
           <Utensils className="mx-auto size-8 text-muted-foreground" aria-hidden="true" />
@@ -37,7 +38,7 @@ export default async function PatientPlanPage({ searchParams }: { searchParams: 
 
   const plan = buildPatientPlanView(payload);
   return (
-    <PatientShell practice={record?.practice ?? null} professional={record?.professional}>
+    <PatientShell practice={record?.practice ?? null} professional={record?.professional} canSwitch={(area?.records.length ?? 0) > 1}>
       <BackLink href={back} />
       <div>
         <h1 className="font-display text-2xl font-semibold tracking-tight">{plan.title}</h1>

@@ -6,6 +6,7 @@ import { PatientShell } from '@/components/patient-area/patient-shell';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { getMyOrganizations } from '@/lib/auth/organizations';
 import { getCurrentUser } from '@/lib/auth/session';
+import { patientContextId, pickRecord } from '@/lib/patient-area/context';
 import { dateBR } from '@/lib/format/date';
 import { WeightChart } from '@/components/patient-area/weight-chart';
 import { getMyWeight, getPatientArea } from '@/lib/patient-area/actions';
@@ -23,9 +24,10 @@ export default async function PatientHome({ searchParams }: { searchParams: Prom
     const orgs = await getMyOrganizations();
     redirect(orgs && orgs.length > 0 ? '/app' : '/onboarding');
   }
-  const { c } = await searchParams;
   const records = area?.records ?? [];
-  const record = records.find((r) => r.patient_id === c) ?? records[0] ?? null;
+  const { record, needsChoice } = pickRecord(records, await patientContextId((await searchParams).c));
+  // Vários nutricionistas e nenhum escolhido: pergunta antes (RN-211)
+  if (needsChoice) redirect('/p/nutricionistas');
 
   if (!area) {
     return (
@@ -48,18 +50,8 @@ export default async function PatientHome({ searchParams }: { searchParams: Prom
   const weight = await getMyWeight(record.patient_id);
   const moment = record.plan ? mealOfTheMoment(record.plan.meals, new Date()) : null;
   return (
-    <PatientShell practice={record.practice} professional={record.professional}>
+    <PatientShell practice={record.practice} professional={record.professional} canSwitch={records.length > 1}>
       <h1 className="font-display text-2xl font-semibold tracking-tight">{record.first_name ? `Olá, ${record.first_name}!` : 'Olá!'}</h1>
-      {records.length > 1 && (
-        <nav aria-label="Seus nutricionistas" className="flex flex-wrap gap-2">
-          {records.map((r) => (
-            <Link key={r.patient_id} href={`/p?c=${r.patient_id}`} aria-current={r.patient_id === record.patient_id ? 'page' : undefined}
-              className="inline-flex min-h-11 items-center rounded-full border border-border px-4 text-sm aria-[current=page]:border-primary aria-[current=page]:bg-primary/10">
-              {r.practice.name}
-            </Link>
-          ))}
-        </nav>
-      )}
       {weight?.share?.show_weight_history && weight.weight.length > 0 && <WeightChart data={weight.weight} />}
       <Link href={`/p/recomendacoes${q}`} className="flex min-h-11 items-center justify-between gap-3 rounded-2xl border border-border bg-card px-5 py-4 font-medium">
         <span>Recomendações</span>

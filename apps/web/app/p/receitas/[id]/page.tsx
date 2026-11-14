@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import { PatientShell } from '@/components/patient-area/patient-shell';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { getCurrentUser } from '@/lib/auth/session';
+import { patientContextId } from '@/lib/patient-area/context';
 import { getPatientArea } from '@/lib/patient-area/actions';
 import { amountText } from '@/lib/patient-area/plan-view';
 import { getMyRecipe } from '@/lib/recipes/actions';
@@ -16,7 +17,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function PatientRecipePage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ c?: string }> }) {
   const { id } = await params;
-  const { c } = await searchParams;
+  const c = await patientContextId((await searchParams).c);
   const user = await getCurrentUser();
   if (!user) redirect(`/login?next=/p/receitas/${encodeURIComponent(id)}`);
   const [area, recipe] = await Promise.all([getPatientArea(), getMyRecipe(id, c)]);
@@ -32,7 +33,7 @@ export default async function PatientRecipePage({ params, searchParams }: { para
 
   if (recipe === 'error' || recipe === null) {
     return (
-      <PatientShell practice={record?.practice ?? null} professional={record?.professional}>
+      <PatientShell practice={record?.practice ?? null} professional={record?.professional} canSwitch={(area?.records.length ?? 0) > 1}>
         {back}
         {recipe === null ? (
           <section className="rounded-2xl border border-dashed border-border p-6 text-center">
@@ -49,7 +50,7 @@ export default async function PatientRecipePage({ params, searchParams }: { para
   const meta = recipeMeta(recipe, DIFFICULTY_LABEL);
   const portion = recipe.servings ? Math.round(recipe.yield_g / recipe.servings) : null;
   return (
-    <PatientShell practice={record?.practice ?? null} professional={record?.professional}>
+    <PatientShell practice={record?.practice ?? null} professional={record?.professional} canSwitch={(area?.records.length ?? 0) > 1}>
       {back}
       <article className="space-y-5">
         {recipe.has_image ? (

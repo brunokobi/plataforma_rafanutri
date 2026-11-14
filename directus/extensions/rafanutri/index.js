@@ -943,7 +943,7 @@ export default {
         .leftJoin('professional_profiles as pp', 'pp.user_id', 'p.responsible_user_id')
         .where('p.app_user_id', user).where('p.status', 'active')
         .orderBy('p.app_activated_at', 'desc')
-        .select('p.id', 'p.full_name', 'o.id as org_id', 'o.name as org_name', 'o.brand_color', 'u.first_name', 'u.last_name', 'pp.crn', 'pp.crn_region');
+        .select('p.id', 'p.full_name', 'o.id as org_id', 'o.name as org_name', 'o.brand_color', 'o.logo', 'u.first_name', 'u.last_name', 'pp.crn', 'pp.crn_region');
       const plans = rows.length
         ? await database('meal_plans').whereIn('patient_id', rows.map((r) => r.id)).where('status', 'published').select('id', 'patient_id', 'title', 'published_at', 'meals')
         : [];
@@ -959,7 +959,7 @@ export default {
           return {
             patient_id: r.id,
             first_name: r.full_name.trim().split(/\s+/)[0] ?? null,
-            practice: { id: r.org_id, name: r.org_name, brand_color: r.brand_color },
+            practice: { id: r.org_id, name: r.org_name, brand_color: r.brand_color, has_logo: Boolean(r.logo) },
             professional: { name: [r.first_name, r.last_name].filter(Boolean).join(' ') || null, crn: r.crn ? `${r.crn_region ?? 'CRN'} ${r.crn}` : null },
             recommendations_unread: unreadOf.get(r.id) ?? 0,
             plan: pl
@@ -968,6 +968,31 @@ export default {
           };
         }) },
       });
+    });
+
+    // RN-211 — Logo do consultório: membros do consultório ou paciente com vínculo ativo nele.
+    router.get('/practices/:id/logo', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const notFoundLogo = () => res.status(404).json({ errors: [{ message: 'Logo não encontrado.', extensions: { code: 'NOT_FOUND' } }] });
+      if (!isUuid(req.params.id)) return notFoundLogo();
+      const org = await database('organizations').where('id', req.params.id).first('id', 'logo');
+      if (!org?.logo) return notFoundLogo();
+      const member = await database('organization_members').where({ organization_id: org.id, user_id: user }).first('user_id');
+      const linked = member ? true : Boolean(await database('patients').where({ organization_id: org.id, app_user_id: user, status: 'active' }).first('id'));
+      if (!linked) return notFoundLogo();
+      try {
+        const assets = new services.AssetsService({ schema: await getSchema(), accountability: null });
+        const { stream, file } = await assets.getAsset(org.logo);
+        res.setHeader('Content-Type', file.type ?? 'application/octet-stream');
+        res.setHeader('Cache-Control', 'private, max-age=3600');
+        res.setHeader('X-Content-Type-Options', 'nosniff');
+        res.setHeader('Content-Security-Policy', "default-src 'none'; style-src 'unsafe-inline'; sandbox");
+        stream.pipe(res);
+      } catch (error) {
+        logger.error({ err: error }, 'rafanutri: falha ao ler logo');
+        notFoundLogo();
+      }
     });
 
     // RN-205 — Plano publicado completo para o paciente. A conta do paciente não lê coleções: os

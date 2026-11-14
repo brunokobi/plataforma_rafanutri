@@ -6,6 +6,7 @@ import { PatientRecommendationList } from '@/components/patient-area/patient-rec
 import { PatientShell } from '@/components/patient-area/patient-shell';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { getCurrentUser } from '@/lib/auth/session';
+import { patientContextId } from '@/lib/patient-area/context';
 import { getPatientArea } from '@/lib/patient-area/actions';
 import { getMyRecommendations } from '@/lib/recommendations/actions';
 
@@ -16,14 +17,14 @@ export const dynamic = 'force-dynamic';
 export default async function PatientRecommendationsPage({ searchParams }: { searchParams: Promise<{ c?: string }> }) {
   const user = await getCurrentUser();
   if (!user) redirect('/login?next=/p/recomendacoes');
-  const { c } = await searchParams;
+  const c = await patientContextId((await searchParams).c);
   const [area, data] = await Promise.all([getPatientArea(), getMyRecommendations(c)]);
   if (area && !area.patient_account) redirect('/app');
   const record = area?.records.find((r) => r.patient_id === (data?.patient_id ?? c)) ?? area?.records[0] ?? null;
   const q = record && (area?.records.length ?? 0) > 1 ? `?c=${record.patient_id}` : '';
 
   return (
-    <PatientShell practice={record?.practice ?? null} professional={record?.professional}>
+    <PatientShell practice={record?.practice ?? null} professional={record?.professional} canSwitch={(area?.records.length ?? 0) > 1}>
       <Link href={`/p${q}`} className="inline-flex min-h-11 items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="size-4" aria-hidden="true" /> Início
       </Link>

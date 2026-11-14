@@ -67,6 +67,12 @@ test('convite e área do paciente', async ({ page, browser }) => {
       expect(await pp.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
     });
 
+    await test.step('um nutricionista só: sem troca (RN-211)', async () => {
+      await expect(pp.getByRole('link', { name: 'Trocar de nutricionista' })).toHaveCount(0);
+      await pp.goto('/p/nutricionistas');
+      await expect(pp).toHaveURL(/\/p$/);
+    });
+
     await test.step('nutricionista publica um plano; paciente vê o plano completo (RN-205)', async () => {
       await page.goto(`${patientUrl}/planos`);
       await page.getByRole('button', { name: 'Novo plano' }).click();

@@ -4,7 +4,7 @@ export interface PatientMealSummary { id: string; name: string; time: string | n
 export interface PatientRecordView {
   patient_id: string;
   first_name: string | null;
-  practice: { id: string; name: string; brand_color: string | null };
+  practice: { id: string; name: string; brand_color: string | null; has_logo?: boolean };
   professional: { name: string | null; crn: string | null };
   plan: { id: string; title: string; published_at: string | null; meals: PatientMealSummary[] } | null;
   recommendations_unread?: number;

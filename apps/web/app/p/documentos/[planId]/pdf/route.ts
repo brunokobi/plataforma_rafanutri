@@ -2,6 +2,7 @@ import { renderToBuffer } from '@react-pdf/renderer';
 import { createElement } from 'react';
 import { MealPlanDocument } from '@/components/pdf/meal-plan-document';
 import { getPatientPlan } from '@/lib/patient-area/actions';
+import { patientContextId } from '@/lib/patient-area/context';
 import { patientPdfFileName, patientPlanPdfData } from '@/lib/patient-area/plan-pdf';
 
 export const dynamic = 'force-dynamic';
@@ -13,7 +14,7 @@ export const dynamic = 'force-dynamic';
 export async function GET(req: Request, { params }: { params: Promise<{ planId: string }> }) {
   const { planId } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(planId)) return new Response('Plano não encontrado.', { status: 404 });
-  const c = new URL(req.url).searchParams.get('c') ?? undefined;
+  const c = await patientContextId(new URL(req.url).searchParams.get('c') ?? undefined);
   const payload = await getPatientPlan(c, planId);
   if (!payload || payload.plan.id !== planId) return new Response('Plano não encontrado.', { status: 404 });
   const buffer = await renderToBuffer(createElement(MealPlanDocument, { data: patientPlanPdfData(payload) }) as Parameters<typeof renderToBuffer>[0]);

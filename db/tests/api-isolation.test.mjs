@@ -540,6 +540,25 @@ try {
     assert.equal((await api(`/rafanutri/patients/${patientB}/share`, { token: a.token })).status, 404);
     assert.equal((await api(`/rafanutri/patients/${patientB}/preview`, { token: a.token })).status, 404);
     assert.equal((await api('/rafanutri/public/patient-invites/accept', { method: 'POST', body: { token: inv.json.data.token, password: 'Senha-isolamento-2' } })).status, 410);
+    // RN-211: a mesma conta também paciente de B; cada consultório só aparece no próprio registro
+    const pb = await api('/items/patients?fields=id', { token: b.token, method: 'POST', body: { organization_id: B, full_name: 'Paciente Comum B' } });
+    assert.equal(pb.status, 200, JSON.stringify(pb.json));
+    const pidB = pb.json.data.id;
+    const invB = await api(`/rafanutri/patients/${pidB}/app-invite`, { token: b.token, method: 'POST', body: { email: patientEmail } });
+    assert.equal(invB.status, 201);
+    assert.equal((await api('/rafanutri/patient-invites/accept', { token: pt, method: 'POST', body: { token: invB.json.data.token } })).status, 200);
+    const both = (await api('/rafanutri/me/patient', { token: pt })).json.data.records;
+    assert.deepEqual(both.map((r) => r.patient_id).sort(), [pid, pidB].sort());
+    assert.equal(new Set(both.map((r) => r.practice.id)).size, 2, 'marca de cada consultório');
+    await api(`/rafanutri/patients/${pidB}/recommendations`, { token: b.token, method: 'POST', body: { items: [{ category: 'Treino', title: 'Só de B', body: 'Texto.' }], publish: true } });
+    const recA = (await api(`/rafanutri/me/patient/recommendations?c=${pid}`, { token: pt })).json.data.recommendations.map((r) => r.title);
+    const recB = (await api(`/rafanutri/me/patient/recommendations?c=${pidB}`, { token: pt })).json.data.recommendations.map((r) => r.title);
+    assert.ok(!recA.includes('Só de B') && recA.includes('Publicada'), 'A não vê o que é de B');
+    assert.deepEqual(recB, ['Só de B'], 'B não vê o que é de A');
+    assert.deepEqual((await api(`/rafanutri/me/patient/plans?c=${pidB}`, { token: pt })).json.data.plans, []);
+    assert.deepEqual((await api(`/rafanutri/me/patient/recipes?c=${pidB}`, { token: pt })).json.data.recipes, []);
+    await api(`/rafanutri/patients/${pidB}/app-access/revoke`, { token: b.token, method: 'POST' });
+    assert.deepEqual((await api('/rafanutri/me/patient', { token: pt })).json.data.records.map((r) => r.patient_id), [pid]);
     await api(`/rafanutri/patients/${pid}/app-access/revoke`, { token: a.token, method: 'POST' });
     assert.deepEqual((await api('/rafanutri/me/patient', { token: pt })).json.data.records, []);
     const uid = (await api('/users/me?fields=id', { token: pt })).json.data.id;
