@@ -149,14 +149,15 @@ test('consulta de ponta a ponta', async ({ page }) => {
     });
   } finally {
     if (appointmentDate) {
+      // A limpeza não pode impedir o arquivamento do paciente logo abaixo
       await test.step('cancelar a consulta de teste (libera o horário)', async () => {
         await page.goto(`/app/agenda?semana=${appointmentDate}`);
         const card = page.getByRole('listitem').filter({ hasText: name });
         if (await card.count()) {
           await card.first().getByRole('button', { name: 'Cancelar' }).click();
-          await expect(page.getByText(`Consulta de ${name} cancelada.`)).toBeVisible();
+          await expect(page.getByText(`Consulta de ${name} cancelada.`)).toBeVisible({ timeout: 15_000 });
         }
-      });
+      }).catch((error) => console.warn('Limpeza da consulta de teste:', error instanceof Error ? error.message.split('\n')[0] : error));
     }
     if (patientUrl) {
       await test.step('arquivar o paciente de teste', async () => {

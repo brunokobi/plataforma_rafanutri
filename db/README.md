@@ -381,6 +381,14 @@ Migração `0020_patient_recommendations.sql` (idempotente; testes em `db/tests/
 
 `GET /rafanutri/me/patient` passa a trazer `recommendations_unread` por registro.
 
+## Métricas do plano gratuito (RN-214)
+
+Migração `0022_product_events.sql` (idempotente; testes em `db/tests/0022_product_events.test.sql`):
+
+- `product_events` (`event`, `organization_id`, `user_id`, `patient_id`, `data`, `created_at`), sem nome, e-mail nem dado clínico. Gatilhos gravam `patient_created`, `invite_sent`, `patient_activated`, `paid_interest` e `recommendation_read`; o hook `rafanutri-hooks` grava `limit_reached` antes de recusar o 21º paciente (um gatilho seria desfeito com o insert que falha). Na primeira aplicação, preenche o histórico a partir das tabelas existentes.
+- Views `metrics_free_orgs`, `metrics_active_patients_distribution`, `metrics_limit_hits_monthly`, `metrics_activation`, `metrics_waitlist`. Nenhum papel do Directus tem permissão nelas (a API devolve 403).
+- Painel: `SSH_KEY=~/vpsOracleBruno/ssh/ssh-key-2026-07-18.key db/scripts/metrics.sh`.
+
 ## Paciente com mais de um nutricionista (RN-211)
 
 Sem migração (o vínculo por consultório vem da 0018). `GET /rafanutri/me/patient` traz um registro por consultório, com `practice.has_logo`; os endpoints `/rafanutri/me/patient/*` aceitam `?c=<registro>` e só devolvem dados desse registro. `GET /rafanutri/practices/:id/logo` entrega o logo a membros do consultório e a pacientes com vínculo ativo nele.
