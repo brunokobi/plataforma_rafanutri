@@ -1,0 +1,55 @@
+'use server';
+
+import { revalidatePath } from 'next/cache';
+import { cookies } from 'next/headers';
+import { ACCESS_COOKIE } from '@/lib/auth/cookies';
+import { env } from '@/lib/env';
+
+export type PracticeResult = { ok: true } | { ok: false; message: string };
+
+async function call(path: string, method: string, body?: unknown): Promise<{ status: number; message: string | null }> {
+  const t = (await cookies()).get(ACCESS_COOKIE)?.value;
+  if (!t) return { status: 401, message: null };
+  const res = await fetch(`${env.DIRECTUS_URL}/rafanutri${path}`, {
+    method,
+    headers: { Authorization: `Bearer ${t}`, ...(body === undefined ? {} : { 'Content-Type': 'application/json' }) },
+    body: body === undefined ? undefined : JSON.stringify(body),
+    cache: 'no-store',
+  });
+  const json = (await res.json().catch(() => null)) as { errors?: Array<{ message: string; extensions?: { fields?: Record<string, string> } }> } | null;
+  const e = json?.errors?.[0];
+  return { status: res.status, message: e ? (Object.values(e.extensions?.fields ?? {})[0] ?? e.message) : null };
+}
+const isUuid = (id: unknown): id is string => typeof id === 'string' && /^[0-9a-f-]{36}$/i.test(id);
+
+async function run(path: string, method: string, body: unknown, fallback: string): Promise<PracticeResult> {
+  try {
+    const r = await call(path, method, body);
+    if (r.status === 200) {
+      revalidatePath('/app', 'layout');
+      revalidatePath('/p', 'layout');
+      return { ok: true };
+    }
+    if (r.status === 401) return { ok: false, message: 'Sua sessão expirou. Entre novamente.' };
+    if (r.status === 404) return { ok: false, message: 'Só o responsável (owner) do consultório muda a marca.' };
+    return { ok: false, message: r.message ?? fallback };
+  } catch {
+    return { ok: false, message: fallback };
+  }
+}
+
+/** RN-204 — Logo do consultório (data URL PNG/JPEG já reduzida no navegador). Só o owner. */
+export async function uploadPracticeLogo(orgId: string, image: string): Promise<PracticeResult> {
+  if (!isUuid(orgId) || typeof image !== 'string' || image.length > 900_000) return { ok: false, message: 'Imagem inválida.' };
+  return run(`/practices/${orgId}/logo`, 'POST', { image }, 'Não foi possível salvar o logo agora.');
+}
+
+export async function removePracticeLogo(orgId: string): Promise<PracticeResult> {
+  if (!isUuid(orgId)) return { ok: false, message: 'Pedido inválido.' };
+  return run(`/practices/${orgId}/logo`, 'DELETE', undefined, 'Não foi possível remover o logo agora.');
+}
+
+export async function savePracticeColor(orgId: string, color: string): Promise<PracticeResult> {
+  if (!isUuid(orgId) || !/^#[0-9a-f]{6}$/i.test(color)) return { ok: false, message: 'Cor inválida.' };
+  return run(`/practices/${orgId}/brand`, 'PUT', { brand_color: color }, 'Não foi possível salvar a cor agora.');
+}

@@ -86,7 +86,7 @@ export default {
         .join('organizations as o', 'o.id', 'm.organization_id')
         .where('m.user_id', user)
         .orderBy('o.created_at')
-        .select('o.id', 'o.name', 'o.slug', 'o.type', 'o.brand_color', 'o.plan', 'm.role');
+        .select('o.id', 'o.name', 'o.slug', 'o.type', 'o.brand_color', 'o.plan', 'm.role', database.raw('(o.logo is not null) as has_logo'));
       res.json({ data: rows });
     });
 
@@ -1138,6 +1138,58 @@ export default {
         logger.error({ err: error }, 'rafanutri: falha ao ler logo');
         notFoundLogo();
       }
+    });
+
+    // RN-204 — Marca do consultório: só o owner troca o logo e a cor.
+    async function ownedOrg(user, id) {
+      if (!isUuid(id)) return null;
+      const m = await database('organization_members').where({ organization_id: id, user_id: user, role: 'owner' }).first('organization_id');
+      return m ? database('organizations').where('id', id).first('id', 'logo') : null;
+    }
+    const orgNotFound = (res) => res.status(404).json({ errors: [{ message: 'Consultório não encontrado.', extensions: { code: 'NOT_FOUND' } }] });
+
+    router.post('/practices/:id/logo', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const org = await ownedOrg(user, req.params.id);
+      if (!org) return orgNotFound(res);
+      const img = parseImageDataUrl(req.body?.image);
+      if (!img || img.type === 'image/webp') return bad(res, { image: 'Envie o logo em PNG ou JPG de até 600 KB.' });
+      try {
+        const files = new services.FilesService({ schema: await getSchema(), accountability: null });
+        const ext = img.type === 'image/png' ? 'png' : 'jpg';
+        const fileId = await files.uploadOne(Readable.from(img.buffer), { filename_download: `logo-${org.id}.${ext}`, type: img.type, title: `Logo ${org.id}` });
+        await database('organizations').where('id', org.id).update({ logo: fileId });
+        if (org.logo) await files.deleteOne(org.logo).catch(() => {});
+        res.json({ data: { has_logo: true } });
+      } catch (error) {
+        logger.error({ err: error }, 'rafanutri: falha ao salvar logo');
+        res.status(500).json({ errors: [{ message: 'Não foi possível salvar o logo.', extensions: { code: 'INTERNAL_SERVER_ERROR' } }] });
+      }
+    });
+
+    router.delete('/practices/:id/logo', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const org = await ownedOrg(user, req.params.id);
+      if (!org) return orgNotFound(res);
+      if (org.logo) {
+        await database('organizations').where('id', org.id).update({ logo: null });
+        const files = new services.FilesService({ schema: await getSchema(), accountability: null });
+        await files.deleteOne(org.logo).catch(() => {});
+      }
+      res.json({ data: { has_logo: false } });
+    });
+
+    router.put('/practices/:id/brand', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const org = await ownedOrg(user, req.params.id);
+      if (!org) return orgNotFound(res);
+      const color = req.body?.brand_color;
+      if (color !== null && !(typeof color === 'string' && /^#[0-9a-f]{6}$/i.test(color))) return bad(res, { brand_color: 'Cor inválida.' });
+      await database('organizations').where('id', org.id).update({ brand_color: color === null ? null : color.toUpperCase() });
+      res.json({ data: { brand_color: color === null ? null : color.toUpperCase() } });
     });
 
     // RN-205 — Plano publicado completo para o paciente. A conta do paciente não lê coleções: os

@@ -3,6 +3,7 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { signOut } from '@/lib/auth/actions';
+import { PatientBottomNav } from './patient-bottom-nav';
 
 /** Moldura da área do paciente: marca do consultório no topo e sair. Mobile-first. */
 export function PatientShell({ practice, professional, canSwitch = false, children }: { practice: { id?: string; name: string; brand_color: string | null; has_logo?: boolean } | null; professional?: { name: string | null; crn: string | null } | null; canSwitch?: boolean; children: ReactNode }) {
@@ -27,7 +28,8 @@ export function PatientShell({ practice, professional, canSwitch = false, childr
           </form>
         </div>
       </header>
-      <main className="mx-auto max-w-2xl space-y-6 px-4 py-6">{children}</main>
+      <main className="mx-auto max-w-2xl space-y-6 px-4 pb-28 pt-6">{children}</main>
+      <PatientBottomNav color={color} />
     </div>
   );
 }

@@ -13,6 +13,7 @@ import { Progress } from '@/components/ui/progress';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { completeOnboarding, type ActionResult } from '@/lib/auth/signup-actions';
 import { cn } from '@/lib/utils';
+import { resizeLogo } from '@/lib/practice/resize-logo';
 import {
   BRAND_COLORS,
   CRN_REGIONS,
@@ -35,6 +36,7 @@ export function OnboardingWizard({ defaultName, signupOpen }: { defaultName: str
   const [step, setStep] = useState(0);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [logoError, setLogoError] = useState<string | null>(null);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
   const [result, setResult] = useState<ActionResult | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -67,6 +69,7 @@ export function OnboardingWizard({ defaultName, signupOpen }: { defaultName: str
     const error = validateLogo(file);
     setLogoError(error);
     if (error) return;
+    setLogoFile(file);
     setLogoUrl((old) => {
       if (old) URL.revokeObjectURL(old);
       return URL.createObjectURL(file);
@@ -76,7 +79,8 @@ export function OnboardingWizard({ defaultName, signupOpen }: { defaultName: str
   const onSubmit = form.handleSubmit((data) => {
     setResult(null);
     startTransition(async () => {
-      const r = await completeOnboarding(data);
+      const logo = logoFile ? await resizeLogo(logoFile).catch(() => null) : null;
+      const r = await completeOnboarding(data, logo);
       if (r) setResult(r);
     });
   });

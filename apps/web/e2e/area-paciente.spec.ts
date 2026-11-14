@@ -71,6 +71,14 @@ test('convite e área do paciente', async ({ page, browser }) => {
       await expect(pp.getByRole('link', { name: 'Trocar de nutricionista' })).toHaveCount(0);
       await pp.goto('/p/nutricionistas');
       await expect(pp).toHaveURL(/\/p$/);
+      // RN-204: navegação inferior
+      const nav = pp.getByRole('navigation', { name: 'Área do paciente' });
+      await expect(nav.getByRole('link', { name: 'Início' })).toHaveAttribute('aria-current', 'page');
+      await nav.getByRole('link', { name: 'Receitas' }).click();
+      await expect(pp).toHaveURL(/\/p\/receitas$/);
+      await expect(nav.getByRole('link', { name: 'Receitas' })).toHaveAttribute('aria-current', 'page');
+      await nav.getByRole('link', { name: 'Início' }).click();
+      await expect(pp).toHaveURL(/\/p$/);
     });
 
     await test.step('nutricionista publica um plano; paciente vê o plano completo (RN-205)', async () => {
@@ -196,7 +204,7 @@ test('convite e área do paciente', async ({ page, browser }) => {
       await expect(box.getByRole('list', { name: 'Receitas visíveis para o paciente' })).toContainText(recipeName);
 
       await pp.goto('/p');
-      await pp.getByRole('link', { name: /Receitas/ }).first().click();
+      await pp.getByRole('main').getByRole('link', { name: /Receitas/ }).first().click();
       await expect(pp).toHaveURL(/\/p\/receitas/);
       await pp.getByRole('link', { name: new RegExp(recipeName) }).click();
       await expect(pp.getByRole('heading', { level: 1, name: recipeName })).toBeVisible();
@@ -232,7 +240,7 @@ test('convite e área do paciente', async ({ page, browser }) => {
 
       await pp.goto('/p');
       await expect(pp.getByRole('link', { name: /Recomendações\s*1 nova/ })).toBeVisible();
-      await pp.getByRole('link', { name: /Recomendações/ }).click();
+      await pp.getByRole('main').getByRole('link', { name: /Recomendações/ }).click();
       await expect(pp.getByText(`Rascunho E2E ${stamp}`)).toHaveCount(0);
       const summary = pp.locator('summary').filter({ hasText: libTitle });
       await expect(summary.getByText('Nova')).toBeVisible();

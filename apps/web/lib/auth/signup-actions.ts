@@ -54,7 +54,8 @@ export async function signUp(input: SignupInput): Promise<ActionResult> {
   redirect('/onboarding');
 }
 
-export async function completeOnboarding(input: OnboardingInput): Promise<ActionResult> {
+/** `logo`: data URL PNG/JPEG já reduzida no navegador (opcional; falha no logo não impede o cadastro). */
+export async function completeOnboarding(input: OnboardingInput, logo?: string | null): Promise<ActionResult> {
   const parsed = onboardingSchema.safeParse(input);
   if (!parsed.success) return { status: 'invalid', message: parsed.error.issues[0]?.message ?? 'Revise os campos.' };
 
@@ -63,8 +64,9 @@ export async function completeOnboarding(input: OnboardingInput): Promise<Action
   if (!isSignupOpen()) return { status: 'closed' };
 
   const d = parsed.data;
+  let orgId: string | null = null;
   try {
-    await directus().request(
+    const created = await directus().request<{ id?: string; data?: { id?: string } }>(
       withToken(
         token,
         customEndpoint({
@@ -80,10 +82,18 @@ export async function completeOnboarding(input: OnboardingInput): Promise<Action
         }),
       ),
     );
+    orgId = created?.data?.id ?? created?.id ?? null;
   } catch (error) {
     const { status, code } = directusErrorInfo(error);
     console.error('completeOnboarding: falha no Directus', { status, code });
     return { status: 'error', message: 'Não foi possível criar o consultório agora. Tente novamente em instantes.' };
+  }
+  if (orgId && typeof logo === 'string' && logo.startsWith('data:image/') && logo.length <= 900_000) {
+    try {
+      await directus().request(withToken(token, customEndpoint({ path: `/rafanutri/practices/${orgId}/logo`, method: 'POST', body: JSON.stringify({ image: logo }) })));
+    } catch (error) {
+      console.error('completeOnboarding: logo não salvo', directusErrorInfo(error));
+    }
   }
   redirect('/app');
 }

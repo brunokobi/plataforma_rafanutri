@@ -10,6 +10,8 @@ export interface UserOrganization {
   brand_color: string | null;
   plan: PlanCode;
   role: MemberRole;
+  /** Consultório com logo enviado (RN-204). */
+  has_logo?: boolean;
 }
 
 /**
