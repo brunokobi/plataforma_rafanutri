@@ -3,15 +3,18 @@
 // e o teste confere que um não lê nem altera nada do outro. No fim, apaga tudo o que criou.
 //
 // Uso: DIRECTUS_URL=https://rafanutri-api.brunokobi.tech DIRECTUS_ADMIN_TOKEN=... node db/tests/api-isolation.test.mjs
-// O token de administrador só é usado na limpeza (ADR 0008, regra 1).
+// O token de administrador só é usado na limpeza e para listar as coleções (ADR 0008, regra 1).
+// Sem token: db/scripts/isolation-test.sh lista as tabelas pelo banco (ISOLATION_COLLECTIONS) e faz a
+// limpeza por SQL a partir da linha CLEANUP_JSON que o teste imprime.
 
 import assert from 'node:assert/strict';
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 
 const URL_ = process.env.DIRECTUS_URL;
 const ADMIN = process.env.DIRECTUS_ADMIN_TOKEN;
-if (!URL_ || !ADMIN) {
-  console.error('Defina DIRECTUS_URL e DIRECTUS_ADMIN_TOKEN.');
+const COLLECTIONS = process.env.ISOLATION_COLLECTIONS;
+if (!URL_ || (!ADMIN && !COLLECTIONS)) {
+  console.error('Defina DIRECTUS_URL e DIRECTUS_ADMIN_TOKEN (ou rode db/scripts/isolation-test.sh).');
   process.exit(2);
 }
 
@@ -554,7 +557,9 @@ try {
     assert.equal((await api(`/rafanutri/patients/${patientB}/preview`, { token: a.token })).status, 404);
     assert.equal((await api('/rafanutri/public/patient-invites/accept', { method: 'POST', body: { token: inv.json.data.token, password: 'Senha-isolamento-2' } })).status, 410);
     // RN-213: a conta de paciente não lê nenhuma coleção pela API de itens (todas as tabelas do produto)
-    const collections = (await api('/collections?limit=-1', { token: ADMIN })).json.data.map((c) => c.collection).filter((c) => !c.startsWith('directus_'));
+    const collections = ADMIN
+      ? (await api('/collections?limit=-1', { token: ADMIN })).json.data.map((c) => c.collection).filter((c) => !c.startsWith('directus_'))
+      : COLLECTIONS.split(',').filter((c) => c && !c.startsWith('directus_'));
     assert.ok(collections.length >= 15, `coleções: ${collections.length}`);
     for (const c of collections) assert.equal((await api(`/items/${c}?limit=1`, { token: pt })).status, 403, `paciente lendo ${c}`);
     // Rascunho de plano nunca chega ao paciente, nem pedindo pelo id
@@ -619,6 +624,10 @@ try {
 
   console.log(`${passed} verificações passaram.`);
 } finally {
-  for (const id of created.orgs) await api(`/items/organizations/${id}`, { token: ADMIN, method: 'DELETE' });
-  for (const id of created.users) await api(`/users/${id}`, { token: ADMIN, method: 'DELETE' });
+  if (ADMIN) {
+    for (const id of created.orgs) await api(`/items/organizations/${id}`, { token: ADMIN, method: 'DELETE' });
+    for (const id of created.users) await api(`/users/${id}`, { token: ADMIN, method: 'DELETE' });
+  } else {
+    console.log(`CLEANUP_JSON ${JSON.stringify(created)}`);
+  }
 }

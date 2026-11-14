@@ -40,7 +40,7 @@ db/
 │   ├── 0018_patient_app_access.test.sql     # vínculo só pelos endpoints, convite de uso único
 │   ├── extension-foods.test.mjs       # conversão porção → 100 g e composição da preparação (node --test)
 │   ├── extension-documents.test.mjs   # validação dos documentos clínicos (node --test)
-│   └── api-isolation.test.mjs       # RN-008: isolamento entre consultórios pela API
+│   └── api-isolation.test.mjs       # RN-008/RN-213: isolamento pela API (db/scripts/isolation-test.sh roda sem token)
 ├── directus/
 │   ├── 0005_anthropometric_assessments.mjs  # registra a coleção e as permissões no Directus (token de admin)
 │   ├── 0006_meal_plans.mjs      # idem para os planos alimentares
@@ -131,6 +131,9 @@ docker exec rafanutri-postgres psql -U rafanutri -d rafanutri -v ON_ERROR_STOP=1
 
 # isolamento pela API (de qualquer máquina; cria e apaga 2 usuários de teste)
 DIRECTUS_URL=https://rafanutri-api.brunokobi.tech DIRECTUS_ADMIN_TOKEN=<token> node db/tests/api-isolation.test.mjs
+
+# ou, sem token de admin, da máquina com a chave SSH da vpsrafa (tabelas e limpeza pelo banco)
+db/scripts/isolation-test.sh
 ```
 
 ## Base de alimentos
