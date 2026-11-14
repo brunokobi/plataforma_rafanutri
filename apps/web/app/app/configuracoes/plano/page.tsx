@@ -70,7 +70,11 @@ export default async function PlanPage() {
           <h2 id="incluso" className="font-display text-xl font-semibold">O que está incluído</h2>
           <ul className="mt-3 space-y-2 text-sm">
             {MODULES.filter((m) => ent.modules.includes(m.code)).map((m) => (
-              <li key={m.code}><span className="font-medium">{m.name}</span>{plan.grants[m.code].note ? <span className="text-muted-foreground"> · {plan.grants[m.code].note}</span> : null}</li>
+              <li key={m.code}>
+                <span className="font-medium">{m.name}</span>
+                {plan.grants[m.code].note ? <span className="text-muted-foreground"> · {plan.grants[m.code].note}</span> : null}
+                {m.phase !== 'Fase 1' && <span className="text-muted-foreground"> · em construção ({m.phase})</span>}
+              </li>
             ))}
           </ul>
         </section>
