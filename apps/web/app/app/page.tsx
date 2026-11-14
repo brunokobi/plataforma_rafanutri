@@ -5,6 +5,8 @@ import { ModuleCard } from '@/components/app/module-card';
 import { PlanSummary } from '@/components/app/plan-summary';
 import { PlansComparison } from '@/components/app/plans-comparison';
 import { TodayPanel } from '@/components/app/today-panel';
+import { IndicatorsPanel } from '@/components/app/indicators-panel';
+import { getIndicators } from '@/lib/indicators/actions';
 import { getMyOrganizations, landingRedirect } from '@/lib/auth/organizations';
 import { getCurrentUser } from '@/lib/auth/session';
 import { loadDashboard, RETURN_DAYS } from '@/lib/dashboard-data';
@@ -15,7 +17,7 @@ import { getUserPlan } from '@/lib/modules/user-plan';
 
 export const metadata: Metadata = { title: 'Início', robots: { index: false } };
 
-export default async function AppHome() {
+export default async function AppHome({ searchParams }: { searchParams: Promise<{ nutricionista?: string }> }) {
   const user = await getCurrentUser();
   if (!user) redirect('/login?next=/app');
 
@@ -29,7 +31,8 @@ export default async function AppHome() {
   const { mine, others } = buildModuleSections(planCode);
   const name = user.first_name || user.email;
   const clinical = organizations?.find((o) => o.role === 'owner' || o.role === 'nutritionist') ?? null;
-  const dashboard = clinical ? await loadDashboard(clinical.id) : null;
+  const { nutricionista } = await searchParams;
+  const [dashboard, indicators] = clinical ? await Promise.all([loadDashboard(clinical.id), getIndicators(undefined, nutricionista)]) : [null, null];
 
   return (
     <div className="min-h-dvh">
@@ -46,6 +49,8 @@ export default async function AppHome() {
         </div>
 
         {dashboard && <TodayPanel data={dashboard} returnDays={RETURN_DAYS} />}
+
+        {indicators && <IndicatorsPanel data={indicators} />}
 
         <p className="text-muted-foreground">
           Abaixo, os módulos da Rafanutri e o que o seu plano inclui. Cada módulo é liberado conforme o roadmap.

@@ -597,6 +597,10 @@ try {
     assert.equal((await api(`/rafanutri/crm/leads/${leadA.json.data.id}/stage`, { token: a.token, method: 'POST', body: { stage: 'lost' } })).status, 400, 'perdido sem motivo');
     assert.equal((await api('/rafanutri/crm/board', { token: pt })).status, 403, 'paciente não vê o CRM');
     assert.equal((await api('/items/leads?limit=1', { token: a.token })).status, 403, 'coleção direta');
+    // RN-064: indicadores só do próprio consultório
+    const dashA = (await api('/rafanutri/dashboard', { token: a.token })).json.data;
+    assert.ok(dashA.current && Number(dashA.current.revenue_cents) >= 0, 'indicadores de A');
+    assert.equal((await api('/rafanutri/dashboard', { token: pt })).status, 403, 'paciente não vê indicadores');
     // RN-210: peso só liberado; paciente não muda o que vê; outro consultório não lê nem muda
     assert.deepEqual((await api('/rafanutri/me/patient/weight', { token: pt })).json.data.weight, []);
     assert.equal((await api(`/rafanutri/patients/${pid}/share`, { token: pt, method: 'PUT', body: { show_kcal: true, show_macros: true, show_weight_history: true } })).status, 404);

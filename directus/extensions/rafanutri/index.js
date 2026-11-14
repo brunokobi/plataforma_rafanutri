@@ -1093,6 +1093,26 @@ export default {
       res.json({ data: { days, by_source: r.rows } });
     });
 
+    // ── Indicadores do consultório (RN-064) ─────────────────────────────────────────────────────
+    // ?month=aaaa-mm (padrão: mês atual) &nutritionist=<membro clínico> (só filtra se for do consultório).
+    router.get('/dashboard', async (req, res) => {
+      const m = await finMember(req, res);
+      if (!m) return;
+      const month = /^\d{4}-(0[1-9]|1[0-2])$/.test(req.query.month ?? '') ? `${req.query.month}-15` : null;
+      const nutritionists = await database('organization_members as om').join('directus_users as u', 'u.id', 'om.user_id')
+        .where('om.organization_id', m.org).whereIn('om.role', ['owner', 'nutritionist'])
+        .select('u.id', database.raw("trim(coalesce(u.first_name, '') || ' ' || coalesce(u.last_name, '')) as name"), 'u.email');
+      const nutri = isUuid(req.query.nutritionist) && nutritionists.some((n) => n.id === req.query.nutritionist) ? req.query.nutritionist : null;
+      const r = await database.raw('select dashboard_indicators(?, ?::date, ?::uuid) as j', [m.org, month, nutri]);
+      res.json({
+        data: {
+          ...r.rows[0].j,
+          nutritionist: nutri,
+          nutritionists: nutritionists.length > 1 ? nutritionists.map((n) => ({ id: n.id, name: n.name || n.email })) : [],
+        },
+      });
+    });
+
     // ── Documentos clínicos com a marca (RN-215) ───────────────────────────────────────────────
     const docNotFound = (res) => res.status(404).json({ errors: [{ message: 'Documento não encontrado.', extensions: { code: 'NOT_FOUND' } }] });
     const DOC_FIELDS = ['id', 'kind', 'title', 'body', 'exams', 'document_date', 'status', 'published_at', 'date_created', 'date_updated'];
