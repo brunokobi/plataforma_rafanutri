@@ -22,6 +22,7 @@ export function CrmMetrics({ data }: { data: Metrics }) {
       {data.by_source.length === 0 ? (
         <p className="rounded-2xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">Nenhum lead no período.</p>
       ) : (
+        <div className="overflow-x-auto">
         <table className="w-full text-left text-sm">
           <caption className="sr-only">Leads por origem</caption>
           <thead className="text-muted-foreground"><tr><th className="py-2 font-medium">Origem</th><th className="py-2 font-medium">Leads</th><th className="py-2 text-right font-medium">Pacientes</th><th className="py-2 text-right font-medium">1ª consulta</th><th className="py-2 text-right font-medium">Perdidos</th></tr></thead>
@@ -30,7 +31,7 @@ export function CrmMetrics({ data }: { data: Metrics }) {
               <tr key={r.source} className="border-t border-border">
                 <td className="py-2">{SOURCE_LABEL[r.source]}</td>
                 <td className="py-2">
-                  <span className="inline-flex items-center gap-2"><span className="h-2 rounded-full bg-primary" style={{ width: `${Math.max(4, (r.leads / max) * 120)}px` }} aria-hidden="true" /> {r.leads}</span>
+                  <span className="inline-flex items-center gap-2"><span className="h-2 rounded-full bg-primary" style={{ width: `${Math.max(4, (r.leads / max) * 64)}px` }} aria-hidden="true" /> {r.leads}</span>
                 </td>
                 <td className="py-2 text-right tabular-nums">{r.converted}</td>
                 <td className="py-2 text-right tabular-nums">{r.first_visit}</td>
@@ -39,6 +40,7 @@ export function CrmMetrics({ data }: { data: Metrics }) {
             ))}
           </tbody>
         </table>
+        </div>
       )}
     </div>
   );
