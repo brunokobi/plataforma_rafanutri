@@ -7,7 +7,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { getMyOrganizations } from '@/lib/auth/organizations';
 import { getCurrentUser } from '@/lib/auth/session';
 import { dateBR } from '@/lib/format/date';
-import { getPatientArea } from '@/lib/patient-area/actions';
+import { WeightChart } from '@/components/patient-area/weight-chart';
+import { getMyWeight, getPatientArea } from '@/lib/patient-area/actions';
 import { mealOfTheMoment } from '@/lib/patient-area/meal-now';
 
 export const metadata: Metadata = { title: 'Área do paciente', robots: { index: false } };
@@ -44,6 +45,7 @@ export default async function PatientHome({ searchParams }: { searchParams: Prom
   }
 
   const q = records.length > 1 ? `?c=${record.patient_id}` : '';
+  const weight = await getMyWeight(record.patient_id);
   const moment = record.plan ? mealOfTheMoment(record.plan.meals, new Date()) : null;
   return (
     <PatientShell practice={record.practice} professional={record.professional}>
@@ -58,6 +60,7 @@ export default async function PatientHome({ searchParams }: { searchParams: Prom
           ))}
         </nav>
       )}
+      {weight?.share?.show_weight_history && weight.weight.length > 0 && <WeightChart data={weight.weight} />}
       <Link href={`/p/recomendacoes${q}`} className="flex min-h-11 items-center justify-between gap-3 rounded-2xl border border-border bg-card px-5 py-4 font-medium">
         <span>Recomendações</span>
         {(record.recommendations_unread ?? 0) > 0 ? (

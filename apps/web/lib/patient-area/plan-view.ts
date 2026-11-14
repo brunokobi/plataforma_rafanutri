@@ -4,7 +4,8 @@ import { pdfRecipes, type PdfRecipe } from '@/lib/pdf/meal-plan-data';
 import type { PatientPlanPayload } from './types';
 
 export interface PlanViewItem { name: string; amount: string; substitutions: string[] }
-export interface PlanViewMeal { id: string; name: string; time: string | null; items: PlanViewItem[] }
+export interface PlanViewMeal { id: string; name: string; time: string | null; items: PlanViewItem[]; kcal: number | null }
+export interface PlanDayTotals { energy: number | null; protein: number | null; carbohydrate: number | null; lipid: number | null }
 export interface PatientPlanView {
   title: string;
   publishedAt: string | null;
@@ -12,6 +13,8 @@ export interface PatientPlanView {
   meals: PlanViewMeal[];
   guidelines: string[];
   recipes: PdfRecipe[];
+  /** Totais do dia liberados pelo nutricionista (RN-210); null = nada liberado. */
+  totals: PlanDayTotals | null;
 }
 
 /** "2 colheres de sopa (50 g)"; sem medida caseira, só gramas. Vazio no plano qualitativo. */
@@ -27,10 +30,24 @@ export function amountText(grams: number, measures: Array<{ label: string; grams
 export function buildPatientPlanView(p: PatientPlanPayload): PatientPlanView {
   const quantitative = p.plan.mode !== 'qualitative';
   const food = (id: string) => p.foods[id];
+  const share = p.share ?? { show_kcal: false, show_macros: false, show_weight_history: false };
+  const numbers = quantitative && (share.show_kcal || share.show_macros);
+  const sum = (code: string, items: Array<{ foodId: string; quantityG: number }>) =>
+    items.reduce((t, i) => t + ((food(i.foodId)?.per100g?.[code] ?? 0) * i.quantityG) / 100, 0);
+  const all = p.plan.meals.flatMap((m) => m.items.filter((i) => food(i.foodId)));
+  const totals: PlanDayTotals | null = numbers
+    ? {
+        energy: share.show_kcal ? Math.round(sum('energy_kcal', all)) : null,
+        protein: share.show_macros ? Math.round(sum('protein_g', all)) : null,
+        carbohydrate: share.show_macros ? Math.round(sum('carbohydrate_g', all)) : null,
+        lipid: share.show_macros ? Math.round(sum('lipid_g', all)) : null,
+      }
+    : null;
   const meals = p.plan.meals.map((m) => ({
     id: m.id,
     name: m.name,
     time: m.time,
+    kcal: quantitative && share.show_kcal ? Math.round(sum('energy_kcal', m.items.filter((i) => food(i.foodId)))) : null,
     items: m.items.flatMap((i) => {
       const f = food(i.foodId);
       if (!f) return [];
@@ -50,6 +67,7 @@ export function buildPatientPlanView(p: PatientPlanPayload): PatientPlanView {
     validUntil: p.plan.valid_until,
     meals,
     guidelines: (p.plan.guidelines ?? '').split('\n').map((g) => g.trim()).filter(Boolean),
+    totals,
     recipes: pdfRecipes(p.plan.meals.map((m) => ({ ...m, time: m.time ?? '' })), lookup, p.recipes),
   };
 }

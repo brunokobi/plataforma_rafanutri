@@ -61,12 +61,14 @@ export function MealPlanDocument({ data }: { data: MealPlanPdfData }) {
 
           {data.totals && (
             <View style={s.totals}>
-              {[
-                ['Energia', `${data.totals.energy} kcal`],
-                ['Proteínas', `${data.totals.protein} g`],
-                ['Carboidratos', `${data.totals.carbohydrate} g`],
-                ['Gorduras', `${data.totals.lipid} g`],
-              ].map(([k, v]) => (
+              {(
+                [
+                  ['Energia', `${data.totals.energy} kcal`],
+                  ['Proteínas', data.totals.protein == null ? null : `${data.totals.protein} g`],
+                  ['Carboidratos', data.totals.carbohydrate == null ? null : `${data.totals.carbohydrate} g`],
+                  ['Gorduras', data.totals.lipid == null ? null : `${data.totals.lipid} g`],
+                ].filter(([, v]) => v !== null) as Array<[string, string]>
+              ).map(([k, v]) => (
                 <View key={k} style={s.totalBox}>
                   <Text style={s.label}>{k}</Text>
                   <Text style={s.itemName}>{v}</Text>

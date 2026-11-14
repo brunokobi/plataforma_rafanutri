@@ -24,7 +24,8 @@ export interface MealPlanPdfData {
   mode: 'quantitative' | 'qualitative';
   showKcal: boolean;
   meals: PdfMeal[];
-  totals: { energy: number; protein: number; carbohydrate: number; lipid: number } | null;
+  /** Macros null = não mostrar (área do paciente sem macros liberados, RN-210). */
+  totals: { energy: number; protein: number | null; carbohydrate: number | null; lipid: number | null } | null;
   guidelines: string[];
   /** Preparações do consultório usadas no plano (ingredientes e modo de preparo). */
   recipes: PdfRecipe[];

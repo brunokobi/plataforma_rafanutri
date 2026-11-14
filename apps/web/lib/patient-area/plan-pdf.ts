@@ -3,7 +3,7 @@ import type { PatientPlanPayload } from './types';
 
 const DAY = 86_400_000;
 
-/** Dados do PDF do plano a partir do que o servidor devolve ao paciente (sem kcal; alimento não resolvido sai). */
+/** Dados do PDF do plano a partir do que o servidor devolve ao paciente (kcal e macros só se liberados; alimento não resolvido sai). */
 export function patientPlanPdfData(p: PatientPlanPayload): MealPlanPdfData {
   const doc = p.document;
   const food = (id: string) => p.foods[id];
@@ -17,9 +17,9 @@ export function patientPlanPdfData(p: PatientPlanPayload): MealPlanPdfData {
   }));
   const issuedAt = p.plan.published_at ? new Date(p.plan.published_at) : new Date();
   const validDays = p.plan.valid_until ? Math.max(1, Math.round((new Date(`${p.plan.valid_until}T12:00:00Z`).getTime() - issuedAt.getTime()) / DAY)) : 30;
-  return buildMealPlanPdfData(meals, {
+  const data = buildMealPlanPdfData(meals, {
     mode: p.plan.mode,
-    showKcal: false,
+    showKcal: p.share?.show_kcal === true,
     practice: {
       practiceName: doc?.practice_name ?? 'Consultório',
       professionalName: doc?.professional_name ?? '',
@@ -32,9 +32,12 @@ export function patientPlanPdfData(p: PatientPlanPayload): MealPlanPdfData {
     guidelines: (p.plan.guidelines ?? '').split('\n').map((g) => g.trim()).filter(Boolean),
     issuedAt,
     validDays,
-    foodById: (id) => (food(id) ? { name: food(id)!.name, per100g: {}, householdMeasures: food(id)!.household_measures } : undefined),
+    foodById: (id) => (food(id) ? { name: food(id)!.name, per100g: food(id)!.per100g ?? {}, householdMeasures: food(id)!.household_measures } : undefined),
     recipes: p.recipes,
   });
+  // Macros só com liberação própria
+  if (data.totals && !p.share?.show_macros) data.totals = { ...data.totals, protein: null, carbohydrate: null, lipid: null };
+  return data;
 }
 
 /** "plano-alimentar-2026-11-14.pdf" */

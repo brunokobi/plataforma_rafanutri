@@ -110,6 +110,28 @@ test('convite e área do paciente', async ({ page, browser }) => {
       expect(other.status()).toBe(404);
     });
 
+    await test.step('o que o paciente vê: calorias liberadas e pré-visualização (RN-210)', async () => {
+      await pp.goto('/p/plano');
+      await expect(pp.getByRole('region', { name: 'Totais do dia' })).toHaveCount(0);
+
+      await page.goto(patientUrl);
+      const share = page.getByRole('form', { name: 'O que o paciente vê' });
+      await share.getByRole('switch', { name: /Calorias do plano/ }).check();
+      await share.getByRole('switch', { name: /Histórico de peso/ }).check();
+      await share.getByRole('button', { name: 'Salvar' }).click();
+      await expect(page.getByRole('status').filter({ hasText: 'Salvo.' })).toBeVisible();
+
+      await page.getByRole('link', { name: 'Ver como paciente' }).click();
+      const preview = page.getByRole('region', { name: 'Pré-visualização da área do paciente' });
+      await expect(preview.getByText(/Energia no dia/)).toBeVisible();
+      await expect(preview.getByText(/Proteínas no dia/)).toHaveCount(0);
+      await expect(preview.getByText(/Sem pesagens ainda/)).toBeVisible();
+
+      await pp.goto('/p/plano');
+      await expect(pp.getByRole('region', { name: 'Totais do dia' }).getByText(/kcal/)).toBeVisible();
+      expect(await pp.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+    });
+
     await test.step('nutricionista cria receita com foto e envia; paciente vê (RN-206, RN-207)', async () => {
       await page.goto('/app/receitas');
       await page.getByRole('button', { name: 'Nova receita' }).click();

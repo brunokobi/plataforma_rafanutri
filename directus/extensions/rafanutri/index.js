@@ -1003,21 +1003,25 @@ export default {
       res.json({ data: { patient_id: p.id, plans: plans.map((pl) => ({ ...pl, valid_until: pl.valid_until ? new Date(pl.valid_until).toISOString().slice(0, 10) : null })) } });
     });
 
-    router.get('/me/patient/plan', async (req, res) => {
-      const user = requireUser(req, res);
-      if (!user) return;
-      const c = typeof req.query.c === 'string' && isUuid(req.query.c) ? req.query.c : null;
-      let q = database('patients').where('app_user_id', user).where('status', 'active');
-      if (c) q = q.where('id', c);
-      const patient = await q.orderBy('app_activated_at', 'desc').first('id', 'organization_id', 'full_name', 'objective', 'responsible_user_id');
-      // p = plano específico (RN-209: documentos); só planos que já foram publicados (vigente ou anteriores)
-      const planId = typeof req.query.p === 'string' && isUuid(req.query.p) ? req.query.p : null;
-      let pq = database('meal_plans').where({ patient_id: patient?.id ?? null, organization_id: patient?.organization_id ?? null });
+    // RN-210 — O que o paciente vê (padrão do consultório + escolha por paciente).
+    const SHARE_KEYS = ['show_kcal', 'show_macros', 'show_weight_history'];
+    async function shareOf(patientId) {
+      const r = await database.raw('select patient_share(?) as s', [patientId]);
+      const s = r.rows?.[0]?.s ?? {};
+      return Object.fromEntries(SHARE_KEYS.map((k) => [k, s[k] === true]));
+    }
+    async function weightHistory(patientId) {
+      const r = await database.raw('select assessed_at, weight_kg from patient_weight_history(?)', [patientId]);
+      return (r.rows ?? []).map((w) => ({ date: new Date(w.assessed_at).toISOString().slice(0, 10), weight_kg: Number(w.weight_kg) }));
+    }
+
+    /** Plano como o paciente vê (RN-205/209/210). planId = um plano já publicado; sem planId = o vigente. */
+    async function patientPlanPayload(patient, planId) {
+      let pq = database('meal_plans').where({ patient_id: patient.id, organization_id: patient.organization_id });
       pq = planId ? pq.where('id', planId).whereIn('status', ['published', 'archived']).whereNotNull('published_at') : pq.where('status', 'published');
-      const plan = patient
-        ? await pq.orderBy('published_at', 'desc').first('id', 'title', 'mode', 'status', 'published_at', 'valid_until', 'guidelines', 'meals', 'user_created')
-        : null;
-      if (!plan) return res.status(404).json({ errors: [{ message: 'Plano não encontrado.', extensions: { code: 'NOT_FOUND' } }] });
+      const plan = await pq.orderBy('published_at', 'desc').first('id', 'title', 'mode', 'status', 'published_at', 'valid_until', 'guidelines', 'meals', 'user_created');
+      if (!plan) return null;
+      const share = await shareOf(patient.id);
       const meals = (Array.isArray(plan.meals) ? plan.meals : []).map((m) => ({
         id: String(m.id), name: String(m.name ?? ''), time: m.time ?? null,
         items: (m.items ?? []).map((i) => ({
@@ -1032,7 +1036,25 @@ export default {
           .where((w) => w.whereNull('organization_id').orWhere('organization_id', patient.organization_id))
           .select('id', 'name', 'kind', 'household_measures')
         : [];
-      const foods = Object.fromEntries(foodRows.map((f) => [String(f.id), { name: f.name, household_measures: Array.isArray(f.household_measures) ? f.household_measures : [] }]));
+      // Composição só quando o nutricionista libera calorias ou macros
+      const per100 = new Map();
+      if ((share.show_kcal || share.show_macros) && foodRows.length) {
+        const rows = await database('food_nutrients as fn').join('nutrients as n', 'n.id', 'fn.nutrient_id')
+          .whereIn('fn.food_id', foodRows.map((f) => f.id)).whereIn('n.code', ['energy_kcal', 'protein_g', 'carbohydrate_g', 'lipid_g'])
+          .select('fn.food_id', 'n.code', 'fn.amount_per_100g');
+        for (const r of rows) {
+          if (!share.show_kcal && r.code === 'energy_kcal') continue;
+          if (!share.show_macros && r.code !== 'energy_kcal') continue;
+          const o = per100.get(r.food_id) ?? {};
+          o[r.code] = r.amount_per_100g == null ? null : Number(r.amount_per_100g);
+          per100.set(r.food_id, o);
+        }
+      }
+      const foods = Object.fromEntries(foodRows.map((f) => [String(f.id), {
+        name: f.name,
+        household_measures: Array.isArray(f.household_measures) ? f.household_measures : [],
+        ...(share.show_kcal || share.show_macros ? { per100g: per100.get(f.id) ?? {} } : {}),
+      }]));
       const recipeIds = foodRows.filter((f) => f.kind === 'recipe').map((f) => f.id);
       const recipeRows = recipeIds.length ? await database('recipes').whereIn('food_id', recipeIds).select('food_id', 'yield_g', 'servings', 'instructions', 'items') : [];
       const ingIds = [...new Set(recipeRows.flatMap((r) => (r.items ?? []).map((i) => Number(i.foodId))))].filter(Number.isFinite);
@@ -1044,15 +1066,76 @@ export default {
         instructions: r.instructions ?? null,
         items: (r.items ?? []).map((i) => ({ name: ingName.get(String(i.foodId)) ?? null, quantityG: Number(i.quantityG) || 0 })),
       }]));
-      res.json({
-        data: {
-          patient_id: patient.id,
-          document: await planDocumentInfo(patient, plan),
-          plan: { id: plan.id, title: plan.title, mode: plan.mode, status: plan.status, published_at: plan.published_at, valid_until: plan.valid_until ? new Date(plan.valid_until).toISOString().slice(0, 10) : null, guidelines: plan.guidelines, meals },
-          foods,
-          recipes,
-        },
-      });
+      return {
+        patient_id: patient.id,
+        share,
+        document: await planDocumentInfo(patient, plan),
+        plan: { id: plan.id, title: plan.title, mode: plan.mode, status: plan.status, published_at: plan.published_at, valid_until: plan.valid_until ? new Date(plan.valid_until).toISOString().slice(0, 10) : null, guidelines: plan.guidelines, meals },
+        foods,
+        recipes,
+      };
+    }
+    const PATIENT_COLS = ['id', 'organization_id', 'full_name', 'objective', 'responsible_user_id'];
+
+    router.get('/me/patient/plan', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const c = typeof req.query.c === 'string' && isUuid(req.query.c) ? req.query.c : null;
+      let q = database('patients').where('app_user_id', user).where('status', 'active');
+      if (c) q = q.where('id', c);
+      const patient = await q.orderBy('app_activated_at', 'desc').first(PATIENT_COLS);
+      const planId = typeof req.query.p === 'string' && isUuid(req.query.p) ? req.query.p : null;
+      const data = patient ? await patientPlanPayload(patient, planId) : null;
+      if (!data) return res.status(404).json({ errors: [{ message: 'Plano não encontrado.', extensions: { code: 'NOT_FOUND' } }] });
+      res.json({ data });
+    });
+
+    // Histórico de peso do paciente (só data e peso; vazio se não liberado)
+    router.get('/me/patient/weight', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const p = await myPatientRecord(user, isUuid(req.query.c) ? req.query.c : null);
+      if (!p) return res.json({ data: { patient_id: null, share: null, weight: [] } });
+      res.json({ data: { patient_id: p.id, share: await shareOf(p.id), weight: await weightHistory(p.id) } });
+    });
+
+    // Nutricionista: configurações por paciente e padrão do consultório
+    router.get('/patients/:id/share', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const p = await clinicalPatient(user, req.params.id);
+      if (!p) return res.status(404).json({ errors: [{ message: 'Paciente não encontrado.', extensions: { code: 'NOT_FOUND' } }] });
+      const row = await database('patients as p').join('organizations as o', 'o.id', 'p.organization_id').where('p.id', p.id)
+        .first('p.share_settings', 'o.patient_share_defaults');
+      const role = await database('organization_members').where({ organization_id: p.organization_id, user_id: user }).first('role');
+      res.json({ data: { effective: await shareOf(p.id), overrides: row.share_settings ?? null, org_defaults: row.patient_share_defaults, can_edit_defaults: role?.role === 'owner' } });
+    });
+
+    router.put('/patients/:id/share', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const p = await clinicalPatient(user, req.params.id);
+      if (!p) return res.status(404).json({ errors: [{ message: 'Paciente não encontrado.', extensions: { code: 'NOT_FOUND' } }] });
+      const b = req.body ?? {};
+      if (SHARE_KEYS.some((k) => typeof b[k] !== 'boolean')) return bad(res, { _: 'Informe sim ou não para cada item.' });
+      const settings = Object.fromEntries(SHARE_KEYS.map((k) => [k, b[k]]));
+      if (b.as_default === true) {
+        const role = await database('organization_members').where({ organization_id: p.organization_id, user_id: user }).first('role');
+        if (role?.role !== 'owner') return res.status(403).json({ errors: [{ message: 'Só o responsável pelo consultório muda o padrão.', extensions: { code: 'FORBIDDEN' } }] });
+        await database('organizations').where('id', p.organization_id).update({ patient_share_defaults: JSON.stringify(settings) });
+      }
+      await database('patients').where('id', p.id).update({ share_settings: JSON.stringify(settings) });
+      res.json({ data: { effective: await shareOf(p.id) } });
+    });
+
+    // "Ver como paciente": o mesmo que a área do paciente mostra, para o nutricionista conferir
+    router.get('/patients/:id/preview', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const p = await clinicalPatient(user, req.params.id);
+      if (!p) return res.status(404).json({ errors: [{ message: 'Paciente não encontrado.', extensions: { code: 'NOT_FOUND' } }] });
+      const patient = await database('patients').where('id', p.id).first(PATIENT_COLS);
+      res.json({ data: { share: await shareOf(p.id), plan: await patientPlanPayload(patient, null), weight: await weightHistory(p.id) } });
     });
 
     // ── Anamnese por link público (RN-026), sem login ───────────────────────────────────────

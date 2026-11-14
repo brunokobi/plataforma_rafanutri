@@ -7,7 +7,7 @@ import { redirect } from 'next/navigation';
 import { ACCESS_COOKIE, sessionCookies } from '@/lib/auth/cookies';
 import { directus } from '@/lib/auth/directus';
 import { env } from '@/lib/env';
-import type { ActionResult, AppAccess, InvitePreview, PatientArea, PatientPlanDocument, PatientPlanPayload } from './types';
+import type { ActionResult, AppAccess, InvitePreview, PatientArea, PatientPlanDocument, PatientPlanPayload, ShareSettings, WeightPoint } from './types';
 
 type Json = null | { data?: unknown; errors?: Array<{ message: string; extensions?: { code?: string; fields?: Record<string, string> } }> };
 
@@ -101,6 +101,55 @@ export async function getMyPlanDocuments(c?: string): Promise<{ patient_id: stri
   try {
     const r = await call(`/me/patient/plans${isId(c) ? `?c=${c}` : ''}`, 'GET');
     return r.status === 200 ? (r.json?.data as { patient_id: string | null; plans: PatientPlanDocument[] }) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** RN-210 — Peso liberado pelo nutricionista (vazio se não liberado). */
+export async function getMyWeight(c?: string): Promise<{ share: ShareSettings | null; weight: WeightPoint[] } | null> {
+  try {
+    const r = await call(`/me/patient/weight${isId(c) ? `?c=${c}` : ''}`, 'GET');
+    return r.status === 200 ? (r.json?.data as { share: ShareSettings | null; weight: WeightPoint[] }) : null;
+  } catch {
+    return null;
+  }
+}
+
+// ── RN-210: configurações do nutricionista e "ver como paciente" ─────────
+
+export interface ShareConfig { effective: ShareSettings; overrides: Partial<ShareSettings> | null; org_defaults: ShareSettings; can_edit_defaults: boolean }
+
+export async function getShareConfig(patientId: string): Promise<ShareConfig | null> {
+  if (!isId(patientId)) return null;
+  try {
+    const r = await call(`/patients/${patientId}/share`, 'GET');
+    return r.status === 200 ? (r.json?.data as ShareConfig) : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function saveShareSettings(patientId: string, settings: ShareSettings, asDefault: boolean): Promise<ActionResult> {
+  if (!isId(patientId)) return { ok: false, message: 'Pedido inválido.' };
+  try {
+    const body = { show_kcal: settings.show_kcal === true, show_macros: settings.show_macros === true, show_weight_history: settings.show_weight_history === true, as_default: asDefault === true };
+    const r = await call(`/patients/${patientId}/share`, 'PUT', body);
+    if (r.status === 200) {
+      revalidatePath(`/app/pacientes/${patientId}`);
+      return { ok: true };
+    }
+    return { ok: false, message: msg(r, 'Não foi possível salvar agora.') };
+  } catch {
+    return { ok: false, message: 'Não foi possível salvar agora.' };
+  }
+}
+
+export async function getPatientPreview(patientId: string): Promise<{ share: ShareSettings; plan: PatientPlanPayload | null; weight: WeightPoint[] } | null> {
+  if (!isId(patientId)) return null;
+  try {
+    const r = await call(`/patients/${patientId}/preview`, 'GET');
+    return r.status === 200 ? (r.json?.data as { share: ShareSettings; plan: PatientPlanPayload | null; weight: WeightPoint[] }) : null;
   } catch {
     return null;
   }

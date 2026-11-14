@@ -33,9 +33,19 @@ export interface InvitePreview {
 
 export type ActionResult<T = undefined> = { ok: true; data?: T } | { ok: false; message: string; field?: string };
 
+/** O que o paciente vê (RN-210). */
+export interface ShareSettings { show_kcal: boolean; show_macros: boolean; show_weight_history: boolean }
+export const SHARE_LABEL: Record<keyof ShareSettings, string> = {
+  show_kcal: 'Calorias do plano',
+  show_macros: 'Macronutrientes (proteínas, carboidratos e gorduras)',
+  show_weight_history: 'Histórico de peso (gráfico)',
+};
+export interface WeightPoint { date: string; weight_kg: number }
+
 /** Plano publicado completo (GET /rafanutri/me/patient/plan), com alimentos e preparações resolvidos no servidor. */
 export interface PatientPlanPayload {
   patient_id: string;
+  share?: ShareSettings;
   /** Cabeçalho do PDF (RN-209). */
   document?: {
     practice_name: string;
@@ -57,7 +67,7 @@ export interface PatientPlanPayload {
     guidelines: string | null;
     meals: Array<{ id: string; name: string; time: string | null; items: Array<{ foodId: string; quantityG: number; subs: Array<{ foodId: string; quantityG: number }> }> }>;
   };
-  foods: Record<string, { name: string; household_measures: Array<{ label: string; grams: number }> }>;
+  foods: Record<string, { name: string; household_measures: Array<{ label: string; grams: number }>; per100g?: Record<string, number | null> }>;
   recipes: Record<string, { yield_g: number | null; servings: number | null; instructions: string | null; items: Array<{ name: string | null; quantityG: number }> }>;
 }
 
