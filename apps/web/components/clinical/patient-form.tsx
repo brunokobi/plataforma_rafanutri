@@ -2,6 +2,7 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AlertCircle, Loader2 } from 'lucide-react';
+import Link from 'next/link';
 import { useState, useTransition } from 'react';
 import { useForm } from 'react-hook-form';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -9,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { createPatient, updatePatient } from '@/lib/patients/actions';
-import { patientFormSchema, type PatientFormData, type PatientFormInput } from '@/lib/patients/schema';
+import { type DuplicateCandidate, patientFormSchema, type PatientFormData, type PatientFormInput } from '@/lib/patients/schema';
 
 const EMPTY: PatientFormInput = { full_name: '', birth_date: '', sex: undefined, email: '', phone: '', cpf: '', objective: '' };
 
@@ -35,6 +36,7 @@ export function PatientForm({ patientId, initialValues, onDone, onCancel }: Pati
   const editing = Boolean(patientId);
   const prefix = editing ? 'ep' : 'np';
   const [serverError, setServerError] = useState<string | null>(null);
+  const [duplicates, setDuplicates] = useState<DuplicateCandidate[]>([]);
   const [pending, startTransition] = useTransition();
   const form = useForm<PatientFormInput, unknown, PatientFormData>({
     resolver: zodResolver(patientFormSchema),
@@ -43,21 +45,27 @@ export function PatientForm({ patientId, initialValues, onDone, onCancel }: Pati
   });
   const { errors } = form.formState;
 
-  const onSubmit = form.handleSubmit(() => {
+  const save = (force: boolean) => {
     setServerError(null);
+    setDuplicates([]);
     // Envia o texto como digitado: a server action valida e normaliza de novo (CPF, telefone).
     const raw = form.getValues();
     startTransition(async () => {
-      const r = editing ? await updatePatient(patientId!, raw) : await createPatient(raw);
+      const r = editing ? await updatePatient(patientId!, raw) : await createPatient(raw, { force });
       if (r.ok) {
         if (!editing) form.reset(EMPTY);
         onDone();
         return;
       }
+      if (r.duplicates?.length) {
+        setDuplicates(r.duplicates);
+        return;
+      }
       setServerError(r.message);
       for (const [k, msg] of Object.entries(r.fieldErrors ?? {})) form.setError(k as keyof PatientFormInput, { message: msg });
     });
-  });
+  };
+  const onSubmit = form.handleSubmit(() => save(false));
 
   const field = (name: keyof PatientFormInput, label: string, props: React.ComponentProps<typeof Input> = {}) => (
     <div className="space-y-1.5">
@@ -80,6 +88,24 @@ export function PatientForm({ patientId, initialValues, onDone, onCancel }: Pati
         <Alert variant="destructive">
           <AlertCircle />
           <AlertDescription>{serverError}</AlertDescription>
+        </Alert>
+      )}
+      {duplicates.length > 0 && (
+        <Alert role="alert">
+          <AlertCircle />
+          <AlertDescription className="space-y-2">
+            <p>Já existe paciente com este nome e data de nascimento. É a mesma pessoa?</p>
+            <ul className="list-disc pl-5">
+              {duplicates.map((d) => (
+                <li key={d.id}>
+                  <Link href={`/app/pacientes/${d.id}`} className="font-medium underline underline-offset-4">{d.full_name}</Link>
+                  {d.birth_date && <> · {d.birth_date.split('-').reverse().join('/')}</>}
+                  {d.status !== 'active' && <> · {d.status === 'archived' ? 'arquivado' : 'inativo'}</>}
+                </li>
+              ))}
+            </ul>
+            <Button type="button" size="sm" variant="outline" onClick={() => save(true)} disabled={pending}>Cadastrar mesmo assim</Button>
+          </AlertDescription>
         </Alert>
       )}
       <div className="grid gap-4 sm:grid-cols-2">

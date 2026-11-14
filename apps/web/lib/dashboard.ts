@@ -5,6 +5,8 @@ export interface DashPatient {
   full_name: string;
   birth_date: string | null;
   status: string;
+  /** Intervalo de retorno do paciente (CRM, migração 0027); sem ele vale o padrão. */
+  return_interval_days?: number | null;
 }
 export interface DashAppointment {
   patient_id: string;
@@ -28,15 +30,16 @@ export function birthdaysAhead(patients: DashPatient[], today: string, days = 7)
 const isLeap = (y: number) => (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
 
 /**
- * Pacientes ativos cuja última consulta concluída foi há mais de `days` dias e que não têm
- * consulta futura marcada. Quem nunca teve consulta concluída não entra (ainda não é retorno).
+ * Retornos atrasados (RN-039): pacientes ativos cuja última consulta concluída foi há mais dias que o
+ * intervalo de retorno do paciente (ou `days`, se não houver) e que não têm consulta futura marcada.
+ * Quem nunca teve consulta concluída não entra (ainda não é retorno). Mesma regra dos indicadores e do CRM.
  */
 export function withoutReturn(
   patients: DashPatient[],
   appointments: DashAppointment[],
   now: Date,
-  days = 60,
-): Array<DashPatient & { lastVisit: string; daysSince: number }> {
+  days = 30,
+): Array<DashPatient & { lastVisit: string; daysSince: number; interval: number }> {
   const nowMs = now.getTime();
   const last = new Map<string, number>();
   const hasFuture = new Set<string>();
@@ -45,12 +48,13 @@ export function withoutReturn(
     if (a.status === 'completed' && t <= nowMs) last.set(a.patient_id, Math.max(last.get(a.patient_id) ?? 0, t));
     if ((a.status === 'scheduled' || a.status === 'confirmed') && t > nowMs) hasFuture.add(a.patient_id);
   }
-  const out: Array<DashPatient & { lastVisit: string; daysSince: number }> = [];
+  const out: Array<DashPatient & { lastVisit: string; daysSince: number; interval: number }> = [];
   for (const p of patients) {
     const t = last.get(p.id);
     if (p.status !== 'active' || t === undefined || hasFuture.has(p.id)) continue;
     const daysSince = Math.floor((nowMs - t) / 86_400_000);
-    if (daysSince > days) out.push({ ...p, lastVisit: localDate(new Date(t).toISOString()), daysSince });
+    const interval = p.return_interval_days ?? days;
+    if (daysSince > interval) out.push({ ...p, lastVisit: localDate(new Date(t).toISOString()), daysSince, interval });
   }
   return out.sort((a, b) => b.daysSince - a.daysSince);
 }

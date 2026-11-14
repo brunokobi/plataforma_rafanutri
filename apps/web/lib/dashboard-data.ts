@@ -24,7 +24,6 @@ export interface Dashboard {
   activePatients: number | null;
 }
 
-const RETURN_DAYS = 60;
 
 async function read<T>(collection: string, query: Record<string, unknown>): Promise<T[] | null> {
   const token = (await cookies()).get(ACCESS_COOKIE)?.value;
@@ -60,9 +59,7 @@ export async function loadDashboard(organizationId: string, now = new Date()): P
     appointments,
     pendingAnamneses: pending,
     birthdays: patients ? birthdaysAhead(patients, day) : null,
-    withoutReturn: patients && history ? withoutReturn(patients, history, now, RETURN_DAYS) : null,
+    withoutReturn: patients && history ? withoutReturn(patients, history, now) : null,
     activePatients: patients ? patients.filter((p) => p.status === 'active').length : null,
   };
 }
-
-export { RETURN_DAYS };

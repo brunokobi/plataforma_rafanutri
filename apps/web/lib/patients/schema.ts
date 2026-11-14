@@ -15,6 +15,7 @@ export interface Patient {
   cpf?: string | null; // só dígitos (lido apenas na ficha)
   organization_id?: string; // lido apenas na ficha
   updated_at?: string | null;
+  return_interval_days?: number | null; // CRM: dias até o retorno previsto
 }
 
 const onlyDigits = (s: string) => s.replace(/\D/g, '');
@@ -130,3 +131,23 @@ export function toFormValues(p: Patient): PatientFormInput {
 }
 
 export const isUuid = (v: unknown): v is string => typeof v === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
+
+/** Nome comparável: sem acento, minúsculo, espaços simples (como o search_name do banco). */
+export function comparableName(name: string): string {
+  return name.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim().replace(/\s+/g, ' ');
+}
+
+export interface DuplicateCandidate {
+  id: string;
+  full_name: string;
+  birth_date: string | null;
+  status: PatientStatus;
+}
+
+/** RN-020: mesmo nome e mesma data de nascimento (ou mesmo nome quando o novo não tem data). */
+export function findDuplicates(input: { full_name: string; birth_date?: string | null }, existing: DuplicateCandidate[]): DuplicateCandidate[] {
+  const name = comparableName(input.full_name);
+  if (!name) return [];
+  const birth = input.birth_date || null;
+  return existing.filter((p) => comparableName(p.full_name) === name && (!birth || !p.birth_date || p.birth_date === birth));
+}

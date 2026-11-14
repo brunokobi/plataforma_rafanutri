@@ -9,7 +9,7 @@ import { IndicatorsPanel } from '@/components/app/indicators-panel';
 import { getIndicators } from '@/lib/indicators/actions';
 import { getMyOrganizations, landingRedirect } from '@/lib/auth/organizations';
 import { getCurrentUser } from '@/lib/auth/session';
-import { loadDashboard, RETURN_DAYS } from '@/lib/dashboard-data';
+import { loadDashboard } from '@/lib/dashboard-data';
 import { isSignupOpen } from '@/lib/flags';
 import { buildModuleSections } from '@/lib/modules/access';
 import { getPlan } from '@/lib/modules/plans';
@@ -48,7 +48,7 @@ export default async function AppHome({ searchParams }: { searchParams: Promise<
           )}
         </div>
 
-        {dashboard && <TodayPanel data={dashboard} returnDays={RETURN_DAYS} />}
+        {dashboard && <TodayPanel data={dashboard} />}
 
         {indicators && <IndicatorsPanel data={indicators} />}
 

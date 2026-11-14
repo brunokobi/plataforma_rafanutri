@@ -37,6 +37,15 @@ describe('sem retorno', () => {
     const r = withoutReturn(patients, appts, now, 60);
     expect(r.map((x) => [x.full_name, x.daysSince])).toEqual([['Antiga', 90]]);
   });
+  it('usa o intervalo de retorno de cada paciente (padrão 30 dias)', () => {
+    const patients = [{ ...p('a', 'Mensal', null), return_interval_days: 30 }, { ...p('b', 'Trimestral', null), return_interval_days: 90 }, p('c', 'Padrão', null)];
+    const appts = [
+      { patient_id: 'a', starts_at: ago(40), status: 'completed' },
+      { patient_id: 'b', starts_at: ago(40), status: 'completed' },
+      { patient_id: 'c', starts_at: ago(31), status: 'completed' },
+    ];
+    expect(withoutReturn(patients, appts, now).map((x) => [x.full_name, x.interval])).toEqual([['Mensal', 30], ['Padrão', 30]]);
+  });
 });
 
 const appt = (id: string, from: string, to: string, status = 'scheduled') => ({
@@ -54,7 +63,7 @@ describe('painel inicial', () => {
     activePatients: 7,
   };
   it('mostra as consultas do dia (sem as canceladas) com link para a ficha', () => {
-    render(<TodayPanel data={data} returnDays={60} />);
+    render(<TodayPanel data={data} />);
     const today = screen.getByRole('region', { name: 'Consultas de hoje' });
     expect(within(today).getByText('09:00–09:45')).toBeTruthy();
     expect(within(today).queryByText('Paciente 2')).toBeNull();
@@ -62,7 +71,7 @@ describe('painel inicial', () => {
     expect(within(today).getByText('Concluída')).toBeTruthy();
   });
   it('anamneses a revisar, aniversário de hoje, sem retorno vazio e atalhos', () => {
-    render(<TodayPanel data={data} returnDays={60} />);
+    render(<TodayPanel data={data} />);
     expect(within(screen.getByRole('region', { name: 'Anamneses para revisar' })).getByRole('link', { name: 'Rafael Lima' }).getAttribute('href')).toBe('/app/pacientes/p9/anamneses');
     expect(within(screen.getByRole('region', { name: 'Aniversariantes da semana' })).getByText(/hoje · 32 anos/)).toBeTruthy();
     expect(screen.getByText(/Todos os pacientes ativos com consulta recente/)).toBeTruthy();
@@ -70,7 +79,7 @@ describe('painel inicial', () => {
     expect(screen.getByText('7 pacientes ativos')).toBeTruthy();
   });
   it('cada parte que falhar mostra aviso sem derrubar as outras', () => {
-    render(<TodayPanel data={{ ...data, appointments: null, birthdays: null }} returnDays={60} />);
+    render(<TodayPanel data={{ ...data, appointments: null, birthdays: null }} />);
     expect(within(screen.getByRole('region', { name: 'Consultas de hoje' })).getByText(/Não foi possível carregar/)).toBeTruthy();
     expect(within(screen.getByRole('region', { name: 'Anamneses para revisar' })).getByRole('link', { name: 'Rafael Lima' })).toBeTruthy();
   });

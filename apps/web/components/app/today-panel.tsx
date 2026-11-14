@@ -24,7 +24,7 @@ function Card({ title, icon: Icon, count, children, className }: { title: string
 const Unavailable = () => <p className="text-sm text-destructive">Não foi possível carregar agora.</p>;
 const Empty = ({ children }: { children: React.ReactNode }) => <p className="text-sm text-muted-foreground">{children}</p>;
 
-export function TodayPanel({ data, returnDays }: { data: Dashboard; returnDays: number }) {
+export function TodayPanel({ data }: { data: Dashboard }) {
   const active = (data.appointments ?? []).filter((a) => a.status !== 'cancelled');
   return (
     <div className="space-y-5">
@@ -92,7 +92,7 @@ export function TodayPanel({ data, returnDays }: { data: Dashboard; returnDays: 
           )}
         </Card>
 
-        <Card title={`Sem retorno há mais de ${returnDays} dias`} icon={Users} count={data.withoutReturn?.length}>
+        <Card title="Retornos atrasados" icon={Users} count={data.withoutReturn?.length}>
           {data.withoutReturn === null ? (
             <Unavailable />
           ) : data.withoutReturn.length === 0 ? (
@@ -103,7 +103,7 @@ export function TodayPanel({ data, returnDays }: { data: Dashboard; returnDays: 
                 <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 text-sm">
                   <Link href={`/app/pacientes/${p.id}`} className="font-medium hover:underline">{p.full_name}</Link>
                   <span className="text-muted-foreground">
-                    última consulta em {dateBR(p.lastVisit)} ({p.daysSince} dias) ·{' '}
+                    última consulta em {dateBR(p.lastVisit)} ({p.daysSince} dias; retorno a cada {p.interval}) ·{' '}
                     <Link href={`/app/agenda?paciente=${p.id}`} className="font-medium text-primary hover:underline">marcar retorno</Link>
                   </span>
                 </li>

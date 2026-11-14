@@ -43,6 +43,18 @@ test('consulta de ponta a ponta', async ({ page }) => {
       patientUrl = page.url();
     });
 
+    await test.step('aviso de paciente duplicado (RN-020)', async () => {
+      await page.goto('/app/pacientes');
+      await page.getByRole('button', { name: /Novo paciente/ }).click();
+      const form = page.getByRole('form', { name: 'Novo paciente' });
+      await form.getByLabel('Nome completo').fill(name.toUpperCase());
+      await form.getByLabel('Data de nascimento (opcional)').fill('1990-05-20');
+      await form.getByRole('button', { name: 'Salvar paciente' }).click();
+      await expect(form.getByText('É a mesma pessoa?')).toBeVisible({ timeout: 15_000 });
+      await expect(form.getByRole('link', { name })).toHaveAttribute('href', new URL(patientUrl).pathname);
+      await form.getByRole('button', { name: 'Cancelar' }).click();
+    });
+
     await test.step('marcar a consulta', async () => {
       await page.getByRole('link', { name: 'Marcar consulta' }).first().click();
       const form = page.getByRole('form', { name: 'Nova consulta' });

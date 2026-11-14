@@ -1,16 +1,16 @@
 'use server';
 
-import { createItem, isDirectusError, updateItem, withToken } from '@directus/sdk';
+import { createItem, isDirectusError, readItems, updateItem, withToken } from '@directus/sdk';
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 import { ACCESS_COOKIE } from '@/lib/auth/cookies';
 import { directus } from '@/lib/auth/directus';
 import { getMyOrganizations } from '@/lib/auth/organizations';
-import { isUuid, patientFormSchema, toPatientUpdate, type PatientFormInput, type PatientStatus } from './schema';
+import { type DuplicateCandidate, findDuplicates, isUuid, patientFormSchema, toPatientUpdate, type PatientFormInput, type PatientStatus } from './schema';
 
 export type PatientActionResult =
   | { ok: true }
-  | { ok: false; message: string; fieldErrors?: Partial<Record<keyof PatientFormInput, string>> };
+  | { ok: false; message: string; fieldErrors?: Partial<Record<keyof PatientFormInput, string>>; duplicates?: DuplicateCandidate[] };
 
 const CLINICAL = new Set(['owner', 'nutritionist']);
 
@@ -48,12 +48,32 @@ function validate(input: PatientFormInput) {
   return { data: null, error: { ok: false as const, message: 'Revise os campos destacados.', fieldErrors } };
 }
 
-export async function createPatient(input: PatientFormInput): Promise<PatientActionResult> {
+/** Cadastra o paciente. Sem `force`, avisa antes se já existe alguém com o mesmo nome e nascimento (RN-020). */
+export async function createPatient(input: PatientFormInput, opts: { force?: boolean } = {}): Promise<PatientActionResult> {
   const parsed = validate(input);
   if (!parsed.data) return parsed.error;
   const { token, org } = await context();
   if (!token) return { ok: false, message: 'Sua sessão expirou. Entre novamente.' };
   if (!org) return { ok: false, message: 'Configure seu consultório antes de cadastrar pacientes.' };
+
+  if (!opts.force) {
+    const first = parsed.data.full_name.trim().split(/\s+/)[0] ?? '';
+    try {
+      const rows = (await directus().request(
+        withToken(token, readItems('patients' as never, {
+          fields: ['id', 'full_name', 'birth_date', 'status'],
+          filter: { organization_id: { _eq: org.id }, full_name: { _icontains: first } },
+          limit: 200,
+        } as never)),
+      )) as unknown as DuplicateCandidate[];
+      const duplicates = findDuplicates(parsed.data, rows).slice(0, 5);
+      if (duplicates.length) {
+        return { ok: false, message: 'Já existe paciente com este nome e data de nascimento. Confira antes de cadastrar.', duplicates };
+      }
+    } catch {
+      // a checagem é só um aviso: se falhar, segue o cadastro
+    }
+  }
 
   try {
     await directus().request(
