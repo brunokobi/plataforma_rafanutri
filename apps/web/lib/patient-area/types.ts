@@ -31,3 +31,19 @@ export interface InvitePreview {
 }
 
 export type ActionResult<T = undefined> = { ok: true; data?: T } | { ok: false; message: string; field?: string };
+
+/** Plano publicado completo (GET /rafanutri/me/patient/plan), com alimentos e preparações resolvidos no servidor. */
+export interface PatientPlanPayload {
+  patient_id: string;
+  plan: {
+    id: string;
+    title: string;
+    mode: 'quantitative' | 'qualitative';
+    published_at: string | null;
+    valid_until: string | null;
+    guidelines: string | null;
+    meals: Array<{ id: string; name: string; time: string | null; items: Array<{ foodId: string; quantityG: number; subs: Array<{ foodId: string; quantityG: number }> }> }>;
+  };
+  foods: Record<string, { name: string; household_measures: Array<{ label: string; grams: number }> }>;
+  recipes: Record<string, { yield_g: number | null; servings: number | null; instructions: string | null; items: Array<{ name: string | null; quantityG: number }> }>;
+}

@@ -630,6 +630,57 @@ export default {
       });
     });
 
+    // RN-205 — Plano publicado completo para o paciente. A conta do paciente não lê coleções: os
+    // nomes dos alimentos, as medidas caseiras e as preparações são resolvidos aqui, só para o
+    // registro ativo ligado à conta e só com alimentos da base pública ou do próprio consultório.
+    router.get('/me/patient/plan', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const c = typeof req.query.c === 'string' && isUuid(req.query.c) ? req.query.c : null;
+      let q = database('patients').where('app_user_id', user).where('status', 'active');
+      if (c) q = q.where('id', c);
+      const patient = await q.orderBy('app_activated_at', 'desc').first('id', 'organization_id');
+      const plan = patient
+        ? await database('meal_plans').where({ patient_id: patient.id, organization_id: patient.organization_id, status: 'published' })
+          .orderBy('published_at', 'desc').first('id', 'title', 'mode', 'published_at', 'valid_until', 'guidelines', 'meals')
+        : null;
+      if (!plan) return res.status(404).json({ errors: [{ message: 'Plano não encontrado.', extensions: { code: 'NOT_FOUND' } }] });
+      const meals = (Array.isArray(plan.meals) ? plan.meals : []).map((m) => ({
+        id: String(m.id), name: String(m.name ?? ''), time: m.time ?? null,
+        items: (m.items ?? []).map((i) => ({
+          foodId: String(i.foodId), quantityG: Number(i.quantityG) || 0,
+          subs: (i.subs ?? []).map((s) => ({ foodId: String(s.foodId), quantityG: Number(s.quantityG) || 0 })),
+        })),
+      }));
+      const ids = [...new Set(meals.flatMap((m) => m.items.flatMap((i) => [i.foodId, ...i.subs.map((s) => s.foodId)])))]
+        .filter((id) => /^\d+$/.test(id)).map(Number);
+      const foodRows = ids.length
+        ? await database('foods').whereIn('id', ids)
+          .where((w) => w.whereNull('organization_id').orWhere('organization_id', patient.organization_id))
+          .select('id', 'name', 'kind', 'household_measures')
+        : [];
+      const foods = Object.fromEntries(foodRows.map((f) => [String(f.id), { name: f.name, household_measures: Array.isArray(f.household_measures) ? f.household_measures : [] }]));
+      const recipeIds = foodRows.filter((f) => f.kind === 'recipe').map((f) => f.id);
+      const recipeRows = recipeIds.length ? await database('recipes').whereIn('food_id', recipeIds).select('food_id', 'yield_g', 'servings', 'instructions', 'items') : [];
+      const ingIds = [...new Set(recipeRows.flatMap((r) => (r.items ?? []).map((i) => Number(i.foodId))))].filter(Number.isFinite);
+      const ingNames = ingIds.length ? await database('foods').whereIn('id', ingIds).select('id', 'name') : [];
+      const ingName = new Map(ingNames.map((n) => [String(n.id), n.name]));
+      const recipes = Object.fromEntries(recipeRows.map((r) => [String(r.food_id), {
+        yield_g: r.yield_g == null ? null : Number(r.yield_g),
+        servings: r.servings == null ? null : Number(r.servings),
+        instructions: r.instructions ?? null,
+        items: (r.items ?? []).map((i) => ({ name: ingName.get(String(i.foodId)) ?? null, quantityG: Number(i.quantityG) || 0 })),
+      }]));
+      res.json({
+        data: {
+          patient_id: patient.id,
+          plan: { id: plan.id, title: plan.title, mode: plan.mode, published_at: plan.published_at, valid_until: plan.valid_until ? new Date(plan.valid_until).toISOString().slice(0, 10) : null, guidelines: plan.guidelines, meals },
+          foods,
+          recipes,
+        },
+      });
+    });
+
     // ── Anamnese por link público (RN-026), sem login ───────────────────────────────────────
     // Só o hash do token fica no banco. Devolve o mínimo: questionário, rascunho, primeiro nome
     // do paciente e marca do consultório. O limite de requisições por IP é o do Directus.

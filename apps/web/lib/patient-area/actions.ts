@@ -7,7 +7,7 @@ import { redirect } from 'next/navigation';
 import { ACCESS_COOKIE, sessionCookies } from '@/lib/auth/cookies';
 import { directus } from '@/lib/auth/directus';
 import { env } from '@/lib/env';
-import type { ActionResult, AppAccess, InvitePreview, PatientArea } from './types';
+import type { ActionResult, AppAccess, InvitePreview, PatientArea, PatientPlanPayload } from './types';
 
 type Json = null | { data?: unknown; errors?: Array<{ message: string; extensions?: { code?: string; fields?: Record<string, string> } }> };
 
@@ -78,6 +78,16 @@ export async function getPatientArea(): Promise<PatientArea | null> {
   try {
     const r = await call('/me/patient', 'GET');
     return r.status === 200 ? (r.json?.data as PatientArea) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Plano publicado completo do registro escolhido (c = id do paciente). Null se não houver. */
+export async function getPatientPlan(c?: string): Promise<PatientPlanPayload | null> {
+  try {
+    const r = await call(`/me/patient/plan${isId(c) ? `?c=${c}` : ''}`, 'GET');
+    return r.status === 200 ? (r.json?.data as PatientPlanPayload) : null;
   } catch {
     return null;
   }

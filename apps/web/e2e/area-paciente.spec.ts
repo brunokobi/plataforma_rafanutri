@@ -65,6 +65,33 @@ test('convite e área do paciente', async ({ page, browser }) => {
       expect(await pp.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
     });
 
+    await test.step('nutricionista publica um plano; paciente vê o plano completo (RN-205)', async () => {
+      await page.goto(`${patientUrl}/planos`);
+      await page.getByRole('button', { name: 'Novo plano' }).click();
+      await expect(page).toHaveURL(/\/planos\/[0-9a-f-]{36}$/);
+      const meal = page.locator('section[aria-labelledby^="meal-"]').first();
+      await meal.getByLabel('Buscar alimento').fill('arroz');
+      await meal.getByRole('option').first().click();
+      await meal.getByRole('button', { name: /Substituições/ }).first().click();
+      await meal.getByRole('button', { name: 'Adicionar' }).first().click();
+      await expect(meal.getByRole('button', { name: /Substituições \(1\)/ })).toBeVisible();
+      await page.getByLabel(/Orientações para o paciente/).fill('Beba 2 litros de água por dia.');
+      await page.getByRole('button', { name: 'Salvar rascunho' }).click();
+      await expect(page.getByRole('status').filter({ hasText: 'Rascunho salvo.' })).toBeVisible({ timeout: 15_000 });
+      await page.getByRole('button', { name: 'Publicar para o paciente' }).click();
+      await expect(page.getByRole('button', { name: 'Publicado' })).toBeVisible();
+
+      await pp.goto('/p');
+      await pp.getByRole('link', { name: 'Ver plano completo' }).click();
+      await expect(pp).toHaveURL(/\/p\/plano/);
+      const first = pp.locator('section[id^="refeicao-"]').first();
+      await expect(first.getByText(/Arroz/i).first()).toBeVisible();
+      await first.getByText(/Pode trocar por \(1\)/).click();
+      await expect(first.locator('details[open] li').first()).toBeVisible();
+      await expect(pp.getByText('Beba 2 litros de água por dia.')).toBeVisible();
+      expect(await pp.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+    });
+
     await test.step('link usado não abre de novo; paciente não entra no painel do nutricionista', async () => {
       await pp.goto(link);
       await expect(pp.getByText('Convite indisponível')).toBeVisible();
