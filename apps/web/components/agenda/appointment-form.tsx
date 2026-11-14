@@ -9,12 +9,15 @@ import { Label } from '@/components/ui/label';
 import { createAppointment } from '@/lib/appointments/actions';
 import {
   DEFAULT_DURATION,
+  DEFAULT_SCHEDULE,
   freeSlots,
+  isoWeekday,
   MODE_LABEL,
   TYPE_LABEL,
   type Appointment,
   type AppointmentMode,
   type AppointmentType,
+  type WorkSchedule,
 } from '@/lib/appointments/schema';
 
 const selectClass = 'h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm';
@@ -31,7 +34,10 @@ export function AppointmentForm({
   defaultPatientId,
   onDone,
   onCancel,
+  schedule = DEFAULT_SCHEDULE,
 }: {
+  /** Expediente do consultório (RN-022). */
+  schedule?: WorkSchedule;
   patients: PatientOption[];
   /** Consultas já carregadas (para sugerir horários livres no dia escolhido). */
   appointments: Appointment[];
@@ -51,7 +57,12 @@ export function AppointmentForm({
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
-  const slots = useMemo(() => freeSlots(date, appointments, duration, { now: new Date() }), [date, appointments, duration]);
+  const slots = useMemo(
+    () => freeSlots(date, appointments, duration, { now: new Date(), start: schedule.start, end: schedule.end, weekdays: schedule.weekdays }),
+    [date, appointments, duration, schedule],
+  );
+  const offDay = Boolean(date) && !schedule.weekdays.includes(isoWeekday(date));
+  const hours = `${schedule.start.replace(':00', 'h').replace(':', 'h')}–${schedule.end.replace(':00', 'h').replace(':', 'h')}`;
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -117,8 +128,10 @@ export function AppointmentForm({
             <Input id="ap-time" type="time" step={300} value={time} onChange={(e) => setTime(e.target.value)} />
           </div>
           <div className="sm:col-span-2">
-            <p className="text-xs font-medium text-muted-foreground">Horários livres nesse dia (expediente 08h–18h):</p>
-            {slots.length === 0 ? (
+            <p className="text-xs font-medium text-muted-foreground">Horários livres nesse dia (expediente {hours}):</p>
+            {offDay ? (
+              <p className="mt-1 text-xs text-muted-foreground">Dia fora do expediente. Escolha outro dia ou digite o horário.</p>
+            ) : slots.length === 0 ? (
               <p className="mt-1 text-xs text-muted-foreground">Nenhum horário livre para essa duração. Escolha outro dia ou digite o horário.</p>
             ) : (
               <div className="mt-1.5 flex flex-wrap gap-1.5" role="group" aria-label="Horários livres">

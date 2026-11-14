@@ -75,14 +75,15 @@ const hhmm = (m: number) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${St
 /**
  * Horários livres de um dia para uma consulta de `duration` minutos, dentro do expediente,
  * de `step` em `step` minutos, sem sobrepor consultas que ocupam horário.
- * Expediente padrão 08:00–18:00 (a configuração por nutricionista entra depois).
+ * Expediente do consultório (RN-022; padrão 08:00–18:00, todos os dias). Dia fora do expediente: nenhum.
  */
 export function freeSlots(
   date: string,
   appointments: Pick<Appointment, 'starts_at' | 'ends_at' | 'status'>[],
   duration: number,
-  { start = '08:00', end = '18:00', step = 30, now }: { start?: string; end?: string; step?: number; now?: Date } = {},
+  { start = '08:00', end = '18:00', step = 30, now, weekdays }: { start?: string; end?: string; step?: number; now?: Date; weekdays?: number[] } = {},
 ): string[] {
+  if (weekdays && !weekdays.includes(isoWeekday(date))) return [];
   const busy = appointments
     .filter((a) => !FREES_SLOT.includes(a.status) && localDate(a.starts_at) === date)
     .map((a) => [minutes(localTime(a.starts_at)), minutes(localTime(a.ends_at))] as const);
@@ -95,6 +96,29 @@ export function freeSlots(
     out.push(hhmm(m));
   }
   return out;
+}
+
+/** Dia da semana ISO (1 = segunda … 7 = domingo) de uma data AAAA-MM-DD. */
+export function isoWeekday(date: string): number {
+  const d = new Date(`${date}T12:00:00Z`).getUTCDay();
+  return d === 0 ? 7 : d;
+}
+
+export interface WorkSchedule {
+  start: string;
+  end: string;
+  weekdays: number[];
+}
+export const DEFAULT_SCHEDULE: WorkSchedule = { start: '08:00', end: '18:00', weekdays: [1, 2, 3, 4, 5, 6, 7] };
+
+/** Expediente do consultório a partir de /me/organizations (com o padrão se faltar algo). */
+export function scheduleOf(org: { work_start?: string; work_end?: string; work_weekdays?: number[] } | null | undefined): WorkSchedule {
+  const ok = (v: unknown): v is string => typeof v === 'string' && /^\d{2}:\d{2}$/.test(v);
+  return {
+    start: ok(org?.work_start) ? org.work_start : DEFAULT_SCHEDULE.start,
+    end: ok(org?.work_end) ? org.work_end : DEFAULT_SCHEDULE.end,
+    weekdays: Array.isArray(org?.work_weekdays) && org.work_weekdays.length ? org.work_weekdays : DEFAULT_SCHEDULE.weekdays,
+  };
 }
 
 const optional = (s: unknown) => (typeof s === 'string' && s.trim() === '' ? undefined : s);

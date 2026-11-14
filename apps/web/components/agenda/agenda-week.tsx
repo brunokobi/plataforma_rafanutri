@@ -24,6 +24,7 @@ import {
   weekDays,
   type Appointment,
   type AppointmentStatus,
+  type WorkSchedule,
 } from '@/lib/appointments/schema';
 import { cn } from '@/lib/utils';
 
@@ -146,7 +147,10 @@ export function AgendaWeek({
   patients,
   defaultPatientId,
   packages = {},
+  schedule,
 }: {
+  /** Expediente do consultório (RN-022). */
+  schedule?: WorkSchedule;
   /** Pacote ativo de cada paciente (RN-054). */
   packages?: AgendaPackages;
   /** Segunda-feira da semana exibida (AAAA-MM-DD). */
@@ -195,6 +199,7 @@ export function AgendaWeek({
           appointments={appointments ?? []}
           defaultDate={formDefaultDate}
           defaultPatientId={defaultPatientId}
+          schedule={schedule}
           onCancel={() => setCreating(false)}
           onDone={(date) => {
             setCreating(false);

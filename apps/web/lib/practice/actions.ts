@@ -60,3 +60,12 @@ export async function savePracticeTaxId(orgId: string, taxId: string): Promise<P
   if (!isUuid(orgId) || (d && d.length !== 11 && d.length !== 14)) return { ok: false, message: 'Informe um CPF (11 dígitos) ou CNPJ (14 dígitos).' };
   return run(`/practices/${orgId}/brand`, 'PUT', { receipt_tax_id: d }, 'Não foi possível salvar agora.');
 }
+
+/** RN-022 — Expediente da agenda (sugestão de horários livres). Só o owner. */
+export async function saveWorkSchedule(orgId: string, schedule: { start: string; end: string; weekdays: number[] }): Promise<PracticeResult> {
+  const t = /^([01]\d|2[0-3]):[0-5]\d$/;
+  if (!isUuid(orgId) || !t.test(schedule.start) || !t.test(schedule.end)) return { ok: false, message: 'Horário inválido.' };
+  if (schedule.end <= schedule.start) return { ok: false, message: 'O fim do expediente precisa ser depois do início.' };
+  if (!schedule.weekdays.length) return { ok: false, message: 'Escolha ao menos um dia.' };
+  return run(`/practices/${orgId}/schedule`, 'PUT', { work_start: schedule.start, work_end: schedule.end, work_weekdays: schedule.weekdays }, 'Não foi possível salvar o expediente agora.');
+}

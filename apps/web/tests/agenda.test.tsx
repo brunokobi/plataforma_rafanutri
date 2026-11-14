@@ -5,7 +5,9 @@ import {
   addDays,
   appointmentFormSchema,
   freeSlots,
+  isoWeekday,
   localDate,
+  scheduleOf,
   localTime,
   toInstant,
   today,
@@ -70,6 +72,17 @@ describe('freeSlots', () => {
   it('hoje não oferece horário que já passou', () => {
     const now = new Date(toInstant(day, '10:10'));
     expect(freeSlots(day, [], 30, { start: '08:00', end: '12:00', now })[0]).toBe('10:30');
+  });
+  it('expediente do consultório: dia fora não oferece horário (RN-022)', () => {
+    expect(isoWeekday('2026-11-13')).toBe(5); // sexta
+    expect(isoWeekday('2026-11-15')).toBe(7); // domingo
+    expect(freeSlots(day, [], 60, { start: '07:30', end: '09:30', weekdays: [5] })).toEqual(['07:30', '08:00', '08:30']);
+    expect(freeSlots(day, [], 60, { weekdays: [1, 2, 3, 4] })).toEqual([]);
+  });
+  it('expediente vindo do consultório, com padrão quando falta', () => {
+    expect(scheduleOf(null)).toEqual({ start: '08:00', end: '18:00', weekdays: [1, 2, 3, 4, 5, 6, 7] });
+    expect(scheduleOf({ work_start: '07:00', work_end: '13:00', work_weekdays: [1, 3] })).toEqual({ start: '07:00', end: '13:00', weekdays: [1, 3] });
+    expect(scheduleOf({ work_start: '7h', work_weekdays: [] })).toEqual({ start: '08:00', end: '18:00', weekdays: [1, 2, 3, 4, 5, 6, 7] });
   });
 });
 

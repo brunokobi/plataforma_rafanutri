@@ -6,7 +6,7 @@ import { listAppointments } from '@/lib/appointments/repository';
 import { getAgendaPackages } from '@/lib/packages/actions';
 import { BookingRequests } from '@/components/booking/booking-requests';
 import { listBookingRequests } from '@/lib/booking/actions';
-import { addDays, isDate, today, toInstant, weekStart } from '@/lib/appointments/schema';
+import { addDays, isDate, scheduleOf, today, toInstant, weekStart } from '@/lib/appointments/schema';
 import { getMyOrganizations, landingRedirect } from '@/lib/auth/organizations';
 import { getCurrentUser } from '@/lib/auth/session';
 import { isSignupOpen } from '@/lib/flags';
@@ -49,7 +49,7 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
         {organization && <p className="mt-1 text-sm text-muted-foreground">{organization.name} · horário de Brasília</p>}
         {requests && requests.length > 0 && <div className="mt-6"><BookingRequests list={requests} /></div>}
         <div className="mt-6">
-          <AgendaWeek start={start} todayDate={todayDate} appointments={appointments} patients={options} defaultPatientId={defaultPatientId} packages={packages} />
+          <AgendaWeek start={start} todayDate={todayDate} appointments={appointments} patients={options} defaultPatientId={defaultPatientId} packages={packages} schedule={scheduleOf(organization)} />
         </div>
       </main>
     </div>

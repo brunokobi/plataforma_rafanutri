@@ -696,6 +696,18 @@ try {
     assert.deepEqual((await api(`/rafanutri/audit?patient=${somePatient}`, { token: b.token })).json.data, [], 'filtro por paciente de A');
   });
 
+  // RN-022: expediente só pelo owner do próprio consultório
+  await check('expediente: B não altera o de A; A altera o próprio', async () => {
+    const body = { work_start: '07:00', work_end: '12:00', work_weekdays: [1, 2] };
+    assert.equal((await api(`/rafanutri/practices/${A}/schedule`, { token: b.token, method: 'PUT', body })).status, 404);
+    assert.equal((await api(`/rafanutri/practices/${A}/schedule`, { method: 'PUT', body })).status, 401);
+    assert.equal((await api(`/rafanutri/practices/${A}/schedule`, { token: a.token, method: 'PUT', body })).status, 200);
+    const mine = (await api('/rafanutri/me/organizations', { token: a.token })).json.data.find((o) => o.id === A);
+    assert.deepEqual([mine.work_start, mine.work_end, mine.work_weekdays], ['07:00', '12:00', [1, 2]]);
+    const theirs = (await api('/rafanutri/me/organizations', { token: b.token })).json.data.find((o) => o.id === B);
+    assert.deepEqual([theirs.work_start, theirs.work_end], ['08:00', '18:00'], 'B intacto');
+  });
+
   console.log(`${passed} verificações passaram.`);
 } finally {
   if (ADMIN) {

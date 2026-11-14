@@ -3,6 +3,8 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { AppHeader } from '@/components/app/app-header';
 import { BrandSettings } from '@/components/practice/brand-settings';
+import { WorkScheduleForm } from '@/components/practice/work-schedule';
+import { scheduleOf } from '@/lib/appointments/schema';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { getMyOrganizations, landingRedirect } from '@/lib/auth/organizations';
 import { getCurrentUser } from '@/lib/auth/session';
@@ -29,6 +31,7 @@ export default async function PracticeSettingsPage() {
         ) : (
           <Alert variant="destructive"><AlertDescription>Não foi possível carregar o consultório agora. Atualize a página em instantes.</AlertDescription></Alert>
         )}
+        {org && <WorkScheduleForm orgId={org.id} initial={scheduleOf(org)} canEdit={org.role === 'owner'} />}
         {org?.role === 'owner' && (
           <section className="space-y-1 rounded-lg border p-4">
             <h2 className="font-medium">Auditoria</h2>

@@ -89,7 +89,8 @@ export default {
         .join('organizations as o', 'o.id', 'm.organization_id')
         .where('m.user_id', user)
         .orderBy('o.created_at')
-        .select('o.id', 'o.name', 'o.slug', 'o.type', 'o.brand_color', 'o.plan', 'm.role', database.raw('(o.logo is not null) as has_logo'), 'o.receipt_tax_id');
+        .select('o.id', 'o.name', 'o.slug', 'o.type', 'o.brand_color', 'o.plan', 'm.role', database.raw('(o.logo is not null) as has_logo'), 'o.receipt_tax_id',
+          database.raw("to_char(o.work_start, 'HH24:MI') as work_start"), database.raw("to_char(o.work_end, 'HH24:MI') as work_end"), 'o.work_weekdays');
       res.json({ data: rows });
     });
 
@@ -2007,6 +2008,26 @@ export default {
         patch.receipt_tax_id = tax || null;
       }
       if (!Object.keys(patch).length) return bad(res, { brand_color: 'Nada para salvar.' });
+      await database('organizations').where('id', org.id).update(patch);
+      res.json({ data: patch });
+    });
+
+    // RN-022 — Expediente do consultório (sugestão de horários da agenda). Só o owner muda.
+    router.put('/practices/:id/schedule', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const org = await ownedOrg(user, req.params.id);
+      if (!org) return orgNotFound(res);
+      const b = req.body ?? {};
+      const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
+      const errors = {};
+      if (typeof b.work_start !== 'string' || !HHMM.test(b.work_start)) errors.work_start = 'Horário inválido.';
+      if (typeof b.work_end !== 'string' || !HHMM.test(b.work_end)) errors.work_end = 'Horário inválido.';
+      if (!errors.work_start && !errors.work_end && b.work_end <= b.work_start) errors.work_end = 'O fim precisa ser depois do início.';
+      const days = Array.isArray(b.work_weekdays) ? [...new Set(b.work_weekdays)] : [];
+      if (!days.length || days.some((d) => !Number.isInteger(d) || d < 1 || d > 7)) errors.work_weekdays = 'Escolha ao menos um dia.';
+      if (Object.keys(errors).length) return bad(res, errors);
+      const patch = { work_start: b.work_start, work_end: b.work_end, work_weekdays: days.sort((x, y) => x - y) };
       await database('organizations').where('id', org.id).update(patch);
       res.json({ data: patch });
     });

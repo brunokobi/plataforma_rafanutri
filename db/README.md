@@ -388,6 +388,10 @@ Migração `0020_patient_recommendations.sql` (idempotente; testes em `db/tests/
 
 `GET /rafanutri/me/patient` passa a trazer `recommendations_unread` por registro.
 
+## Expediente do consultório (RN-022)
+
+Migração `0031_work_schedule.sql` (**aplicada na vpsrafa em 14/11/2026**; testes em `db/tests/0031_work_schedule.test.sql`): `organizations.work_start`, `work_end` (padrão 08:00–18:00, fim depois do início) e `work_weekdays` (ISO 1–7, padrão todos). Gravado por `PUT /rafanutri/practices/:id/schedule` (owner); lido em `/rafanutri/me/organizations`. A página pública (0029) mantém o próprio horário.
+
 ## Auditoria (RN-009)
 
 Migração `0030_audit.sql` (**aplicada na vpsrafa em 14/11/2026**; testes em `db/tests/0030_audit.test.sql` e no teste de isolamento):

@@ -14,6 +14,10 @@ export interface UserOrganization {
   has_logo?: boolean;
   /** CPF ou CNPJ do recibo (RN-055). */
   receipt_tax_id?: string | null;
+  /** RN-022: expediente da agenda (HH:MM e dias ISO 1 = segunda … 7 = domingo). */
+  work_start?: string;
+  work_end?: string;
+  work_weekdays?: number[];
 }
 
 /**
