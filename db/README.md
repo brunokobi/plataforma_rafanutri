@@ -21,7 +21,8 @@ db/
 │   ├── 0014_text_snippets.sql         # RN-045: orientações reutilizáveis do consultório
 │   ├── 0015_clinical_notes.sql        # RN-023: evoluções do prontuário (assinatura e retificação)
 │   ├── 0016_clinical_notes_cascade.sql # RN-023: exclusão em cascata leva as evoluções
-│   └── 0017_plan_waitlist.sql          # RN-200/202: lista de interesse no plano pago
+│   ├── 0017_plan_waitlist.sql          # RN-200/202: lista de interesse no plano pago
+│   └── 0018_patient_app_access.sql     # RN-203/204: convite do paciente, vínculo da conta e papel Paciente
 ├── tests/
 │   ├── 0002_organizations.test.sql  # regras do banco (transação desfeita no fim)
 │   ├── 0004_patients.test.sql       # limite de 20 ativos, CPF, responsável, formatos
@@ -36,6 +37,7 @@ db/
 │   ├── 0015_clinical_notes.test.sql        # rascunho, assinatura imutável, retificação em cadeia
 │   ├── 0016_clinical_notes_cascade.test.sql # cascata apaga; DELETE/UPDATE direto de assinada barrado
 │   ├── 0017_plan_waitlist.test.sql          # só o owner registra, um por consultório
+│   ├── 0018_patient_app_access.test.sql     # vínculo só pelos endpoints, convite de uso único
 │   ├── extension-foods.test.mjs       # conversão porção → 100 g e composição da preparação (node --test)
 │   └── api-isolation.test.mjs       # RN-008: isolamento entre consultórios pela API
 ├── directus/
@@ -364,3 +366,24 @@ Migração `0017_plan_waitlist.sql` (**aplicada na vpsrafa em 14/11/2026**), tes
 | Limite de pacientes ativos no banco, com trava por consultório contra cadastros simultâneos; reativar ocupa vaga | gatilho `enforce_active_patient_limit` (0004) + gancho com a mensagem "Você atingiu o limite de 20 pacientes ativos do plano Gratuito" |
 | Interesse no plano pago: um por consultório, só o owner registra, guarda o plano desejado e o uso no momento | `plan_waitlist` + gatilho `plan_waitlist_guard` |
 | `GET /rafanutri/plan` (plano, uso e interesse do próprio consultório) e `POST /rafanutri/plan/waitlist` | extensão `rafanutri` |
+
+## Área do paciente: convite e conta (RN-203, RN-204)
+
+Migração `0018_patient_app_access.sql` (**aplicada na vpsrafa em 14/11/2026**), testes em `db/tests/0018_patient_app_access.test.sql`, no teste de isolamento e no e2e `apps/web/e2e/area-paciente.spec.ts`.
+
+| Regra | Onde |
+|---|---|
+| `patients.app_user_id` liga o registro do paciente (num consultório) à conta de login; a mesma conta pode estar em vários consultórios (RN-211), uma vez por consultório | coluna + índice único `(organization_id, app_user_id)` |
+| O vínculo só muda pelos endpoints (variável de sessão `rafanutri.patient_link` na transação). Pela API de itens, o Directus recusa o campo e o gatilho recusa de novo | gatilhos `patients_app_link_guard` e `patients_app_link_insert_guard` |
+| Convite: token de 32 bytes guardado só como hash, uso único, até 7 dias, um pendente por paciente, só para paciente ativo, criado por owner/nutricionista | `patient_app_invites` + gatilho |
+| Papel **Paciente** no Directus (política que só lê o próprio usuário); nada de coleções. Conta de paciente não cria consultório; e-mail de profissional não vira conta de paciente | migração + extensão |
+| Arquivar o paciente tira o acesso (a área só mostra registros ativos); revogar desfaz o vínculo e cancela o convite pendente | extensão |
+| `GET /rafanutri/patients/:id/app-access`, `POST …/app-invite`, `POST …/app-access/revoke`; públicos `POST /rafanutri/public/patient-invites/open` e `/accept` (token no corpo); `POST /rafanutri/patient-invites/accept` (conta já existente, logada); `GET /rafanutri/me/patient` | extensão `rafanutri` |
+
+Sem SMTP ainda: o convite é um link copiável (WhatsApp) e o paciente cria a senha no primeiro acesso. Convite por e-mail e entrada por link mágico entram com o Resend.
+
+Limpeza das contas de paciente criadas pelo e2e (usuário de teste):
+
+```sql
+delete from directus_users where email like 'e2e.paciente.%@example.com' and role = '5d1c7a3e-0002-4b6e-9a01-7e2a0c9a0002';
+```

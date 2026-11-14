@@ -63,7 +63,9 @@ Atualizado em **13/11/2026**. O que já está no código (`main`), o que está s
 | Item | Situação | Observação |
 |---|---|---|
 | RN-200 a RN-202 Plano gratuito e limite | ✅ | Limite de 20 ativos no banco (com trava para cadastros simultâneos) e mensagem do critério de aceite; contador na lista, aviso a partir de 18 e bloqueio no limite com atalho para o plano pago; tela **Meu plano** (`/app/configuracoes/plano`) com uso, o que está incluído e **lista de interesse no plano pago** (migração 0017). `getEntitlements` no app. Assinaturas (`subscriptions`) ficam para a cobrança (RN-057) |
-| RN-203 a RN-215 Área do paciente | ⏳ | |
+| RN-203 Convite e vínculo da conta | ✅ base | Cartão **Área do paciente** na ficha: gerar link de convite (7 dias, uso único) para copiar ou enviar por WhatsApp, ver o status e revogar. O paciente abre `/p/convite/…`, cria a senha e entra; conta de paciente já existente aceita logada. E-mail de profissional não vira conta de paciente. Falta: convite por e-mail (depende do Resend) |
+| RN-204 Área do paciente | 🟡 | `/p`: marca do consultório, saudação, refeição do momento (horário de Brasília) e lista de refeições do plano publicado, estado vazio, troca entre nutricionistas, sem rolagem horizontal em 360 px. Paciente que abre `/app` vai para `/p`; profissional que abre `/p` volta para `/app`. Falta: link mágico (Resend), navegação inferior e logo do consultório |
+| RN-205 a RN-215 | ⏳ | Próximos: plano completo na área do paciente (RN-205), receitas, recomendações e documentos |
 
 ## Página pública e marketing
 

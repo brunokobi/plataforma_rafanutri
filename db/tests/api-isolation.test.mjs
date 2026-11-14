@@ -488,6 +488,38 @@ try {
     assert.equal((await api('/items/plan_waitlist', { token: a.token })).status, 403);
   });
 
+  console.log('Área do paciente (RN-203, RN-204):');
+  const patientEmail = `iso.paciente.${Date.now()}@example.com`;
+  await check('B não vê, não convida nem revoga o acesso do paciente de A; vínculo direto pela API é recusado', async () => {
+    assert.equal((await api(`/rafanutri/patients/${patientA}/app-access`, { token: b.token })).status, 404);
+    assert.equal((await api(`/rafanutri/patients/${patientA}/app-invite`, { token: b.token, method: 'POST', body: { email: patientEmail } })).status, 404);
+    assert.equal((await api(`/rafanutri/patients/${patientA}/app-access/revoke`, { token: b.token, method: 'POST' })).status, 404);
+    assert.ok((await api(`/items/patients/${patientA}`, { token: a.token, method: 'PATCH', body: { app_user_id: created.users[1] } })).status >= 400);
+  });
+  await check('convite: e-mail de profissional recusado; paciente cria a conta e só vê os próprios dados', async () => {
+    // patientA foi arquivado no teste de limite: usa um paciente ativo de A
+    const pid = (await api(`/items/patients?fields=id&limit=1&filter[organization_id][_eq]=${A}&filter[status][_eq]=active`, { token: a.token })).json.data[0].id;
+    assert.equal((await api(`/rafanutri/patients/${pid}/app-invite`, { token: a.token, method: 'POST', body: { email: (await api('/users/me?fields=email', { token: b.token })).json.data.email } })).status, 409);
+    assert.equal((await api(`/rafanutri/patients/${patientA}/app-invite`, { token: a.token, method: 'POST', body: { email: patientEmail } })).status, 409, 'arquivado não recebe convite');
+    const inv = await api(`/rafanutri/patients/${pid}/app-invite`, { token: a.token, method: 'POST', body: { email: patientEmail } });
+    assert.equal(inv.status, 201, JSON.stringify(inv.json));
+    const acc = await api('/rafanutri/public/patient-invites/accept', { method: 'POST', body: { token: inv.json.data.token, password: 'Senha-isolamento-1' } });
+    assert.equal(acc.status, 201);
+    const login = await api('/auth/login', { method: 'POST', body: { email: patientEmail, password: 'Senha-isolamento-1' } });
+    const pt = login.json.data.access_token;
+    const me = (await api('/rafanutri/me/patient', { token: pt })).json.data;
+    assert.equal(me.patient_account, true);
+    assert.deepEqual(me.records.map((r) => r.patient_id), [pid]);
+    for (const c of ['patients', 'meal_plans', 'anamneses', 'appointments', 'organizations']) assert.equal((await api(`/items/${c}?limit=1`, { token: pt })).status, 403, c);
+    assert.equal((await api('/rafanutri/organizations', { token: pt, method: 'POST', body: { name: 'Consultório do paciente', type: 'solo', crn: '1', crn_region: 'CRN-1' } })).status, 403);
+    assert.equal((await api(`/rafanutri/patients/${pid}/notes`, { token: pt })).status, 404);
+    assert.equal((await api('/rafanutri/public/patient-invites/accept', { method: 'POST', body: { token: inv.json.data.token, password: 'Senha-isolamento-2' } })).status, 410);
+    await api(`/rafanutri/patients/${pid}/app-access/revoke`, { token: a.token, method: 'POST' });
+    assert.deepEqual((await api('/rafanutri/me/patient', { token: pt })).json.data.records, []);
+    const uid = (await api('/users/me?fields=id', { token: pt })).json.data.id;
+    created.users.push(uid); // apagado no fim
+  });
+
   console.log(`${passed} verificações passaram.`);
 } finally {
   for (const id of created.orgs) await api(`/items/organizations/${id}`, { token: ADMIN, method: 'DELETE' });
