@@ -516,6 +516,11 @@ try {
     // RN-205: plano completo só do próprio registro; id de paciente de outro consultório não abre nada
     assert.equal((await api(`/rafanutri/me/patient/plan?c=${patientB}`, { token: pt })).status, 404);
     assert.equal((await api(`/rafanutri/me/patient/plan`, { token: a.token })).status, 404);
+    // RN-206/RN-207: receitas só as visíveis; foto e ficha de outro consultório não abrem
+    assert.equal((await api('/rafanutri/me/patient/recipes/1', { token: pt })).status, 404);
+    assert.deepEqual((await api('/rafanutri/recipes', { token: pt })).json.data, []);
+    assert.equal((await api(`/rafanutri/patients/${patientB}/recipes`, { token: a.token })).status, 404);
+    assert.equal((await api(`/rafanutri/patients/${patientB}/recipes`, { token: a.token, method: 'POST', body: { recipe_id: '1' } })).status, 404);
     assert.equal((await api('/rafanutri/public/patient-invites/accept', { method: 'POST', body: { token: inv.json.data.token, password: 'Senha-isolamento-2' } })).status, 410);
     await api(`/rafanutri/patients/${pid}/app-access/revoke`, { token: a.token, method: 'POST' });
     assert.deepEqual((await api('/rafanutri/me/patient', { token: pt })).json.data.records, []);

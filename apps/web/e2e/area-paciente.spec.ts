@@ -100,7 +100,7 @@ test('convite e área do paciente', async ({ page, browser }) => {
       const form = page.getByRole('form', { name: 'Nova preparação' });
       await form.getByLabel('Nome').fill(recipeName);
       await form.getByLabel('Buscar ingrediente').fill('aveia');
-      await form.getByRole('option').first().click();
+      await form.getByRole('listbox').getByRole('option').first().click();
       await form.getByLabel('Rendimento: peso pronto (g)').fill('200');
       await form.getByLabel('Porções (opcional)').fill('2');
       await form.getByLabel('Tempo de preparo (min, opcional)').fill('15');
@@ -127,7 +127,7 @@ test('convite e área do paciente', async ({ page, browser }) => {
 
       await page.goto(patientUrl);
       const box = page.getByRole('region', { name: 'Receitas do paciente' });
-      await box.getByLabel('Receita').selectOption({ label: recipeName });
+      await box.getByLabel('Receita', { exact: true }).selectOption({ label: recipeName });
       await box.getByLabel('Observação (opcional)').fill('Boa opção para o café.');
       await box.getByRole('button', { name: 'Enviar' }).click();
       await expect(box.getByRole('list', { name: 'Receitas visíveis para o paciente' })).toContainText(recipeName);
@@ -174,7 +174,7 @@ test('convite e área do paciente', async ({ page, browser }) => {
       await page.goto('/app/alimentos');
       await page.getByRole('tab', { name: 'Preparações' }).click();
       await page.getByRole('button', { name: `Arquivar ${recipeName}` }).click();
-      await expect(page.getByRole('button', { name: `Reativar ${recipeName}` })).toBeVisible();
+      await expect(page.getByRole('status').filter({ hasText: `${recipeName} foi arquivado` })).toBeVisible();
     }
   }
 });

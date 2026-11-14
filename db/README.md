@@ -367,6 +367,20 @@ Migração `0017_plan_waitlist.sql` (**aplicada na vpsrafa em 14/11/2026**), tes
 | Interesse no plano pago: um por consultório, só o owner registra, guarda o plano desejado e o uso no momento | `plan_waitlist` + gatilho `plan_waitlist_guard` |
 | `GET /rafanutri/plan` (plano, uso e interesse do próprio consultório) e `POST /rafanutri/plan/waitlist` | extensão `rafanutri` |
 
+## Receitas: biblioteca e envio ao paciente (RN-206, RN-207)
+
+Migração `0019_recipe_library.sql` (idempotente; testes em `db/tests/0019_recipe_library.test.sql`):
+
+- `recipes` ganha `description` (≤ 600), `prep_minutes` (1–1440), `difficulty` (`easy`/`medium`/`hard`), `tags` (lista JSON, até 10) e `image` (`directus_files`, `on delete set null`);
+- `patient_recipes`: receita enviada a um paciente (observação ≤ 500). Só owner/nutricionista envia, só para paciente ativo do consultório e só receita do próprio consultório; um envio por receita e paciente (reenviar atualiza a observação).
+
+| Endpoint | Quem |
+|---|---|
+| `GET /rafanutri/recipes`; `POST`/`DELETE /rafanutri/recipes/:id/image` (data URL JPG/PNG/WebP até 600 KB, assinatura conferida) | profissional |
+| `GET /rafanutri/recipes/:id/image` | profissional do consultório ou paciente que vê a receita |
+| `GET`/`POST /rafanutri/patients/:id/recipes`, `DELETE …/recipes/:recipeId` | profissional |
+| `GET /rafanutri/me/patient/recipes[?c=]`, `GET /rafanutri/me/patient/recipes/:id[?c=]` | paciente: enviadas + usadas no plano publicado |
+
 ## Área do paciente: convite e conta (RN-203, RN-204)
 
 Migração `0018_patient_app_access.sql` (**aplicada na vpsrafa em 14/11/2026**), testes em `db/tests/0018_patient_app_access.test.sql`, no teste de isolamento e no e2e `apps/web/e2e/area-paciente.spec.ts`.
