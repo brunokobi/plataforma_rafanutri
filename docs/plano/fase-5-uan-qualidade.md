@@ -932,7 +932,7 @@ Referências: ANVISA RDC nº 429/2020 e IN nº 75/2020. Todos os valores abaixo 
 - **Tarefas técnicas:**
   - [x] Interface de um item por vez, botões grandes, funcionamento com luvas em mente
   - [x] Captura de foto com compressão no cliente (máx. 1600 px)
-  - [ ] Assinatura em canvas salva como PNG
+  - [x] Assinatura em canvas salva como PNG
   - [x] Geolocalização com aviso fora do raio
   - [x] Cálculo da pontuação e abertura automática de não conformidade em item crítico
 - **Arquivos/áreas:** `apps/web/app/(uan)/uan/[unitId]/checklists/run/[runId]/`, `packages/ui/src/mobile/`

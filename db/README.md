@@ -456,6 +456,8 @@ Migração `0035_checklists.sql` (**aplicada na vpsrafa em 15/11/2026**, backup 
 | `POST`/`GET /rafanutri/uan/checklist-runs/:id/answers/:position/photo` | Executa / equipe da unidade (JPG ou PNG até 600 KB; no app, pelo proxy `/api/uan/checklists/:id/foto/:posição`) |
 | `POST /rafanutri/uan/checklist-runs/:id/complete`, `/cancel` | Quem executa; cancelar: quem iniciou, gestor, RT ou owner |
 
+Migração `0040_checklist_signature.sql` (aplicada em 15/11/2026): `checklist_runs.signature` (PNG) e `signed_by`, gravados por `POST /rafanutri/uan/checklist-runs/:id/signature` só com o checklist em andamento; lidos por `GET …/signature` (no app, `/api/uan/checklists/:id/assinatura`).
+
 ### Editor de modelos e agenda (RN-147, RN-150)
 
 Migração `0038_checklist_editor.sql` (**aplicada na vpsrafa em 15/11/2026**, backup `antes-0038-2026-11-15.dump`; testes em `db/tests/0038_checklist_editor.test.sql`):
