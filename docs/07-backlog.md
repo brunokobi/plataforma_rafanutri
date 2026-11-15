@@ -175,10 +175,10 @@ Status: `todo`, `doing`, `done`, `adiado` (fora do MVP, ver [ADR 0004](adr/0004-
 
 | ID | Item | Tipo | Pts | Depende de | Status |
 |---|---|---|---|---|---|
-| [RN-120](plano/fase-5-uan-qualidade.md#rn-120--descoberta-com-clientes-piloto) | Descoberta com clientes piloto | pesquisa | 3 | — | todo |
-| [RN-121](plano/fase-5-uan-qualidade.md#rn-121--migração-de-unidades-e-papéis-enterprise) | Migração de unidades e papéis Enterprise | infra | 3 | RN-008 | todo |
-| [RN-122](plano/fase-5-uan-qualidade.md#rn-122--rls-por-unidade-e-feature-flag-enterprise) | RLS por unidade e feature flag Enterprise | infra | 5 | RN-121 | todo |
-| [RN-123](plano/fase-5-uan-qualidade.md#rn-123--tela-de-unidades-e-membros) | Tela de unidades e membros | feature | 3 | RN-122 | todo |
+| [RN-120](plano/fase-5-uan-qualidade.md#rn-120--descoberta-com-clientes-piloto) | Descoberta com clientes piloto | pesquisa | 3 | — | done |
+| [RN-121](plano/fase-5-uan-qualidade.md#rn-121--migração-de-unidades-e-papéis-enterprise) | Migração de unidades e papéis Enterprise | infra | 3 | RN-008 | doing |
+| [RN-122](plano/fase-5-uan-qualidade.md#rn-122--rls-por-unidade-e-feature-flag-enterprise) | RLS por unidade e feature flag Enterprise | infra | 5 | RN-121 | doing |
+| [RN-123](plano/fase-5-uan-qualidade.md#rn-123--tela-de-unidades-e-membros) | Tela de unidades e membros | feature | 3 | RN-122 | doing |
 | [RN-124](plano/fase-5-uan-qualidade.md#rn-124--contrato-e-planos-enterprise-por-unidade) | Contrato e planos Enterprise por unidade | feature | 5 | RN-057, RN-121 | todo |
 | [RN-125](plano/fase-5-uan-qualidade.md#rn-125--migração-de-insumos-unidades-e-fornecedores) | Migração de insumos, unidades e fornecedores | infra | 3 | RN-122 | todo |
 | [RN-126](plano/fase-5-uan-qualidade.md#rn-126--cadastro-de-insumos) | Cadastro de insumos | feature | 5 | RN-125 | todo |
@@ -225,6 +225,26 @@ Status: `todo`, `doing`, `done`, `adiado` (fora do MVP, ver [ADR 0004](adr/0004-
 | [RN-167](plano/fase-5-uan-qualidade.md#rn-167--trilha-de-auditoria-e-integridade-dos-registros) | Trilha de auditoria e integridade dos registros | infra | 3 | RN-146, RN-151, RN-155 | todo |
 | [RN-168](plano/fase-5-uan-qualidade.md#rn-168--testes-e2e-e-piloto) | Testes e2e e piloto | doc | 5 | RN-121 a RN-167 | todo |
 | [RN-169](plano/fase-5-uan-qualidade.md#rn-169--onboarding-enterprise-e-importação-de-dados) | Onboarding Enterprise e importação de dados | feature | 5 | RN-126, RN-131 | todo |
+| [RN-220](plano/fase-5-uan-qualidade.md#rn-220--convite-da-equipe-da-unidade-por-link) | Convite da equipe da unidade por link | feature | 3 | RN-121, RN-122 | todo |
+| [RN-221](plano/fase-5-uan-qualidade.md#rn-221--serviços-perfis-de-público-e-modelos-de-autonomia-do-cardápio) | Serviços, perfis de público e modelos de autonomia do cardápio | feature | 5 | RN-135 | todo |
+| [RN-222](plano/fase-5-uan-qualidade.md#rn-222--alergênicos-do-insumo-à-ficha-e-ao-cardápio) | Alergênicos do insumo à ficha e ao cardápio | feature | 3 | RN-126, RN-131 | todo |
+| [RN-223](plano/fase-5-uan-qualidade.md#rn-223--cardápio-publicado-para-o-comensal-e-pesquisa-de-satisfação) | Cardápio publicado para o comensal e pesquisa de satisfação | feature | 3 | RN-136, RN-222 | todo |
+| [RN-224](plano/fase-5-uan-qualidade.md#rn-224--fluxo-de-aprovação-do-cardápio) | Fluxo de aprovação do cardápio | feature | 3 | RN-136 | todo |
+| [RN-225](plano/fase-5-uan-qualidade.md#rn-225--lista-de-preparo-e-requisição-do-dia) | Lista de preparo e requisição do dia | feature | 3 | RN-137, RN-131 | todo |
+| [RN-226](plano/fase-5-uan-qualidade.md#rn-226--controle-de-desperdício-sobra-e-resto-ingesta) | Controle de desperdício: sobra e resto-ingesta | feature | 5 | RN-137 | todo |
+| [RN-227](plano/fase-5-uan-qualidade.md#rn-227--adesão-por-preparação) | Adesão por preparação | feature | 2 | RN-137 | todo |
+| [RN-228](plano/fase-5-uan-qualidade.md#rn-228--recebimento-com-xml-da-nf-e) | Recebimento com XML da NF-e | feature | 3 | RN-140, RN-141 | todo |
+| [RN-229](plano/fase-5-uan-qualidade.md#rn-229--planejado--realizado-curva-abc-e-metas-de-custo) | Planejado × realizado, curva ABC e metas de custo | feature | 5 | RN-138, RN-143, RN-226 | todo |
+| [RN-230](plano/fase-5-uan-qualidade.md#rn-230--ia-plano-de-ação-sugerido-para-não-conformidade) | IA: plano de ação sugerido para não conformidade | ia | 3 | RN-153, RN-154, RN-082, RN-077 | todo |
+| [RN-231](plano/fase-5-uan-qualidade.md#rn-231--ia-cenários-de-cardápio-com-regras-e-nota) | IA: cenários de cardápio com regras e nota | ia | 8 | RN-221, RN-224, RN-138, RN-082 | todo |
+| [RN-232](plano/fase-5-uan-qualidade.md#rn-232--ia-vínculo-do-insumo-com-a-tacotbca-e-fcic-de-referência) | IA: vínculo do insumo com a TACO/TBCA e FC/IC de referência | ia | 3 | RN-126, RN-082 | todo |
+| [RN-233](plano/fase-5-uan-qualidade.md#rn-233--previsão-de-comensais) | Previsão de comensais | feature | 5 | RN-137 | todo |
+| [RN-234](plano/fase-5-uan-qualidade.md#rn-234--ajuste-sugerido-de-per-capita) | Ajuste sugerido de per capita | feature | 3 | RN-226, RN-227 | todo |
+| [RN-235](plano/fase-5-uan-qualidade.md#rn-235--ia-relatório-semanal-das-causas-do-desperdício) | IA: relatório semanal das causas do desperdício | ia | 3 | RN-226, RN-082 | todo |
+| [RN-236](plano/fase-5-uan-qualidade.md#rn-236--ia-leitura-de-etiqueta-e-nota-por-foto-pesquisa) | IA: leitura de etiqueta e nota por foto (pesquisa) | pesquisa | 3 | RN-141, RN-082 | todo |
+| [RN-237](plano/fase-5-uan-qualidade.md#rn-237--ia-relatório-executivo-mensal) | IA: relatório executivo mensal | ia | 3 | RN-229, RN-082 | todo |
+| [RN-238](plano/fase-5-uan-qualidade.md#rn-238--ia-rascunho-de-pop-e-manual-de-boas-práticas) | IA: rascunho de POP e Manual de Boas Práticas | ia | 5 | RN-156, RN-157, RN-082 | todo |
+| [RN-239](plano/fase-5-uan-qualidade.md#rn-239--ia-importação-assistida-de-planilhas) | IA: importação assistida de planilhas | ia | 3 | RN-169, RN-082 | todo |
 
 ## Fase 6 — Saúde pública e avançados
 

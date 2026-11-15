@@ -6,7 +6,7 @@
 
 Entregar a versão **Enterprise** da Rafanutri para empresas de alimentação: restaurantes industriais, cozinhas hospitalares, escolas, hotéis e catering. O objetivo é que uma unidade produtora opere sem planilha e sem papel: ficha técnica, cardápio, compras, estoque, checklists de Boas Práticas, temperatura, não conformidades e documentação para a fiscalização sanitária.
 
-Duração estimada: **10 semanas** (2 devs). Marco: **um cliente piloto** operando uma unidade inteira.
+Duração estimada: **10 semanas** (2 devs) no plano original de 209 pontos; a revisão de 15/11/2026 acrescentou 74 pontos (RN-220 a RN-239: produção e desperdício, custos, tipos de cardápio e IA), cerca de **14 semanas** no total, sem contar os segmentos por demanda (U8/U9). Marco: **um cliente piloto** operando uma unidade inteira.
 
 ## Escopo / Fora de escopo
 
@@ -25,6 +25,10 @@ Duração estimada: **10 semanas** (2 devs). Marco: **um cliente piloto** operan
 - Rotulagem nutricional (RDC 429/2020 e IN 75/2020).
 - Painel de conformidade, relatórios para fiscalização e trilha de auditoria.
 - Contrato e planos Enterprise por unidade.
+- Tipos de cardápio por serviço e por público (PAT, PNAE, hospitalar por dieta, eventos), regras de contrato e fluxo de aprovação; cardápio publicado ao comensal com alergênicos e pesquisa de satisfação (revisão de 15/11/2026).
+- Produção do dia, comensais previstos × servidos, adesão por prato e controle de desperdício (sobra limpa e resto-ingesta com motivo e custo).
+- Custos planejado × realizado, curva ABC, CMV e metas por refeição.
+- IA em todas as entregas, com o RT decidindo e os números sempre do motor determinístico ([plano do módulo, seção 6](../modulos/uan.md#6-ia-no-módulo)).
 
 **Fora de escopo**
 - Integração com ERP e emissão fiscal (NF-e de entrada). Avaliar por demanda do cliente.
@@ -1223,7 +1227,251 @@ Referências: ANVISA RDC nº 429/2020 e IN nº 75/2020. Todos os valores abaixo 
 - **Critérios de aceite:** Dada uma planilha com 300 insumos e 10 linhas inválidas, quando importar, então 290 entram e o relatório mostra as 10 linhas com o motivo.
 - **Testes:** integração, e2e.
 
+## Itens da revisão de 15/11/2026
+
+Acrescentados depois da comparação com o TecFood e o NutriUAN. A ordem e o agrupamento em entregas estão no [plano do módulo](../modulos/uan.md#5-entregas-do-módulo); as regras de IA, na [seção 6](../modulos/uan.md#6-ia-no-módulo) de lá.
+
+### RN-220 — Convite da equipe da unidade por link
+- **Tipo:** feature
+- **Pontos:** 3
+- **Depende de:** RN-121, RN-122
+- **Descrição:** Owner, gestor ou RT convida pessoas para a unidade com um papel (RT, gestor, cozinheiro, estoquista, auditor) por link de uso único, como o convite do paciente (RN-203). Funciona sem e-mail.
+- **Tarefas técnicas:**
+  - [ ] Tabela `unit_invites` (token com hash, papel, validade de 7 dias, uso único, revogável)
+  - [ ] Página pública `/uan/convite/[token]`: cria a conta ou aceita logado; entra só em `unit_members`
+  - [ ] Login de quem só tem papel na UAN leva para `/app/uan` (não para o onboarding do consultório)
+  - [ ] Remover membro e trocar papel; um RT por unidade
+  - [ ] Cenários no teste de isolamento
+- **Critérios de aceite:** Dado um owner, quando gera o link de cozinheiro da unidade A e a pessoa aceita, então ela entra, vê só a unidade A e não acessa pacientes nem financeiro.
+- **Testes:** banco, isolamento, e2e.
+
+### RN-221 — Serviços, perfis de público e modelos de autonomia do cardápio
+- **Tipo:** feature
+- **Pontos:** 5
+- **Depende de:** RN-135
+- **Descrição:** Cadastro de serviços (desjejum, colação, almoço, lanche, jantar, ceia, outros) com tipos de prato; perfis de público (corporativo/PAT, escolar/PNAE por modalidade e faixa etária, hospitalar por dieta, hotelaria e eventos, refeição transportada) com metas nutricionais; regras de contrato (vetados, obrigatórios por dia, frequência máxima, teto de custo); modelo padronizado, descentralizado ou livre.
+- **Tarefas técnicas:**
+  - [ ] Tabelas `menu_services`, `diner_profiles` (metas por nutriente), `menu_rules`
+  - [ ] Modelos iniciais de metas PAT e PNAE marcados **a validar**
+  - [ ] Receita padrão da rede com ajuste local por unidade (per capita e composição), sem alterar a ficha da rede
+- **Critérios de aceite:** Dado um perfil escolar de ensino fundamental com metas PNAE, quando o RT monta o almoço, então vê a adequação contra as metas do perfil e os avisos das regras do contrato.
+- **Testes:** unidade (motor de regras), e2e.
+
+### RN-222 — Alergênicos do insumo à ficha e ao cardápio
+- **Tipo:** feature
+- **Pontos:** 3
+- **Depende de:** RN-126, RN-131
+- **Descrição:** Alergênicos marcados no insumo (individual ou em lote) propagam para a ficha técnica e o cardápio, com destaque nas emissões e no cardápio publicado (RDC 26/2015).
+- **Tarefas técnicas:**
+  - [ ] Lista de alergênicos com sigla e ícone
+  - [ ] Propagação calculada (não digitada) até a ficha e o cardápio
+  - [ ] Versão do cardápio do dia e da semana com destaque de alergênicos
+- **Critérios de aceite:** Dado um insumo com leite, quando ele entra numa ficha usada no almoço de terça, então o cardápio de terça mostra o alergênico leite naquele prato.
+- **Testes:** unidade, e2e.
+
+### RN-223 — Cardápio publicado para o comensal e pesquisa de satisfação
+- **Tipo:** feature
+- **Pontos:** 3
+- **Depende de:** RN-136, RN-222
+- **Descrição:** Link público e QR Code do cardápio do dia e da semana (com alergênicos e nutrientes), modo TV para a unidade e pesquisa de satisfação curta por QR Code ligada à preparação.
+- **Tarefas técnicas:**
+  - [ ] Página pública por unidade com a marca, sem dados internos (custo, fornecedor)
+  - [ ] Modo TV com atualização automática
+  - [ ] Pesquisa de 1 a 3 perguntas, antispam por aparelho, resultado por preparação
+- **Critérios de aceite:** Dado um cardápio publicado, quando o comensal lê o QR Code, então vê o cardápio do dia com alergênicos e pode avaliar o prato.
+- **Testes:** e2e.
+
+### RN-224 — Fluxo de aprovação do cardápio
+- **Tipo:** feature
+- **Pontos:** 3
+- **Depende de:** RN-136
+- **Descrição:** Cardápio passa por rascunho, enviado e aprovado (RT da unidade → gestor ou cliente), com prazo, histórico de alterações e trava quando está fora da meta de custo ou das regras (liberação só com justificativa). A necessidade de compra só é gerada para cardápio aprovado.
+- **Tarefas técnicas:**
+  - [ ] Estados e histórico em `menu_approvals`
+  - [ ] Alteração depois de aprovado volta para revisão e fica registrada
+  - [ ] Aviso de prazo no painel (e por WhatsApp/e-mail quando o n8n e o Resend existirem)
+- **Critérios de aceite:** Dado um cardápio 12% acima do teto de custo, quando o RT envia, então o sistema exige justificativa e o gestor vê o desvio antes de aprovar.
+- **Testes:** e2e.
+
+### RN-225 — Lista de preparo e requisição do dia
+- **Tipo:** feature
+- **Pontos:** 3
+- **Depende de:** RN-137, RN-131
+- **Descrição:** A partir do cardápio do dia, dos comensais previstos e das fichas, gera a lista de preparo por preparação e a requisição consolidada de insumos (mesmo insumo de pratos diferentes somado), com margem e arredondamento, e registra a retirada do estoque.
+- **Tarefas técnicas:**
+  - [ ] Cálculo no `nutrition-core` (módulo uan) com testes
+  - [ ] Tela no celular por preparação, para a cozinha
+  - [ ] Recalcular quando cardápio ou comensais mudam
+- **Critérios de aceite:** Dado o almoço com 300 comensais e duas preparações com cebola, quando gerar a requisição, então a cebola aparece uma vez com a soma das duas, já com o FC.
+- **Testes:** unidade, e2e.
+
+### RN-226 — Controle de desperdício: sobra e resto-ingesta
+- **Tipo:** feature
+- **Pontos:** 5
+- **Depende de:** RN-137
+- **Descrição:** Pesagem por serviço e preparação: produzido, sobra limpa, resto-ingesta e descarte do pré-preparo, com motivo classificado; indicadores (% sobra, % resto, per capita de resto, índice de aceitação, custo do desperdício, FC real × FC da ficha) com faixas de alerta configuráveis por perfil (padrão **a validar**).
+- **Tarefas técnicas:**
+  - [ ] Tabela `waste_records` com hora do servidor e autor
+  - [ ] Tela de pesagem no celular, funcionando sem internet
+  - [ ] Indicadores calculados no motor, com testes das fórmulas da seção 5 do plano do módulo
+  - [ ] Gráfico semanal por preparação e por motivo
+- **Critérios de aceite:** Dado um almoço com 100 kg produzidos, 4 kg de sobra limpa e 8 kg de resto, quando registrar, então o painel mostra 4% de sobra, 8,3% de resto-ingesta e o custo do desperdício.
+- **Testes:** unidade, e2e.
+
+### RN-227 — Adesão por preparação
+- **Tipo:** feature
+- **Pontos:** 2
+- **Depende de:** RN-137
+- **Descrição:** Percentual de adesão por prato (porções servidas / comensais), usado no cálculo de produção, na nota do cardápio e na previsão; em escolas, adesão por turma ou turno.
+- **Tarefas técnicas:**
+  - [ ] Registro de porções servidas por preparação
+  - [ ] Média móvel por preparação, usada como padrão no planejamento
+- **Critérios de aceite:** Dado um prato com 60% de adesão média, quando planejar 300 comensais, então a produção prevista considera 180 porções.
+- **Testes:** unidade.
+
+### RN-228 — Recebimento com XML da NF-e
+- **Tipo:** feature
+- **Pontos:** 3
+- **Depende de:** RN-140, RN-141
+- **Descrição:** Importa o XML da nota de entrada, confere com o pedido (itens, quantidades e preços) e gera a entrada em estoque com lote e validade, apontando divergências antes de aceitar.
+- **Tarefas técnicas:**
+  - [ ] Leitura do XML (sem emissão fiscal)
+  - [ ] De-para de produto do fornecedor para insumo, lembrado para as próximas notas
+  - [ ] Divergências bloqueiam a entrada até alguém aceitar ou recusar com justificativa
+- **Critérios de aceite:** Dada uma nota com um item 5% mais caro que o pedido, quando importar, então a divergência aparece e a entrada só acontece depois da decisão do estoquista.
+- **Testes:** unidade, e2e.
+
+### RN-229 — Planejado × realizado, curva ABC e metas de custo
+- **Tipo:** feature
+- **Pontos:** 5
+- **Depende de:** RN-138, RN-143, RN-226
+- **Descrição:** Painel da unidade e da rede: custo per capita planejado × realizado (diário e acumulado), consumo por produto contra o per capita, efetivos previstos × servidos, curva ABC planejada e realizada (também por fornecedor), CMV, metas de custo por refeição e ticket médio com alerta e trava no cardápio.
+- **Tarefas técnicas:**
+  - [ ] Indicadores no motor, com testes
+  - [ ] Comparação no mesmo dia (não só no fechamento do mês)
+  - [ ] Critério de consumo explícito (retiradas do estoque ou CMV clássico) registrado no resultado
+- **Critérios de aceite:** Dado um mês com custo planejado de R$ 12,00 por refeição e realizado de R$ 13,10, quando abrir o painel, então vê a diferença de 9,2% e os 5 produtos que mais explicam o desvio.
+- **Testes:** unidade, e2e.
+
+### RN-230 — IA: plano de ação sugerido para não conformidade
+- **Tipo:** ia
+- **Pontos:** 3
+- **Depende de:** RN-153, RN-154, RN-082, RN-077
+- **Descrição:** Ao abrir uma não conformidade, a IA sugere o 5W2H e a causa provável a partir do item do checklist, da referência da RDC, da observação e do histórico de NCs parecidas. O RT edita antes de salvar.
+- **Tarefas técnicas:**
+  - [ ] Tarefa `uan-nc-action-plan` em `packages/ai` com saída validada por Zod
+  - [ ] Registro em `ai_suggestions` e cota por plano
+  - [ ] Casos de teste em `packages/ai/evals/uan/nc/`
+- **Critérios de aceite:** Dada uma NC de geladeira a 9 °C, quando pedir a sugestão, então recebe um 5W2H com ação imediata (transferir os alimentos, verificar o equipamento), responsável por papel e prazo pela severidade.
+- **Testes:** evals, e2e.
+
+### RN-231 — IA: cenários de cardápio com regras e nota
+- **Tipo:** ia
+- **Pontos:** 8
+- **Depende de:** RN-221, RN-224, RN-138, RN-082
+- **Descrição:** O motor de restrições determinístico monta de 3 a 5 cenários do ciclo dentro das regras do contrato, das metas do perfil e do teto de custo, e dá uma nota de 0 a 100 com problemas por criticidade (repetição, monotonia de cor e cocção, custo, nutriente fora da meta, alergênico). O LLM propõe trocas para subir a nota e explica cada cenário. O RT aprova, edita ou descarta.
+- **Tarefas técnicas:**
+  - [ ] Motor de restrições e pontuação no `nutrition-core` (módulo uan), com testes
+  - [ ] Tarefa de IA que só referencia fichas aprovadas da organização (ids validados no servidor)
+  - [ ] Uso do histórico de adesão, satisfação e desperdício como critério
+  - [ ] Cenário aceito entra como rascunho e segue o fluxo de aprovação (RN-224)
+- **Critérios de aceite:** Dado um contrato com frequência máxima de 1 vez por semana para feijoada e teto de R$ 11 por refeição, quando gerar cenários, então nenhum cenário viola as regras e cada um mostra a nota e os problemas restantes.
+- **Testes:** unidade (motor), evals, e2e.
+
+### RN-232 — IA: vínculo do insumo com a TACO/TBCA e FC/IC de referência
+- **Tipo:** ia
+- **Pontos:** 3
+- **Depende de:** RN-126, RN-082
+- **Descrição:** Ao cadastrar um insumo, sugere o alimento da base (busca textual + LLM para desempatar entre candidatos), o FC e o IC de uma tabela de referência (não do LLM) e os alergênicos prováveis.
+- **Tarefas técnicas:**
+  - [ ] Tabela de FC/IC de referência da literatura (seed **a validar**)
+  - [ ] Confiança da sugestão exibida; confirmação obrigatória
+- **Critérios de aceite:** Dado o insumo "contrafilé limpo kg", quando cadastrar, então a sugestão é a carne bovina correspondente da TACO, com FC de referência e a fonte.
+- **Testes:** evals, e2e.
+
+### RN-233 — Previsão de comensais
+- **Tipo:** feature
+- **Pontos:** 5
+- **Depende de:** RN-137
+- **Descrição:** Previsão por dia e serviço para as próximas semanas com modelo estatístico explicável (dia da semana, tendência, feriados, eventos e calendário escolar), com intervalo e explicação. O erro da previsão é medido e mostrado.
+- **Tarefas técnicas:**
+  - [ ] Modelo no servidor (sem LLM), com testes com séries sintéticas
+  - [ ] Calendário de feriados e eventos por unidade
+  - [ ] Indicador de erro médio da previsão
+- **Critérios de aceite:** Dado um histórico de 8 semanas em que as segundas têm 8% menos comensais, quando prever a próxima segunda, então a previsão reflete essa queda e explica o motivo.
+- **Testes:** unidade, e2e.
+
+### RN-234 — Ajuste sugerido de per capita
+- **Tipo:** feature
+- **Pontos:** 3
+- **Depende de:** RN-226, RN-227
+- **Descrição:** Quando a sobra ou o resto de uma preparação ficam acima da faixa por N semanas, uma regra determinística sugere o novo per capita e a economia estimada; o LLM só redige a justificativa. O RT aplica na ficha da unidade, sem mudar o padrão da rede.
+- **Tarefas técnicas:**
+  - [ ] Regra e economia calculadas no motor, com testes
+  - [ ] Sugestão em rascunho, com histórico do que foi aplicado
+- **Critérios de aceite:** Dado o arroz com sobra limpa acima de 8% por 3 semanas, quando abrir as sugestões, então aparece a redução de per capita com a economia mensal estimada.
+- **Testes:** unidade, e2e.
+
+### RN-235 — IA: relatório semanal das causas do desperdício
+- **Tipo:** ia
+- **Pontos:** 3
+- **Depende de:** RN-226, RN-082
+- **Descrição:** Relatório semanal com preparações mais rejeitadas, motivos, dias e serviços críticos e custo, e 3 a 5 ações sugeridas. Os números vêm do motor; o LLM agrupa os motivos e redige. Cada ação pode virar plano de ação.
+- **Tarefas técnicas:**
+  - [ ] Tarefa de IA com números passados como dados (o texto cita a fonte)
+  - [ ] Casos de teste
+- **Critérios de aceite:** Dada uma semana com resto alto em peixe às sextas por "sabor", quando gerar o relatório, então ele destaca o problema com o custo e sugere ações (troca de preparação, teste de aceitação).
+- **Testes:** evals, e2e.
+
+### RN-236 — IA: leitura de etiqueta e nota por foto (pesquisa)
+- **Tipo:** pesquisa
+- **Pontos:** 3
+- **Depende de:** RN-141, RN-082
+- **Descrição:** Prova de conceito: ler lote, validade e temperatura da etiqueta e itens de nota sem XML por foto. Só vira funcionalidade se a acurácia medida em fotos reais do piloto atingir a meta.
+- **Tarefas técnicas:**
+  - [ ] Conjunto de fotos reais anonimizadas do piloto
+  - [ ] Medição de acurácia por campo
+  - [ ] Relatório com a decisão de seguir ou não
+- **Critérios de aceite:** Dado um conjunto de 100 fotos de etiquetas, quando rodar a leitura, então o relatório mostra a acurácia por campo e a decisão.
+- **Testes:** evals.
+
+### RN-237 — IA: relatório executivo mensal
+- **Tipo:** ia
+- **Pontos:** 3
+- **Depende de:** RN-229, RN-082
+- **Descrição:** Relatório mensal para o cliente ou a diretoria (custo × meta, desperdício, conformidade, destaques e riscos), redigido pela IA a partir dos indicadores do motor, editável antes de enviar, em PDF com a marca.
+- **Tarefas técnicas:**
+  - [ ] Tarefa de IA com números como dados
+  - [ ] PDF com a marca (RN-036)
+  - [ ] Uma versão por empresa atendida (consultora)
+- **Critérios de aceite:** Dado o fechamento do mês, quando gerar o relatório, então todos os números do texto batem com o painel e o RT pode editar antes de exportar.
+- **Testes:** evals, e2e.
+
+### RN-238 — IA: rascunho de POP e Manual de Boas Práticas
+- **Tipo:** ia
+- **Pontos:** 5
+- **Depende de:** RN-156, RN-157, RN-082
+- **Descrição:** Questionário sobre o estabelecimento (equipamentos, água, pragas, equipe, rotinas) gera o rascunho dos 4 POPs e do MBP com as seções exigidas pela RDC 216, a partir de modelos-base revisados por nutricionista. Só vira versão vigente com aprovação e assinatura do RT.
+- **Tarefas técnicas:**
+  - [ ] Modelos-base revisados (**a validar** com a nutricionista parceira)
+  - [ ] Citação do item da norma em cada seção (RAG quando a Fase 6 existir)
+- **Critérios de aceite:** Dado o questionário preenchido de um restaurante com caixa d'água própria, quando gerar o POP de higienização do reservatório, então o rascunho tem frequência, produto, responsável e registro, e fica como rascunho até a aprovação.
+- **Testes:** evals, e2e.
+
+### RN-239 — IA: importação assistida de planilhas
+- **Tipo:** ia
+- **Pontos:** 3
+- **Depende de:** RN-169, RN-082
+- **Descrição:** O LLM mapeia colunas de planilhas em formatos variados (fichas, insumos, cardápios) para o modelo da Rafanutri; o motor valida e recalcula; nada é gravado sem a prévia aprovada.
+- **Tarefas técnicas:**
+  - [ ] Mapeamento sugerido com confiança por coluna
+  - [ ] Prévia com erros linha a linha (reaproveita o importador do RN-169)
+- **Critérios de aceite:** Dada uma planilha de fichas com colunas "Ingred.", "PB" e "FC", quando importar, então o mapeamento é sugerido e a prévia mostra as fichas recalculadas.
+- **Testes:** evals, e2e.
+
 ## Sequência semanal
+
+> Substituída pelas entregas U0 a U9 do [plano do módulo](../modulos/uan.md#5-entregas-do-módulo) (revisão de 15/11/2026). Mantida como referência da estimativa original.
 
 | Semana | Itens |
 |---|---|

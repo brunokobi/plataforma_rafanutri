@@ -92,7 +92,7 @@ Atualizado em **13/11/2026**. O que já está no código (`main`), o que está s
 
 ## Fase 5 — UAN e Qualidade (Enterprise)
 
-Começou em 15/11/2026 pela entrega **U0** do [plano do módulo](../modulos/uan.md), adiantada em relação à ordem do roadmap, enquanto a Fase 2 espera Resend, n8n e o gateway.
+Começou em 15/11/2026 pela entrega **U0** do [plano do módulo](../modulos/uan.md) (refeito no mesmo dia com a comparação com TecFood e NutriUAN: entregas U0 a U9, tipos de cardápio, desperdício, custos e IA, itens RN-220 a RN-239), adiantada em relação à ordem do roadmap, enquanto a Fase 2 espera Resend, n8n e o gateway.
 
 | Item | Status | Observação |
 |---|---|---|
