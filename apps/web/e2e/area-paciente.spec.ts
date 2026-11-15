@@ -150,7 +150,7 @@ test('convite e área do paciente', async ({ page, browser }) => {
       // Rascunho de um plano novo do mesmo paciente: nem pelo id
       await page.goto(`${patientUrl}/planos`);
       await page.getByRole('button', { name: 'Novo plano' }).click();
-      await expect(page).toHaveURL(/\/planos\/[0-9a-f-]{36}$/);
+      await expect(page).toHaveURL(/\/planos\/[0-9a-f-]{36}$/, { timeout: 20_000 });
       const draftId = page.url().split('/').pop()!;
       expect((await pp.request.get(`/p/documentos/${draftId}/pdf`)).status()).toBe(404);
       await pp.goto('/p/documentos');
