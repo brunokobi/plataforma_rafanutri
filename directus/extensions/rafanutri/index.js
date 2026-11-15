@@ -2831,6 +2831,242 @@ export default {
       res.json({ data: { days, organizations: out } });
     });
 
+    // ── Insumos, fornecedores e preços (U2a: RN-125 a RN-128) ───────────────────────────────
+    // Da empresa (compartilhados pelas unidades). Veem: owner e equipe de alguma unidade. Cadastram e
+    // registram preço: owner, gestor, RT e estoquista. Regras de dados no banco (0042).
+    const ING_CATEGORIES = new Set(['produce', 'meat', 'dairy', 'grains', 'bakery', 'beverages', 'frozen', 'grocery', 'cleaning', 'disposables', 'other']);
+    const PURCHASE_UNITS = new Set(['kg', 'g', 'l', 'ml', 'un', 'dz', 'cx', 'pct']);
+    const STORAGES = new Set(['ambient', 'chilled', 'frozen']);
+    const ALLERGENS = new Set(['gluten', 'crustaceans', 'eggs', 'fish', 'peanut', 'soy', 'milk', 'lactose', 'almond', 'hazelnut', 'cashew', 'brazil_nut', 'macadamia', 'walnut', 'pecan', 'pistachio', 'pine_nut', 'chestnut', 'latex']);
+    const ING_FIELDS = ['id', 'organization_id', 'name', 'category', 'food_id', 'default_fc', 'purchase_unit', 'density_g_ml', 'unit_weight_g', 'pack_grams', 'storage', 'min_stock', 'allergens', 'active', 'created_at'];
+    const SUP_FIELDS = ['id', 'organization_id', 'name', 'cnpj', 'contact_name', 'phone', 'email', 'notes', 'active', 'created_at'];
+    const CATALOG_ROLES = new Set(['manager', 'technical_lead', 'stock_keeper']);
+    const ingOut = (r) => ({ ...r, default_fc: numOrNull(r.default_fc), density_g_ml: numOrNull(r.density_g_ml), unit_weight_g: numOrNull(r.unit_weight_g), pack_grams: numOrNull(r.pack_grams), min_stock: numOrNull(r.min_stock) });
+    const notFoundMsg = (res, what) => res.status(404).json({ errors: [{ message: `${what} não encontrado.`, extensions: { code: 'NOT_FOUND' } }] });
+
+    /** Acesso à empresa no módulo UAN: null se não atua nela; senão, se pode mexer no catálogo. */
+    async function catalogAccess(user, orgId) {
+      if (!isUuid(orgId)) return null;
+      const org = (await uanOrgs(user)).find((o) => o.id === orgId);
+      if (!org) return null;
+      if (org.is_owner) return { orgId, canManage: true };
+      const roles = await database('unit_members as m').join('production_units as u', 'u.id', 'm.unit_id').where({ 'u.organization_id': orgId, 'm.user_id': user }).pluck('m.role');
+      return { orgId, canManage: roles.some((r) => CATALOG_ROLES.has(r)) };
+    }
+    const catalogForbidden = (res) => res.status(403).json({ errors: [{ message: 'Só o responsável, o gestor, o RT ou o estoquista mexem no cadastro.', extensions: { code: 'FORBIDDEN' } }] });
+
+    function ingredientBody(b) {
+      const errors = {};
+      const name = typeof b.name === 'string' ? b.name.trim() : '';
+      if (name.length < 2 || name.length > 120) errors.name = 'Informe o nome (2 a 120 caracteres).';
+      if (!ING_CATEGORIES.has(b.category)) errors.category = 'Categoria inválida.';
+      if (!PURCHASE_UNITS.has(b.purchase_unit)) errors.purchase_unit = 'Unidade inválida.';
+      if (!STORAGES.has(b.storage)) errors.storage = 'Armazenamento inválido.';
+      const num = (v) => (v === null || v === undefined || v === '' ? null : Number(String(v).replace(',', '.')));
+      const fc = num(b.default_fc) ?? 1;
+      if (!Number.isFinite(fc) || fc < 1 || fc > 20) errors.default_fc = 'O fator de correção vai de 1 a 20.';
+      const density = num(b.density_g_ml);
+      if (density !== null && (!Number.isFinite(density) || density < 0.1 || density > 5)) errors.density_g_ml = 'Densidade entre 0,1 e 5 g/mL.';
+      const unitW = num(b.unit_weight_g);
+      if (unitW !== null && (!Number.isFinite(unitW) || unitW <= 0)) errors.unit_weight_g = 'Peso inválido.';
+      const pack = num(b.pack_grams);
+      if (pack !== null && (!Number.isFinite(pack) || pack <= 0)) errors.pack_grams = 'Peso inválido.';
+      if (['un', 'dz'].includes(b.purchase_unit) && unitW === null) errors.unit_weight_g = 'Informe o peso da unidade em gramas.';
+      if (['cx', 'pct'].includes(b.purchase_unit) && pack === null) errors.pack_grams = 'Informe o peso da embalagem em gramas.';
+      const minStock = num(b.min_stock);
+      if (minStock !== null && (!Number.isFinite(minStock) || minStock < 0)) errors.min_stock = 'Estoque mínimo inválido.';
+      const allergens = Array.isArray(b.allergens) ? [...new Set(b.allergens)] : [];
+      if (allergens.some((a) => !ALLERGENS.has(a))) errors.allergens = 'Alergênico inválido.';
+      const foodId = b.food_id === null || b.food_id === undefined || b.food_id === '' ? null : Number(b.food_id);
+      if (foodId !== null && !Number.isInteger(foodId)) errors.food_id = 'Alimento inválido.';
+      if (b.active !== undefined && typeof b.active !== 'boolean') errors.active = 'Valor inválido.';
+      if (Object.keys(errors).length) return { errors };
+      return { data: { name, category: b.category, purchase_unit: b.purchase_unit, storage: b.storage, default_fc: fc, density_g_ml: density, unit_weight_g: unitW, pack_grams: pack, min_stock: minStock, allergens, food_id: foodId, ...(b.active === undefined ? {} : { active: b.active }) } };
+    }
+    async function publicFood(id) {
+      return id === null ? true : Boolean(await database('foods').where({ id }).whereNull('organization_id').first('id'));
+    }
+    const catalogDbError = (res, error, what) => {
+      if (error?.code === '23505') return conflict(res, 'Já existe um cadastro com esse nome.');
+      if (error?.code === '23514') return bad(res, { name: 'Revise os campos.' });
+      return p0001(res, error, what);
+    };
+
+    router.get('/uan/foods', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      if (!(await uanOrgs(user)).length) return res.json({ data: [] });
+      const q = typeof req.query.q === 'string' ? req.query.q.trim().slice(0, 80) : '';
+      if (q.length < 2) return res.json({ data: [] });
+      const rows = (await database.raw('select id, name, food_group, source from search_foods(?, null, 12)', [q])).rows;
+      res.json({ data: rows });
+    });
+
+    router.get('/uan/organizations/:id/ingredients', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const acc = await catalogAccess(user, req.params.id);
+      if (!acc) return notFoundMsg(res, 'Empresa');
+      let q = database('ingredients as i').leftJoin('foods as f', 'f.id', 'i.food_id').where('i.organization_id', acc.orgId).orderBy('i.name').limit(500);
+      if (typeof req.query.q === 'string' && req.query.q.trim()) q = q.whereRaw('f_unaccent(lower(i.name)) like f_unaccent(lower(?))', [`%${req.query.q.trim().slice(0, 80)}%`]);
+      if (ING_CATEGORIES.has(req.query.category)) q = q.where('i.category', req.query.category);
+      const rows = await q.select(...ING_FIELDS.map((f) => `i.${f}`), 'f.name as food_name',
+        database.raw('(select p.price_cents from ingredient_price_at(i.id) p) as price_cents'),
+        database.raw('(select p.valid_from from ingredient_price_at(i.id) p) as price_valid_from'));
+      const org = await database('organizations').where('id', acc.orgId).first('id', 'name');
+      res.json({ data: { organization: org, can_manage: acc.canManage, items: rows.map((r) => ({ ...ingOut(r), price_valid_from: dateOut(r.price_valid_from) })) } });
+    });
+
+    router.post('/uan/organizations/:id/ingredients', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const acc = await catalogAccess(user, req.params.id);
+      if (!acc) return notFoundMsg(res, 'Empresa');
+      if (!acc.canManage) return catalogForbidden(res);
+      const parsed = ingredientBody(req.body ?? {});
+      if (parsed.errors) return bad(res, parsed.errors);
+      if (!(await publicFood(parsed.data.food_id))) return bad(res, { food_id: 'Alimento inválido.' });
+      try {
+        const [row] = await withActor(user, (trx) => trx('ingredients').insert({ ...parsed.data, organization_id: acc.orgId }).returning(ING_FIELDS));
+        res.status(201).json({ data: ingOut(row) });
+      } catch (error) {
+        catalogDbError(res, error, 'cadastrar insumo');
+      }
+    });
+
+    async function ingredientAccess(user, id) {
+      if (!isUuid(id)) return null;
+      const ing = await database('ingredients').where('id', id).first(...ING_FIELDS);
+      if (!ing) return null;
+      const acc = await catalogAccess(user, ing.organization_id);
+      return acc ? { ing, acc } : null;
+    }
+
+    router.get('/uan/ingredients/:id', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const x = await ingredientAccess(user, req.params.id);
+      if (!x) return notFoundMsg(res, 'Insumo');
+      const [food, prices, suppliers] = await Promise.all([
+        x.ing.food_id ? database('foods').where('id', x.ing.food_id).first('id', 'name', 'food_group') : null,
+        database('ingredient_prices as p').leftJoin('suppliers as s', 's.id', 'p.supplier_id').leftJoin('directus_users as u', 'u.id', 'p.created_by')
+          .where('p.ingredient_id', x.ing.id).orderBy([{ column: 'p.valid_from', order: 'desc' }, { column: 'p.created_at', order: 'desc' }]).limit(200)
+          .select('p.id', 'p.price_cents', 'p.valid_from', 'p.source', 'p.created_at', 's.name as supplier_name', 'u.first_name', 'u.last_name'),
+        database('suppliers').where({ organization_id: x.ing.organization_id, active: true }).orderBy('name').select('id', 'name'),
+      ]);
+      const current = (await database.raw('select * from ingredient_price_at(?)', [x.ing.id])).rows[0];
+      res.json({
+        data: {
+          ingredient: ingOut(x.ing),
+          food: food ?? null,
+          can_manage: x.acc.canManage,
+          current_price: current?.id ? { id: current.id, price_cents: current.price_cents, valid_from: dateOut(current.valid_from) } : null,
+          prices: prices.map((p) => ({ ...p, valid_from: dateOut(p.valid_from), created_by_name: userName(p), first_name: undefined, last_name: undefined })),
+          suppliers,
+        },
+      });
+    });
+
+    router.put('/uan/ingredients/:id', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const x = await ingredientAccess(user, req.params.id);
+      if (!x) return notFoundMsg(res, 'Insumo');
+      if (!x.acc.canManage) return catalogForbidden(res);
+      const parsed = ingredientBody(req.body ?? {});
+      if (parsed.errors) return bad(res, parsed.errors);
+      if (!(await publicFood(parsed.data.food_id))) return bad(res, { food_id: 'Alimento inválido.' });
+      try {
+        const [row] = await withActor(user, (trx) => trx('ingredients').where('id', x.ing.id).update(parsed.data).returning(ING_FIELDS));
+        res.json({ data: ingOut(row) });
+      } catch (error) {
+        catalogDbError(res, error, 'alterar insumo');
+      }
+    });
+
+    router.post('/uan/ingredients/:id/prices', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const x = await ingredientAccess(user, req.params.id);
+      if (!x) return notFoundMsg(res, 'Insumo');
+      if (!x.acc.canManage) return catalogForbidden(res);
+      const b = req.body ?? {};
+      const errors = {};
+      const price = Number(String(b.price ?? '').replace(',', '.'));
+      if (!Number.isFinite(price) || price <= 0 || price > 1_000_000) errors.price = 'Informe o preço (R$).';
+      const validFrom = b.valid_from || null;
+      if (validFrom !== null && !isIsoDate(validFrom)) errors.valid_from = 'Data inválida.';
+      if (b.supplier_id && !isUuid(b.supplier_id)) errors.supplier_id = 'Fornecedor inválido.';
+      if (Object.keys(errors).length) return bad(res, errors);
+      try {
+        const [row] = await withActor(user, (trx) => trx('ingredient_prices').insert({
+          ingredient_id: x.ing.id, organization_id: x.ing.organization_id, supplier_id: b.supplier_id || null, price_cents: Math.round(price * 100),
+          ...(validFrom ? { valid_from: validFrom } : {}), source: 'manual', created_by: user,
+        }).returning(['id', 'price_cents', 'valid_from']));
+        res.status(201).json({ data: { ...row, valid_from: dateOut(row.valid_from) } });
+      } catch (error) {
+        p0001(res, error, 'registrar preço');
+      }
+    });
+
+    function supplierBody(b) {
+      const errors = {};
+      const str = (v, max) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : null);
+      const name = typeof b.name === 'string' ? b.name.trim() : '';
+      if (name.length < 2 || name.length > 120) errors.name = 'Informe o nome (2 a 120 caracteres).';
+      const cnpj = typeof b.cnpj === 'string' && b.cnpj.trim() ? b.cnpj.replace(/\D/g, '') : null;
+      if (cnpj !== null && cnpj.length !== 14) errors.cnpj = 'CNPJ com 14 dígitos.';
+      const email = str(b.email, 254);
+      if (email && !EMAIL.test(email)) errors.email = 'E-mail inválido.';
+      if (b.active !== undefined && typeof b.active !== 'boolean') errors.active = 'Valor inválido.';
+      if (Object.keys(errors).length) return { errors };
+      return { data: { name, cnpj, contact_name: str(b.contact_name, 120), phone: str(b.phone, 30), email: email?.toLowerCase() ?? null, notes: str(b.notes, 1000), ...(b.active === undefined ? {} : { active: b.active }) } };
+    }
+
+    router.get('/uan/organizations/:id/suppliers', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const acc = await catalogAccess(user, req.params.id);
+      if (!acc) return notFoundMsg(res, 'Empresa');
+      const rows = await database('suppliers as s').where('s.organization_id', acc.orgId).orderBy([{ column: 's.active', order: 'desc' }, { column: 's.name' }])
+        .select(...SUP_FIELDS.map((f) => `s.${f}`), database.raw('(select count(distinct p.ingredient_id)::int from ingredient_prices p where p.supplier_id = s.id) as ingredient_count'));
+      const org = await database('organizations').where('id', acc.orgId).first('id', 'name');
+      res.json({ data: { organization: org, can_manage: acc.canManage, items: rows } });
+    });
+
+    router.post('/uan/organizations/:id/suppliers', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const acc = await catalogAccess(user, req.params.id);
+      if (!acc) return notFoundMsg(res, 'Empresa');
+      if (!acc.canManage) return catalogForbidden(res);
+      const parsed = supplierBody(req.body ?? {});
+      if (parsed.errors) return bad(res, parsed.errors);
+      try {
+        const [row] = await withActor(user, (trx) => trx('suppliers').insert({ ...parsed.data, organization_id: acc.orgId }).returning(SUP_FIELDS));
+        res.status(201).json({ data: row });
+      } catch (error) {
+        catalogDbError(res, error, 'cadastrar fornecedor');
+      }
+    });
+
+    router.put('/uan/suppliers/:id', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const sup = isUuid(req.params.id) ? await database('suppliers').where('id', req.params.id).first('id', 'organization_id') : null;
+      const acc = sup ? await catalogAccess(user, sup.organization_id) : null;
+      if (!acc) return notFoundMsg(res, 'Fornecedor');
+      if (!acc.canManage) return catalogForbidden(res);
+      const parsed = supplierBody(req.body ?? {});
+      if (parsed.errors) return bad(res, parsed.errors);
+      try {
+        const [row] = await withActor(user, (trx) => trx('suppliers').where('id', sup.id).update(parsed.data).returning(SUP_FIELDS));
+        res.json({ data: row });
+      } catch (error) {
+        catalogDbError(res, error, 'alterar fornecedor');
+      }
+    });
+
     // ── Feedback do programa beta (RN-047) ──────────────────────────────────────────────────
     // Texto + tipo + caminho da página (sem query string). Lido só pelo admin da plataforma no Directus.
     const FEEDBACK_KINDS = new Set(['bug', 'idea', 'praise', 'other']);

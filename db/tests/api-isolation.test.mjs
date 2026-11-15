@@ -719,6 +719,15 @@ try {
     assert.deepEqual((await api('/rafanutri/uan/context', { token: a.token })).json.data, []);
     assert.equal((await api('/rafanutri/uan/context')).status, 401);
   });
+  // Conta sem consultório nem unidade, criada uma vez (o cadastro público tem limite por minuto).
+  let outsiderUser = null;
+  const outsider = async () => {
+    if (!outsiderUser) {
+      outsiderUser = await newUser('fora');
+      created.users.push((await api('/users/me?fields=id', { token: outsiderUser.token })).json.data.id);
+    }
+    return outsiderUser;
+  };
   if (process.env.ISOLATION_PSQL) {
     const uidB = created.users[1];
     // Só o consultório A criado por este teste (id recém-criado, dono com e-mail @example.com).
@@ -825,8 +834,7 @@ try {
       assert.equal((await api(`/rafanutri/uan/units/${U2}/checklist-runs`, { token: b.token, method: 'POST', body: { template_id: tpl.id, client_id: randomUUID() } })).status, 404, 'outra unidade');
       assert.equal((await api(`/rafanutri/uan/units/${U2}/checklists`, { token: b.token })).status, 404);
       // pessoa de fora (conta sem consultório nem unidade)
-      const out = await newUser('ck');
-      created.users.push((await api('/users/me?fields=id', { token: out.token })).json.data.id);
+      const out = await outsider();
       assert.equal((await api(`/rafanutri/uan/checklist-runs/${RUN}`, { token: out.token })).status, 404, 'lê execução');
       assert.equal((await api(`/rafanutri/uan/checklist-runs/${RUN}/answers/1`, { token: out.token, method: 'PUT', body: { value: 'conform' } })).status, 404, 'responde');
       assert.equal((await api(`/rafanutri/uan/checklist-runs/${RUN}/complete`, { token: out.token, method: 'POST', body: {} })).status, 404, 'conclui');
@@ -866,8 +874,7 @@ try {
       assert.equal((await api(`/rafanutri/uan/units/${U2}/temperatures`, { token: a.token, method: 'POST', body: { equipment_id: EQ, value: 4, client_id: randomUUID() } })).status, 404, 'equipamento de outra unidade');
       assert.equal((await api(`/rafanutri/uan/units/${U2}/temperatures`, { token: b.token })).status, 404, 'cozinheiro em outra unidade');
       assert.equal((await api(`/rafanutri/uan/equipment/${EQ}`, { token: b.token, method: 'PUT', body: { max_temp: 10 } })).status, 403, 'cozinheiro muda limite');
-      const out = await newUser('tp');
-      created.users.push((await api('/users/me?fields=id', { token: out.token })).json.data.id);
+      const out = await outsider();
       assert.equal((await api(`/rafanutri/uan/equipment/${EQ}`, { token: out.token })).status, 404, 'lê equipamento');
       assert.equal((await api(`/rafanutri/uan/units/${U1}/temperatures`, { token: out.token, method: 'POST', body: { equipment_id: EQ, value: 4, client_id: randomUUID() } })).status, 404, 'registra');
       assert.equal((await api(`/rafanutri/uan/units/${U1}/temperatures`, { token: out.token })).status, 404, 'lista');
@@ -886,8 +893,7 @@ try {
       const plan = await api(`/rafanutri/uan/non-conformities/${NC}/plans`, { token: a.token, method: 'POST', body: { what: 'Desentupir o ralo', due_date: '2026-12-01', who_user: uidB2 } });
       assert.equal(plan.status, 201, JSON.stringify(plan.json));
       assert.equal((await api(`/rafanutri/uan/non-conformities/${NC}/plans`, { token: a.token, method: 'POST', body: { what: 'X', due_date: '2026-12-01', who_user: randomUUID() } })).status, 400, 'responsável fora da equipe');
-      const out = await newUser('nc');
-      created.users.push((await api('/users/me?fields=id', { token: out.token })).json.data.id);
+      const out = await outsider();
       assert.equal((await api(`/rafanutri/uan/non-conformities/${NC}`, { token: out.token })).status, 404, 'lê NC');
       assert.equal((await api(`/rafanutri/uan/action-plans/${plan.json.data.id}/done`, { token: out.token, method: 'POST', body: {} })).status, 404, 'conclui ação');
       assert.equal((await api(`/rafanutri/uan/units/${U1}/non-conformities`, { token: out.token })).status, 404, 'quadro');
@@ -919,8 +925,7 @@ try {
       assert.equal(seen.json.data.can_edit, false, 'cozinheiro só lê');
       assert.equal(seen.json.data.items.length, 2);
       assert.equal((await api(`/rafanutri/uan/checklist-templates/${T}`, { token: b.token, method: 'PUT', body })).status, 403, 'cozinheiro edita');
-      const out = await newUser('md');
-      created.users.push((await api('/users/me?fields=id', { token: out.token })).json.data.id);
+      const out = await outsider();
       assert.equal((await api(`/rafanutri/uan/checklist-templates/${T}`, { token: out.token })).status, 404, 'de fora lê');
       assert.equal((await api(`/rafanutri/uan/units/${U1}/checklist-schedules`, { token: b.token, method: 'POST', body: { template_id: T, weekdays: [1, 2, 3, 4, 5, 6, 7], at_time: '00:15' } })).status, 403, 'cozinheiro agenda');
       const sch = await api(`/rafanutri/uan/units/${U1}/checklist-schedules`, { token: a.token, method: 'POST', body: { template_id: T, weekdays: [1, 2, 3, 4, 5, 6, 7], at_time: '00:15', tolerance_minutes: 15 } });
@@ -937,10 +942,35 @@ try {
       const mine = (await api('/rafanutri/uan/compliance', { token: b.token })).json.data.organizations.find((o) => o.id === A);
       assert.deepEqual(mine.units.map((u) => u.id), [U1], 'cozinheiro só a unidade 1');
       assert.ok('index' in mine.units[0] && 'components' in mine.units[0], 'índice calculado');
-      const out = await newUser('cp');
-      created.users.push((await api('/users/me?fields=id', { token: out.token })).json.data.id);
+      const out = await outsider();
       assert.deepEqual((await api('/rafanutri/uan/compliance', { token: out.token })).json.data.organizations, [], 'de fora');
       assert.equal((await api('/rafanutri/uan/compliance')).status, 401);
+    });
+    await check('UAN: insumos e fornecedores — cozinheiro vê mas não cadastra; de fora não vê; TACO só pública', async () => {
+      const ing = await api(`/rafanutri/uan/organizations/${A}/ingredients`, { token: a.token, method: 'POST', body: { name: 'Arroz teste', category: 'grains', purchase_unit: 'kg', storage: 'ambient', allergens: [] } });
+      assert.equal(ing.status, 201, JSON.stringify(ing.json));
+      const ING = ing.json.data.id;
+      assert.equal((await api(`/rafanutri/uan/organizations/${A}/ingredients`, { token: a.token, method: 'POST', body: { name: 'arroz TESTE', category: 'grains', purchase_unit: 'kg', storage: 'ambient' } })).status, 409, 'nome repetido');
+      assert.equal((await api(`/rafanutri/uan/organizations/${A}/ingredients`, { token: b.token, method: 'POST', body: { name: 'Feijão', category: 'grains', purchase_unit: 'kg', storage: 'ambient' } })).status, 403, 'cozinheiro cadastra');
+      const list = await api(`/rafanutri/uan/organizations/${A}/ingredients`, { token: b.token });
+      assert.equal(list.status, 200);
+      assert.equal(list.json.data.can_manage, false);
+      assert.ok(list.json.data.items.some((i) => i.id === ING), 'cozinheiro vê');
+      assert.equal((await api(`/rafanutri/uan/ingredients/${ING}/prices`, { token: b.token, method: 'POST', body: { price: '5,49' } })).status, 403, 'cozinheiro registra preço');
+      const sup = await api(`/rafanutri/uan/organizations/${A}/suppliers`, { token: a.token, method: 'POST', body: { name: 'Atacado teste', cnpj: '12.345.678/0001-90' } });
+      assert.equal(sup.status, 201, JSON.stringify(sup.json));
+      assert.equal(sup.json.data.cnpj, '12345678000190');
+      const price = await api(`/rafanutri/uan/ingredients/${ING}/prices`, { token: a.token, method: 'POST', body: { price: '5,49', supplier_id: sup.json.data.id } });
+      assert.equal(price.status, 201, JSON.stringify(price.json));
+      assert.equal((await api(`/rafanutri/uan/ingredients/${ING}`, { token: b.token })).json.data.current_price.price_cents, 549);
+      const out = await outsider();
+      assert.equal((await api(`/rafanutri/uan/organizations/${A}/ingredients`, { token: out.token })).status, 404, 'de fora lista');
+      assert.equal((await api(`/rafanutri/uan/ingredients/${ING}`, { token: out.token })).status, 404, 'de fora lê');
+      assert.equal((await api(`/rafanutri/uan/organizations/${A}/suppliers`, { token: out.token })).status, 404, 'de fora vê fornecedores');
+      assert.deepEqual((await api('/rafanutri/uan/foods?q=arroz', { token: out.token })).json.data, [], 'busca só para quem atua na UAN');
+      assert.ok((await api('/rafanutri/uan/foods?q=arroz', { token: b.token })).json.data.length > 0, 'busca na TACO');
+      assert.equal((await api(`/rafanutri/uan/organizations/${B}/ingredients`, { token: a.token })).status, 404, 'empresa sem UAN');
+      assert.ok((await api('/items/ingredients?limit=1', { token: b.token })).status >= 400, 'coleção direta recusada');
     });
   } else {
     console.log('  (pulado) UAN entre unidades: defina ISOLATION_PSQL');

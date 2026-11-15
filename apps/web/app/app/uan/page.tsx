@@ -53,7 +53,13 @@ export default async function UanPage() {
             return (
               <section key={o.id} aria-labelledby={`org-${o.id}`} className="space-y-4">
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <h2 id={`org-${o.id}`} className="font-display text-2xl font-semibold tracking-tight">{o.name}</h2>
+                  <div>
+                    <h2 id={`org-${o.id}`} className="font-display text-2xl font-semibold tracking-tight">{o.name}</h2>
+                    <nav aria-label={`Cadastros de ${o.name}`} className="flex gap-3 text-sm">
+                      <Link href={`/app/uan/insumos?empresa=${o.id}`} className="font-medium text-primary underline">Insumos</Link>
+                      <Link href={`/app/uan/fornecedores?empresa=${o.id}`} className="font-medium text-primary underline">Fornecedores</Link>
+                    </nav>
+                  </div>
                   {o.is_owner && o.unit_limit !== null && (
                     <p className="text-sm text-muted-foreground">{active} de {o.unit_limit} unidade(s) ativa(s) no contrato</p>
                   )}
