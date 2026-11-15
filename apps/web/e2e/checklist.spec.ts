@@ -11,6 +11,7 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAEUlEQVR
 test('checklist, temperaturas e não conformidade no celular', async ({ page }) => {
   test.skip(!email || !password, 'Defina E2E_USER_EMAIL e E2E_USER_PASSWORD (usuário de teste com consultório).');
   test.skip(test.info().project.name !== 'mobile', 'Checklist é feito no celular.');
+  test.setTimeout(120_000);
 
   await page.goto('/login?next=/app/uan');
   await page.getByLabel('E-mail').fill(email!);

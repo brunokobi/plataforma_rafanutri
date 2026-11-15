@@ -114,7 +114,7 @@ export async function deletePlan(ncId: string, planId: string): Promise<Result> 
 
 export async function closeNc(ncId: string, note: string, image: string | null): Promise<Result> {
   if (!isUuid(ncId)) return { ok: false, message: 'Não conformidade inválida.' };
-  if (!image) return { ok: false, message: 'Anexe a foto da evidência para fechar.', fields: { image: 'x' } };
+  if (!image) return { ok: false, message: 'Anexe a foto da evidência para fechar.', fields: { image: 'Anexe a foto da evidência para fechar.' } };
   if (!okImage(image)) return { ok: false, message: 'Foto inválida.' };
   try {
     const r = await call(`/uan/non-conformities/${ncId}/close`, 'POST', { note, image });
