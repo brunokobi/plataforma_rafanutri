@@ -1,5 +1,6 @@
 import { LogOut } from 'lucide-react';
 import Link from 'next/link';
+import { FeedbackButton } from '@/components/app/feedback-button';
 import { Logo } from '@/components/brand/logo';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Button } from '@/components/ui/button';
@@ -28,6 +29,7 @@ export function AppHeader({ homeHref = '/app', patientsHref = '/app/pacientes', 
           </nav>
         </div>
         <div className="flex items-center gap-2">
+          {withSignOut && <FeedbackButton />}
           <ThemeToggle />
           {withSignOut && (
             <form action={signOut}>

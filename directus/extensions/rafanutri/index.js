@@ -1641,6 +1641,36 @@ export default {
       }
     });
 
+    // ── Feedback do programa beta (RN-047) ──────────────────────────────────────────────────
+    // Texto + tipo + caminho da página (sem query string). Lido só pelo admin da plataforma no Directus.
+    const FEEDBACK_KINDS = new Set(['bug', 'idea', 'praise', 'other']);
+    router.post('/feedback', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const b = req.body ?? {};
+      const message = typeof b.message === 'string' ? b.message.trim() : '';
+      const kind = b.kind ?? 'other';
+      const errors = {};
+      if (message.length < 3 || message.length > 2000) errors.message = 'Escreva de 3 a 2.000 caracteres.';
+      if (!FEEDBACK_KINDS.has(kind)) errors.kind = 'Tipo inválido.';
+      let page = null;
+      if (typeof b.page === 'string' && b.page) {
+        const path = b.page.split(/[?#]/)[0].slice(0, 200);
+        if (path.startsWith('/') && !path.startsWith('//')) page = path;
+      }
+      if (Object.keys(errors).length) return bad(res, errors);
+      try {
+        const recent = await database('product_feedback').where('user_id', user).where('date_created', '>', database.raw("now() - interval '1 day'")).count('* as n').first();
+        if (Number(recent?.n ?? 0) >= 20) return res.status(429).json({ errors: [{ message: 'Muitos envios hoje. Tente amanhã.', extensions: { code: 'TOO_MANY_REQUESTS' } }] });
+        const org = await memberOrg(user);
+        await database('product_feedback').insert({ organization_id: org?.id ?? null, user_id: user, kind, message, page });
+        res.status(201).json({ data: { ok: true } });
+      } catch (error) {
+        logger.error({ err: error }, 'rafanutri: falha ao gravar feedback');
+        res.status(500).json({ errors: [{ message: 'Não foi possível enviar agora.', extensions: { code: 'INTERNAL_SERVER_ERROR' } }] });
+      }
+    });
+
     // ── Evoluções do prontuário (RN-023) ────────────────────────────────────────────────────
     // Rascunho → assinar (imutável) → retificar (nova versão ligada à original). As regras ficam no
     // gatilho clinical_notes_guard; aqui só se resolve o consultório e o autor pelo usuário logado.
