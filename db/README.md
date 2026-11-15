@@ -392,6 +392,14 @@ Migração `0020_patient_recommendations.sql` (idempotente; testes em `db/tests/
 
 Migração `0031_work_schedule.sql` (**aplicada na vpsrafa em 14/11/2026**; testes em `db/tests/0031_work_schedule.test.sql`): `organizations.work_start`, `work_end` (padrão 08:00–18:00, fim depois do início) e `work_weekdays` (ISO 1–7, padrão todos). Gravado por `PUT /rafanutri/practices/:id/schedule` (owner); lido em `/rafanutri/me/organizations`. A página pública (0029) mantém o próprio horário.
 
+## Feedback do beta (RN-047)
+
+Migração `0032_feedback.sql` (**aplicada na vpsrafa em 14/11/2026**; testes em `db/tests/0032_feedback.test.sql`): `product_feedback` (consultório, autor, tipo `bug`/`idea`/`praise`/`other`, mensagem de 3 a 2.000 caracteres, caminho da página sem query string, status `new`/`read`/`done`). Gravado só por `POST /rafanutri/feedback` (qualquer conta logada, até 20 por dia); nenhum papel lê a coleção: o admin da plataforma consulta no Directus ou por SQL. Sem print de tela, porque a tela costuma ter dados de pacientes. O e2e grava mensagens com o prefixo `[e2e]`:
+
+```sql
+select date_created, kind, page, message from product_feedback where message not like '[e2e]%' order by date_created desc;
+```
+
 ## Auditoria (RN-009)
 
 Migração `0030_audit.sql` (**aplicada na vpsrafa em 14/11/2026**; testes em `db/tests/0030_audit.test.sql` e no teste de isolamento):

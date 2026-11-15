@@ -41,8 +41,8 @@ export function FeedbackButton() {
       }}
     >
       <SheetTrigger asChild>
-        <Button variant="ghost" size="sm" aria-label="Enviar feedback">
-          <MessageSquarePlus className="size-4" /> <span className="hidden md:inline">Feedback</span>
+        <Button variant="ghost" size="sm" aria-label="Enviar feedback" title="Enviar feedback">
+          <MessageSquarePlus className="size-4" /> <span className="hidden 2xl:inline">Feedback</span>
         </Button>
       </SheetTrigger>
       <SheetContent className="w-full sm:max-w-md">

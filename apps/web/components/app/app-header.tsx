@@ -11,7 +11,7 @@ export function AppHeader({ homeHref = '/app', patientsHref = '/app/pacientes', 
   return (
     <header className="sticky top-0 z-30 border-b border-border/60 bg-background/80 backdrop-blur-lg">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-5">
-        <div className="flex items-center gap-6">
+        <div className="flex min-w-0 items-center gap-6">
           <Logo href={homeHref} />
           <nav aria-label="Área logada" className="hidden items-center gap-5 text-sm font-medium text-muted-foreground sm:flex">
             <Link href={homeHref} className="hover:text-foreground">Módulos</Link>
@@ -28,7 +28,7 @@ export function AppHeader({ homeHref = '/app', patientsHref = '/app/pacientes', 
             <Link href="/app/configuracoes/plano" className="hover:text-foreground">Meu plano</Link>
           </nav>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           {withSignOut && <FeedbackButton />}
           <ThemeToggle />
           {withSignOut && (
