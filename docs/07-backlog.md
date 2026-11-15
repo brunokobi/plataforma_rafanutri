@@ -197,10 +197,10 @@ Status: `todo`, `doing`, `done`, `adiado` (fora do MVP, ver [ADR 0004](adr/0004-
 | [RN-139](plano/fase-5-uan-qualidade.md#rn-139--cálculo-da-necessidade-de-compras) | Cálculo da necessidade de compras | feature | 8 | RN-138, RN-143 | todo |
 | [RN-140](plano/fase-5-uan-qualidade.md#rn-140--pedido-de-compra) | Pedido de compra | feature | 5 | RN-139 | todo |
 | [RN-141](plano/fase-5-uan-qualidade.md#rn-141--recebimento-de-mercadorias) | Recebimento de mercadorias | feature | 5 | RN-140, RN-146 | todo |
-| [RN-142](plano/fase-5-uan-qualidade.md#rn-142--migração-de-estoque) | Migração de estoque | infra | 2 | RN-125 | todo |
-| [RN-143](plano/fase-5-uan-qualidade.md#rn-143--estoque-com-fefo) | Estoque com FEFO | feature | 5 | RN-142 | todo |
-| [RN-144](plano/fase-5-uan-qualidade.md#rn-144--inventário-e-ajustes) | Inventário e ajustes | feature | 3 | RN-143 | todo |
-| [RN-145](plano/fase-5-uan-qualidade.md#rn-145--alertas-de-validade-e-estoque-mínimo) | Alertas de validade e estoque mínimo | feature | 3 | RN-143, RN-050 | todo |
+| [RN-142](plano/fase-5-uan-qualidade.md#rn-142--migração-de-estoque) | Migração de estoque | infra | 2 | RN-125 | done |
+| [RN-143](plano/fase-5-uan-qualidade.md#rn-143--estoque-com-fefo) | Estoque com FEFO | feature | 5 | RN-142 | done |
+| [RN-144](plano/fase-5-uan-qualidade.md#rn-144--inventário-e-ajustes) | Inventário e ajustes | feature | 3 | RN-143 | done |
+| [RN-145](plano/fase-5-uan-qualidade.md#rn-145--alertas-de-validade-e-estoque-mínimo) | Alertas de validade e estoque mínimo | feature | 3 | RN-143, RN-050 | doing |
 | [RN-146](plano/fase-5-uan-qualidade.md#rn-146--migração-de-checklists) | Migração de checklists | infra | 3 | RN-122 | done |
 | [RN-147](plano/fase-5-uan-qualidade.md#rn-147--editor-de-modelos-e-biblioteca-padrão) | Editor de modelos e biblioteca padrão | feature | 5 | RN-146 | done |
 | [RN-148](plano/fase-5-uan-qualidade.md#rn-148--execução-de-checklist-no-celular) | Execução de checklist no celular | feature | 8 | RN-147 | done |

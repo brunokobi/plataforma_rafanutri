@@ -850,9 +850,9 @@ Referências: ANVISA RDC nº 429/2020 e IN nº 75/2020. Todos os valores abaixo 
 - **Depende de:** RN-125
 - **Descrição:** Criar `stock_lots` e `stock_movements` com saldo consistente.
 - **Tarefas técnicas:**
-  - [ ] Migração e RLS
-  - [ ] Função `apply_stock_movement` transacional que atualiza o lote e impede saldo negativo
-  - [ ] Visão `stock_balance` por unidade e insumo
+  - [x] Migração e RLS
+  - [x] Função `apply_stock_movement` transacional que atualiza o lote e impede saldo negativo
+  - [x] Visão `stock_balance` por unidade e insumo
 - **Arquivos/áreas:** `supabase/migrations/`
 - **Critérios de aceite:** Dado um lote com 2 kg, quando registrar saída de 3 kg, então a transação falha.
 - **Testes:** integração (concorrência com duas saídas simultâneas).
@@ -863,10 +863,10 @@ Referências: ANVISA RDC nº 429/2020 e IN nº 75/2020. Todos os valores abaixo 
 - **Depende de:** RN-142
 - **Descrição:** Saldo por insumo, lotes e validades, saída por produção com escolha FEFO e baixa por perda.
 - **Tarefas técnicas:**
-  - [ ] Tela de saldo com lotes e cores por validade
-  - [ ] `pickLotsFefo(lots, quantity)` no `nutrition-core`
-  - [ ] Saída de produção a partir do cardápio do dia
-  - [ ] Baixa por perda com motivo
+  - [x] Tela de saldo com lotes e cores por validade
+  - [x] `pickLotsFefo(lots, quantity)` no `nutrition-core`
+  - [x] Saída de produção a partir do cardápio do dia
+  - [x] Baixa por perda com motivo
 - **Arquivos/áreas:** `apps/web/app/(uan)/uan/[unitId]/stock/`, `packages/nutrition-core/src/stock/`
 - **Critérios de aceite:** Dados dois lotes de leite com validades 10/05 e 05/05, quando registrar saída, então o sistema consome primeiro o de 05/05.
 - **Testes:** unidade, e2e.
@@ -877,9 +877,9 @@ Referências: ANVISA RDC nº 429/2020 e IN nº 75/2020. Todos os valores abaixo 
 - **Depende de:** RN-143
 - **Descrição:** Contagem física, diferença contra o sistema e ajuste com aprovação.
 - **Tarefas técnicas:**
-  - [ ] Abertura de inventário com lista de insumos
-  - [ ] Contagem no celular
-  - [ ] Relatório de divergências e aprovação do ajuste pelo RT
+  - [x] Abertura de inventário com lista de insumos
+  - [x] Contagem no celular
+  - [x] Relatório de divergências e aprovação do ajuste pelo RT
 - **Arquivos/áreas:** `apps/web/app/(uan)/uan/[unitId]/stock/inventory/`
 - **Critérios de aceite:** Dado um inventário com divergência de 2 kg, quando o RT aprova, então é gerado um movimento `adjustment` com o motivo.
 - **Testes:** e2e.
@@ -892,7 +892,7 @@ Referências: ANVISA RDC nº 429/2020 e IN nº 75/2020. Todos os valores abaixo 
 - **Tarefas técnicas:**
   - [ ] Job diário (pg_cron ou n8n) que gera a lista
   - [ ] Envio por e-mail ou WhatsApp para o estoquista e o RT
-  - [ ] Badge no menu da unidade
+  - [x] Badge no menu da unidade
 - **Arquivos/áreas:** `n8n/workflows/stock-alerts.json`, `supabase/migrations/`
 - **Critérios de aceite:** Dado um lote que vence em 2 dias, quando o job roda às 7h, então o estoquista recebe o aviso.
 - **Testes:** integração.

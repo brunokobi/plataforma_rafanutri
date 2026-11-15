@@ -584,6 +584,23 @@ Migração `0045_production.sql` (**aplicada na vpsrafa em 15/11/2026**, backup 
 | `POST /rafanutri/uan/units/:id/diners` (`{ day, service, planned, actual }`), `POST …/diners/pattern` (`{ from, to, weekdays, service, planned }`) | Owner, gestor, RT |
 | `PUT /rafanutri/uan/units/:id/waste` | Quem executa (owner, RT, gestor, cozinheiro, estoquista) |
 
+## Estoque por lote com FEFO e inventário (U4a: RN-142 a RN-145)
+
+Migração `0046_stock.sql` (**aplicada na vpsrafa em 15/11/2026**, backup `antes-0046-2026-11-15.dump`; testes em `db/tests/0046_stock.test.sql`). Quantidades em gramas; a tela converte para a unidade de compra.
+
+- `stock_lots` (saldo nunca negativo) e `stock_movements` (`in`, `out_production`, `out_loss`, `adjustment`): só pelas funções (gatilho `stock_fn_guard`).
+- `stock_receive(unidade, insumo, gramas, lote, validade, fornecedor, custo/kg, usuário, ref)`; `stock_out_fefo(unidade, insumo, gramas, tipo, motivo, usuário, ref)` trava os lotes do insumo, falha se faltar saldo e consome pela validade mais próxima (sem validade por último). Visão `stock_balance`.
+- `inventories` e `inventory_counts`: `inventory_open` guarda o saldo de cada insumo; `inventory_approve` (RT da unidade ou owner) exige motivo nas divergências e lança os ajustes.
+
+| Endpoint | Quem |
+|---|---|
+| `GET /rafanutri/uan/units/:id/stock` | Equipe da unidade |
+| `POST …/stock/in` (`{ ingredient_id, quantity, lot_code, expires_on, supplier_id, cost }`), `POST …/stock/out` (`{ kind, reason, lines: [{ ingredient_id, quantity | quantity_g }] }`) | Owner, gestor, RT, estoquista |
+| `POST /rafanutri/uan/units/:id/inventories`, `GET /rafanutri/uan/inventories/:id`, `PUT …/counts`, `POST …/cancel` | Idem (saldo do sistema só aparece para quem aprova) |
+| `POST /rafanutri/uan/inventories/:id/approve` | RT da unidade ou owner |
+
+Migração `0047_purchasing.sql` (pedido e recebimento) está escrita e testada no banco descartável; entra em produção com a U4b.
+
 ## Feedback do beta (RN-047)
 
 Migração `0032_feedback.sql` (**aplicada na vpsrafa em 14/11/2026**; testes em `db/tests/0032_feedback.test.sql`): `product_feedback` (consultório, autor, tipo `bug`/`idea`/`praise`/`other`, mensagem de 3 a 2.000 caracteres, caminho da página sem query string, status `new`/`read`/`done`). Gravado só por `POST /rafanutri/feedback` (qualquer conta logada, até 20 por dia); nenhum papel lê a coleção: o admin da plataforma consulta no Directus ou por SQL. Sem print de tela, porque a tela costuma ter dados de pacientes. O e2e grava mensagens com o prefixo `[e2e]`:
