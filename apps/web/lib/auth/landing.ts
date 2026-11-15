@@ -18,6 +18,8 @@ export interface UserOrganization {
   work_start?: string;
   work_end?: string;
   work_weekdays?: number[];
+  /** Módulos habilitados na organização (ex.: ['clinical', 'uan']). */
+  modules?: string[];
 }
 
 /**

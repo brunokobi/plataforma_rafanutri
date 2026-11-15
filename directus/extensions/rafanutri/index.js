@@ -90,7 +90,7 @@ export default {
         .where('m.user_id', user)
         .orderBy('o.created_at')
         .select('o.id', 'o.name', 'o.slug', 'o.type', 'o.brand_color', 'o.plan', 'm.role', database.raw('(o.logo is not null) as has_logo'), 'o.receipt_tax_id',
-          database.raw("to_char(o.work_start, 'HH24:MI') as work_start"), database.raw("to_char(o.work_end, 'HH24:MI') as work_end"), 'o.work_weekdays');
+          database.raw("to_char(o.work_start, 'HH24:MI') as work_start"), database.raw("to_char(o.work_end, 'HH24:MI') as work_end"), 'o.work_weekdays', 'o.modules');
       res.json({ data: rows });
     });
 
@@ -1638,6 +1638,170 @@ export default {
       } catch (error) {
         logger.error({ err: error }, 'rafanutri: falha ao registrar interesse no plano pago');
         res.status(500).json({ errors: [{ message: 'Não foi possível registrar agora.', extensions: { code: 'INTERNAL_SERVER_ERROR' } }] });
+      }
+    });
+
+    // ── Módulo UAN: unidades produtoras (RN-121 a RN-123) ──────────────────────────────────
+    // O owner da organização (com o módulo habilitado) vê e administra todas as unidades; a equipe
+    // (unit_members) vê só as unidades em que tem papel. As regras de módulo, limite de unidades
+    // ativas e organização imutável ficam no gatilho production_units_guard (0033).
+    const UNIT_KINDS = new Set(['industrial', 'hospital', 'school', 'hotel', 'restaurant', 'catering', 'other']);
+    const UNIT_FIELDS = ['id', 'organization_id', 'name', 'kind', 'cnpj', 'address', 'city', 'state', 'geo_lat', 'geo_lng', 'geo_radius_m', 'sanitary_license', 'sanitary_license_expires_at', 'active', 'created_at'];
+    const unitNotFound = (res) => res.status(404).json({ errors: [{ message: 'Unidade não encontrada.', extensions: { code: 'NOT_FOUND' } }] });
+    const unitOut = (u) => ({
+      ...u,
+      geo_lat: u.geo_lat === null ? null : Number(u.geo_lat),
+      geo_lng: u.geo_lng === null ? null : Number(u.geo_lng),
+      sanitary_license_expires_at: u.sanitary_license_expires_at ? String(u.sanitary_license_expires_at instanceof Date ? u.sanitary_license_expires_at.toISOString() : u.sanitary_license_expires_at).slice(0, 10) : null,
+    });
+
+    /** Organizações com UAN em que o usuário é owner ou tem papel em alguma unidade. */
+    async function uanOrgs(user) {
+      const owned = await database('organization_members as m')
+        .join('organizations as o', 'o.id', 'm.organization_id')
+        .where({ 'm.user_id': user, 'm.role': 'owner' })
+        .whereRaw("'uan' = any (o.modules)")
+        .select('o.id', 'o.name');
+      const staff = await database('unit_members as um')
+        .join('production_units as u', 'u.id', 'um.unit_id')
+        .join('organizations as o', 'o.id', 'u.organization_id')
+        .where('um.user_id', user)
+        .whereRaw("'uan' = any (o.modules)")
+        .distinct('o.id', 'o.name');
+      const ownedIds = new Set(owned.map((o) => o.id));
+      return [...owned.map((o) => ({ ...o, is_owner: true })), ...staff.filter((o) => !ownedIds.has(o.id)).map((o) => ({ ...o, is_owner: false }))];
+    }
+
+    /** Unidade + papéis do usuário nela; null se não existe ou ele não tem acesso. */
+    async function unitAccess(user, unitId) {
+      if (!isUuid(unitId)) return null;
+      const unit = await database('production_units as u').join('organizations as o', 'o.id', 'u.organization_id').where('u.id', unitId).whereRaw("'uan' = any (o.modules)").first(...UNIT_FIELDS.map((f) => `u.${f}`));
+      if (!unit) return null;
+      const owner = await database('organization_members').where({ organization_id: unit.organization_id, user_id: user, role: 'owner' }).first('id');
+      const roles = (await database('unit_members').where({ unit_id: unitId, user_id: user }).select('role')).map((r) => r.role);
+      if (!owner && !roles.length) return null;
+      return { unit, isOwner: Boolean(owner), roles };
+    }
+
+    function unitBody(b) {
+      const errors = {};
+      const str = (v, max) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : null);
+      const name = typeof b.name === 'string' ? b.name.trim() : '';
+      if (name.length < 2 || name.length > 120) errors.name = 'Informe o nome da unidade (2 a 120 caracteres).';
+      const kind = b.kind ?? 'restaurant';
+      if (!UNIT_KINDS.has(kind)) errors.kind = 'Tipo inválido.';
+      const cnpj = typeof b.cnpj === 'string' && b.cnpj.trim() ? b.cnpj.replace(/\D/g, '') : null;
+      if (cnpj !== null && cnpj.length !== 14) errors.cnpj = 'CNPJ com 14 dígitos.';
+      const state = typeof b.state === 'string' && b.state.trim() ? b.state.trim().toUpperCase() : null;
+      if (state !== null && !/^[A-Z]{2}$/.test(state)) errors.state = 'UF com 2 letras.';
+      const num = (v) => (v === null || v === undefined || v === '' ? null : Number(v));
+      const lat = num(b.geo_lat);
+      const lng = num(b.geo_lng);
+      if ((lat === null) !== (lng === null)) errors.geo_lat = 'Informe latitude e longitude juntas.';
+      else if (lat !== null && (!Number.isFinite(lat) || lat < -90 || lat > 90)) errors.geo_lat = 'Latitude inválida.';
+      else if (lng !== null && (!Number.isFinite(lng) || lng < -180 || lng > 180)) errors.geo_lng = 'Longitude inválida.';
+      const radius = b.geo_radius_m === undefined || b.geo_radius_m === null || b.geo_radius_m === '' ? 200 : Number(b.geo_radius_m);
+      if (!Number.isInteger(radius) || radius < 20 || radius > 5000) errors.geo_radius_m = 'Raio entre 20 e 5.000 m.';
+      const expires = b.sanitary_license_expires_at || null;
+      if (expires !== null && !isIsoDate(expires)) errors.sanitary_license_expires_at = 'Data inválida.';
+      if (b.active !== undefined && typeof b.active !== 'boolean') errors.active = 'Valor inválido.';
+      if (Object.keys(errors).length) return { errors };
+      return {
+        data: {
+          name,
+          kind,
+          cnpj,
+          address: str(b.address, 300),
+          city: str(b.city, 120),
+          state,
+          geo_lat: lat === null ? null : Math.round(lat * 1e6) / 1e6,
+          geo_lng: lng === null ? null : Math.round(lng * 1e6) / 1e6,
+          geo_radius_m: radius,
+          sanitary_license: str(b.sanitary_license, 80),
+          sanitary_license_expires_at: expires,
+          ...(b.active === undefined ? {} : { active: b.active }),
+        },
+      };
+    }
+
+    /** Erro do gatilho (módulo, limite) vira 409 com a mensagem do banco. */
+    function unitDbError(res, error) {
+      if (error?.code === '23514' && /Limite de unidades|módulo UAN/.test(error.message ?? '')) {
+        return conflict(res, /Limite/.test(error.message) ? 'Limite de unidades ativas do contrato atingido.' : 'O módulo UAN não está habilitado para esta organização.');
+      }
+      logger.error({ err: error }, 'rafanutri: falha ao gravar unidade');
+      return res.status(500).json({ errors: [{ message: 'Não foi possível salvar agora.', extensions: { code: 'INTERNAL_SERVER_ERROR' } }] });
+    }
+
+    router.get('/uan/context', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const orgs = await uanOrgs(user);
+      const out = [];
+      for (const o of orgs) {
+        let q = database('production_units as u').where('u.organization_id', o.id).orderBy([{ column: 'u.active', order: 'desc' }, { column: 'u.name' }]);
+        if (!o.is_owner) q = q.whereIn('u.id', database('unit_members').where('user_id', user).select('unit_id'));
+        const units = (await q.select(...UNIT_FIELDS.map((f) => `u.${f}`))).map(unitOut);
+        const roles = await database('unit_members').where('user_id', user).whereIn('unit_id', units.map((u) => u.id)).select('unit_id', 'role');
+        const limit = o.is_owner ? (await database.raw('select uan_unit_limit(?) as n', [o.id])).rows[0].n : null;
+        out.push({
+          id: o.id,
+          name: o.name,
+          is_owner: o.is_owner,
+          unit_limit: limit,
+          units: units.map((u) => ({ ...u, roles: roles.filter((r) => r.unit_id === u.id).map((r) => r.role) })),
+        });
+      }
+      res.json({ data: out });
+    });
+
+    router.post('/uan/units', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const orgId = req.body?.organization_id;
+      const owns = isUuid(orgId) && (await uanOrgs(user)).some((o) => o.id === orgId && o.is_owner);
+      if (!owns) return res.status(403).json({ errors: [{ message: 'Só o responsável pela empresa, com o módulo UAN habilitado, cria unidades.', extensions: { code: 'FORBIDDEN' } }] });
+      const parsed = unitBody(req.body ?? {});
+      if (parsed.errors) return bad(res, parsed.errors);
+      try {
+        const [row] = await withActor(user, (trx) => trx('production_units').insert({ ...parsed.data, organization_id: orgId }).returning(UNIT_FIELDS));
+        res.status(201).json({ data: unitOut(row) });
+      } catch (error) {
+        unitDbError(res, error);
+      }
+    });
+
+    router.get('/uan/units/:id', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const a = await unitAccess(user, req.params.id);
+      if (!a) return unitNotFound(res);
+      const canManage = a.isOwner || a.roles.includes('manager') || a.roles.includes('technical_lead');
+      const members = canManage
+        ? await database('unit_members as um')
+            .join('directus_users as du', 'du.id', 'um.user_id')
+            .where('um.unit_id', a.unit.id)
+            .orderBy(['du.first_name', 'um.role'])
+            .select('um.user_id', 'um.role', 'du.first_name', 'du.last_name', 'du.email')
+        : [];
+      res.json({ data: { unit: unitOut(a.unit), is_owner: a.isOwner, roles: a.roles, can_edit: a.isOwner || a.roles.includes('manager'), members } });
+    });
+
+    router.put('/uan/units/:id', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const a = await unitAccess(user, req.params.id);
+      if (!a) return unitNotFound(res);
+      if (!a.isOwner && !a.roles.includes('manager')) return res.status(403).json({ errors: [{ message: 'Só o responsável pela empresa ou o gestor da unidade altera os dados.', extensions: { code: 'FORBIDDEN' } }] });
+      // Ativar/desativar é do owner (mexe no limite do contrato).
+      if (!a.isOwner && req.body?.active !== undefined) return res.status(403).json({ errors: [{ message: 'Só o responsável pela empresa ativa ou desativa unidades.', extensions: { code: 'FORBIDDEN' } }] });
+      const parsed = unitBody(req.body ?? {});
+      if (parsed.errors) return bad(res, parsed.errors);
+      try {
+        const [row] = await withActor(user, (trx) => trx('production_units').where('id', a.unit.id).update(parsed.data).returning(UNIT_FIELDS));
+        res.json({ data: unitOut(row) });
+      } catch (error) {
+        unitDbError(res, error);
       }
     });
 

@@ -392,6 +392,31 @@ Migração `0020_patient_recommendations.sql` (idempotente; testes em `db/tests/
 
 Migração `0031_work_schedule.sql` (**aplicada na vpsrafa em 14/11/2026**; testes em `db/tests/0031_work_schedule.test.sql`): `organizations.work_start`, `work_end` (padrão 08:00–18:00, fim depois do início) e `work_weekdays` (ISO 1–7, padrão todos). Gravado por `PUT /rafanutri/practices/:id/schedule` (owner); lido em `/rafanutri/me/organizations`. A página pública (0029) mantém o próprio horário.
 
+## Módulo UAN: unidades e equipe (RN-121 a RN-123)
+
+Migração `0033_uan_units.sql` (testes em `db/tests/0033_uan_units.test.sql`):
+
+- `organizations.modules` (`{clinical}` por padrão; `{clinical,uan}` habilita a UAN) e `org_has_module(org, módulo)`.
+- `organization_contracts` (plano `uan_pilot`/`uan_quality`/`uan_complete`, unidades contratadas, preço, vigência e recursos) e `uan_unit_limit(org)`: unidades ativas do contrato vigente; sem contrato, 1.
+- `production_units`: nome, tipo, CNPJ (14 dígitos), endereço, cidade/UF, latitude/longitude e raio, alvará sanitário e validade, ativa. O gatilho `production_units_guard` exige o módulo, respeita o limite (com trava por organização) e impede mudar de organização. Alterações entram na auditoria.
+- `unit_members (unidade, usuário, papel)`: `technical_lead` (um por unidade), `manager`, `cook`, `stock_keeper`, `auditor`. `has_unit_role(unidade, usuário, papéis)`: o owner da organização tem todos.
+
+A equipe da UAN fica **só** em `unit_members`, nunca em `organization_members`. Assim, nenhuma regra clínica ou financeira (que olha `organization_members`) alcança cozinheiros e estoquistas. As tabelas não têm permissão no Directus; tudo passa pelos endpoints:
+
+| Endpoint | Quem |
+|---|---|
+| `GET /rafanutri/uan/context` | Empresas com UAN em que o usuário atua, com as unidades que ele vê, os papéis e o limite (owner) |
+| `POST /rafanutri/uan/units` | Owner da empresa (409 no limite do contrato) |
+| `GET /rafanutri/uan/units/:id` | Owner ou equipe da unidade; a equipe é listada só para owner, gestor e RT |
+| `PUT /rafanutri/uan/units/:id` | Owner ou gestor; ativar e desativar, só o owner |
+
+Habilitar a UAN numa organização (admin, por SQL, até existir a cobrança Enterprise):
+
+```sql
+update organizations set modules = '{clinical,uan}' where id = '<org>';
+insert into organization_contracts (organization_id, plan, units_contracted) values ('<org>', 'uan_pilot', 2);
+```
+
 ## Feedback do beta (RN-047)
 
 Migração `0032_feedback.sql` (**aplicada na vpsrafa em 14/11/2026**; testes em `db/tests/0032_feedback.test.sql`): `product_feedback` (consultório, autor, tipo `bug`/`idea`/`praise`/`other`, mensagem de 3 a 2.000 caracteres, caminho da página sem query string, status `new`/`read`/`done`). Gravado só por `POST /rafanutri/feedback` (qualquer conta logada, até 20 por dia); nenhum papel lê a coleção: o admin da plataforma consulta no Directus ou por SQL. Sem print de tela, porque a tela costuma ter dados de pacientes. O e2e grava mensagens com o prefixo `[e2e]`:

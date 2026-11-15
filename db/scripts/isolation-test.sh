@@ -14,7 +14,9 @@ COLLECTIONS=$(echo "select string_agg(table_name, ',' order by table_name) from 
 [ -n "$COLLECTIONS" ] || { echo "Não consegui listar as tabelas do banco." >&2; exit 2; }
 
 OUT=$(mktemp)
-DIRECTUS_URL="$URL" ISOLATION_COLLECTIONS="$COLLECTIONS" node db/tests/api-isolation.test.mjs 2>&1 | tee "$OUT"
+# Comando de psql para o teste habilitar o módulo UAN nos consultórios de teste (só eles: o teste confere o nome).
+PSQL_CMD="ssh -o BatchMode=yes -i '$KEY' '$HOST' 'docker exec -i rafanutri-postgres sh -c \"psql -q -v ON_ERROR_STOP=1 -U \\\$POSTGRES_USER -d \\\$POSTGRES_DB\"'"
+DIRECTUS_URL="$URL" ISOLATION_COLLECTIONS="$COLLECTIONS" ISOLATION_PSQL="$PSQL_CMD" node db/tests/api-isolation.test.mjs 2>&1 | tee "$OUT"
 STATUS=${PIPESTATUS[0]}
 
 CLEAN=$(grep -o 'CLEANUP_JSON .*' "$OUT" | tail -1 | sed 's/^CLEANUP_JSON //')

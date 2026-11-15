@@ -1,3 +1,5 @@
+import { ChefHat } from 'lucide-react';
+import Link from 'next/link';
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { AppHeader } from '@/components/app/app-header';
@@ -51,6 +53,16 @@ export default async function AppHome({ searchParams }: { searchParams: Promise<
         {dashboard && <TodayPanel data={dashboard} />}
 
         {indicators && <IndicatorsPanel data={indicators} />}
+
+        {organizations?.some((o) => o.modules?.includes('uan')) && (
+          <Link href="/app/uan" className="flex items-center gap-4 rounded-2xl border border-primary/40 bg-primary/5 p-5 hover:bg-primary/10">
+            <ChefHat className="size-8 shrink-0 text-primary" />
+            <span>
+              <span className="block font-display text-xl font-semibold">UAN e Qualidade</span>
+              <span className="block text-sm text-muted-foreground">Unidades produtoras, equipe e Boas Práticas.</span>
+            </span>
+          </Link>
+        )}
 
         <p className="text-muted-foreground">
           Abaixo, os módulos da Rafanutri e o que o seu plano inclui. Cada módulo é liberado conforme o roadmap.

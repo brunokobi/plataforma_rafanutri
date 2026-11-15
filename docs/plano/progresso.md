@@ -90,6 +90,18 @@ Atualizado em **13/11/2026**. O que já está no código (`main`), o que está s
 | RN-064 Painel de indicadores | ✅ | Migração 0028: `dashboard_indicators(org, mês, nutricionista)` (testada com dados conhecidos). Na página inicial, abaixo do dia: faturamento do mês (regime de caixa), a receber (com atrasado), ticket médio (pagamentos de pacientes), consultas realizadas, taxa de faltas, novos pacientes e retornos atrasados, cada um com a variação contra o mês anterior e atalho para a tela de origem. Na clínica (mais de um nutricionista), filtro por nutricionista nas consultas, faltas, ticket e retornos. Sem biblioteca de gráficos: cards (o gráfico de 6 meses fica no Financeiro) |
 | RN-068 Página pública e agendamento online | ✅ | Migração 0029: `public_profiles` (apresentação, especialidades, endereço, modalidades, valores, expediente, duração, antecedência, dias à frente, nutricionista da agenda), `booking_requests` e `appointments.origin`. `/n/[slug]` (pública, com a marca): horários livres calculados no servidor (expediente − consultas − pedidos pendentes, horário de Brasília), sem expor nada das consultas. O pedido **segura o horário** (trava por consultório no banco): dois visitantes não reservam o mesmo. Com aprovação (padrão), o pedido aparece no topo da agenda para confirmar (cria ou reaproveita o paciente pelo e-mail e marca a consulta) ou recusar; sem aprovação, cria na hora se houver vaga no plano (senão fica pendente). Antispam: campo-isca, 30 pedidos/dia por consultório, 2 pendentes por e-mail/telefone e o limite por IP do Directus. Configuração em Consultório → Página pública (owner). Falta: confirmação e lembrete por e-mail/WhatsApp (RN-051, depende do Resend/n8n) |
 
+## Fase 5 — UAN e Qualidade (Enterprise)
+
+Começou em 15/11/2026 pela entrega **U0** do [plano do módulo](../modulos/uan.md), adiantada em relação à ordem do roadmap, enquanto a Fase 2 espera Resend, n8n e o gateway.
+
+| Item | Status | Observação |
+|---|---|---|
+| RN-120 Descoberta e BPF Check | ✅ | [docs/pesquisa/uan-discovery.md](../pesquisa/uan-discovery.md): o BPF Check tem 1 usuário, parado desde março, e um modelo RDC 216 (10 seções, 58 itens) que vira modelo padrão na U1. Sem migração de dados |
+| RN-121 Unidades e papéis | ✅ base | Migração 0033: módulos por organização, contrato com limite de unidades ativas, unidades produtoras, equipe por unidade (RT, gestor, cozinheiro, estoquista, auditor). A equipe fica fora de `organization_members`, então não alcança o clínico nem o financeiro ([db/README](../../db/README.md#módulo-uan-unidades-e-equipe-rn-121-a-rn-123)) |
+| RN-122 Isolamento por unidade | ✅ base | `has_unit_role` e `org_has_module` no banco; endpoints `/rafanutri/uan/*` conferem dono e papel; teste de isolamento cobre o cozinheiro de uma unidade sem acesso à outra, sem edição, sem equipe e sem clínico |
+| RN-123 Tela de unidades | 🟡 | `/app/uan` (atalho na página inicial quando o módulo está habilitado): unidades por empresa, limite do contrato, nova unidade com CNPJ, endereço, alvará e validade (alerta de vencido ou vencendo em 30 dias), coordenadas e raio; editar e desativar. Falta: convite da equipe por link, com papel por unidade |
+| RN-124 Contrato Enterprise | ⏳ | Contrato já existe no banco (habilitado pelo admin por SQL); a cobrança depende do gateway (RN-057) |
+
 ## Página pública e marketing
 
 | Item | Situação |

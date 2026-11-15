@@ -6,8 +6,12 @@
 // O token de administrador só é usado na limpeza e para listar as coleções (ADR 0008, regra 1).
 // Sem token: db/scripts/isolation-test.sh lista as tabelas pelo banco (ISOLATION_COLLECTIONS) e faz a
 // limpeza por SQL a partir da linha CLEANUP_JSON que o teste imprime.
+// ISOLATION_PSQL (opcional): comando que recebe SQL na entrada padrão. Usado só para habilitar o módulo
+// UAN e o contrato nos consultórios de teste (no MVP isso é feito pelo admin por SQL); sem ele, os
+// cenários de UAN entre unidades são pulados.
 
 import assert from 'node:assert/strict';
+import { execSync } from 'node:child_process';
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 
 const URL_ = process.env.DIRECTUS_URL;
@@ -707,6 +711,56 @@ try {
     const theirs = (await api('/rafanutri/me/organizations', { token: b.token })).json.data.find((o) => o.id === B);
     assert.deepEqual([theirs.work_start, theirs.work_end], ['08:00', '18:00'], 'B intacto');
   });
+
+  // RN-121 a RN-123: UAN. Sem o módulo, ninguém cria unidade; com ele, o cozinheiro de uma unidade
+  // não vê a outra, não edita e não ganha acesso clínico ao consultório.
+  await check('UAN: sem o módulo não cria unidade; sem login 401', async () => {
+    assert.equal((await api('/rafanutri/uan/units', { token: a.token, method: 'POST', body: { organization_id: A, name: 'Unidade Teste' } })).status, 403);
+    assert.deepEqual((await api('/rafanutri/uan/context', { token: a.token })).json.data, []);
+    assert.equal((await api('/rafanutri/uan/context')).status, 401);
+  });
+  if (process.env.ISOLATION_PSQL) {
+    const uidB = created.users[1];
+    execSync(process.env.ISOLATION_PSQL, {
+      input: `update organizations set modules = '{clinical,uan}' where id = '${A}' and name = 'Consultório Teste A';
+              insert into organization_contracts (organization_id, plan, units_contracted) values ('${A}', 'uan_pilot', 2);`,
+      stdio: ['pipe', 'ignore', 'inherit'],
+    });
+    const u1 = await api('/rafanutri/uan/units', { token: a.token, method: 'POST', body: { organization_id: A, name: 'Unidade Teste 1', kind: 'industrial' } });
+    const u2 = await api('/rafanutri/uan/units', { token: a.token, method: 'POST', body: { organization_id: A, name: 'Unidade Teste 2' } });
+    assert.equal(u1.status, 201, JSON.stringify(u1.json)); assert.equal(u2.status, 201);
+    const U1 = u1.json.data.id; const U2 = u2.json.data.id;
+    await check('UAN: limite do contrato e empresa de outro dono', async () => {
+      assert.equal((await api('/rafanutri/uan/units', { token: a.token, method: 'POST', body: { organization_id: A, name: 'Unidade Teste 3' } })).status, 409);
+      assert.equal((await api('/rafanutri/uan/units', { token: b.token, method: 'POST', body: { organization_id: A, name: 'Intrusa' } })).status, 403);
+      assert.equal((await api(`/rafanutri/uan/units/${U1}`, { token: b.token })).status, 404);
+      assert.equal((await api(`/rafanutri/uan/units/${U1}`, { token: b.token, method: 'PUT', body: { name: 'Invadida' } })).status, 404);
+    });
+    execSync(process.env.ISOLATION_PSQL, {
+      input: `insert into unit_members (unit_id, user_id, role) select '${U1}', '${uidB}', 'cook' where exists (select 1 from directus_users where id = '${uidB}' and email like '%@example.com');`,
+      stdio: ['pipe', 'ignore', 'inherit'],
+    });
+    await check('UAN: cozinheiro da unidade 1 não vê a 2, não edita, não vê a equipe nem o clínico', async () => {
+      const ctx = (await api('/rafanutri/uan/context', { token: b.token })).json.data;
+      const orgA = ctx.find((o) => o.id === A);
+      assert.ok(orgA && !orgA.is_owner && orgA.unit_limit === null, 'vê a empresa A como equipe');
+      assert.deepEqual(orgA.units.map((u) => u.id), [U1], 'só a unidade 1');
+      assert.deepEqual(orgA.units[0].roles, ['cook']);
+      const d1 = await api(`/rafanutri/uan/units/${U1}`, { token: b.token });
+      assert.equal(d1.status, 200);
+      assert.equal(d1.json.data.can_edit, false);
+      assert.deepEqual(d1.json.data.members, [], 'cozinheiro não lista a equipe');
+      assert.equal((await api(`/rafanutri/uan/units/${U2}`, { token: b.token })).status, 404, 'unidade 2');
+      assert.equal((await api(`/rafanutri/uan/units/${U1}`, { token: b.token, method: 'PUT', body: { name: 'Mudada' } })).status, 403, 'edita');
+      const pats = await api(`/items/patients?filter[organization_id][_eq]=${A}&fields=id`, { token: b.token });
+      assert.ok(pats.status >= 400 || pats.json.data.length === 0, 'pacientes de A');
+      assert.ok((await api('/rafanutri/finance/transactions', { token: b.token })).json.data?.transactions?.every((t) => t.organization_id !== A) ?? true, 'financeiro de A');
+      const own = (await api(`/rafanutri/uan/units/${U1}`, { token: a.token })).json.data;
+      assert.ok(own.can_edit && own.members.some((m) => m.user_id === uidB && m.role === 'cook'), 'owner vê a equipe');
+    });
+  } else {
+    console.log('  (pulado) UAN entre unidades: defina ISOLATION_PSQL');
+  }
 
   console.log(`${passed} verificações passaram.`);
 } finally {
