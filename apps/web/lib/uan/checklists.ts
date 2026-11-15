@@ -113,6 +113,7 @@ export interface RunSummary {
   started_by_name?: string | null;
   completed_by_name?: string | null;
   mine?: boolean;
+  has_signature?: boolean;
 }
 
 export interface NonConformitySummary {
@@ -247,3 +248,5 @@ export function outsideRadius(distance: number | null, radius: number): boolean 
 
 /** Foto de evidência pelo proxy do app (`v` força recarregar depois de trocar a foto). */
 export const photoUrl = (runId: string, position: number, v = 0) => `/api/uan/checklists/${runId}/foto/${position}?v=${v}`;
+
+export const signatureUrl = (runId: string, v = 0) => `/api/uan/checklists/${runId}/assinatura?v=${v}`;

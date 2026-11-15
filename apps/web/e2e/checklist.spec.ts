@@ -63,10 +63,21 @@ test('checklist, temperaturas e não conformidade no celular', async ({ page }) 
     await expect(review).toBeVisible({ timeout: 15_000 });
     await expect(review.getByText('87,5%')).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+    // assinatura com o dedo (opcional)
+    const pad = review.getByRole('img', { name: 'Quadro de assinatura: desenhe com o dedo' });
+    const box = (await pad.boundingBox())!;
+    await page.mouse.move(box.x + 20, box.y + 60);
+    await page.mouse.down();
+    for (const [dx, dy] of [[60, -30], [120, 30], [180, -20], [240, 25]]) await page.mouse.move(box.x + 20 + dx, box.y + 60 + dy, { steps: 4 });
+    await page.mouse.up();
+    await review.getByRole('button', { name: 'Salvar assinatura' }).click();
+    await expect(page.getByRole('status').filter({ hasText: 'Assinatura salva.' })).toBeVisible({ timeout: 15_000 });
+    await expect(review.getByRole('img', { name: 'Assinatura salva' })).toBeVisible();
     await review.getByRole('button', { name: 'Concluir checklist' }).click();
 
     await expect(page.getByLabel('Conformidade')).toHaveText('87,5%', { timeout: 15_000 });
     await expect(page.getByText('1 não conformidade(s) aberta(s) por itens críticos.')).toBeVisible();
+    await expect(page.getByRole('img', { name: 'Assinatura de quem fez o checklist' })).toBeVisible();
     await expect(page.getByRole('img', { name: 'Evidência do item 5' })).toBeVisible();
 
     await page.getByRole('link', { name: `← ${name}` }).click();

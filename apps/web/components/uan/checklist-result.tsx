@@ -1,7 +1,7 @@
 import { AlertTriangle, Check, MapPin, Minus, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { ANSWER_LABEL, outsideRadius, photoUrl, rangeLabel, SEVERITY_LABEL, type RunDetail } from '@/lib/uan/checklists';
+import { ANSWER_LABEL, outsideRadius, photoUrl, rangeLabel, SEVERITY_LABEL, signatureUrl, type RunDetail } from '@/lib/uan/checklists';
 
 const when = (iso: string | null) =>
   iso ? new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' }) : '—';
@@ -28,6 +28,12 @@ export function ChecklistResult({ detail }: { detail: RunDetail }) {
         )}
         {outsideRadius(run.geo_distance_m, detail.unit.geo_radius_m) && (
           <p className="mt-3 flex items-center gap-2 text-sm text-amber-700 dark:text-amber-400"><MapPin className="size-4" aria-hidden="true" /> Iniciado a {run.geo_distance_m} m da unidade.</p>
+        )}
+        {run.has_signature && (
+          <figure className="mt-3">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={signatureUrl(run.id)} alt="Assinatura de quem fez o checklist" className="h-20 rounded-lg border border-border bg-white object-contain" />
+          </figure>
         )}
         {detail.non_conformities.length > 0 && (
           <p className="mt-3 flex items-center gap-2 text-sm"><AlertTriangle className="size-4 text-destructive" aria-hidden="true" /> {detail.non_conformities.length} não conformidade(s) aberta(s) por itens críticos.</p>

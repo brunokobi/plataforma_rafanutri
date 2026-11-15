@@ -2227,7 +2227,7 @@ export default {
         : [];
       res.json({
         data: {
-          run: { ...runOut(x.run), started_by_name: userName(starter), completed_by_name: userName(finisher) },
+          run: { ...runOut(x.run), started_by_name: userName(starter), completed_by_name: userName(finisher), has_signature: Boolean(x.run.signature) },
           unit: { id: x.a.unit.id, name: x.a.unit.name, geo_radius_m: x.a.unit.geo_radius_m, has_geo: x.a.unit.geo_lat !== null },
           can_answer: x.run.status === 'in_progress' && canRun(x.a),
           can_cancel: x.run.status === 'in_progress' && (x.run.started_by === user || canSupervise(x.a)),
@@ -2319,6 +2319,48 @@ export default {
       } catch (error) {
         logger.error({ err: error }, 'rafanutri: falha ao ler foto do checklist');
         res.status(404).json({ errors: [{ message: 'Foto não encontrada.', extensions: { code: 'NOT_FOUND' } }] });
+      }
+    });
+
+    // Assinatura (PNG desenhado no aparelho), só com o checklist em andamento.
+    router.post('/uan/checklist-runs/:id/signature', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const x = await runAccess(user, req.params.id);
+      if (!x) return runNotFound(res);
+      if (!canRun(x.a)) return runForbidden(res);
+      if (x.run.status !== 'in_progress') return conflict(res, 'Checklist concluído ou cancelado não pode ser alterado');
+      const img = parseImageDataUrl(req.body?.image);
+      if (!img || img.type !== 'image/png') return bad(res, { image: 'Assinatura inválida.' });
+      let fileId = null;
+      try {
+        const files = new services.FilesService({ schema: await getSchema(), accountability: null });
+        fileId = await files.uploadOne(Readable.from(img.buffer), { filename_download: `assinatura-${x.run.id}.png`, type: 'image/png', title: `Assinatura ${x.run.id}` });
+        await withActor(user, (trx) => trx('checklist_runs').where('id', x.run.id).update({ signature: fileId, signed_by: user }));
+        if (x.run.signature) await files.deleteOne(x.run.signature).catch(() => {});
+        res.json({ data: { has_signature: true } });
+      } catch (error) {
+        await dropFile(fileId);
+        p0001(res, error, 'salvar assinatura');
+      }
+    });
+
+    router.get('/uan/checklist-runs/:id/signature', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const x = await runAccess(user, req.params.id);
+      if (!x?.run.signature) return res.status(404).json({ errors: [{ message: 'Assinatura não encontrada.', extensions: { code: 'NOT_FOUND' } }] });
+      try {
+        const assets = new services.AssetsService({ schema: await getSchema(), accountability: null });
+        const { stream } = await assets.getAsset(x.run.signature);
+        res.setHeader('Content-Type', 'image/png');
+        res.setHeader('Cache-Control', 'private, max-age=3600');
+        res.setHeader('X-Content-Type-Options', 'nosniff');
+        res.setHeader('Content-Security-Policy', "default-src 'none'; style-src 'unsafe-inline'; sandbox");
+        stream.pipe(res);
+      } catch (error) {
+        logger.error({ err: error }, 'rafanutri: falha ao ler assinatura');
+        res.status(404).json({ errors: [{ message: 'Assinatura não encontrada.', extensions: { code: 'NOT_FOUND' } }] });
       }
     });
 

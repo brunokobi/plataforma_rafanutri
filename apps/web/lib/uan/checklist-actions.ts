@@ -100,6 +100,16 @@ export async function saveAnswerPhoto(runId: string, position: number, image: st
   }
 }
 
+export async function saveSignature(runId: string, png: string): Promise<{ ok: true } | { ok: false; message: string }> {
+  if (!isUuid(runId) || typeof png !== 'string' || !png.startsWith('data:image/png;base64,') || png.length > 800_000) return { ok: false, message: 'Assinatura inválida.' };
+  try {
+    const r = await call(`/uan/checklist-runs/${runId}/signature`, 'POST', { image: png });
+    return r.status === 200 ? { ok: true } : { ok: false, message: errMsg(r, 'Não foi possível salvar a assinatura.') };
+  } catch {
+    return { ok: false, message: FAIL };
+  }
+}
+
 export async function completeChecklist(runId: string): Promise<{ ok: true; run: RunSummary & { non_conformities_opened: number } } | { ok: false; message: string }> {
   if (!isUuid(runId)) return { ok: false, message: 'Checklist inválido.' };
   try {

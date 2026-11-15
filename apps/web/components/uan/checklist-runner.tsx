@@ -9,7 +9,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { resizeImage } from '@/lib/recipes/resize-image';
-import { cancelChecklist, completeChecklist, saveAnswer, saveAnswerPhoto } from '@/lib/uan/checklist-actions';
+import { SignaturePad } from '@/components/uan/signature-pad';
+import { cancelChecklist, completeChecklist, saveAnswer, saveAnswerPhoto, saveSignature } from '@/lib/uan/checklist-actions';
 import {
   ANSWER_LABEL,
   missingEvidence,
@@ -17,6 +18,7 @@ import {
   nextPending,
   outsideRadius,
   photoUrl,
+  signatureUrl,
   rangeLabel,
   runProgress,
   type AnswerValue,
@@ -58,6 +60,9 @@ export function ChecklistRunner({ detail }: { detail: RunDetail }) {
   const [message, setMessage] = useState<{ text: string; error?: boolean } | null>(null);
   const [pending, startTransition] = useTransition();
   const [uploading, setUploading] = useState(false);
+  const [signed, setSigned] = useState(Boolean(detail.run.has_signature));
+  const [signV, setSignV] = useState(0);
+  const [signing, setSigning] = useState(false);
 
   const a = answers[index]!;
   const progress = runProgress(answers);
@@ -209,7 +214,27 @@ export function ChecklistRunner({ detail }: { detail: RunDetail }) {
               <p className="flex items-start gap-2 text-sm"><AlertTriangle className="mt-0.5 size-4 shrink-0 text-destructive" aria-hidden="true" /> Itens críticos não conformes abrem não conformidades com prazo de 24 h.</p>
             )
           )}
-          <Button type="button" size="lg" className="h-12 w-full" disabled={busy || progress.blocking.length > 0} onClick={complete}>
+          <div className="space-y-2 border-t border-border pt-4">
+            <h3 className="text-sm font-semibold">Assinatura de quem fez (opcional)</h3>
+            {signed && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={signatureUrl(runId, signV)} alt="Assinatura salva" className="h-24 rounded-lg border border-border bg-white object-contain" />
+            )}
+            <SignaturePad
+              saving={signing}
+              onSave={async (png) => {
+                setSigning(true);
+                setMessage(null);
+                const r = await saveSignature(runId, png);
+                setSigning(false);
+                if (!r.ok) return setMessage({ text: r.message, error: true });
+                setSigned(true);
+                setSignV((v) => v + 1);
+                setMessage({ text: 'Assinatura salva.' });
+              }}
+            />
+          </div>
+          <Button type="button" size="lg" className="h-12 w-full" disabled={busy || signing || progress.blocking.length > 0} onClick={complete}>
             {pending && <Loader2 className="size-4 animate-spin" />} Concluir checklist
           </Button>
         </section>
