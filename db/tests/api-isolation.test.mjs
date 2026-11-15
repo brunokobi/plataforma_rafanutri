@@ -847,6 +847,34 @@ try {
       const own = await api(`/rafanutri/uan/checklist-runs/${RUN}`, { token: a.token });
       assert.equal(own.json.data.run.status, 'cancelled', 'owner vê');
     });
+    await check('UAN: temperaturas — só quem administra cadastra equipamento; cozinheiro registra; fora do limite exige ação; quem é de fora não vê', async () => {
+      assert.equal((await api(`/rafanutri/uan/units/${U1}/equipment`, { token: b.token, method: 'POST', body: { name: 'Geladeira B', kind: 'refrigerator' } })).status, 403, 'cozinheiro cadastra');
+      const eq = await api(`/rafanutri/uan/units/${U1}/equipment`, { token: a.token, method: 'POST', body: { name: 'Geladeira Teste', kind: 'refrigerator' } });
+      assert.equal(eq.status, 201, JSON.stringify(eq.json));
+      assert.equal(eq.json.data.max_temp, 5, 'limite padrão');
+      const EQ = eq.json.data.id;
+      const cid = randomUUID();
+      const ok = await api(`/rafanutri/uan/units/${U1}/temperatures`, { token: b.token, method: 'POST', body: { equipment_id: EQ, value: 4, client_id: cid } });
+      assert.equal(ok.status, 201, JSON.stringify(ok.json));
+      assert.equal(ok.json.data.out_of_range, false);
+      assert.equal((await api(`/rafanutri/uan/units/${U1}/temperatures`, { token: b.token, method: 'POST', body: { equipment_id: EQ, value: 4, client_id: cid } })).json.data.id, ok.json.data.id, 'idempotente');
+      const noAction = await api(`/rafanutri/uan/units/${U1}/temperatures`, { token: b.token, method: 'POST', body: { equipment_id: EQ, value: 7, client_id: randomUUID() } });
+      assert.equal(noAction.status, 400);
+      assert.ok(noAction.json.errors[0].extensions.fields.corrective_action);
+      const withAction = await api(`/rafanutri/uan/units/${U1}/temperatures`, { token: b.token, method: 'POST', body: { equipment_id: EQ, value: 7, corrective_action: 'Porta fechada', client_id: randomUUID() } });
+      assert.equal(withAction.json.data.out_of_range, true);
+      assert.equal((await api(`/rafanutri/uan/units/${U2}/temperatures`, { token: a.token, method: 'POST', body: { equipment_id: EQ, value: 4, client_id: randomUUID() } })).status, 404, 'equipamento de outra unidade');
+      assert.equal((await api(`/rafanutri/uan/units/${U2}/temperatures`, { token: b.token })).status, 404, 'cozinheiro em outra unidade');
+      assert.equal((await api(`/rafanutri/uan/equipment/${EQ}`, { token: b.token, method: 'PUT', body: { max_temp: 10 } })).status, 403, 'cozinheiro muda limite');
+      const out = await newUser('tp');
+      created.users.push((await api('/users/me?fields=id', { token: out.token })).json.data.id);
+      assert.equal((await api(`/rafanutri/uan/equipment/${EQ}`, { token: out.token })).status, 404, 'lê equipamento');
+      assert.equal((await api(`/rafanutri/uan/units/${U1}/temperatures`, { token: out.token, method: 'POST', body: { equipment_id: EQ, value: 4, client_id: randomUUID() } })).status, 404, 'registra');
+      assert.equal((await api(`/rafanutri/uan/units/${U1}/temperatures`, { token: out.token })).status, 404, 'lista');
+      assert.ok((await api('/items/temperature_readings?limit=1', { token: b.token })).status >= 400, 'coleção direta recusada');
+      const hist = await api(`/rafanutri/uan/equipment/${EQ}`, { token: a.token });
+      assert.equal(hist.json.data.readings.length, 2, 'histórico do owner');
+    });
   } else {
     console.log('  (pulado) UAN entre unidades: defina ISOLATION_PSQL');
   }

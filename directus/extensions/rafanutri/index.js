@@ -2199,6 +2199,199 @@ export default {
       }
     });
 
+    // ── Equipamentos e temperaturas (RN-151, base do RN-152) ─────────────────────────────────
+    // Cadastram e ajustam limites: owner, gestor e RT. Registram: quem executa checklists.
+    // Limites padrão, ação corretiva obrigatória, imutabilidade e NC por leituras seguidas: banco (0036).
+    const EQUIPMENT_KINDS = new Set(['refrigerator', 'freezer', 'cold_room', 'freezer_room', 'hot_holding', 'cold_holding', 'other']);
+    const FOOD_STAGES = new Set(['cooking', 'reheating', 'holding_hot', 'holding_cold', 'cooling']);
+    const EQUIPMENT_FIELDS = ['id', 'unit_id', 'name', 'kind', 'min_temp', 'max_temp', 'reading_interval_hours', 'active', 'created_at'];
+    const READING_FIELDS = ['id', 'equipment_id', 'food_stage', 'food_name', 'value', 'min_temp', 'max_temp', 'out_of_range', 'corrective_action', 'source', 'recorded_at', 'non_conformity_id'];
+    const tempOut = (r) => ({ ...r, value: numOrNull(r.value), min_temp: numOrNull(r.min_temp), max_temp: numOrNull(r.max_temp) });
+    const equipmentNotFound = (res) => res.status(404).json({ errors: [{ message: 'Equipamento não encontrado.', extensions: { code: 'NOT_FOUND' } }] });
+
+    function equipmentBody(b, partial) {
+      const errors = {};
+      const data = {};
+      if (!partial || b.name !== undefined) {
+        const name = typeof b.name === 'string' ? b.name.trim() : '';
+        if (name.length < 2 || name.length > 80) errors.name = 'Informe o nome (2 a 80 caracteres).';
+        data.name = name;
+      }
+      if (!partial || b.kind !== undefined) {
+        if (!EQUIPMENT_KINDS.has(b.kind)) errors.kind = 'Tipo inválido.';
+        data.kind = b.kind;
+      }
+      for (const k of ['min_temp', 'max_temp']) {
+        if (b[k] === undefined) continue;
+        if (b[k] === null || b[k] === '') { data[k] = null; continue; }
+        const n = Number(b[k]);
+        if (!Number.isFinite(n) || n < -60 || n > 300) errors[k] = 'Temperatura entre -60 e 300 °C.';
+        else data[k] = Math.round(n * 10) / 10;
+      }
+      if (data.min_temp !== undefined && data.max_temp !== undefined) {
+        if (data.min_temp === null && data.max_temp === null && (data.kind === 'other' || partial)) errors.max_temp = 'Informe ao menos um limite.';
+        if (data.min_temp !== null && data.max_temp !== null && data.min_temp > data.max_temp) errors.max_temp = 'O máximo precisa ser maior que o mínimo.';
+      }
+      if (b.reading_interval_hours !== undefined) {
+        const h = Number(b.reading_interval_hours);
+        if (!Number.isInteger(h) || h < 1 || h > 168) errors.reading_interval_hours = 'Intervalo entre 1 e 168 horas.';
+        else data.reading_interval_hours = h;
+      }
+      if (b.active !== undefined) {
+        if (typeof b.active !== 'boolean') errors.active = 'Valor inválido.';
+        else data.active = b.active;
+      }
+      return Object.keys(errors).length ? { errors } : { data };
+    }
+    const dbCheck = (res, error, what) => {
+      if (error?.code === '23514') return bad(res, { max_temp: 'Revise os limites de temperatura.' });
+      return p0001(res, error, what);
+    };
+
+    async function equipmentAccess(user, id) {
+      if (!isUuid(id)) return null;
+      const eq = await database('equipment').where('id', id).first(...EQUIPMENT_FIELDS);
+      if (!eq) return null;
+      const a = await unitAccess(user, eq.unit_id);
+      return a ? { eq: tempOut(eq), a } : null;
+    }
+    /** Última leitura de cada equipamento e se está atrasada (mais velha que o intervalo). */
+    async function withLastReading(list) {
+      if (!list.length) return [];
+      const last = await database.raw(
+        `select distinct on (equipment_id) equipment_id, value, out_of_range, recorded_at from temperature_readings
+          where equipment_id = any(?) order by equipment_id, recorded_at desc, seq desc`, [list.map((e) => e.id)]);
+      const byId = new Map(last.rows.map((r) => [r.equipment_id, r]));
+      const now = Date.now();
+      return list.map((e) => {
+        const r = byId.get(e.id);
+        return {
+          ...tempOut(e),
+          last: r ? { value: numOrNull(r.value), out_of_range: r.out_of_range, recorded_at: r.recorded_at } : null,
+          overdue: e.active && (!r || now - new Date(r.recorded_at).getTime() > e.reading_interval_hours * 3600e3),
+        };
+      });
+    }
+
+    router.get('/uan/units/:id/temperatures', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const a = await unitAccess(user, req.params.id);
+      if (!a) return unitNotFound(res);
+      const list = await database('equipment').where('unit_id', a.unit.id).orderBy([{ column: 'active', order: 'desc' }, { column: 'name' }]).select(...EQUIPMENT_FIELDS);
+      const food = await database('temperature_readings').where('unit_id', a.unit.id).whereNull('equipment_id')
+        .orderBy('recorded_at', 'desc').limit(10).select(...READING_FIELDS);
+      res.json({
+        data: {
+          can_record: canRun(a) && a.unit.active,
+          can_manage: canSupervise(a),
+          equipment: await withLastReading(list),
+          food_readings: food.map(tempOut),
+        },
+      });
+    });
+
+    router.post('/uan/units/:id/equipment', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const a = await unitAccess(user, req.params.id);
+      if (!a) return unitNotFound(res);
+      if (!canSupervise(a)) return res.status(403).json({ errors: [{ message: 'Só o responsável, o gestor ou o RT cadastram equipamentos.', extensions: { code: 'FORBIDDEN' } }] });
+      const parsed = equipmentBody(req.body ?? {}, false);
+      if (parsed.errors) return bad(res, parsed.errors);
+      try {
+        const [row] = await withActor(user, (trx) => trx('equipment').insert({ ...parsed.data, unit_id: a.unit.id, organization_id: a.unit.organization_id }).returning(EQUIPMENT_FIELDS));
+        res.status(201).json({ data: tempOut(row) });
+      } catch (error) {
+        dbCheck(res, error, 'cadastrar equipamento');
+      }
+    });
+
+    router.get('/uan/equipment/:id', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const x = await equipmentAccess(user, req.params.id);
+      if (!x) return equipmentNotFound(res);
+      const days = Math.min(90, Math.max(1, Number(req.query.days) || 30));
+      const readings = await database('temperature_readings as t').leftJoin('directus_users as u', 'u.id', 't.recorded_by')
+        .where('t.equipment_id', x.eq.id).where('t.recorded_at', '>', database.raw(`now() - interval '${days} days'`))
+        .orderBy([{ column: 't.recorded_at', order: 'desc' }, { column: 't.seq', order: 'desc' }]).limit(500)
+        .select(...READING_FIELDS.map((f) => `t.${f}`), 'u.first_name', 'u.last_name');
+      const [withLast] = await withLastReading([x.eq]);
+      res.json({
+        data: {
+          equipment: withLast,
+          unit: { id: x.a.unit.id, name: x.a.unit.name, active: x.a.unit.active },
+          can_record: canRun(x.a) && x.a.unit.active && x.eq.active,
+          can_manage: canSupervise(x.a),
+          days,
+          readings: readings.map((r) => ({ ...tempOut(r), recorded_by_name: userName(r), first_name: undefined, last_name: undefined })),
+        },
+      });
+    });
+
+    router.put('/uan/equipment/:id', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const x = await equipmentAccess(user, req.params.id);
+      if (!x) return equipmentNotFound(res);
+      if (!canSupervise(x.a)) return res.status(403).json({ errors: [{ message: 'Só o responsável, o gestor ou o RT alteram equipamentos.', extensions: { code: 'FORBIDDEN' } }] });
+      const parsed = equipmentBody({ min_temp: x.eq.min_temp, max_temp: x.eq.max_temp, ...(req.body ?? {}) }, true);
+      if (parsed.errors) return bad(res, parsed.errors);
+      try {
+        const [row] = await withActor(user, (trx) => trx('equipment').where('id', x.eq.id).update(parsed.data).returning(EQUIPMENT_FIELDS));
+        res.json({ data: tempOut(row) });
+      } catch (error) {
+        dbCheck(res, error, 'alterar equipamento');
+      }
+    });
+
+    router.post('/uan/units/:id/temperatures', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const a = await unitAccess(user, req.params.id);
+      if (!a) return unitNotFound(res);
+      if (!canRun(a)) return runForbidden(res);
+      const b = req.body ?? {};
+      if (!isUuid(b.client_id)) return bad(res, { value: 'Registro inválido.' });
+      const existing = await database('temperature_readings').where('client_id', b.client_id).first(...READING_FIELDS, 'unit_id');
+      if (existing) {
+        if (existing.unit_id !== a.unit.id) return conflict(res, 'Identificador de registro já usado.');
+        return res.json({ data: tempOut({ ...existing, unit_id: undefined }) });
+      }
+      const value = Number(b.value);
+      const errors = {};
+      if (b.value === null || b.value === undefined || b.value === '' || !Number.isFinite(value) || value < -60 || value > 300) errors.value = 'Informe a temperatura medida (-60 a 300 °C).';
+      const row = { unit_id: a.unit.id, value: Math.round(value * 10) / 10, client_id: b.client_id, recorded_by: user, source: 'manual' };
+      if (b.equipment_id !== undefined && b.equipment_id !== null) {
+        if (!isUuid(b.equipment_id)) errors.equipment_id = 'Equipamento inválido.';
+        else {
+          const eq = await database('equipment').where({ id: b.equipment_id, unit_id: a.unit.id }).first('id');
+          if (!eq) return equipmentNotFound(res);
+          row.equipment_id = eq.id;
+        }
+      } else {
+        if (!FOOD_STAGES.has(b.food_stage)) errors.food_stage = 'Escolha a etapa.';
+        const name = typeof b.food_name === 'string' ? b.food_name.trim() : '';
+        if (name.length < 2 || name.length > 120) errors.food_name = 'Informe o alimento ou a preparação.';
+        row.food_stage = b.food_stage;
+        row.food_name = name;
+      }
+      if (b.corrective_action !== undefined && b.corrective_action !== null) {
+        if (typeof b.corrective_action !== 'string' || b.corrective_action.length > 1000) errors.corrective_action = 'Até 1.000 caracteres.';
+        else row.corrective_action = b.corrective_action;
+      }
+      if (Object.keys(errors).length) return bad(res, errors);
+      try {
+        const [saved] = await withActor(user, (trx) => trx('temperature_readings').insert(row).returning(READING_FIELDS));
+        const fresh = await database('temperature_readings').where('id', saved.id).first(...READING_FIELDS);
+        res.status(201).json({ data: tempOut(fresh) });
+      } catch (error) {
+        if (error?.code === 'P0001' && /ação corretiva/.test(error.message ?? '')) return bad(res, { corrective_action: 'Temperatura fora do limite: registre a ação corretiva.' });
+        p0001(res, error, 'registrar temperatura');
+      }
+    });
+
     // ── Feedback do programa beta (RN-047) ──────────────────────────────────────────────────
     // Texto + tipo + caminho da página (sem query string). Lido só pelo admin da plataforma no Directus.
     const FEEDBACK_KINDS = new Set(['bug', 'idea', 'praise', 'other']);

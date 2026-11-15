@@ -8,7 +8,7 @@ const password = process.env.E2E_USER_PASSWORD;
 // PNG 8×8 válido (o navegador reduz e envia como JPEG)
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAEUlEQVR4nGM4YWODFTEMLQkAZZlQAVIPr1MAAAAASUVORK5CYII=', 'base64');
 
-test('checklist de abertura da cozinha no celular', async ({ page }) => {
+test('checklist de abertura da cozinha e temperaturas no celular', async ({ page }) => {
   test.skip(!email || !password, 'Defina E2E_USER_EMAIL e E2E_USER_PASSWORD (usuário de teste com consultório).');
   test.skip(test.info().project.name !== 'mobile', 'Checklist é feito no celular.');
 
@@ -70,6 +70,50 @@ test('checklist de abertura da cozinha no celular', async ({ page }) => {
     await page.getByRole('link', { name: `← ${name}` }).click();
     await expect(page.getByRole('list', { name: 'Não conformidades abertas' }).getByText(/Temperatura da câmara ou geladeira/)).toBeVisible({ timeout: 15_000 });
     await expect(page.getByRole('list', { name: 'Checklists concluídos' }).getByText('87,5%')).toBeVisible();
+
+    // RN-151: geladeira com limite padrão; leitura fora exige ação; duas seguidas fora abrem não conformidade
+    await page.getByRole('button', { name: 'Novo equipamento' }).click();
+    const eqForm = page.getByRole('form', { name: 'Novo equipamento' });
+    await eqForm.getByLabel('Nome do equipamento').fill('Geladeira E2E');
+    await expect(eqForm.getByLabel('Máximo (°C)')).toHaveValue('5');
+    await eqForm.getByRole('button', { name: 'Cadastrar equipamento' }).click();
+    const eqCard = page.getByRole('list', { name: 'Equipamentos' }).getByRole('listitem').filter({ hasText: 'Geladeira E2E' });
+    await expect(eqCard.getByText('Sem leitura')).toBeVisible({ timeout: 15_000 });
+    await eqCard.getByRole('link', { name: 'Registrar temperatura' }).click();
+    await expect(page.getByRole('heading', { level: 1, name: 'Geladeira E2E' })).toBeVisible({ timeout: 15_000 });
+
+    const rec = page.getByRole('form', { name: 'Registrar temperatura de Geladeira E2E' });
+    await rec.getByLabel('Temperatura (°C)').fill('4');
+    await rec.getByRole('button', { name: 'Registrar' }).click();
+    await expect(rec.getByRole('status')).toContainText('4 °C', { timeout: 15_000 });
+    await expect(rec.getByRole('status')).toContainText('dentro do limite');
+    for (const v of ['7', '8,5']) {
+      await rec.getByLabel('Temperatura (°C)').fill(v);
+      await expect(rec.getByText('Fora do limite: o que foi feito?')).toBeVisible();
+      await rec.getByRole('button', { name: 'Registrar' }).click();
+      await expect(rec.getByRole('alert')).toHaveText('Temperatura fora do limite: registre a ação corretiva.');
+      await rec.getByLabel('Ação corretiva').fill('Porta fechada e alimentos transferidos.');
+      await rec.getByRole('button', { name: 'Registrar' }).click();
+      await expect(rec.getByRole('status')).toContainText('fora do limite, com ação corretiva', { timeout: 15_000 });
+    }
+    await expect(page.getByRole('img', { name: /Temperatura de Geladeira E2E: 3 leituras/ })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole('table')).toContainText('Porta fechada e alimentos transferidos.');
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+
+    await page.getByRole('link', { name: /Etiqueta com QR code/ }).click();
+    await expect(page.getByRole('img', { name: 'QR code para registrar a temperatura' })).toBeVisible({ timeout: 15_000 });
+    await page.getByRole('link', { name: '← Geladeira E2E' }).click();
+    await page.getByRole('link', { name: `← ${name}` }).click();
+
+    await expect(page.getByRole('list', { name: 'Não conformidades abertas' }).getByText('Geladeira E2E: temperatura fora do limite em leituras seguidas')).toBeVisible({ timeout: 15_000 });
+    await expect(eqCard.getByText('Fora do limite')).toBeVisible();
+
+    // temperatura de alimento
+    const food = page.getByRole('form', { name: 'Registrar temperatura de alimento' });
+    await food.getByLabel('Alimento ou preparação').fill('Frango assado');
+    await food.getByLabel('Temperatura (°C)').fill('78');
+    await food.getByRole('button', { name: 'Registrar' }).click();
+    await expect(page.getByRole('list', { name: 'Temperaturas de alimentos' }).getByText('Frango assado')).toBeVisible({ timeout: 15_000 });
   } finally {
     await page.goto(page.url().includes('/unidades/') ? page.url() : '/app/uan');
     if (!page.url().includes('/unidades/')) await page.getByRole('link', { name }).click();
