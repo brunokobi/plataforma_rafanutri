@@ -192,7 +192,7 @@ Status: `todo`, `doing`, `done`, `adiado` (fora do MVP, ver [ADR 0004](adr/0004-
 | [RN-134](plano/fase-5-uan-qualidade.md#rn-134--versão-e-aprovação-da-ficha-técnica) | Versão e aprovação da ficha técnica | feature | 3 | RN-131 | doing |
 | [RN-135](plano/fase-5-uan-qualidade.md#rn-135--migração-de-cardápios-e-comensais) | Migração de cardápios e comensais | infra | 2 | RN-129 | done |
 | [RN-136](plano/fase-5-uan-qualidade.md#rn-136--editor-de-cardápio-cíclico) | Editor de cardápio cíclico | feature | 8 | RN-134, RN-135 | doing |
-| [RN-137](plano/fase-5-uan-qualidade.md#rn-137--comensais-e-per-capita) | Comensais e per capita | feature | 3 | RN-135 | todo |
+| [RN-137](plano/fase-5-uan-qualidade.md#rn-137--comensais-e-per-capita) | Comensais e per capita | feature | 3 | RN-135 | doing |
 | [RN-138](plano/fase-5-uan-qualidade.md#rn-138--custo-e-análise-nutricional-do-cardápio) | Custo e análise nutricional do cardápio | feature | 5 | RN-132, RN-136, RN-137 | todo |
 | [RN-139](plano/fase-5-uan-qualidade.md#rn-139--cálculo-da-necessidade-de-compras) | Cálculo da necessidade de compras | feature | 8 | RN-138, RN-143 | todo |
 | [RN-140](plano/fase-5-uan-qualidade.md#rn-140--pedido-de-compra) | Pedido de compra | feature | 5 | RN-139 | todo |
@@ -230,9 +230,9 @@ Status: `todo`, `doing`, `done`, `adiado` (fora do MVP, ver [ADR 0004](adr/0004-
 | [RN-222](plano/fase-5-uan-qualidade.md#rn-222--alergênicos-do-insumo-à-ficha-e-ao-cardápio) | Alergênicos do insumo à ficha e ao cardápio | feature | 3 | RN-126, RN-131 | doing |
 | [RN-223](plano/fase-5-uan-qualidade.md#rn-223--cardápio-publicado-para-o-comensal-e-pesquisa-de-satisfação) | Cardápio publicado para o comensal e pesquisa de satisfação | feature | 3 | RN-136, RN-222 | todo |
 | [RN-224](plano/fase-5-uan-qualidade.md#rn-224--fluxo-de-aprovação-do-cardápio) | Fluxo de aprovação do cardápio | feature | 3 | RN-136 | doing |
-| [RN-225](plano/fase-5-uan-qualidade.md#rn-225--lista-de-preparo-e-requisição-do-dia) | Lista de preparo e requisição do dia | feature | 3 | RN-137, RN-131 | todo |
-| [RN-226](plano/fase-5-uan-qualidade.md#rn-226--controle-de-desperdício-sobra-e-resto-ingesta) | Controle de desperdício: sobra e resto-ingesta | feature | 5 | RN-137 | todo |
-| [RN-227](plano/fase-5-uan-qualidade.md#rn-227--adesão-por-preparação) | Adesão por preparação | feature | 2 | RN-137 | todo |
+| [RN-225](plano/fase-5-uan-qualidade.md#rn-225--lista-de-preparo-e-requisição-do-dia) | Lista de preparo e requisição do dia | feature | 3 | RN-137, RN-131 | doing |
+| [RN-226](plano/fase-5-uan-qualidade.md#rn-226--controle-de-desperdício-sobra-e-resto-ingesta) | Controle de desperdício: sobra e resto-ingesta | feature | 5 | RN-137 | doing |
+| [RN-227](plano/fase-5-uan-qualidade.md#rn-227--adesão-por-preparação) | Adesão por preparação | feature | 2 | RN-137 | done |
 | [RN-228](plano/fase-5-uan-qualidade.md#rn-228--recebimento-com-xml-da-nf-e) | Recebimento com XML da NF-e | feature | 3 | RN-140, RN-141 | todo |
 | [RN-229](plano/fase-5-uan-qualidade.md#rn-229--planejado--realizado-curva-abc-e-metas-de-custo) | Planejado × realizado, curva ABC e metas de custo | feature | 5 | RN-138, RN-143, RN-226 | todo |
 | [RN-230](plano/fase-5-uan-qualidade.md#rn-230--ia-plano-de-ação-sugerido-para-não-conformidade) | IA: plano de ação sugerido para não conformidade | ia | 3 | RN-153, RN-154, RN-082, RN-077 | todo |

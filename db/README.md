@@ -570,6 +570,20 @@ Migração `0044_menus.sql` (**aplicada na vpsrafa em 15/11/2026**, backup `ante
 | `POST …/submit` (acima do teto exige justificativa ≥ 10 caracteres; erro `COST_OVER`) | Owner, gestor, RT |
 | `POST …/approve`, `…/return` (com nota) | Owner ou gestor |
 
+## Produção do dia e desperdício (U3a: RN-137, RN-225 a RN-227)
+
+Migração `0045_production.sql` (**aplicada na vpsrafa em 15/11/2026**, backup `antes-0045-2026-11-15.dump`; testes em `db/tests/0045_production.test.sql`):
+
+- `diner_counts (unidade, dia, serviço)`: `planned` e `actual`.
+- `waste_records`: um por unidade, dia, serviço e preparação (`sheet_root_id`; nulo = serviço inteiro). Por preparação: `produced_g`, `leftover_g` (sobra limpa ≤ produzido), `portions_served`; por serviço: `plate_waste_g` (resto-ingesta). `prep_waste_g`, `reason` (sabor, temperatura, porção, apresentação, repetido, excesso de produção, outro), observações. Hora do servidor; dia futuro é recusado; registrar a mesma chave substitui.
+- Cálculos no app (`nutrition-core/production.ts`): porções = comensais previstos × adesão média de 30 dias; requisição consolidada; indicadores de desperdício.
+
+| Endpoint | Quem |
+|---|---|
+| `GET /rafanutri/uan/units/:id/production?date=` | Equipe da unidade (preço só para quem supervisiona e estoquista) |
+| `POST /rafanutri/uan/units/:id/diners` (`{ day, service, planned, actual }`), `POST …/diners/pattern` (`{ from, to, weekdays, service, planned }`) | Owner, gestor, RT |
+| `PUT /rafanutri/uan/units/:id/waste` | Quem executa (owner, RT, gestor, cozinheiro, estoquista) |
+
 ## Feedback do beta (RN-047)
 
 Migração `0032_feedback.sql` (**aplicada na vpsrafa em 14/11/2026**; testes em `db/tests/0032_feedback.test.sql`): `product_feedback` (consultório, autor, tipo `bug`/`idea`/`praise`/`other`, mensagem de 3 a 2.000 caracteres, caminho da página sem query string, status `new`/`read`/`done`). Gravado só por `POST /rafanutri/feedback` (qualquer conta logada, até 20 por dia); nenhum papel lê a coleção: o admin da plataforma consulta no Directus ou por SQL. Sem print de tela, porque a tela costuma ter dados de pacientes. O e2e grava mensagens com o prefixo `[e2e]`:

@@ -780,9 +780,9 @@ Referências: ANVISA RDC nº 429/2020 e IN nº 75/2020. Todos os valores abaixo 
 - **Depende de:** RN-135
 - **Descrição:** Planejar e registrar comensais por dia e serviço; comparar planejado e realizado.
 - **Tarefas técnicas:**
-  - [ ] Grade de comensais planejados, com padrão semanal
-  - [ ] Registro do realizado pelo gestor
-  - [ ] Indicador de sobra/resto (opcional: peso de resto-ingestão)
+  - [x] Grade de comensais planejados, com padrão semanal
+  - [x] Registro do realizado pelo gestor
+  - [x] Indicador de sobra/resto (opcional: peso de resto-ingestão)
 - **Arquivos/áreas:** `apps/web/app/(uan)/uan/[unitId]/diners/`
 - **Critérios de aceite:** Dado um padrão de 300 almoços de segunda a sexta, quando aplicado ao mês, então todos os dias úteis ficam com 300 planejados.
 - **Testes:** e2e.
@@ -1300,9 +1300,9 @@ Acrescentados depois da comparação com o TecFood e o NutriUAN. A ordem e o agr
 - **Depende de:** RN-137, RN-131
 - **Descrição:** A partir do cardápio do dia, dos comensais previstos e das fichas, gera a lista de preparo por preparação e a requisição consolidada de insumos (mesmo insumo de pratos diferentes somado), com margem e arredondamento, e registra a retirada do estoque.
 - **Tarefas técnicas:**
-  - [ ] Cálculo no `nutrition-core` (módulo uan) com testes
+  - [x] Cálculo no `nutrition-core` (módulo uan) com testes
   - [ ] Tela no celular por preparação, para a cozinha
-  - [ ] Recalcular quando cardápio ou comensais mudam
+  - [x] Recalcular quando cardápio ou comensais mudam
 - **Critérios de aceite:** Dado o almoço com 300 comensais e duas preparações com cebola, quando gerar a requisição, então a cebola aparece uma vez com a soma das duas, já com o FC.
 - **Testes:** unidade, e2e.
 
@@ -1312,9 +1312,9 @@ Acrescentados depois da comparação com o TecFood e o NutriUAN. A ordem e o agr
 - **Depende de:** RN-137
 - **Descrição:** Pesagem por serviço e preparação: produzido, sobra limpa, resto-ingesta e descarte do pré-preparo, com motivo classificado; indicadores (% sobra, % resto, per capita de resto, índice de aceitação, custo do desperdício, FC real × FC da ficha) com faixas de alerta configuráveis por perfil (padrão **a validar**).
 - **Tarefas técnicas:**
-  - [ ] Tabela `waste_records` com hora do servidor e autor
+  - [x] Tabela `waste_records` com hora do servidor e autor
   - [ ] Tela de pesagem no celular, funcionando sem internet
-  - [ ] Indicadores calculados no motor, com testes das fórmulas da seção 5 do plano do módulo
+  - [x] Indicadores calculados no motor, com testes das fórmulas da seção 5 do plano do módulo
   - [ ] Gráfico semanal por preparação e por motivo
 - **Critérios de aceite:** Dado um almoço com 100 kg produzidos, 4 kg de sobra limpa e 8 kg de resto, quando registrar, então o painel mostra 4% de sobra, 8,3% de resto-ingesta e o custo do desperdício.
 - **Testes:** unidade, e2e.
@@ -1325,8 +1325,8 @@ Acrescentados depois da comparação com o TecFood e o NutriUAN. A ordem e o agr
 - **Depende de:** RN-137
 - **Descrição:** Percentual de adesão por prato (porções servidas / comensais), usado no cálculo de produção, na nota do cardápio e na previsão; em escolas, adesão por turma ou turno.
 - **Tarefas técnicas:**
-  - [ ] Registro de porções servidas por preparação
-  - [ ] Média móvel por preparação, usada como padrão no planejamento
+  - [x] Registro de porções servidas por preparação
+  - [x] Média móvel por preparação, usada como padrão no planejamento
 - **Critérios de aceite:** Dado um prato com 60% de adesão média, quando planejar 300 comensais, então a produção prevista considera 180 porções.
 - **Testes:** unidade.
 
