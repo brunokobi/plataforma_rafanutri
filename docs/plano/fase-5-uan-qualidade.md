@@ -670,8 +670,8 @@ Referências: ANVISA RDC nº 429/2020 e IN nº 75/2020. Todos os valores abaixo 
 - **Depende de:** RN-125
 - **Descrição:** Criar `recipes`, `recipe_ingredients` e `recipe_steps`.
 - **Tarefas técnicas:**
-  - [ ] Migração e RLS
-  - [ ] Restrição contra ciclo de sub-receitas (gatilho)
+  - [x] Migração e RLS
+  - [x] Restrição contra ciclo de sub-receitas (gatilho)
 - **Arquivos/áreas:** `supabase/migrations/`
 - **Critérios de aceite:** Dada a receita A que usa B, quando tentar fazer B usar A, então o banco recusa.
 - **Testes:** integração, RLS.
@@ -682,10 +682,10 @@ Referências: ANVISA RDC nº 429/2020 e IN nº 75/2020. Todos os valores abaixo 
 - **Depende de:** RN-125
 - **Descrição:** Funções puras para PL, FC, IC, rendimento, porções, custo e nutrientes, incluindo sub-receitas.
 - **Tarefas técnicas:**
-  - [ ] `netWeight`, `correctionFactor`, `cookingIndex`, `yieldGrams`, `servings`
-  - [ ] `recipeCost(ingredients, prices)` com conversão para a unidade de compra
-  - [ ] `recipeNutrients(ingredients, foods)` por preparação, porção e 100 g
-  - [ ] Resolução recursiva de sub-receitas com memoização
+  - [x] `netWeight`, `correctionFactor`, `cookingIndex`, `yieldGrams`, `servings`
+  - [x] `recipeCost(ingredients, prices)` com conversão para a unidade de compra
+  - [x] `recipeNutrients(ingredients, foods)` por preparação, porção e 100 g
+  - [x] Resolução recursiva de sub-receitas com memoização
   - [ ] Casos de teste a partir de fichas da literatura
 - **Arquivos/áreas:** `packages/nutrition-core/src/recipes/`
 - **Critérios de aceite:** Dado PB = 1000 g e FC = 1,25, quando calcular, então PL = 800 g; dado PL total 800 g e peso cozido 640 g, então IC = 0,80.
@@ -697,13 +697,13 @@ Referências: ANVISA RDC nº 429/2020 e IN nº 75/2020. Todos os valores abaixo 
 - **Depende de:** RN-126, RN-128, RN-129, RN-130
 - **Descrição:** Editor com ingredientes, modo de preparo, equipamentos, foto e cálculos em tempo real.
 - **Tarefas técnicas:**
-  - [ ] Tabela editável de ingredientes (PB, FC, PL calculado ou PL informado com PB calculado)
-  - [ ] Campo de peso cozido ou IC informado
-  - [ ] Passos do preparo com marcação de ponto crítico e temperatura alvo
+  - [x] Tabela editável de ingredientes (PB, FC, PL calculado ou PL informado com PB calculado)
+  - [x] Campo de peso cozido ou IC informado
+  - [x] Passos do preparo com marcação de ponto crítico e temperatura alvo
   - [ ] Upload de foto
-  - [ ] Painel lateral com rendimento, porções, custo total e por porção, e nutrientes
-  - [ ] Escalonamento da receita para N porções
-  - [ ] Duplicar ficha
+  - [x] Painel lateral com rendimento, porções, custo total e por porção, e nutrientes
+  - [x] Escalonamento da receita para N porções
+  - [x] Duplicar ficha
 - **Arquivos/áreas:** `apps/web/app/(uan)/uan/recipes/[id]/`, `packages/ui`
 - **Critérios de aceite:** Dada uma ficha em rascunho, quando o RT altera o PB de um ingrediente, então custo, rendimento e nutrientes se atualizam sem salvar; ao escalar de 10 para 250 porções, todos os PB são multiplicados por 25.
 - **Testes:** e2e, unidade (escalonamento).
@@ -714,9 +714,9 @@ Referências: ANVISA RDC nº 429/2020 e IN nº 75/2020. Todos os valores abaixo 
 - **Depende de:** RN-131
 - **Descrição:** Exibir a composição por porção e por 100 g, com alertas de ingredientes sem vínculo nutricional.
 - **Tarefas técnicas:**
-  - [ ] Bloco de macro e micronutrientes
-  - [ ] Aviso "dados incompletos" com a lista de ingredientes sem `food_id`
-  - [ ] Gravação em `recipes.computed` na aprovação
+  - [x] Bloco de macro e micronutrientes
+  - [x] Aviso "dados incompletos" com a lista de ingredientes sem `food_id`
+  - [x] Gravação em `recipes.computed` na aprovação
 - **Arquivos/áreas:** `apps/web/app/(uan)/uan/recipes/[id]/`
 - **Critérios de aceite:** Dada uma ficha com um ingrediente sem vínculo, quando abrir a informação nutricional, então o aviso aparece com o nome do ingrediente.
 - **Testes:** e2e.
@@ -739,8 +739,8 @@ Referências: ANVISA RDC nº 429/2020 e IN nº 75/2020. Todos os valores abaixo 
 - **Depende de:** RN-131
 - **Descrição:** Ficha aprovada é imutável; editar cria nova versão em rascunho.
 - **Tarefas técnicas:**
-  - [ ] Ação "aprovar" restrita ao RT
-  - [ ] "Nova versão" copia a ficha com `parent_recipe_id`
+  - [x] Ação "aprovar" restrita ao RT
+  - [x] "Nova versão" copia a ficha com `parent_recipe_id`
   - [ ] Comparação visual entre versões
   - [ ] Cardápios futuros passam a usar a versão aprovada mais recente
 - **Arquivos/áreas:** `apps/web/app/(uan)/uan/recipes/[id]/`, `supabase/migrations/`

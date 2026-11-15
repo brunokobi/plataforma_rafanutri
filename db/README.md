@@ -537,6 +537,22 @@ Migração `0042_ingredients.sql` (**aplicada na vpsrafa em 15/11/2026**, backup
 | `POST /rafanutri/uan/ingredients/:id/prices` (`{ price, supplier_id, valid_from }`) | Owner, gestor, RT, estoquista |
 | `GET`/`POST /rafanutri/uan/organizations/:id/suppliers`, `PUT /rafanutri/uan/suppliers/:id` | Idem |
 
+## Fichas técnicas (U2b: RN-129 a RN-134)
+
+Migração `0043_tech_sheets.sql` (**aplicada na vpsrafa em 15/11/2026**, backup `antes-0043-2026-11-15.dump`; testes em `db/tests/0043_tech_sheets.test.sql`). Tabelas `tech_sheets*` (o nome `recipes` é da biblioteca de receitas do clínico).
+
+- `tech_sheets`: nome, categoria, porções, peso pronto ou IC, tempo, equipamentos, observações, `status` (`draft`, `approved`, `archived`), `version`, `parent_id`, `root_id` (família de versões), `computed` (cálculo gravado na aprovação).
+- `tech_sheet_items`: insumo (peso bruto e FC próprio ou o do insumo) **ou** sub-receita (peso da preparação pronta usada); o gatilho recusa insumo/sub-receita de outra empresa e **ciclo** de sub-receitas. `tech_sheet_steps`: texto, ponto crítico, temperatura alvo.
+- Aprovada é imutável (dados, itens e passos); só pode ir para arquivada. `tech_sheet_approve(ficha, usuário, computed)` exige RT de alguma unidade da empresa ou owner e arquiva a aprovada anterior da mesma raiz. `tech_sheet_new_version(ficha, usuário)` cria o rascunho seguinte (um por vez) copiando itens e passos.
+- Cálculos no app com `@rafanutri/nutrition-core` (`techsheet.ts`); preço por kg vigente e nutrientes por 100 g vêm do endpoint.
+
+| Endpoint | Quem |
+|---|---|
+| `GET`/`POST /rafanutri/uan/organizations/:id/tech-sheets` | Ver: owner e equipe; criar: owner, gestor, RT |
+| `GET /rafanutri/uan/tech-sheets/:id` (ficha, grafo com sub-receitas, insumos, passos, versões, catálogo) e `…/graph` | Equipe da empresa; preço e `computed` só para owner, gestor, RT e estoquista |
+| `PUT /rafanutri/uan/tech-sheets/:id` (dados, `items`, `steps`; substitui) | Owner, gestor, RT; só rascunho |
+| `POST …/approve` (`{ computed }`), `…/new-version`, `…/duplicate`; `DELETE` (rascunho que não é sub-receita) | Aprovar: owner ou RT; o resto: owner, gestor, RT |
+
 ## Feedback do beta (RN-047)
 
 Migração `0032_feedback.sql` (**aplicada na vpsrafa em 14/11/2026**; testes em `db/tests/0032_feedback.test.sql`): `product_feedback` (consultório, autor, tipo `bug`/`idea`/`praise`/`other`, mensagem de 3 a 2.000 caracteres, caminho da página sem query string, status `new`/`read`/`done`). Gravado só por `POST /rafanutri/feedback` (qualquer conta logada, até 20 por dia); nenhum papel lê a coleção: o admin da plataforma consulta no Directus ou por SQL. Sem print de tela, porque a tela costuma ter dados de pacientes. O e2e grava mensagens com o prefixo `[e2e]`:

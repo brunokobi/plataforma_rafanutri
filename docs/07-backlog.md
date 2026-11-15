@@ -184,12 +184,12 @@ Status: `todo`, `doing`, `done`, `adiado` (fora do MVP, ver [ADR 0004](adr/0004-
 | [RN-126](plano/fase-5-uan-qualidade.md#rn-126--cadastro-de-insumos) | Cadastro de insumos | feature | 5 | RN-125 | doing |
 | [RN-127](plano/fase-5-uan-qualidade.md#rn-127--cadastro-de-fornecedores) | Cadastro de fornecedores | feature | 2 | RN-125 | doing |
 | [RN-128](plano/fase-5-uan-qualidade.md#rn-128--histórico-de-preços-de-insumos) | Histórico de preços de insumos | feature | 3 | RN-126, RN-127 | doing |
-| [RN-129](plano/fase-5-uan-qualidade.md#rn-129--migração-de-fichas-técnicas) | Migração de fichas técnicas | infra | 2 | RN-125 | todo |
-| [RN-130](plano/fase-5-uan-qualidade.md#rn-130--nutrition-core-cálculos-da-ficha-técnica) | `nutrition-core`: cálculos da ficha técnica | feature | 5 | RN-125 | todo |
-| [RN-131](plano/fase-5-uan-qualidade.md#rn-131--editor-da-ficha-técnica) | Editor da ficha técnica | feature | 8 | RN-126, RN-128, RN-129, RN-130 | todo |
-| [RN-132](plano/fase-5-uan-qualidade.md#rn-132--informação-nutricional-da-ficha-técnica) | Informação nutricional da ficha técnica | feature | 3 | RN-131 | todo |
+| [RN-129](plano/fase-5-uan-qualidade.md#rn-129--migração-de-fichas-técnicas) | Migração de fichas técnicas | infra | 2 | RN-125 | done |
+| [RN-130](plano/fase-5-uan-qualidade.md#rn-130--nutrition-core-cálculos-da-ficha-técnica) | `nutrition-core`: cálculos da ficha técnica | feature | 5 | RN-125 | done |
+| [RN-131](plano/fase-5-uan-qualidade.md#rn-131--editor-da-ficha-técnica) | Editor da ficha técnica | feature | 8 | RN-126, RN-128, RN-129, RN-130 | done |
+| [RN-132](plano/fase-5-uan-qualidade.md#rn-132--informação-nutricional-da-ficha-técnica) | Informação nutricional da ficha técnica | feature | 3 | RN-131 | doing |
 | [RN-133](plano/fase-5-uan-qualidade.md#rn-133--pdf-da-ficha-técnica) | PDF da ficha técnica | feature | 3 | RN-131, RN-036 | todo |
-| [RN-134](plano/fase-5-uan-qualidade.md#rn-134--versão-e-aprovação-da-ficha-técnica) | Versão e aprovação da ficha técnica | feature | 3 | RN-131 | todo |
+| [RN-134](plano/fase-5-uan-qualidade.md#rn-134--versão-e-aprovação-da-ficha-técnica) | Versão e aprovação da ficha técnica | feature | 3 | RN-131 | doing |
 | [RN-135](plano/fase-5-uan-qualidade.md#rn-135--migração-de-cardápios-e-comensais) | Migração de cardápios e comensais | infra | 2 | RN-129 | todo |
 | [RN-136](plano/fase-5-uan-qualidade.md#rn-136--editor-de-cardápio-cíclico) | Editor de cardápio cíclico | feature | 8 | RN-134, RN-135 | todo |
 | [RN-137](plano/fase-5-uan-qualidade.md#rn-137--comensais-e-per-capita) | Comensais e per capita | feature | 3 | RN-135 | todo |
