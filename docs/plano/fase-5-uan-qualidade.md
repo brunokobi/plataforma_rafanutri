@@ -617,9 +617,9 @@ Referências: ANVISA RDC nº 429/2020 e IN nº 75/2020. Todos os valores abaixo 
 - **Depende de:** RN-122
 - **Descrição:** Criar `measurement_units`, `ingredients`, `suppliers` e `ingredient_prices`.
 - **Tarefas técnicas:**
-  - [ ] Migração e RLS
+  - [x] Migração e RLS
   - [ ] Seed de unidades de medida
-  - [ ] `nutrition-core`: conversão entre unidades (massa, volume com densidade, contagem com peso unitário)
+  - [x] `nutrition-core`: conversão entre unidades (massa, volume com densidade, contagem com peso unitário)
 - **Arquivos/áreas:** `supabase/migrations/`, `packages/nutrition-core/src/units/`
 - **Critérios de aceite:** Dado 1 L de leite com densidade 1,03, quando converter para gramas, então retorna 1030 g.
 - **Testes:** unidade, RLS.
@@ -630,10 +630,10 @@ Referências: ANVISA RDC nº 429/2020 e IN nº 75/2020. Todos os valores abaixo 
 - **Depende de:** RN-125
 - **Descrição:** Insumos vinculados à base de alimentos, com FC padrão, unidade de compra, armazenamento, estoque mínimo e alergênicos.
 - **Tarefas técnicas:**
-  - [ ] Lista com busca e filtros por categoria
-  - [ ] Busca e vínculo com `foods` (TACO/TBCA)
+  - [x] Lista com busca e filtros por categoria
+  - [x] Busca e vínculo com `foods` (TACO/TBCA)
   - [ ] Seed com FC de referência para hortifrútis e carnes (A validar)
-  - [ ] Seleção de alergênicos (lista da RDC 26/2015)
+  - [x] Seleção de alergênicos (lista da RDC 26/2015)
 - **Arquivos/áreas:** `apps/web/app/(uan)/uan/ingredients/`
 - **Critérios de aceite:** Dado um insumo "cebola" vinculado à TACO, quando usado em uma ficha técnica, então traz o FC padrão e os nutrientes.
 - **Testes:** e2e.
@@ -644,7 +644,7 @@ Referências: ANVISA RDC nº 429/2020 e IN nº 75/2020. Todos os valores abaixo 
 - **Depende de:** RN-125
 - **Descrição:** Fornecedores com contato, documentos e avaliação.
 - **Tarefas técnicas:**
-  - [ ] CRUD de fornecedores
+  - [x] CRUD de fornecedores
   - [ ] Avaliação automática pela taxa de rejeição nos recebimentos (após RN-141)
 - **Arquivos/áreas:** `apps/web/app/(uan)/uan/suppliers/`
 - **Critérios de aceite:** Dado um fornecedor com 2 recebimentos rejeitados em 10, quando abrir o cadastro, então vê a taxa de rejeição de 20%.
@@ -657,7 +657,7 @@ Referências: ANVISA RDC nº 429/2020 e IN nº 75/2020. Todos os valores abaixo 
 - **Descrição:** Registrar preços por fornecedor e data, usados no custo das fichas e dos cardápios.
 - **Tarefas técnicas:**
   - [ ] Registro manual e atualização a partir do recebimento
-  - [ ] Preço vigente = último `valid_from` até a data de referência
+  - [x] Preço vigente = último `valid_from` até a data de referência
   - [ ] Importação de planilha de preços (CSV)
   - [ ] Gráfico de variação de preço
 - **Arquivos/áreas:** `apps/web/app/(uan)/uan/suppliers/`, `packages/db`

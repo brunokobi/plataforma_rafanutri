@@ -522,6 +522,21 @@ Migração `0039_compliance.sql` (**aplicada na vpsrafa em 15/11/2026**, backup 
 
 Componente sem dados fica de fora e os pesos se redistribuem; sem nenhum, `index` é nulo. `counts` traz as pendências (NCs atrasadas, checklists atrasados hoje, equipamentos sem leitura no prazo). `GET /rafanutri/uan/compliance?days=30` (7 a 90) devolve o índice de cada unidade ativa: o owner vê todas as da empresa; a equipe, só as dela.
 
+## Insumos, fornecedores e preços (U2a: RN-125 a RN-128)
+
+Migração `0042_ingredients.sql` (**aplicada na vpsrafa em 15/11/2026**, backup `antes-0042-2026-11-15.dump`; testes em `db/tests/0042_ingredients.test.sql`). Tudo é da empresa (organização), compartilhado pelas unidades; exige o módulo UAN.
+
+- `ingredients`: nome (único na empresa, sem caixa e espaços), categoria, `food_id` (base pública TACO/TBCA), `default_fc` (≥ 1), unidade de compra (`kg`, `g`, `l`, `ml`, `un`, `dz`, `cx`, `pct`) com `density_g_ml`, `unit_weight_g` (obrigatório em un/dz) e `pack_grams` (obrigatório em cx/pct), armazenamento, estoque mínimo, `allergens` (códigos de `uan_allergen_codes()`: RDC 26/2015 + lactose), ativo.
+- `suppliers`: nome único na empresa, CNPJ (14 dígitos), contato, telefone, e-mail, observações, ativo.
+- `ingredient_prices`: preço (centavos) por unidade de compra, fornecedor da mesma empresa, `valid_from`, origem (manual, recebimento, planilha). Imutável; apagar o fornecedor só zera a referência. `ingredient_price_at(insumo, data)` = maior vigência até a data (empate: o último registrado).
+
+| Endpoint | Quem |
+|---|---|
+| `GET /rafanutri/uan/foods?q=` | Quem atua em alguma empresa com UAN (só base pública) |
+| `GET`/`POST /rafanutri/uan/organizations/:id/ingredients`, `GET`/`PUT /rafanutri/uan/ingredients/:id` | Ver: owner e equipe; cadastrar: owner, gestor, RT, estoquista |
+| `POST /rafanutri/uan/ingredients/:id/prices` (`{ price, supplier_id, valid_from }`) | Owner, gestor, RT, estoquista |
+| `GET`/`POST /rafanutri/uan/organizations/:id/suppliers`, `PUT /rafanutri/uan/suppliers/:id` | Idem |
+
 ## Feedback do beta (RN-047)
 
 Migração `0032_feedback.sql` (**aplicada na vpsrafa em 14/11/2026**; testes em `db/tests/0032_feedback.test.sql`): `product_feedback` (consultório, autor, tipo `bug`/`idea`/`praise`/`other`, mensagem de 3 a 2.000 caracteres, caminho da página sem query string, status `new`/`read`/`done`). Gravado só por `POST /rafanutri/feedback` (qualquer conta logada, até 20 por dia); nenhum papel lê a coleção: o admin da plataforma consulta no Directus ou por SQL. Sem print de tela, porque a tela costuma ter dados de pacientes. O e2e grava mensagens com o prefixo `[e2e]`:

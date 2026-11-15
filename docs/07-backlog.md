@@ -180,10 +180,10 @@ Status: `todo`, `doing`, `done`, `adiado` (fora do MVP, ver [ADR 0004](adr/0004-
 | [RN-122](plano/fase-5-uan-qualidade.md#rn-122--rls-por-unidade-e-feature-flag-enterprise) | RLS por unidade e feature flag Enterprise | infra | 5 | RN-121 | doing |
 | [RN-123](plano/fase-5-uan-qualidade.md#rn-123--tela-de-unidades-e-membros) | Tela de unidades e membros | feature | 3 | RN-122 | doing |
 | [RN-124](plano/fase-5-uan-qualidade.md#rn-124--contrato-e-planos-enterprise-por-unidade) | Contrato e planos Enterprise por unidade | feature | 5 | RN-057, RN-121 | todo |
-| [RN-125](plano/fase-5-uan-qualidade.md#rn-125--migração-de-insumos-unidades-e-fornecedores) | Migração de insumos, unidades e fornecedores | infra | 3 | RN-122 | todo |
-| [RN-126](plano/fase-5-uan-qualidade.md#rn-126--cadastro-de-insumos) | Cadastro de insumos | feature | 5 | RN-125 | todo |
-| [RN-127](plano/fase-5-uan-qualidade.md#rn-127--cadastro-de-fornecedores) | Cadastro de fornecedores | feature | 2 | RN-125 | todo |
-| [RN-128](plano/fase-5-uan-qualidade.md#rn-128--histórico-de-preços-de-insumos) | Histórico de preços de insumos | feature | 3 | RN-126, RN-127 | todo |
+| [RN-125](plano/fase-5-uan-qualidade.md#rn-125--migração-de-insumos-unidades-e-fornecedores) | Migração de insumos, unidades e fornecedores | infra | 3 | RN-122 | done |
+| [RN-126](plano/fase-5-uan-qualidade.md#rn-126--cadastro-de-insumos) | Cadastro de insumos | feature | 5 | RN-125 | doing |
+| [RN-127](plano/fase-5-uan-qualidade.md#rn-127--cadastro-de-fornecedores) | Cadastro de fornecedores | feature | 2 | RN-125 | doing |
+| [RN-128](plano/fase-5-uan-qualidade.md#rn-128--histórico-de-preços-de-insumos) | Histórico de preços de insumos | feature | 3 | RN-126, RN-127 | doing |
 | [RN-129](plano/fase-5-uan-qualidade.md#rn-129--migração-de-fichas-técnicas) | Migração de fichas técnicas | infra | 2 | RN-125 | todo |
 | [RN-130](plano/fase-5-uan-qualidade.md#rn-130--nutrition-core-cálculos-da-ficha-técnica) | `nutrition-core`: cálculos da ficha técnica | feature | 5 | RN-125 | todo |
 | [RN-131](plano/fase-5-uan-qualidade.md#rn-131--editor-da-ficha-técnica) | Editor da ficha técnica | feature | 8 | RN-126, RN-128, RN-129, RN-130 | todo |
