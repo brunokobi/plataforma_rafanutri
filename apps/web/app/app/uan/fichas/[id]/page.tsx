@@ -28,7 +28,7 @@ export default async function SheetPage({ params }: { params: Promise<{ id: stri
               <Link href={`/app/uan/fichas?empresa=${d.sheet.organization_id}`} className="text-sm text-muted-foreground hover:underline">← Fichas técnicas</Link>
               <h1 className="mt-1 font-display text-3xl font-semibold tracking-tight">{d.sheet.name}</h1>
             </div>
-            <SheetEditor key={d.sheet.id + (d.sheet.updated_at ?? '')} detail={d} />
+            <SheetEditor key={`${d.sheet.id}-${d.sheet.status}`} detail={d} />
           </>
         )}
       </main>
