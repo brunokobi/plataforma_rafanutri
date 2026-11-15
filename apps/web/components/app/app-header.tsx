@@ -11,9 +11,14 @@ export function AppHeader({ homeHref = '/app', patientsHref = '/app/pacientes', 
   return (
     <header className="sticky top-0 z-30 border-b border-border/60 bg-background/80 backdrop-blur-lg">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-5">
-        <div className="flex min-w-0 items-center gap-6">
-          <Logo href={homeHref} />
-          <nav aria-label="Área logada" className="hidden items-center gap-5 text-sm font-medium text-muted-foreground sm:flex">
+        <div className="flex min-w-0 flex-1 items-center gap-6">
+          <Logo href={homeHref} className="shrink-0" />
+          {/* Os links não cabem todos em telas médias: a lista rola na horizontal dentro do espaço livre
+              (sem barra), com esmaecimento na borda, e nunca passa por cima dos botões da direita. */}
+          <nav
+            aria-label="Área logada"
+            className="hidden min-w-0 items-center gap-5 overflow-x-auto pr-6 text-sm font-medium whitespace-nowrap text-muted-foreground [mask-image:linear-gradient(to_right,black_calc(100%-2rem),transparent)] [scrollbar-width:none] sm:flex [&::-webkit-scrollbar]:hidden [&>a]:shrink-0"
+          >
             <Link href={homeHref} className="hover:text-foreground">Módulos</Link>
             <Link href={patientsHref} className="hover:text-foreground">Pacientes</Link>
             <Link href="/app/agenda" className="hover:text-foreground">Agenda</Link>
