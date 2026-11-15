@@ -71,12 +71,12 @@ export async function startChecklist(
 }
 
 type SavedAnswer = Pick<ChecklistAnswer, 'position' | 'value' | 'number_value' | 'comment' | 'has_photo'>;
-export type AnswerResult = { ok: true; answer: SavedAnswer } | { ok: false; message: string };
+export type AnswerResult = { ok: true; answer: SavedAnswer } | { ok: false; message: string; network?: boolean };
 
 export async function saveAnswer(
   runId: string,
   position: number,
-  input: { value?: AnswerValue; number_value?: number | null; comment?: string | null },
+  input: { value?: AnswerValue; number_value?: number | null; comment?: string | null; answered_at?: string },
 ): Promise<AnswerResult> {
   if (!isUuid(runId) || !Number.isInteger(position)) return { ok: false, message: 'Item inválido.' };
   try {
@@ -84,11 +84,11 @@ export async function saveAnswer(
     if (r.status === 200) return { ok: true, answer: r.json?.data as SavedAnswer };
     return { ok: false, message: errMsg(r, 'Não foi possível salvar a resposta.') };
   } catch {
-    return { ok: false, message: FAIL };
+    return { ok: false, message: FAIL, network: true };
   }
 }
 
-export async function saveAnswerPhoto(runId: string, position: number, image: string): Promise<{ ok: true } | { ok: false; message: string }> {
+export async function saveAnswerPhoto(runId: string, position: number, image: string): Promise<{ ok: true } | { ok: false; message: string; network?: boolean }> {
   if (!isUuid(runId) || !Number.isInteger(position) || typeof image !== 'string' || !image.startsWith('data:image/') || image.length > 900_000) {
     return { ok: false, message: 'Foto inválida.' };
   }
@@ -96,7 +96,7 @@ export async function saveAnswerPhoto(runId: string, position: number, image: st
     const r = await call(`/uan/checklist-runs/${runId}/answers/${position}/photo`, 'POST', { image });
     return r.status === 200 ? { ok: true } : { ok: false, message: errMsg(r, 'Não foi possível salvar a foto.') };
   } catch {
-    return { ok: false, message: FAIL };
+    return { ok: false, message: FAIL, network: true };
   }
 }
 
@@ -110,7 +110,7 @@ export async function saveSignature(runId: string, png: string): Promise<{ ok: t
   }
 }
 
-export async function completeChecklist(runId: string): Promise<{ ok: true; run: RunSummary & { non_conformities_opened: number } } | { ok: false; message: string }> {
+export async function completeChecklist(runId: string): Promise<{ ok: true; run: RunSummary & { non_conformities_opened: number } } | { ok: false; message: string; network?: boolean }> {
   if (!isUuid(runId)) return { ok: false, message: 'Checklist inválido.' };
   try {
     const r = await call(`/uan/checklist-runs/${runId}/complete`, 'POST', {});
@@ -122,7 +122,7 @@ export async function completeChecklist(runId: string): Promise<{ ok: true; run:
     }
     return { ok: false, message: errMsg(r, 'Não foi possível concluir o checklist.') };
   } catch {
-    return { ok: false, message: FAIL };
+    return { ok: false, message: FAIL, network: true };
   }
 }
 

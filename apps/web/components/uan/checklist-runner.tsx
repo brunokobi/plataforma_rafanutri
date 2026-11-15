@@ -1,13 +1,15 @@
 'use client';
 
-import { AlertTriangle, Camera, Check, ChevronLeft, ChevronRight, Loader2, MapPin, Minus, X } from 'lucide-react';
+import { AlertTriangle, Camera, Check, ChevronLeft, ChevronRight, Loader2, MapPin, Minus, WifiOff, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useState, useTransition } from 'react';
+import { useEffect, useRef, useState, useTransition } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
+import { outcomeOf, type OfflineOp } from '@/lib/offline/ops';
+import { enqueue, offlineSupported, pending as pendingOps, remove } from '@/lib/offline/queue';
 import { resizeImage } from '@/lib/recipes/resize-image';
 import { SignaturePad } from '@/components/uan/signature-pad';
 import { cancelChecklist, completeChecklist, saveAnswer, saveAnswerPhoto, saveSignature } from '@/lib/uan/checklist-actions';
@@ -16,6 +18,7 @@ import {
   missingEvidence,
   needsEvidence,
   nextPending,
+  numberValue,
   outsideRadius,
   photoUrl,
   signatureUrl,
@@ -63,6 +66,11 @@ export function ChecklistRunner({ detail }: { detail: RunDetail }) {
   const [signed, setSigned] = useState(Boolean(detail.run.has_signature));
   const [signV, setSignV] = useState(0);
   const [signing, setSigning] = useState(false);
+  const [online, setOnline] = useState(true);
+  const [queued, setQueued] = useState(0);
+  const [completedLocally, setCompletedLocally] = useState(false);
+  const [localPhotos, setLocalPhotos] = useState<Record<number, string>>({});
+  const syncing = useRef(false);
 
   const a = answers[index]!;
   const progress = runProgress(answers);
@@ -81,23 +89,63 @@ export function ChecklistRunner({ detail }: { detail: RunDetail }) {
   const merge = (patch: Partial<ChecklistAnswer> & { position: number }) =>
     setAnswers((list) => list.map((x) => (x.position === patch.position ? { ...x, ...patch } : x)));
 
+  // ── Modo offline (RN-149): sem conexão, a operação vai para a fila do aparelho e é enviada depois ──
+  const isOffline = () => typeof navigator !== 'undefined' && navigator.onLine === false;
+  const queueOp = async (op: OfflineOp) => {
+    if (!offlineSupported()) return false;
+    await enqueue(op);
+    setQueued((q) => q + 1);
+    return true;
+  };
+  const optimistic = (input: { value?: AnswerValue; number_value?: number | null; comment?: string | null }): ChecklistAnswer => {
+    const isNa = input.value === 'na';
+    const value: AnswerValue | null =
+      a.kind === 'number' && !isNa ? numberValue(input.number_value ?? null, a.min_value, a.max_value) : (input.value ?? a.value);
+    return {
+      ...a,
+      value,
+      number_value: a.kind === 'number' && !isNa ? (input.number_value ?? null) : null,
+      comment: input.comment === undefined ? a.comment : input.comment,
+      answered_at: new Date().toISOString(),
+    };
+  };
+  const afterSave = (updated: ChecklistAnswer, advance: boolean) => {
+    merge(updated);
+    // Avança sozinho quando o item está completo (sem evidência pendente).
+    if (advance && !missingEvidence(updated)) {
+      const list = answers.map((x) => (x.position === updated.position ? updated : x));
+      const nextPos = nextPending(list, updated.position);
+      if (nextPos === null) setReviewing(true);
+      else goPosition(nextPos);
+    }
+  };
+
   const persist = (input: { value?: AnswerValue; number_value?: number | null; comment?: string | null }, advance: boolean) => {
     setMessage(null);
     startTransition(async () => {
-      const r = await saveAnswer(runId, a.position, input);
+      const offlinePath = async () => {
+        const at = new Date().toISOString();
+        if (await queueOp({ kind: 'answer', runId, position: a.position, input: { ...input, answered_at: at } as typeof input, at })) afterSave(optimistic(input), advance);
+        else setMessage({ text: 'Sem conexão. Tente de novo quando a internet voltar.', error: true });
+      };
+      // Com fila pendente, tudo passa por ela (mantém a ordem) e o envio é disparado na hora.
+      if (isOffline() || queued > 0) {
+        await offlinePath();
+        void sync();
+        return;
+      }
+      let r: Awaited<ReturnType<typeof saveAnswer>>;
+      try {
+        r = await saveAnswer(runId, a.position, input);
+      } catch {
+        return offlinePath();
+      }
       if (!r.ok) {
+        if (r.network) return offlinePath();
         setMessage({ text: r.message, error: true });
         return;
       }
-      const updated = { ...a, ...r.answer };
-      merge(updated);
-      // Avança sozinho quando o item está completo (sem evidência pendente).
-      if (advance && !missingEvidence(updated)) {
-        const list = answers.map((x) => (x.position === updated.position ? updated : x));
-        const nextPos = nextPending(list, updated.position);
-        if (nextPos === null) setReviewing(true);
-        else goPosition(nextPos);
-      }
+      afterSave({ ...a, ...r.answer }, advance);
     });
   };
   const commentInput = () => (comment.trim() ? comment.trim() : null);
@@ -121,13 +169,37 @@ export function ChecklistRunner({ detail }: { detail: RunDetail }) {
     if (!file) return;
     setMessage(null);
     setUploading(true);
+    const position = a.position;
     try {
       const data = await resizeImage(file, 1600, 0.8);
-      const r = await saveAnswerPhoto(runId, a.position, data);
+      const offlinePath = async () => {
+        if (await queueOp({ kind: 'photo', runId, position, image: data, at: new Date().toISOString() })) {
+          merge({ position, has_photo: true });
+          setLocalPhotos((m) => ({ ...m, [position]: data }));
+          setMessage({ text: 'Foto guardada no aparelho; será enviada quando a internet voltar.' });
+        } else setMessage({ text: 'Sem conexão. Tente de novo quando a internet voltar.', error: true });
+      };
+      if (isOffline() || queued > 0) {
+        await offlinePath();
+        void sync();
+        return;
+      }
+      let r: Awaited<ReturnType<typeof saveAnswerPhoto>>;
+      try {
+        r = await saveAnswerPhoto(runId, position, data);
+      } catch {
+        return await offlinePath();
+      }
+      if (!r.ok && r.network) return await offlinePath();
       if (!r.ok) setMessage({ text: r.message, error: true });
       else {
-        merge({ position: a.position, has_photo: true });
-        setPhotoV((v) => ({ ...v, [a.position]: (v[a.position] ?? 0) + 1 }));
+        merge({ position, has_photo: true });
+        setLocalPhotos((m) => {
+          const rest = { ...m };
+          delete rest[position];
+          return rest;
+        });
+        setPhotoV((v) => ({ ...v, [position]: (v[position] ?? 0) + 1 }));
         setMessage({ text: 'Foto salva.' });
       }
     } catch (e) {
@@ -139,10 +211,85 @@ export function ChecklistRunner({ detail }: { detail: RunDetail }) {
   const complete = () =>
     startTransition(async () => {
       setMessage(null);
-      const r = await completeChecklist(runId);
+      const offlinePath = async () => {
+        if (await queueOp({ kind: 'complete', runId, at: new Date().toISOString() })) {
+          setCompletedLocally(true);
+          setMessage({ text: 'Concluído no aparelho. O envio é automático quando a internet voltar; não feche o checklist antes disso.' });
+        } else setMessage({ text: 'Sem conexão. Tente de novo quando a internet voltar.', error: true });
+      };
+      if (isOffline() || queued > 0) {
+        await offlinePath();
+        void sync();
+        return;
+      }
+      let r: Awaited<ReturnType<typeof completeChecklist>>;
+      try {
+        r = await completeChecklist(runId);
+      } catch {
+        return offlinePath();
+      }
       if (r.ok) router.refresh();
+      else if (r.network) await offlinePath();
       else setMessage({ text: r.message, error: true });
     });
+
+  /** Envia a fila em ordem. Para na primeira falha de rede; recusa definitiva descarta e avisa. */
+  const sync = async () => {
+    if (syncing.current || !offlineSupported() || isOffline()) return;
+    syncing.current = true;
+    try {
+      const ops = await pendingOps(runId);
+      let completed = false;
+      for (const op of ops) {
+        let r: { ok: true } | { ok: false; message: string; network?: boolean };
+        try {
+          r =
+            op.kind === 'answer' ? await saveAnswer(runId, op.position, op.input)
+              : op.kind === 'photo' ? await saveAnswerPhoto(runId, op.position, op.image)
+                : await completeChecklist(runId);
+        } catch {
+          r = { ok: false, message: 'offline', network: true };
+        }
+        const outcome = outcomeOf(op, r);
+        if (outcome === 'offline') break;
+        if (op.id !== undefined) await remove(op.id);
+        if (outcome === 'rejected' && !r.ok) setMessage({ text: `Uma alteração feita sem internet foi recusada: ${r.message}`, error: true });
+        if (op.kind === 'complete' && outcome === 'sent') completed = true;
+      }
+      const left = (await pendingOps(runId)).length;
+      setQueued(left);
+      if (left === 0 && ops.length > 0) setMessage({ text: 'Alterações feitas sem internet enviadas.' });
+      if (completed) router.refresh();
+    } finally {
+      syncing.current = false;
+    }
+  };
+
+  useEffect(() => {
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
+    const status = () => setOnline(navigator.onLine);
+    status();
+    if (offlineSupported()) {
+      void pendingOps(runId).then((ops) => {
+        setQueued(ops.length);
+        if (ops.some((o) => o.kind === 'complete')) setCompletedLocally(true);
+      });
+    }
+    const onOnline = () => {
+      status();
+      void sync();
+    };
+    window.addEventListener('online', onOnline);
+    window.addEventListener('offline', status);
+    const timer = window.setInterval(() => void sync(), 15_000);
+    void sync();
+    return () => {
+      window.removeEventListener('online', onOnline);
+      window.removeEventListener('offline', status);
+      window.clearInterval(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [runId]);
   const cancel = () => {
     if (!window.confirm('Cancelar este checklist? As respostas ficam guardadas, mas ele não conta como feito.')) return;
     startTransition(async () => {
@@ -161,6 +308,16 @@ export function ChecklistRunner({ detail }: { detail: RunDetail }) {
         <p role="note" className="flex items-start gap-2 rounded-xl border border-amber-500/50 bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
           <MapPin className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
           Checklist iniciado a {detail.run.geo_distance_m} m da unidade (raio de {detail.unit.geo_radius_m} m). O registro guarda essa distância.
+        </p>
+      )}
+
+      {(!online || queued > 0) && (
+        <p role="note" aria-label="Situação da conexão" className="flex items-start gap-2 rounded-xl border border-sky-600/40 bg-sky-50 p-3 text-sm text-sky-950 dark:bg-sky-950/40 dark:text-sky-100">
+          {online ? <Loader2 className="mt-0.5 size-4 shrink-0 animate-spin" aria-hidden="true" /> : <WifiOff className="mt-0.5 size-4 shrink-0" aria-hidden="true" />}
+          <span>
+            {online ? 'Enviando o que foi feito sem internet…' : 'Sem conexão: as respostas ficam guardadas neste aparelho e são enviadas quando a internet voltar.'}
+            {queued > 0 && <> <strong>{queued} alteração(ões) aguardando envio.</strong></>}
+          </span>
         </p>
       )}
 
@@ -234,7 +391,7 @@ export function ChecklistRunner({ detail }: { detail: RunDetail }) {
               }}
             />
           </div>
-          <Button type="button" size="lg" className="h-12 w-full" disabled={busy || signing || progress.blocking.length > 0} onClick={complete}>
+          <Button type="button" size="lg" className="h-12 w-full" disabled={busy || signing || completedLocally || progress.blocking.length > 0} onClick={complete}>
             {pending && <Loader2 className="size-4 animate-spin" />} Concluir checklist
           </Button>
         </section>
@@ -305,7 +462,7 @@ export function ChecklistRunner({ detail }: { detail: RunDetail }) {
                   {uploading && <p className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="size-4 animate-spin" /> Enviando foto…</p>}
                   {a.has_photo && (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={photoUrl(runId, a.position, photoV[a.position] ?? 0)} alt={`Evidência do item ${a.position}`} className="max-h-48 rounded-lg border border-border object-contain" />
+                    <img src={localPhotos[a.position] ?? photoUrl(runId, a.position, photoV[a.position] ?? 0)} alt={`Evidência do item ${a.position}`} className="max-h-48 rounded-lg border border-border object-contain" />
                   )}
                 </div>
               )}

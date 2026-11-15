@@ -2265,6 +2265,8 @@ export default {
         if (!['conform', 'non_conform', 'na'].includes(b.value)) return bad(res, { value: 'Escolha uma resposta.' });
         patch.value = b.value;
       }
+      // Modo offline: horário em que a resposta foi dada no aparelho (o banco aceita até 72 h atrás).
+      if (typeof b.answered_at === 'string' && !Number.isNaN(Date.parse(b.answered_at))) patch.answered_at = new Date(b.answered_at).toISOString();
       if (b.comment !== undefined) {
         if (b.comment !== null && typeof b.comment !== 'string') return bad(res, { comment: 'Comentário inválido.' });
         const c = typeof b.comment === 'string' ? b.comment.trim() : '';
