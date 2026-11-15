@@ -5,11 +5,13 @@ import { notFound, redirect } from 'next/navigation';
 import { AppHeader } from '@/components/app/app-header';
 import { LicenseBadge } from '@/components/uan/license-badge';
 import { UnitForm } from '@/components/uan/unit-form';
+import { UnitChecklistsSection } from '@/components/uan/unit-checklists';
 import { UnitTeam } from '@/components/uan/unit-team';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { today } from '@/lib/appointments/schema';
 import { getCurrentUser } from '@/lib/auth/session';
 import { getUnit } from '@/lib/uan/actions';
+import { getUnitChecklists } from '@/lib/uan/checklist-actions';
 import { formatCnpj, UNIT_KIND_LABEL, UNIT_ROLE_LABEL } from '@/lib/uan/types';
 
 export const metadata: Metadata = { title: 'Unidade', robots: { index: false } };
@@ -18,7 +20,7 @@ export default async function UnitPage({ params }: { params: Promise<{ id: strin
   const { id } = await params;
   const user = await getCurrentUser();
   if (!user) redirect(`/login?next=/app/uan/unidades/${id}`);
-  const detail = await getUnit(id);
+  const [detail, checklists] = await Promise.all([getUnit(id), getUnitChecklists(id)]);
   if (detail === undefined) notFound();
   const todayDate = today();
 
@@ -53,6 +55,15 @@ export default async function UnitPage({ params }: { params: Promise<{ id: strin
                 <div><dt className="text-muted-foreground">Seu papel</dt><dd>{detail.roles.map((r) => UNIT_ROLE_LABEL[r]).join(', ')}</dd></div>
               </dl>
             )}
+
+            {checklists ? (
+              <UnitChecklistsSection unitId={detail.unit.id} data={checklists} useGeo={detail.unit.geo_lat !== null} />
+            ) : checklists === null ? (
+              <Alert variant="destructive">
+                <AlertCircle />
+                <AlertDescription>Não foi possível carregar os checklists agora.</AlertDescription>
+              </Alert>
+            ) : null}
 
             {detail.can_manage_team && (
               <UnitTeam

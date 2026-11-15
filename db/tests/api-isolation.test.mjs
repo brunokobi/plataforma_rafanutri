@@ -810,6 +810,43 @@ try {
       assert.deepEqual((await api('/rafanutri/uan/context', { token: c })).json.data, [], 'removido não vê mais a unidade');
       assert.equal((await api(`/rafanutri/uan/units/${U1}`, { token: c })).status, 404);
     });
+    await check('UAN: checklist — cozinheiro faz na unidade dele; quem é de fora não vê nem responde; cancelado não muda', async () => {
+      const list = await api(`/rafanutri/uan/units/${U1}/checklists`, { token: b.token });
+      assert.equal(list.status, 200);
+      assert.equal(list.json.data.can_run, true);
+      const tpl = list.json.data.templates.find((t) => t.name === 'Abertura da cozinha');
+      assert.ok(tpl, 'modelo da biblioteca');
+      const clientId = randomUUID();
+      const start = await api(`/rafanutri/uan/units/${U1}/checklist-runs`, { token: b.token, method: 'POST', body: { template_id: tpl.id, client_id: clientId } });
+      assert.equal(start.status, 201, JSON.stringify(start.json));
+      const RUN = start.json.data.id;
+      const again = await api(`/rafanutri/uan/units/${U1}/checklist-runs`, { token: b.token, method: 'POST', body: { template_id: tpl.id, client_id: clientId } });
+      assert.equal(again.json.data.id, RUN, 'mesmo client_id');
+      assert.equal((await api(`/rafanutri/uan/units/${U2}/checklist-runs`, { token: b.token, method: 'POST', body: { template_id: tpl.id, client_id: randomUUID() } })).status, 404, 'outra unidade');
+      assert.equal((await api(`/rafanutri/uan/units/${U2}/checklists`, { token: b.token })).status, 404);
+      // pessoa de fora (conta sem consultório nem unidade)
+      const out = await newUser('ck');
+      created.users.push((await api('/users/me?fields=id', { token: out.token })).json.data.id);
+      assert.equal((await api(`/rafanutri/uan/checklist-runs/${RUN}`, { token: out.token })).status, 404, 'lê execução');
+      assert.equal((await api(`/rafanutri/uan/checklist-runs/${RUN}/answers/1`, { token: out.token, method: 'PUT', body: { value: 'conform' } })).status, 404, 'responde');
+      assert.equal((await api(`/rafanutri/uan/checklist-runs/${RUN}/complete`, { token: out.token, method: 'POST', body: {} })).status, 404, 'conclui');
+      assert.equal((await api(`/rafanutri/uan/checklist-runs/${RUN}/cancel`, { token: out.token, method: 'POST', body: {} })).status, 404, 'cancela');
+      assert.equal((await api(`/rafanutri/uan/units/${U1}/checklists`, { token: out.token })).status, 404, 'lista');
+      assert.equal((await api(`/rafanutri/uan/checklist-runs/${RUN}`)).status, 401);
+      const direct = await api('/items/checklist_answers?limit=1', { token: b.token });
+      assert.ok(direct.status >= 400, 'coleção direta recusada');
+      // responder, foto inválida, concluir incompleto, cancelar
+      assert.equal((await api(`/rafanutri/uan/checklist-runs/${RUN}/answers/1`, { token: b.token, method: 'PUT', body: { value: 'talvez' } })).status, 400);
+      const ans = await api(`/rafanutri/uan/checklist-runs/${RUN}/answers/5`, { token: b.token, method: 'PUT', body: { number_value: 9 } });
+      assert.equal(ans.status, 200, JSON.stringify(ans.json));
+      assert.equal(ans.json.data.value, 'non_conform', '9 °C fora do limite');
+      assert.equal((await api(`/rafanutri/uan/checklist-runs/${RUN}/answers/5/photo`, { token: b.token, method: 'POST', body: { image: 'data:image/png;base64,AAAA' } })).status, 400);
+      assert.equal((await api(`/rafanutri/uan/checklist-runs/${RUN}/complete`, { token: b.token, method: 'POST', body: {} })).status, 409, 'incompleto');
+      assert.equal((await api(`/rafanutri/uan/checklist-runs/${RUN}/cancel`, { token: b.token, method: 'POST', body: {} })).status, 200);
+      assert.equal((await api(`/rafanutri/uan/checklist-runs/${RUN}/answers/1`, { token: b.token, method: 'PUT', body: { value: 'conform' } })).status, 409, 'cancelado não muda');
+      const own = await api(`/rafanutri/uan/checklist-runs/${RUN}`, { token: a.token });
+      assert.equal(own.json.data.run.status, 'cancelled', 'owner vê');
+    });
   } else {
     console.log('  (pulado) UAN entre unidades: defina ISOLATION_PSQL');
   }

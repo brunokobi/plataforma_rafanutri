@@ -1978,6 +1978,227 @@ export default {
       }
     });
 
+    // ── Checklists de Boas Práticas e não conformidades (U1a: RN-146 a RN-148, base do RN-153) ──
+    // Executam: owner, RT, gestor, cozinheiro e estoquista. O auditor só consulta. As regras de
+    // imutabilidade, pontuação e abertura de não conformidade ficam no banco (0035).
+    const RUN_ROLES = new Set(['technical_lead', 'manager', 'cook', 'stock_keeper']);
+    const canRun = (a) => a.isOwner || a.roles.some((r) => RUN_ROLES.has(r));
+    const canSupervise = (a) => a.isOwner || a.roles.includes('manager') || a.roles.includes('technical_lead');
+    const runNotFound = (res) => res.status(404).json({ errors: [{ message: 'Checklist não encontrado.', extensions: { code: 'NOT_FOUND' } }] });
+    const runForbidden = (res) => res.status(403).json({ errors: [{ message: 'Seu papel nesta unidade só permite consultar.', extensions: { code: 'FORBIDDEN' } }] });
+    const p0001 = (res, error, what) => {
+      if (error?.code === 'P0001') return conflict(res, error.message.split('\n')[0].replace(/^.* - /, ''));
+      logger.error({ err: error }, `rafanutri: falha ao ${what}`);
+      return res.status(500).json({ errors: [{ message: 'Não foi possível salvar agora.', extensions: { code: 'INTERNAL_SERVER_ERROR' } }] });
+    };
+    const numOrNull = (v) => (v === null || v === undefined ? null : Number(v));
+    const userName = (u) => [u?.first_name, u?.last_name].filter(Boolean).join(' ') || null;
+
+    async function runAccess(user, runId) {
+      if (!isUuid(runId)) return null;
+      const run = await database('checklist_runs').where('id', runId).first();
+      if (!run) return null;
+      const a = await unitAccess(user, run.unit_id);
+      return a ? { run, a } : null;
+    }
+    const runOut = (r) => ({
+      id: r.id, unit_id: r.unit_id, template_id: r.template_id, template_name: r.template_name, status: r.status,
+      started_at: r.started_at, completed_at: r.completed_at, score: numOrNull(r.score),
+      conform_count: r.conform_count, non_conform_count: r.non_conform_count, na_count: r.na_count,
+      geo_distance_m: r.geo_distance_m,
+    });
+
+    router.get('/uan/units/:id/checklists', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const a = await unitAccess(user, req.params.id);
+      if (!a) return unitNotFound(res);
+      const templates = await database('checklist_templates as t')
+        .where('t.active', true)
+        .where((q) => q.whereNull('t.organization_id').orWhere('t.organization_id', a.unit.organization_id))
+        .orderByRaw("t.organization_id is null, case t.category when 'opening' then 1 when 'hygiene' then 2 when 'bpf_audit' then 9 else 5 end, t.name")
+        .select('t.id', 't.name', 't.description', 't.category', 't.frequency_hint', database.raw('(t.organization_id is null) as platform'),
+          database.raw('(select count(*)::int from checklist_template_items i where i.template_id = t.id) as item_count'),
+          database.raw('(select count(*)::int from checklist_template_items i where i.template_id = t.id and i.critical) as critical_count'));
+      const runs = await database('checklist_runs as r').leftJoin('directus_users as u', 'u.id', 'r.started_by')
+        .where('r.unit_id', a.unit.id).whereNot('r.status', 'cancelled')
+        .orderBy('r.started_at', 'desc').limit(20)
+        .select('r.*', 'u.first_name', 'u.last_name');
+      const ncs = await database('non_conformities').where('unit_id', a.unit.id).whereIn('status', ['open', 'in_progress'])
+        .orderBy('due_at').limit(50)
+        .select('id', 'title', 'severity', 'status', 'source', 'run_id', 'due_at', 'opened_at');
+      res.json({
+        data: {
+          can_run: canRun(a) && a.unit.active,
+          templates,
+          runs: runs.map((r) => ({ ...runOut(r), started_by_name: userName(r), mine: r.started_by === user })),
+          non_conformities: ncs,
+        },
+      });
+    });
+
+    router.post('/uan/units/:id/checklist-runs', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const a = await unitAccess(user, req.params.id);
+      if (!a) return unitNotFound(res);
+      if (!canRun(a)) return runForbidden(res);
+      const b = req.body ?? {};
+      if (!isUuid(b.template_id) || !isUuid(b.client_id)) return bad(res, { template_id: 'Escolha o checklist.' });
+      const lat = numOrNull(b.geo_lat);
+      const lng = numOrNull(b.geo_lng);
+      const geoOk = lat !== null && lng !== null && Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180;
+      const acc = geoOk && Number.isFinite(Number(b.geo_accuracy_m)) ? Math.min(100000, Math.max(0, Math.round(Number(b.geo_accuracy_m)))) : null;
+      try {
+        const id = await withActor(user, async (trx) => (await trx.raw('select checklist_start(?, ?, ?, ?, ?, ?, ?) as id',
+          [a.unit.id, b.template_id, user, b.client_id, geoOk ? Math.round(lat * 1e6) / 1e6 : null, geoOk ? Math.round(lng * 1e6) / 1e6 : null, acc])).rows[0].id);
+        res.status(201).json({ data: { id } });
+      } catch (error) {
+        p0001(res, error, 'iniciar checklist');
+      }
+    });
+
+    router.get('/uan/checklist-runs/:id', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const x = await runAccess(user, req.params.id);
+      if (!x) return runNotFound(res);
+      const answers = await database('checklist_answers').where('run_id', x.run.id).orderBy('position')
+        .select('position', 'section', 'prompt', 'help', 'kind', 'unit', 'min_value', 'max_value', 'critical', 'photo_on_fail',
+          'value', 'number_value', 'comment', database.raw('(photo is not null) as has_photo'), 'answered_at');
+      const [starter, finisher] = await Promise.all([
+        x.run.started_by ? database('directus_users').where('id', x.run.started_by).first('first_name', 'last_name') : null,
+        x.run.completed_by ? database('directus_users').where('id', x.run.completed_by).first('first_name', 'last_name') : null,
+      ]);
+      const ncs = x.run.status === 'completed'
+        ? await database('non_conformities').where('run_id', x.run.id).select('id', 'answer_position', 'severity', 'status', 'due_at')
+        : [];
+      res.json({
+        data: {
+          run: { ...runOut(x.run), started_by_name: userName(starter), completed_by_name: userName(finisher) },
+          unit: { id: x.a.unit.id, name: x.a.unit.name, geo_radius_m: x.a.unit.geo_radius_m, has_geo: x.a.unit.geo_lat !== null },
+          can_answer: x.run.status === 'in_progress' && canRun(x.a),
+          can_cancel: x.run.status === 'in_progress' && (x.run.started_by === user || canSupervise(x.a)),
+          answers: answers.map((r) => ({ ...r, min_value: numOrNull(r.min_value), max_value: numOrNull(r.max_value), number_value: numOrNull(r.number_value) })),
+          non_conformities: ncs,
+        },
+      });
+    });
+
+    async function answerTarget(req, res) {
+      const user = requireUser(req, res);
+      if (!user) return null;
+      const x = await runAccess(user, req.params.id);
+      if (!x) { runNotFound(res); return null; }
+      if (!canRun(x.a)) { runForbidden(res); return null; }
+      const position = Number(req.params.position);
+      const ans = Number.isInteger(position) ? await database('checklist_answers').where({ run_id: x.run.id, position }).first('position', 'kind', 'photo') : null;
+      if (!ans) { res.status(404).json({ errors: [{ message: 'Item não encontrado.', extensions: { code: 'NOT_FOUND' } }] }); return null; }
+      return { user, ...x, ans };
+    }
+
+    router.put('/uan/checklist-runs/:id/answers/:position', async (req, res) => {
+      const t = await answerTarget(req, res);
+      if (!t) return;
+      const b = req.body ?? {};
+      const patch = { answered_by: t.user };
+      if (t.ans.kind === 'number' && b.value !== 'na') {
+        const n = Number(b.number_value);
+        if (b.number_value === null || b.number_value === undefined || b.number_value === '' || !Number.isFinite(n) || Math.abs(n) >= 1e6) {
+          return bad(res, { number_value: 'Informe o valor medido.' });
+        }
+        patch.number_value = Math.round(n * 100) / 100;
+        patch.value = null;
+      } else {
+        if (!['conform', 'non_conform', 'na'].includes(b.value)) return bad(res, { value: 'Escolha uma resposta.' });
+        patch.value = b.value;
+      }
+      if (b.comment !== undefined) {
+        if (b.comment !== null && typeof b.comment !== 'string') return bad(res, { comment: 'Comentário inválido.' });
+        const c = typeof b.comment === 'string' ? b.comment.trim() : '';
+        if (c.length > 1000) return bad(res, { comment: 'Até 1.000 caracteres.' });
+        patch.comment = c || null;
+      }
+      try {
+        const [row] = await withActor(t.user, (trx) => trx('checklist_answers').where({ run_id: t.run.id, position: t.ans.position }).update(patch)
+          .returning(['position', 'value', 'number_value', 'comment', database.raw('(photo is not null) as has_photo')]));
+        res.json({ data: { ...row, number_value: numOrNull(row.number_value) } });
+      } catch (error) {
+        p0001(res, error, 'salvar resposta do checklist');
+      }
+    });
+
+    router.post('/uan/checklist-runs/:id/answers/:position/photo', async (req, res) => {
+      const t = await answerTarget(req, res);
+      if (!t) return;
+      if (t.run.status !== 'in_progress') return conflict(res, 'Checklist concluído ou cancelado não pode ser alterado');
+      const img = parseImageDataUrl(req.body?.image);
+      if (!img || img.type === 'image/webp') return bad(res, { image: 'Envie a foto em JPG ou PNG de até 600 KB.' });
+      let fileId = null;
+      try {
+        const files = new services.FilesService({ schema: await getSchema(), accountability: null });
+        fileId = await files.uploadOne(Readable.from(img.buffer), {
+          filename_download: `checklist-${t.run.id}-${t.ans.position}.${img.type === 'image/png' ? 'png' : 'jpg'}`, type: img.type, title: `Evidência ${t.run.id} item ${t.ans.position}`,
+        });
+        await withActor(t.user, (trx) => trx('checklist_answers').where({ run_id: t.run.id, position: t.ans.position }).update({ photo: fileId, answered_by: t.user }));
+        if (t.ans.photo) await files.deleteOne(t.ans.photo).catch(() => {});
+        res.json({ data: { has_photo: true } });
+      } catch (error) {
+        if (fileId) await new services.FilesService({ schema: await getSchema(), accountability: null }).deleteOne(fileId).catch(() => {});
+        p0001(res, error, 'salvar foto do checklist');
+      }
+    });
+
+    router.get('/uan/checklist-runs/:id/answers/:position/photo', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const x = await runAccess(user, req.params.id);
+      const position = Number(req.params.position);
+      const ans = x && Number.isInteger(position) ? await database('checklist_answers').where({ run_id: x.run.id, position }).first('photo') : null;
+      if (!ans?.photo) return res.status(404).json({ errors: [{ message: 'Foto não encontrada.', extensions: { code: 'NOT_FOUND' } }] });
+      try {
+        const assets = new services.AssetsService({ schema: await getSchema(), accountability: null });
+        const { stream, file } = await assets.getAsset(ans.photo);
+        res.setHeader('Content-Type', file.type ?? 'application/octet-stream');
+        res.setHeader('Cache-Control', 'private, max-age=3600');
+        res.setHeader('X-Content-Type-Options', 'nosniff');
+        res.setHeader('Content-Security-Policy', "default-src 'none'; style-src 'unsafe-inline'; sandbox");
+        stream.pipe(res);
+      } catch (error) {
+        logger.error({ err: error }, 'rafanutri: falha ao ler foto do checklist');
+        res.status(404).json({ errors: [{ message: 'Foto não encontrada.', extensions: { code: 'NOT_FOUND' } }] });
+      }
+    });
+
+    router.post('/uan/checklist-runs/:id/complete', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const x = await runAccess(user, req.params.id);
+      if (!x) return runNotFound(res);
+      if (!canRun(x.a)) return runForbidden(res);
+      try {
+        const run = await withActor(user, async (trx) => (await trx.raw('select (checklist_complete(?, ?)).*', [x.run.id, user])).rows[0]);
+        const ncs = await database('non_conformities').where('run_id', x.run.id).count('* as n').first();
+        res.json({ data: { ...runOut(run), non_conformities_opened: Number(ncs?.n ?? 0) } });
+      } catch (error) {
+        p0001(res, error, 'concluir checklist');
+      }
+    });
+
+    router.post('/uan/checklist-runs/:id/cancel', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const x = await runAccess(user, req.params.id);
+      if (!x) return runNotFound(res);
+      if (!(x.run.started_by === user && canRun(x.a)) && !canSupervise(x.a)) return runForbidden(res);
+      try {
+        await withActor(user, (trx) => trx('checklist_runs').where('id', x.run.id).update({ status: 'cancelled' }));
+        res.json({ data: { ok: true } });
+      } catch (error) {
+        p0001(res, error, 'cancelar checklist');
+      }
+    });
+
     // ── Feedback do programa beta (RN-047) ──────────────────────────────────────────────────
     // Texto + tipo + caminho da página (sem query string). Lido só pelo admin da plataforma no Directus.
     const FEEDBACK_KINDS = new Set(['bug', 'idea', 'praise', 'other']);

@@ -1,0 +1,81 @@
+import { expect, test } from '@playwright/test';
+
+// U1a — Checklist de Boas Práticas no celular: o owner cria uma unidade, faz a "Abertura da cozinha"
+// com a geladeira fora do limite (7 °C, item crítico: exige foto e comentário), conclui com 87,5% e vê a
+// não conformidade aberta na unidade. No fim desativa a unidade (libera a vaga do contrato de teste).
+const email = process.env.E2E_USER_EMAIL;
+const password = process.env.E2E_USER_PASSWORD;
+// PNG 8×8 válido (o navegador reduz e envia como JPEG)
+const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAEUlEQVR4nGM4YWODFTEMLQkAZZlQAVIPr1MAAAAASUVORK5CYII=', 'base64');
+
+test('checklist de abertura da cozinha no celular', async ({ page }) => {
+  test.skip(!email || !password, 'Defina E2E_USER_EMAIL e E2E_USER_PASSWORD (usuário de teste com consultório).');
+  test.skip(test.info().project.name !== 'mobile', 'Checklist é feito no celular.');
+
+  await page.goto('/login?next=/app/uan');
+  await page.getByLabel('E-mail').fill(email!);
+  await page.getByLabel('Senha', { exact: true }).fill(password!);
+  await page.getByRole('button', { name: 'Entrar' }).click();
+  await expect(page).toHaveURL(/^[^?]*\/app\/uan$/);
+
+  await page.getByRole('button', { name: 'Nova unidade' }).click();
+  const form = page.getByRole('form', { name: 'Nova unidade' });
+  const name = `Checklist E2E ${Date.now()}`;
+  await form.getByLabel('Nome da unidade').fill(name);
+  await form.getByRole('button', { name: 'Criar unidade' }).click();
+  await expect(page.getByRole('heading', { level: 1, name })).toBeVisible({ timeout: 15_000 });
+
+  try {
+    await page.getByRole('list', { name: 'Modelos de checklist' }).getByRole('button', { name: 'Iniciar Abertura da cozinha' }).click();
+    await expect(page).toHaveURL(/\/app\/uan\/checklists\/[0-9a-f-]{36}$/, { timeout: 15_000 });
+    await expect(page.getByRole('heading', { level: 1, name: 'Abertura da cozinha' })).toBeVisible();
+
+    const item = (n: number) => expect(page.getByText(new RegExp(`^Item ${n} de 9`))).toBeVisible({ timeout: 15_000 });
+    const answer = async (n: number, label: 'Conforme' | 'Não se aplica') => {
+      await item(n);
+      await page.getByRole('group', { name: 'Resposta' }).getByRole('button', { name: label }).click();
+    };
+    for (const n of [1, 2, 3, 4]) await answer(n, 'Conforme');
+
+    // geladeira a 7 °C: fora do limite, item crítico
+    await item(5);
+    await expect(page.getByText('Esperado: até 5 °C.')).toBeVisible();
+    await page.getByLabel('Valor medido (°C)').fill('7');
+    await page.getByRole('button', { name: 'Salvar valor' }).click();
+    await expect(page.getByText('Fora do limite: registre o que foi feito.')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText('Para concluir, falta a foto e o comentário.')).toBeVisible();
+    await page.getByLabel(/Foto da evidência/).setInputFiles({ name: 'termometro.png', mimeType: 'image/png', buffer: PNG });
+    await expect(page.getByRole('status').filter({ hasText: 'Foto salva.' })).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByRole('img', { name: 'Evidência do item 5' })).toBeVisible();
+    await page.getByLabel(/O que foi encontrado/).fill('Porta mal fechada; ajustada e alimentos transferidos.');
+    await page.getByRole('button', { name: 'Salvar comentário' }).click();
+
+    await item(6);
+    await page.getByLabel('Valor medido (°C)').fill('-20');
+    await page.getByRole('button', { name: 'Salvar valor' }).click();
+    await answer(7, 'Conforme');
+    await answer(8, 'Conforme');
+    await answer(9, 'Não se aplica');
+
+    const review = page.getByRole('region', { name: 'Revisar e concluir' });
+    await expect(review).toBeVisible({ timeout: 15_000 });
+    await expect(review.getByText('87,5%')).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+    await review.getByRole('button', { name: 'Concluir checklist' }).click();
+
+    await expect(page.getByLabel('Conformidade')).toHaveText('87,5%', { timeout: 15_000 });
+    await expect(page.getByText('1 não conformidade(s) aberta(s) por itens críticos.')).toBeVisible();
+    await expect(page.getByRole('img', { name: 'Evidência do item 5' })).toBeVisible();
+
+    await page.getByRole('link', { name: `← ${name}` }).click();
+    await expect(page.getByRole('list', { name: 'Não conformidades abertas' }).getByText(/Temperatura da câmara ou geladeira/)).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole('list', { name: 'Checklists concluídos' }).getByText('87,5%')).toBeVisible();
+  } finally {
+    await page.goto(page.url().includes('/unidades/') ? page.url() : '/app/uan');
+    if (!page.url().includes('/unidades/')) await page.getByRole('link', { name }).click();
+    const edit = page.getByRole('form', { name: 'Dados da unidade' });
+    await edit.getByLabel(/Unidade ativa/).uncheck();
+    await edit.getByRole('button', { name: 'Salvar unidade' }).click();
+    await expect(edit.getByRole('status')).toHaveText('Unidade salva.', { timeout: 15_000 });
+  }
+});
