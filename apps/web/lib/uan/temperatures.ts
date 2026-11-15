@@ -133,7 +133,7 @@ export interface TempChart {
 }
 
 /** Geometria do gráfico de temperatura (mais antiga à esquerda), com a faixa dos limites sempre visível. */
-export function temperatureChart(readings: Array<Pick<TemperatureReading, 'value' | 'recorded_at' | 'out_of_range'>>, l: Limits, width = 640, height = 220): TempChart | null {
+export function temperatureChart(readings: Array<Pick<TemperatureReading, 'value' | 'recorded_at' | 'out_of_range'>>, l: Limits, width = 420, height = 200): TempChart | null {
   if (!readings.length) return null;
   const pts = [...readings].sort((a, b) => a.recorded_at.localeCompare(b.recorded_at));
   const values = [...pts.map((p) => p.value), ...(l.min_temp !== null ? [l.min_temp] : []), ...(l.max_temp !== null ? [l.max_temp] : [])];

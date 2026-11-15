@@ -23,13 +23,13 @@ export function TemperatureChart({ readings, limits, name }: { readings: Tempera
         {g.yTicks.map((t) => (
           <g key={t.value}>
             <line x1={40} x2={g.width - 56} y1={t.y} y2={t.y} className="stroke-border" strokeWidth={1} />
-            <text x={34} y={t.y + 4} textAnchor="end" className="fill-muted-foreground text-[10px]">{t.value.toLocaleString('pt-BR')}</text>
+            <text x={34} y={t.y + 4} textAnchor="end" className="fill-muted-foreground text-[11px]">{t.value.toLocaleString('pt-BR')}</text>
           </g>
         ))}
         {g.limits.map((l) => (
           <g key={l.kind}>
             <line x1={40} x2={g.width - 56} y1={l.y} y2={l.y} className="stroke-muted-foreground" strokeWidth={1.5} strokeDasharray="5 4" />
-            <text x={g.width - 52} y={l.y + 4} className="fill-muted-foreground text-[10px]">{l.kind === 'max' ? 'máx.' : 'mín.'} {l.value.toLocaleString('pt-BR')}</text>
+            <text x={g.width - 52} y={l.y + 4} className="fill-muted-foreground text-[11px]">{l.kind === 'max' ? 'máx.' : 'mín.'} {l.value.toLocaleString('pt-BR')}</text>
           </g>
         ))}
         {g.points.length > 1 && <path d={g.path} fill="none" stroke="currentColor" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />}
@@ -43,8 +43,8 @@ export function TemperatureChart({ readings, limits, name }: { readings: Tempera
             )}
           </g>
         ))}
-        <text x={g.points[0]!.x} y={g.height - 6} textAnchor="start" className="fill-muted-foreground text-[10px]">{short(g.points[0]!.at)}</text>
-        {g.points.length > 1 && <text x={last.x} y={g.height - 6} textAnchor="end" className="fill-muted-foreground text-[10px]">{short(last.at)}</text>}
+        <text x={g.points[0]!.x} y={g.height - 6} textAnchor="start" className="fill-muted-foreground text-[11px]">{short(g.points[0]!.at)}</text>
+        {g.points.length > 1 && <text x={last.x} y={g.height - 6} textAnchor="end" className="fill-muted-foreground text-[11px]">{short(last.at)}</text>}
       </svg>
     </figure>
   );

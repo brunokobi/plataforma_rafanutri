@@ -456,6 +456,21 @@ Migração `0035_checklists.sql` (**aplicada na vpsrafa em 15/11/2026**, backup 
 | `POST`/`GET /rafanutri/uan/checklist-runs/:id/answers/:position/photo` | Executa / equipe da unidade (JPG ou PNG até 600 KB; no app, pelo proxy `/api/uan/checklists/:id/foto/:posição`) |
 | `POST /rafanutri/uan/checklist-runs/:id/complete`, `/cancel` | Quem executa; cancelar: quem iniciou, gestor, RT ou owner |
 
+## Equipamentos e temperaturas (RN-151)
+
+Migração `0036_temperatures.sql` (**aplicada na vpsrafa em 15/11/2026**, backup `antes-0036-2026-11-15.dump`; testes em `db/tests/0036_temperatures.test.sql`):
+
+- `equipment`: unidade, nome, tipo, limites mínimo e máximo, intervalo de leitura (horas), em uso. Sem limites informados, o gatilho aplica `equipment_default_limits(tipo)` (RDC 216/2004: geladeira, câmara e balcão refrigerado até 5 °C; freezer e câmara de congelados até −18 °C; balcão quente a partir de 60 °C). Não muda de unidade.
+- `temperature_readings`: de um equipamento **ou** de um alimento (`food_stage` + `food_name`, limites de `food_stage_limits`: cocção e reaquecimento ≥ 70 °C, distribuição quente ≥ 60 °C, fria ≤ 5 °C, fim do resfriamento ≤ 10 °C). O limite é copiado na leitura; `out_of_range` é calculado; fora do limite exige `corrective_action`. Leituras não se alteram nem se apagam. `client_id` único (idempotente); `seq` ordena leituras com o mesmo horário.
+- Duas leituras seguidas fora do limite no mesmo equipamento abrem uma não conformidade **alta** (72 h), ligada ao equipamento (`non_conformities.equipment_id`), se não houver outra aberta para ele.
+
+| Endpoint | Quem |
+|---|---|
+| `GET /rafanutri/uan/units/:id/temperatures` | Equipe da unidade: equipamentos com a última leitura e `overdue`, últimas leituras de alimentos |
+| `POST /rafanutri/uan/units/:id/equipment`, `PUT /rafanutri/uan/equipment/:id` | Owner, gestor ou RT |
+| `GET /rafanutri/uan/equipment/:id?days=30` | Equipe da unidade (até 90 dias, 500 leituras) |
+| `POST /rafanutri/uan/units/:id/temperatures` (`{ equipment_id }` ou `{ food_stage, food_name }`, `value`, `corrective_action`, `client_id`) | Quem executa checklists |
+
 ## Feedback do beta (RN-047)
 
 Migração `0032_feedback.sql` (**aplicada na vpsrafa em 14/11/2026**; testes em `db/tests/0032_feedback.test.sql`): `product_feedback` (consultório, autor, tipo `bug`/`idea`/`praise`/`other`, mensagem de 3 a 2.000 caracteres, caminho da página sem query string, status `new`/`read`/`done`). Gravado só por `POST /rafanutri/feedback` (qualquer conta logada, até 20 por dia); nenhum papel lê a coleção: o admin da plataforma consulta no Directus ou por SQL. Sem print de tela, porque a tela costuma ter dados de pacientes. O e2e grava mensagens com o prefixo `[e2e]`:

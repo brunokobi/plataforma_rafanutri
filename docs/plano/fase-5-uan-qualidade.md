@@ -973,12 +973,12 @@ Referências: ANVISA RDC nº 429/2020 e IN nº 75/2020. Todos os valores abaixo 
 - **Depende de:** RN-146
 - **Descrição:** Cadastro de equipamentos com limites e QR code, e registro rápido de temperatura.
 - **Tarefas técnicas:**
-  - [ ] Migração `equipment` e `temperature_readings`
-  - [ ] Limites padrão por tipo de equipamento (RDC 216/2004)
-  - [ ] Etiqueta com QR code que abre o registro direto do equipamento
-  - [ ] Registro de temperatura de alimentos (cocção, distribuição, resfriamento)
-  - [ ] Ação corretiva obrigatória quando fora do limite
-  - [ ] Gráfico histórico por equipamento
+  - [x] Migração `equipment` e `temperature_readings`
+  - [x] Limites padrão por tipo de equipamento (RDC 216/2004)
+  - [x] Etiqueta com QR code que abre o registro direto do equipamento
+  - [x] Registro de temperatura de alimentos (cocção, distribuição, resfriamento)
+  - [x] Ação corretiva obrigatória quando fora do limite
+  - [x] Gráfico histórico por equipamento
   - [ ] Endpoint para leituras de sensor (`source = 'sensor'`), autenticado por chave da unidade
 - **Arquivos/áreas:** `apps/web/app/(uan)/uan/[unitId]/equipment/`, `apps/web/app/(uan)/uan/[unitId]/temperatures/`, `supabase/functions/sensor-ingest/`
 - **Critérios de aceite:** Dada uma geladeira com limite máximo de 5 °C, quando o cozinheiro lê o QR e registra 7 °C, então o app exige ação corretiva e marca a leitura como fora do limite.
@@ -993,7 +993,7 @@ Referências: ANVISA RDC nº 429/2020 e IN nº 75/2020. Todos os valores abaixo 
   - [ ] Webhook do Supabase para o n8n em leitura fora do limite
   - [ ] Mensagem por WhatsApp e push com equipamento, valor e ação registrada
   - [ ] Job de "leitura atrasada" pela frequência do equipamento
-  - [ ] Abertura automática de não conformidade após 2 leituras seguidas fora do limite
+  - [x] Abertura automática de não conformidade após 2 leituras seguidas fora do limite
 - **Arquivos/áreas:** `n8n/workflows/temperature-alerts.json`
 - **Critérios de aceite:** Dada uma leitura de −10 °C num freezer com limite de −18 °C, quando registrada, então o RT recebe a mensagem em até 1 minuto.
 - **Testes:** integração.
