@@ -3911,16 +3911,12 @@ export default {
     const PO_FIELDS = ['id', 'unit_id', 'supplier_id', 'status', 'expected_on', 'notes', 'created_at', 'sent_at', 'received_at'];
     const poOut = (o) => ({ ...o, expected_on: dateOut(o.expected_on) });
 
-    router.get('/uan/units/:id/purchase-needs', async (req, res) => {
-      const user = requireUser(req, res);
-      if (!user) return;
-      const a = await unitAccess(user, req.params.id);
-      if (!a) return unitNotFound(res);
-      if (!canStock(a)) return stockForbidden(res);
-      const from = isIsoDate(req.query.from) ? req.query.from : localToday();
-      const to = isIsoDate(req.query.to) ? req.query.to : from;
+    /** Plano do período: cardápios aprovados por dia, comensais, grafo das fichas, adesão, estoque e pedidos abertos. */
+    async function planData(a, qFrom, qTo) {
+      const from = isIsoDate(qFrom) ? qFrom : localToday();
+      const to = isIsoDate(qTo) ? qTo : from;
       const span = Math.round((Date.parse(to) - Date.parse(from)) / 86_400_000);
-      if (span < 0 || span > 31) return bad(res, { to: 'Período de até 31 dias.' });
+      if (span < 0 || span > 31) return { error: 'Período de até 31 dias.' };
       const cycles = await database('menu_cycles').where({ unit_id: a.unit.id, status: 'approved' }).where('starts_on', '<=', to).select('id', 'starts_on', 'length_days');
       const days = [];
       const roots = new Set();
@@ -3936,7 +3932,7 @@ export default {
         }
         days.push({ day: d, items });
       }
-      const diners = await database('diner_counts').where('unit_id', a.unit.id).whereBetween('day', [from, to]).select('day', 'service', 'planned');
+      const diners = await database('diner_counts').where('unit_id', a.unit.id).whereBetween('day', [from, to]).select('day', 'service', 'planned', 'actual');
       const current = await currentSheets([...roots]);
       const graph = { sheets: [], ingredients: [] };
       for (const r of roots) {
@@ -3964,7 +3960,7 @@ export default {
         `select distinct on (p.ingredient_id) p.ingredient_id, p.supplier_id, s.name as supplier_name, p.price_cents
            from ingredient_prices p left join suppliers s on s.id = p.supplier_id
           where p.ingredient_id = any(?) and p.valid_from <= current_date order by p.ingredient_id, p.valid_from desc, p.created_at desc`, [ingIds])).rows : [];
-      res.json({
+      return {
         data: {
           unit: { id: a.unit.id, name: a.unit.name }, from, to,
           days: days.map((d) => ({ ...d, items: d.items.map((i) => ({ ...i, sheet_id: current.get(i.sheet_root_id)?.id ?? null, name: current.get(i.sheet_root_id)?.name ?? '—' })) })),
@@ -3976,7 +3972,59 @@ export default {
           preferred: prefs,
           suppliers: await database('suppliers').where({ organization_id: a.unit.organization_id, active: true }).orderBy('name').select('id', 'name'),
         },
+      };
+    }
+
+    router.get('/uan/units/:id/purchase-needs', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const a = await unitAccess(user, req.params.id);
+      if (!a) return unitNotFound(res);
+      if (!canStock(a)) return stockForbidden(res);
+      const r = await planData(a, req.query.from, req.query.to);
+      if (r.error) return bad(res, { to: r.error });
+      res.json({ data: r.data });
+    });
+
+    // RN-229 — Custos: o plano do período + o consumo real (retiradas para produção valorizadas pelo custo do
+    // lote; sem custo no lote, pelo preço vigente do insumo, sinalizado em `estimated`).
+    router.get('/uan/units/:id/costs', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const a = await unitAccess(user, req.params.id);
+      if (!a) return unitNotFound(res);
+      if (!canStock(a)) return stockForbidden(res);
+      const r = await planData(a, req.query.from, req.query.to);
+      if (r.error) return bad(res, { to: r.error });
+      const rows = (await database.raw(
+        `select (m.created_at at time zone 'America/Sao_Paulo')::date as day, m.ingredient_id, g.name, l.supplier_id, s.name as supplier_name,
+                sum(-m.quantity_g)::numeric as grams,
+                sum(-m.quantity_g * l.cost_per_kg_cents / 1000.0) filter (where l.cost_per_kg_cents is not null) as cost_lot,
+                sum(-m.quantity_g) filter (where l.cost_per_kg_cents is null) as grams_no_cost
+           from stock_movements m join stock_lots l on l.id = m.lot_id join ingredients g on g.id = m.ingredient_id
+           left join suppliers s on s.id = l.supplier_id
+          where m.unit_id = ? and m.kind = 'out_production'
+            and (m.created_at at time zone 'America/Sao_Paulo')::date between ?::date and ?::date
+          group by 1, 2, 3, 4, 5`, [a.unit.id, r.data.from, r.data.to])).rows;
+      // Sem custo no lote: preço vigente por kg do insumo
+      const noCost = [...new Set(rows.filter((x) => Number(x.grams_no_cost) > 0).map((x) => x.ingredient_id))];
+      const fallback = new Map();
+      if (noCost.length) {
+        const ings = await database('ingredients').whereIn('id', noCost).select('id', 'purchase_unit', 'density_g_ml', 'unit_weight_g', 'pack_grams', database.raw('(select p.price_cents from ingredient_price_at(ingredients.id) p) as price_cents'));
+        for (const i of ings) {
+          const gpu = gramsPerPurchaseUnit(i);
+          if (gpu && i.price_cents !== null) fallback.set(i.id, (i.price_cents * 1000) / gpu);
+        }
+      }
+      const consumption = rows.map((x) => {
+        const est = Number(x.grams_no_cost ?? 0);
+        const perKg = fallback.get(x.ingredient_id);
+        return {
+          day: dateOut(x.day), ingredient_id: x.ingredient_id, name: x.name, supplier_id: x.supplier_id, supplier_name: x.supplier_name,
+          grams: Number(x.grams), cost_cents: Math.round(Number(x.cost_lot ?? 0) + (est && perKg ? (est * perKg) / 1000 : 0)), estimated: est > 0, missing_cost: est > 0 && !perKg,
+        };
       });
+      res.json({ data: { ...r.data, consumption, criterion: 'Consumo = retiradas do estoque para produção, valorizadas pelo custo do lote (ou pelo preço vigente quando o lote não tem custo).' } });
     });
 
     function poItems(list) {

@@ -1101,6 +1101,16 @@ try {
       assert.equal((await api(`/rafanutri/uan/units/${U1}/purchase-orders`, { token: out.token })).status, 404, 'de fora lista');
       assert.ok((await api('/items/purchase_orders?limit=1', { token: b.token })).status >= 400, 'coleção direta recusada');
     });
+    await check('UAN: custos — cozinheiro não vê; consumo real pelas retiradas para produção; de fora não vê', async () => {
+      assert.equal((await api(`/rafanutri/uan/units/${U1}/costs`, { token: b.token })).status, 403, 'cozinheiro vê custos');
+      const c = await api(`/rafanutri/uan/units/${U1}/costs`, { token: a.token });
+      assert.equal(c.status, 200, JSON.stringify(c.json));
+      assert.ok(c.json.data.criterion.includes('retiradas do estoque'), 'critério explícito');
+      assert.ok(c.json.data.consumption.some((x) => x.name === 'Arroz teste' && x.grams === 2000), 'retirada para produção do dia');
+      assert.equal((await api(`/rafanutri/uan/units/${U1}/costs?from=2026-01-01&to=2026-03-01`, { token: a.token })).status, 400, 'período longo');
+      const out = await outsider();
+      assert.equal((await api(`/rafanutri/uan/units/${U1}/costs`, { token: out.token })).status, 404, 'de fora');
+    });
   } else {
     console.log('  (pulado) UAN entre unidades: defina ISOLATION_PSQL');
   }

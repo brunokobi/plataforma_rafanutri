@@ -195,6 +195,14 @@ test('insumo com preço e fornecedor', async ({ page }) => {
     await rc.getByLabel(/Motivo da recusa/).fill('Chegou quente');
     await rc.getByRole('button', { name: 'Registrar recebimento' }).click();
     await expect(page.getByRole('region', { name: 'Recebimentos' })).toContainText('recusado — Chegou quente', { timeout: 15_000 });
+
+    // U5: custos — planejado × realizado e curva ABC do consumo
+    await page.goto(unitUrl);
+    await page.getByRole('link', { name: 'Custos', exact: true }).click();
+    await expect(page.getByRole('heading', { level: 1, name: 'Custos' })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByLabel('Custo por refeição planejado')).toHaveText(/R\$/);
+    await expect(page.getByLabel('Custo por refeição realizado')).toHaveText(/R\$/);
+    await expect(page.getByRole('region', { name: 'Curva ABC do consumo' })).toContainText(name);
   } finally {
     await page.goto(unitUrl);
     const ue = page.getByRole('form', { name: 'Dados da unidade' });
