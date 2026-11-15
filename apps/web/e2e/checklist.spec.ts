@@ -33,7 +33,7 @@ test('checklist de abertura da cozinha no celular', async ({ page }) => {
     const item = (n: number) => expect(page.getByText(new RegExp(`^Item ${n} de 9`))).toBeVisible({ timeout: 15_000 });
     const answer = async (n: number, label: 'Conforme' | 'Não se aplica') => {
       await item(n);
-      await page.getByRole('group', { name: 'Resposta' }).getByRole('button', { name: label }).click();
+      await page.getByRole('group', { name: 'Resposta' }).getByRole('button', { name: label, exact: true }).click();
     };
     for (const n of [1, 2, 3, 4]) await answer(n, 'Conforme');
 

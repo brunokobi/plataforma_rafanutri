@@ -2177,7 +2177,7 @@ export default {
       if (!x) return runNotFound(res);
       if (!canRun(x.a)) return runForbidden(res);
       try {
-        const run = await withActor(user, async (trx) => (await trx.raw('select (checklist_complete(?, ?)).*', [x.run.id, user])).rows[0]);
+        const run = await withActor(user, async (trx) => (await trx.raw('select * from checklist_complete(?, ?)', [x.run.id, user])).rows[0]);
         const ncs = await database('non_conformities').where('run_id', x.run.id).count('* as n').first();
         res.json({ data: { ...runOut(run), non_conformities_opened: Number(ncs?.n ?? 0) } });
       } catch (error) {
