@@ -78,7 +78,7 @@ test('checklist de abertura da cozinha e temperaturas no celular', async ({ page
     await expect(eqForm.getByLabel('Máximo (°C)')).toHaveValue('5');
     await eqForm.getByRole('button', { name: 'Cadastrar equipamento' }).click();
     const eqCard = page.getByRole('list', { name: 'Equipamentos' }).getByRole('listitem').filter({ hasText: 'Geladeira E2E' });
-    await expect(eqCard.getByText('Sem leitura')).toBeVisible({ timeout: 15_000 });
+    await expect(eqCard.getByText('Sem leitura', { exact: true })).toBeVisible({ timeout: 15_000 });
     await eqCard.getByRole('link', { name: 'Registrar temperatura' }).click();
     await expect(page.getByRole('heading', { level: 1, name: 'Geladeira E2E' })).toBeVisible({ timeout: 15_000 });
 
@@ -106,7 +106,7 @@ test('checklist de abertura da cozinha e temperaturas no celular', async ({ page
     await page.getByRole('link', { name: `← ${name}` }).click();
 
     await expect(page.getByRole('list', { name: 'Não conformidades abertas' }).getByText('Geladeira E2E: temperatura fora do limite em leituras seguidas')).toBeVisible({ timeout: 15_000 });
-    await expect(eqCard.getByText('Fora do limite')).toBeVisible();
+    await expect(eqCard.getByText('Fora do limite', { exact: true })).toBeVisible();
 
     // temperatura de alimento
     const food = page.getByRole('form', { name: 'Registrar temperatura de alimento' });
