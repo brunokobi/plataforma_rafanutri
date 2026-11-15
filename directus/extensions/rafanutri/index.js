@@ -3712,6 +3712,199 @@ export default {
       }
     });
 
+    // ── Estoque por lote com FEFO e inventário (U4a: RN-142 a RN-145) ─────────────────────────
+    // Ver: equipe da unidade. Movimentar e contar: owner, gestor, RT, estoquista. Aprovar inventário: owner ou RT.
+    // Quantidades em gramas no banco; a tela usa a unidade de compra do insumo (gramsPerPurchaseUnit).
+    const canStock = (a) => a.isOwner || a.roles.some((r) => r === 'manager' || r === 'technical_lead' || r === 'stock_keeper');
+    const stockForbidden = (res) => res.status(403).json({ errors: [{ message: 'Só o responsável, o gestor, o RT ou o estoquista movimentam o estoque.', extensions: { code: 'FORBIDDEN' } }] });
+    const ING_UNIT_FIELDS = ['id', 'name', 'category', 'purchase_unit', 'density_g_ml', 'unit_weight_g', 'pack_grams', 'min_stock', 'active'];
+    async function unitIngredient(a, id) {
+      if (!isUuid(id)) return null;
+      return database('ingredients').where({ id, organization_id: a.unit.organization_id }).first(...ING_UNIT_FIELDS);
+    }
+    const parseQty = (v) => {
+      const n = Number(String(v ?? '').replace(',', '.'));
+      return Number.isFinite(n) && n > 0 && n < 1e7 ? n : null;
+    };
+
+    router.get('/uan/units/:id/stock', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const a = await unitAccess(user, req.params.id);
+      if (!a) return unitNotFound(res);
+      const ings = await database('ingredients').where('organization_id', a.unit.organization_id).orderBy('name').select(...ING_UNIT_FIELDS);
+      const lots = await database('stock_lots as l').leftJoin('suppliers as s', 's.id', 'l.supplier_id').where('l.unit_id', a.unit.id).where('l.quantity_g', '>', 0)
+        .orderBy([{ column: 'l.expires_on', order: 'asc', nulls: 'last' }, { column: 'l.received_at' }])
+        .select('l.id', 'l.ingredient_id', 'l.lot_code', 'l.expires_on', 'l.quantity_g', 'l.received_at', 's.name as supplier_name');
+      const moves = await database('stock_movements as m').join('ingredients as i', 'i.id', 'm.ingredient_id').leftJoin('directus_users as u', 'u.id', 'm.created_by')
+        .where('m.unit_id', a.unit.id).orderBy('m.created_at', 'desc').limit(50)
+        .select('m.id', 'm.kind', 'm.quantity_g', 'm.reason', 'm.created_at', 'i.name as ingredient_name', 'i.id as ingredient_id', 'u.first_name', 'u.last_name');
+      const open = await database('inventories').where({ unit_id: a.unit.id, status: 'open' }).first('id', 'created_at');
+      const suppliers = canStock(a) ? await database('suppliers').where({ organization_id: a.unit.organization_id, active: true }).orderBy('name').select('id', 'name') : [];
+      res.json({
+        data: {
+          unit: { id: a.unit.id, name: a.unit.name },
+          today: localToday(),
+          can_move: canStock(a) && a.unit.active,
+          can_approve: a.isOwner || a.roles.includes('technical_lead'),
+          open_inventory: open ?? null,
+          suppliers,
+          ingredients: ings.map((i) => ({ ...ingOut(i), grams_per_unit: gramsPerPurchaseUnit(i) })),
+          lots: lots.map((l) => ({ ...l, expires_on: dateOut(l.expires_on), quantity_g: Number(l.quantity_g) })),
+          movements: moves.map((m) => ({ ...m, quantity_g: Number(m.quantity_g), user_name: userName(m), first_name: undefined, last_name: undefined })),
+        },
+      });
+    });
+
+    router.post('/uan/units/:id/stock/in', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const a = await unitAccess(user, req.params.id);
+      if (!a) return unitNotFound(res);
+      if (!canStock(a)) return stockForbidden(res);
+      const b = req.body ?? {};
+      const ing = await unitIngredient(a, b.ingredient_id);
+      if (!ing) return bad(res, { ingredient_id: 'Escolha o insumo.' });
+      const gpu = gramsPerPurchaseUnit(ing);
+      const qty = parseQty(b.quantity);
+      if (!qty || !gpu) return bad(res, { quantity: 'Informe a quantidade.' });
+      if (b.expires_on && !isIsoDate(b.expires_on)) return bad(res, { expires_on: 'Data inválida.' });
+      if (b.supplier_id && !isUuid(b.supplier_id)) return bad(res, { supplier_id: 'Fornecedor inválido.' });
+      const cost = b.cost === undefined || b.cost === null || b.cost === '' ? null : parseQty(b.cost);
+      if (b.cost && cost === null) return bad(res, { cost: 'Custo inválido.' });
+      const grams = Math.round(qty * gpu * 10) / 10;
+      try {
+        const lot = await withActor(user, async (trx) => (await trx.raw('select stock_receive(?, ?, ?, ?, ?, ?, ?, ?) as id',
+          [a.unit.id, ing.id, grams, typeof b.lot_code === 'string' ? b.lot_code.slice(0, 60) : null, b.expires_on || null, b.supplier_id || null, cost === null ? null : Math.round((cost * 100 * 1000) / gpu), user])).rows[0].id);
+        res.status(201).json({ data: { lot_id: lot, quantity_g: grams } });
+      } catch (error) {
+        p0001(res, error, 'registrar entrada no estoque');
+      }
+    });
+
+    router.post('/uan/units/:id/stock/out', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const a = await unitAccess(user, req.params.id);
+      if (!a) return unitNotFound(res);
+      if (!canStock(a)) return stockForbidden(res);
+      const b = req.body ?? {};
+      if (!['out_production', 'out_loss'].includes(b.kind)) return bad(res, { kind: 'Tipo de saída inválido.' });
+      // Várias linhas (requisição do dia) em uma transação: tudo ou nada
+      const lines = Array.isArray(b.lines) ? b.lines : [{ ingredient_id: b.ingredient_id, quantity: b.quantity }];
+      if (!lines.length || lines.length > 300) return bad(res, { lines: 'Nada para retirar.' });
+      const rows = [];
+      for (const l of lines) {
+        const ing = await unitIngredient(a, l.ingredient_id);
+        if (!ing) return bad(res, { ingredient_id: 'Insumo inválido.' });
+        let grams = null;
+        if (l.quantity_g !== undefined) grams = parseQty(l.quantity_g);
+        else {
+          const gpu = gramsPerPurchaseUnit(ing);
+          const q = parseQty(l.quantity);
+          grams = q && gpu ? Math.round(q * gpu * 10) / 10 : null;
+        }
+        if (!grams) return bad(res, { quantity: `Quantidade inválida para ${ing.name}.` });
+        rows.push({ ing, grams });
+      }
+      const reason = typeof b.reason === 'string' ? b.reason.trim().slice(0, 300) : null;
+      try {
+        await withActor(user, async (trx) => {
+          for (const r of rows) await trx.raw('select stock_out_fefo(?, ?, ?, ?, ?, ?)', [a.unit.id, r.ing.id, r.grams, b.kind, reason, user]);
+        });
+        res.json({ data: { lines: rows.length } });
+      } catch (error) {
+        if (error?.code === 'P0001' && /Saldo insuficiente/.test(error.message ?? '')) {
+          const which = rows.find((r) => error.message.includes(`${r.grams}`))?.ing.name;
+          return conflict(res, `${which ? `${which}: ` : ''}${error.message.split('\n')[0].replace(/^.* - /, '')}`);
+        }
+        p0001(res, error, 'registrar saída do estoque');
+      }
+    });
+
+    router.post('/uan/units/:id/inventories', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const a = await unitAccess(user, req.params.id);
+      if (!a) return unitNotFound(res);
+      if (!canStock(a)) return stockForbidden(res);
+      try {
+        const id = await withActor(user, async (trx) => (await trx.raw('select inventory_open(?, ?) as id', [a.unit.id, user])).rows[0].id);
+        res.status(201).json({ data: { id } });
+      } catch (error) {
+        p0001(res, error, 'abrir inventário');
+      }
+    });
+
+    async function inventoryAccess(user, id) {
+      if (!isUuid(id)) return null;
+      const inv = await database('inventories').where('id', id).first('id', 'unit_id', 'status', 'created_at', 'approved_at');
+      if (!inv) return null;
+      const a = await unitAccess(user, inv.unit_id);
+      return a && canStock(a) ? { inv, a } : null;
+    }
+
+    router.get('/uan/inventories/:id', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const x = await inventoryAccess(user, req.params.id);
+      if (!x) return notFoundMsg(res, 'Inventário');
+      const approver = x.a.isOwner || x.a.roles.includes('technical_lead');
+      const counts = await database('inventory_counts as c').join('ingredients as i', 'i.id', 'c.ingredient_id').where('c.inventory_id', x.inv.id).orderBy('i.name')
+        .select('c.ingredient_id', 'c.system_g', 'c.counted_g', 'c.reason', ...ING_UNIT_FIELDS.filter((f) => f !== 'id').map((f) => `i.${f}`));
+      res.json({
+        data: {
+          inventory: x.inv,
+          unit: { id: x.a.unit.id, name: x.a.unit.name },
+          can_approve: approver && x.inv.status === 'open',
+          // contagem cega: o saldo do sistema só aparece para quem aprova
+          counts: counts.map((c) => ({
+            ingredient_id: c.ingredient_id, name: c.name, category: c.category, purchase_unit: c.purchase_unit, grams_per_unit: gramsPerPurchaseUnit(c),
+            system_g: approver ? Number(c.system_g) : null, counted_g: c.counted_g === null ? null : Number(c.counted_g), reason: c.reason,
+          })),
+        },
+      });
+    });
+
+    router.put('/uan/inventories/:id/counts', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const x = await inventoryAccess(user, req.params.id);
+      if (!x) return notFoundMsg(res, 'Inventário');
+      if (x.inv.status !== 'open') return conflict(res, 'Inventário encerrado.');
+      const b = req.body ?? {};
+      const ing = await unitIngredient(x.a, b.ingredient_id);
+      if (!ing) return bad(res, { ingredient_id: 'Insumo inválido.' });
+      const gpu = gramsPerPurchaseUnit(ing);
+      let counted = null;
+      if (b.counted !== null && b.counted !== '' && b.counted !== undefined) {
+        const n = Number(String(b.counted).replace(',', '.'));
+        if (!Number.isFinite(n) || n < 0 || !gpu) return bad(res, { counted: 'Quantidade inválida.' });
+        counted = Math.round(n * gpu * 10) / 10;
+      }
+      const reason = typeof b.reason === 'string' && b.reason.trim() ? b.reason.trim().slice(0, 300) : null;
+      const n = await database('inventory_counts').where({ inventory_id: x.inv.id, ingredient_id: ing.id }).update({ counted_g: counted, reason, counted_by: user });
+      if (!n) return notFoundMsg(res, 'Item do inventário');
+      res.json({ data: { ok: true } });
+    });
+
+    for (const action of ['approve', 'cancel']) router.post(`/uan/inventories/:id/${action}`, async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const x = await inventoryAccess(user, req.params.id);
+      if (!x) return notFoundMsg(res, 'Inventário');
+      try {
+        if (action === 'approve') {
+          const n = await withActor(user, async (trx) => (await trx.raw('select inventory_approve(?, ?) as n', [x.inv.id, user])).rows[0].n);
+          return res.json({ data: { adjustments: n } });
+        }
+        await withActor(user, (trx) => trx('inventories').where({ id: x.inv.id, status: 'open' }).update({ status: 'cancelled' }));
+        res.json({ data: { ok: true } });
+      } catch (error) {
+        p0001(res, error, 'concluir inventário');
+      }
+    });
+
     // ── Feedback do programa beta (RN-047) ──────────────────────────────────────────────────
     // Texto + tipo + caminho da página (sem query string). Lido só pelo admin da plataforma no Directus.
     const FEEDBACK_KINDS = new Set(['bug', 'idea', 'praise', 'other']);

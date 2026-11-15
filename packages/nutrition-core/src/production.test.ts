@@ -60,3 +60,28 @@ describe('produção da UAN (U3)', () => {
     expect(realCorrectionFactor(1000, 750, 1.25)).toEqual({ fc: 1.333, diffPct: 6.6 });
   });
 });
+
+import { purchaseRequirements } from './production';
+
+describe('necessidade de compra (RN-139)', () => {
+  // 150 g de arroz cozido por pessoa, IC 2,5 e FC 1: a ficha de 10 porções usa 600 g cru e rende 1500 g
+  const arroz = new Map<string, SheetInput>([['arroz', { id: 'arroz', servings: 10, cookingIndex: 2.5, items: [{ kind: 'ingredient', name: 'arroz|Arroz', grossG: 600, fc: 1, pricePerKgCents: 549, per100g: null }] }]]);
+
+  it('100 comensais de arroz (150 g cozido, IC 2,5) = 6 kg de arroz cru', () => {
+    const [line] = purchaseRequirements([[{ sheetId: 'arroz', portions: 100, label: 'Arroz' }]], arroz, new Map(), new Map(), new Map([['arroz', 1000]]));
+    expect(line!.needG).toBe(6000);
+    expect(line!.toBuyUnits).toBe(6);
+  });
+
+  it('soma os dias, aplica a margem, desconta estoque e pedidos e arredonda para a embalagem', () => {
+    const [line] = purchaseRequirements(
+      [[{ sheetId: 'arroz', portions: 100, label: 'Arroz' }], [{ sheetId: 'arroz', portions: 50, label: 'Arroz' }]],
+      arroz, new Map([['arroz', 2000]]), new Map([['arroz', 1000]]), new Map([['arroz', 5000]]), 10,
+    );
+    expect(line!.needG).toBe(9900); // 9000 × 1,1
+    expect(line!.toBuyG).toBe(6900);
+    expect(line!.toBuyUnits).toBe(2); // pacotes de 5 kg
+    const [none] = purchaseRequirements([[{ sheetId: 'arroz', portions: 10, label: 'Arroz' }]], arroz, new Map([['arroz', 5000]]), new Map(), new Map([['arroz', 1000]]));
+    expect(none!.toBuyG).toBe(0);
+  });
+});

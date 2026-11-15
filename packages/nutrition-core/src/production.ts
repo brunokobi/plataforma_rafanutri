@@ -118,3 +118,49 @@ export function realCorrectionFactor(grossG: number, netG: number, sheetFc: numb
   const fc = Math.round((grossG / netG) * 1000) / 1000;
   return { fc, diffPct: Math.round(((fc - sheetFc) / sheetFc) * 1000) / 10 };
 }
+
+export interface PurchaseLine {
+  key: string;
+  name: string;
+  /** Necessidade bruta do período (já com o FC e a margem). */
+  needG: number;
+  stockG: number;
+  openOrdersG: number;
+  /** A comprar em gramas (necessidade − estoque − pedidos em aberto; nunca negativo). */
+  toBuyG: number;
+  /** A comprar na unidade de compra, arredondado para cima (null se a unidade não tem peso). */
+  toBuyUnits: number | null;
+}
+
+/**
+ * RN-139 — Necessidade de compra do período: soma as requisições de cada dia (cardápio × porções × fichas,
+ * com sub-receitas), aplica a margem, desconta estoque e pedidos em aberto e arredonda para a unidade de compra.
+ */
+export function purchaseRequirements(
+  days: Array<Array<{ sheetId: string; portions: number; label: string }>>,
+  sheets: ReadonlyMap<string, SheetInput>,
+  stockG: ReadonlyMap<string, number>,
+  openOrdersG: ReadonlyMap<string, number>,
+  gramsPerUnit: ReadonlyMap<string, number | null>,
+  marginPct = 0,
+): PurchaseLine[] {
+  const need = new Map<string, { name: string; g: number }>();
+  for (const preps of days) {
+    for (const l of requisition(preps, sheets, 0)) {
+      const cur = need.get(l.key) ?? { name: l.name, g: 0 };
+      cur.g += l.grossG;
+      need.set(l.key, cur);
+    }
+  }
+  const m = 1 + Math.max(0, marginPct) / 100;
+  return [...need.entries()]
+    .map(([key, v]) => {
+      const needG = Math.round(v.g * m);
+      const st = stockG.get(key) ?? 0;
+      const oo = openOrdersG.get(key) ?? 0;
+      const toBuyG = Math.max(0, needG - st - oo);
+      const gpu = gramsPerUnit.get(key) ?? null;
+      return { key, name: v.name, needG, stockG: st, openOrdersG: oo, toBuyG, toBuyUnits: gpu ? Math.ceil(toBuyG / gpu - 1e-9) : null };
+    })
+    .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+}

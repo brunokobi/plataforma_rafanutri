@@ -1051,6 +1051,33 @@ try {
       assert.equal((await api(`/rafanutri/uan/units/${U2}/waste`, { token: b.token, method: 'PUT', body: { day: today, service: 'lunch', plate_waste_g: 10 } })).status, 404, 'outra unidade');
       assert.ok((await api('/items/waste_records?limit=1', { token: b.token })).status >= 400, 'coleção direta recusada');
     });
+    await check('UAN: estoque — cozinheiro vê mas não movimenta; FEFO e saldo insuficiente; inventário cego e aprovação só RT/owner; de fora não vê', async () => {
+      const ing = (await api(`/rafanutri/uan/organizations/${A}/ingredients`, { token: a.token })).json.data.items.find((i) => i.name === 'Arroz teste');
+      assert.equal((await api(`/rafanutri/uan/units/${U1}/stock/in`, { token: b.token, method: 'POST', body: { ingredient_id: ing.id, quantity: '5' } })).status, 403, 'cozinheiro dá entrada');
+      assert.equal((await api(`/rafanutri/uan/units/${U1}/stock/in`, { token: a.token, method: 'POST', body: { ingredient_id: ing.id, quantity: '5', lot_code: 'L2', expires_on: '2030-01-10' } })).status, 201);
+      assert.equal((await api(`/rafanutri/uan/units/${U1}/stock/in`, { token: a.token, method: 'POST', body: { ingredient_id: ing.id, quantity: '3', lot_code: 'L1', expires_on: '2030-01-05' } })).status, 201);
+      assert.equal((await api(`/rafanutri/uan/units/${U1}/stock/out`, { token: a.token, method: 'POST', body: { kind: 'out_production', lines: [{ ingredient_id: ing.id, quantity: '2' }] } })).status, 200);
+      const st = (await api(`/rafanutri/uan/units/${U1}/stock`, { token: b.token })).json.data;
+      assert.equal(st.can_move, false, 'cozinheiro só vê');
+      const lots = st.lots.filter((l) => l.ingredient_id === ing.id);
+      assert.equal(lots.find((l) => l.lot_code === 'L1').quantity_g, 1000, 'FEFO consumiu o que vence antes');
+      assert.equal(lots.find((l) => l.lot_code === 'L2').quantity_g, 5000);
+      assert.equal((await api(`/rafanutri/uan/units/${U1}/stock/out`, { token: a.token, method: 'POST', body: { kind: 'out_production', lines: [{ ingredient_id: ing.id, quantity: '100' }] } })).status, 409, 'saldo insuficiente');
+      assert.equal((await api(`/rafanutri/uan/units/${U1}/stock/out`, { token: a.token, method: 'POST', body: { kind: 'out_loss', lines: [{ ingredient_id: ing.id, quantity: '1' }] } })).status, 409, 'perda sem motivo');
+      assert.equal((await api(`/rafanutri/uan/units/${U2}/stock/in`, { token: a.token, method: 'POST', body: { ingredient_id: randomUUID(), quantity: '1' } })).status, 400, 'insumo inexistente');
+      const inv = await api(`/rafanutri/uan/units/${U1}/inventories`, { token: a.token, method: 'POST', body: {} });
+      assert.equal(inv.status, 201, JSON.stringify(inv.json));
+      const INV = inv.json.data.id;
+      assert.equal((await api(`/rafanutri/uan/inventories/${INV}`, { token: b.token })).status, 404, 'cozinheiro não conta');
+      assert.equal((await api(`/rafanutri/uan/inventories/${INV}/counts`, { token: a.token, method: 'PUT', body: { ingredient_id: ing.id, counted: '4', reason: 'Contagem' } })).status, 200);
+      assert.equal((await api(`/rafanutri/uan/inventories/${INV}/approve`, { token: a.token, method: 'POST', body: {} })).json.data.adjustments, 1, 'owner aprova o ajuste');
+      const after = (await api(`/rafanutri/uan/units/${U1}/stock`, { token: a.token })).json.data;
+      assert.equal(after.lots.filter((l) => l.ingredient_id === ing.id).reduce((s2, l) => s2 + l.quantity_g, 0), 4000, 'saldo ajustado para a contagem');
+      const out = await outsider();
+      assert.equal((await api(`/rafanutri/uan/units/${U1}/stock`, { token: out.token })).status, 404, 'de fora lê');
+      assert.equal((await api(`/rafanutri/uan/inventories/${INV}`, { token: out.token })).status, 404, 'de fora lê inventário');
+      assert.ok((await api('/items/stock_lots?limit=1', { token: b.token })).status >= 400, 'coleção direta recusada');
+    });
   } else {
     console.log('  (pulado) UAN entre unidades: defina ISOLATION_PSQL');
   }

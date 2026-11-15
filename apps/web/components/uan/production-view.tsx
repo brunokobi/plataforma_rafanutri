@@ -10,6 +10,7 @@ import { wasteIndicators } from '@rafanutri/nutrition-core';
 import { brl, UNIT_LABEL } from '@/lib/uan/catalog';
 import { SERVICE_LABEL, SERVICES, SLOT_LABEL, WEEKDAY_SHORT_FULL, type MenuService } from '@/lib/uan/menus';
 import { applyPattern, saveDiners, saveWaste } from '@/lib/uan/production-actions';
+import { stockOut } from '@/lib/uan/stock-actions';
 import { dayRequisition, kg, prepList, serviceIndicators, sheetInputs, WASTE_REASON_LABEL, type ProductionDay, type WasteReason } from '@/lib/uan/production';
 
 const SELECT = 'h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50';
@@ -121,6 +122,7 @@ export function ProductionView({ data }: { data: ProductionDay }) {
   const inputs = useMemo(() => sheetInputs(data.graph), [data.graph]);
   const prep = useMemo(() => prepList(data, inputs), [data, inputs]);
   const req = useMemo(() => dayRequisition(prep, inputs, data.graph.ingredients, Number(margin.replace(',', '.')) || 0), [prep, inputs, data.graph.ingredients, margin]);
+  const withdraw = useRun();
   const services = SERVICES.filter((s) => data.menu.some((m) => m.service === s) || data.diners.some((d) => d.service === s));
   const shown = services.length ? services : (['lunch'] as MenuService[]);
 
@@ -187,6 +189,15 @@ export function ProductionView({ data }: { data: ProductionDay }) {
               </tbody>
             </table>
           </div>
+          {data.can_record && (
+            <div className="flex flex-wrap items-center gap-3">
+              <Button type="button" variant="outline" disabled={withdraw.pending}
+                onClick={() => { if (window.confirm('Retirar do estoque os insumos da requisição (lotes que vencem antes primeiro)?')) withdraw.run(() => stockOut(data.unit.id, { kind: 'out_production', reason: `Produção de ${data.day}`, lines: req.map((r) => ({ ingredient_id: r.id, quantity_g: r.grossG })) }), () => 'Retirada registrada no estoque.'); }}>
+                {withdraw.pending && <Loader2 className="size-4 animate-spin" />} Retirar do estoque
+              </Button>
+              {withdraw.message && <p role={withdraw.message.error ? 'alert' : 'status'} className={withdraw.message.error ? 'text-sm text-destructive' : 'text-sm text-muted-foreground'}>{withdraw.message.text}</p>}
+            </div>
+          )}
         </section>
       )}
 

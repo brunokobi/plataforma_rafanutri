@@ -143,6 +143,39 @@ test('insumo com preço e fornecedor', async ({ page }) => {
     await expect(ind).toContainText('4%', { timeout: 15_000 });
     await expect(ind).toContainText('8,3%');
     await expect(ind).toContainText('10 g');
+
+    // U4a: estoque — entradas, alerta de validade, saída FEFO e inventário
+    await page.goto(unitUrl);
+    await page.getByRole('link', { name: 'Estoque', exact: true }).click();
+    await expect(page.getByRole('heading', { level: 1, name: 'Estoque' })).toBeVisible({ timeout: 15_000 });
+    const plusDays = (n: number) => new Date(Date.now() - 3 * 3600e3 + n * 86400e3).toISOString().slice(0, 10);
+    const entrada = page.getByRole('form', { name: 'Entrada no estoque' });
+    for (const [qty, exp, lot] of [['2', plusDays(2), 'L-A'], ['1', plusDays(10), 'L-B']] as const) {
+      await entrada.getByLabel('Insumo').selectOption({ label: name });
+      await entrada.getByLabel(/^Quantidade/).fill(qty);
+      await entrada.getByLabel('Validade').fill(exp);
+      await entrada.getByLabel('Lote').fill(lot);
+      await entrada.getByRole('button', { name: 'Registrar entrada' }).click();
+      await expect(entrada.getByRole('status')).toHaveText('Entrada registrada.', { timeout: 15_000 });
+    }
+    await expect(page.getByLabel(`Saldo de ${name}`)).toHaveText('3 L');
+    await expect(page.getByRole('list', { name: 'Alertas do estoque' })).toContainText('vencendo em até 3 dias');
+    const saida = page.getByRole('form', { name: 'Saída do estoque' });
+    await saida.getByLabel('Insumo').selectOption({ index: 1 });
+    await saida.getByLabel(/^Quantidade/).fill('1');
+    await saida.getByRole('button', { name: 'Registrar saída' }).click();
+    await expect(saida.getByRole('status')).toContainText('Saída registrada', { timeout: 15_000 });
+    await expect(page.getByLabel(`Saldo de ${name}`)).toHaveText('2 L');
+    await page.getByRole('button', { name: 'Abrir inventário' }).click();
+    await expect(page.getByRole('heading', { level: 1, name: 'Inventário' })).toBeVisible({ timeout: 15_000 });
+    await page.getByLabel(`Contagem de ${name} (L)`).fill('1,5');
+    await page.getByLabel(`Motivo de ${name}`).fill('Contagem física');
+    await page.getByLabel(`Motivo de ${name}`).blur();
+    await expect(page.getByRole('row').filter({ hasText: name })).toContainText('Salvo', { timeout: 15_000 });
+    await page.getByRole('button', { name: 'Aprovar inventário' }).click();
+    await expect(page.getByText('Inventário aprovado: os ajustes foram lançados no estoque.')).toBeVisible({ timeout: 15_000 });
+    await page.getByRole('link', { name: /← Estoque de/ }).click();
+    await expect(page.getByLabel(`Saldo de ${name}`)).toHaveText('1,5 L', { timeout: 15_000 });
   } finally {
     await page.goto(unitUrl);
     const ue = page.getByRole('form', { name: 'Dados da unidade' });
