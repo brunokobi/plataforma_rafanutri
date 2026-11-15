@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 import { ACCESS_COOKIE } from '@/lib/auth/cookies';
 import { env } from '@/lib/env';
-import type { AnswerValue, ChecklistAnswer, RunDetail, RunSummary, UnitChecklists } from '@/lib/uan/checklists';
+import type { AnswerValue, ChecklistAnswer, ChecklistCategory, Frequency, RunDetail, RunSummary, TemplateDetail, UnitChecklists } from '@/lib/uan/checklists';
 
 type Json = { data?: unknown; errors?: Array<{ message: string; extensions?: { code?: string; fields?: Record<string, string> } }> } | null;
 
@@ -121,6 +121,86 @@ export async function cancelChecklist(runId: string): Promise<{ ok: true } | { o
   try {
     const r = await call(`/uan/checklist-runs/${runId}/cancel`, 'POST', {});
     return r.status === 200 ? { ok: true } : { ok: false, message: errMsg(r, 'Não foi possível cancelar.') };
+  } catch {
+    return { ok: false, message: FAIL };
+  }
+}
+
+// ── Editor de modelos e agenda (RN-147, RN-150) ──────────────────────────
+
+export async function copyTemplate(unitId: string, templateId: string): Promise<{ ok: true; id: string } | { ok: false; message: string }> {
+  if (!isUuid(unitId) || !isUuid(templateId)) return { ok: false, message: 'Modelo inválido.' };
+  try {
+    const r = await call(`/uan/units/${unitId}/checklist-templates/copy`, 'POST', { template_id: templateId });
+    if (r.status !== 201) return { ok: false, message: errMsg(r, 'Não foi possível copiar o modelo.') };
+    revalidatePath(`/app/uan/unidades/${unitId}`);
+    return { ok: true, id: (r.json?.data as { id: string }).id };
+  } catch {
+    return { ok: false, message: FAIL };
+  }
+}
+
+export async function getTemplate(id: string): Promise<TemplateDetail | null | undefined> {
+  if (!isUuid(id)) return undefined;
+  try {
+    const r = await call(`/uan/checklist-templates/${id}`);
+    if (r.status === 404) return undefined;
+    return r.status === 200 ? (r.json?.data as TemplateDetail) : null;
+  } catch {
+    return null;
+  }
+}
+
+export interface TemplateSave {
+  name: string;
+  description: string;
+  category: ChecklistCategory;
+  frequency_hint: Frequency;
+  active: boolean;
+  items: Array<{ section: string; prompt: string; help: string; kind: 'compliance' | 'number'; unit: string; min_value: string; max_value: string; critical: boolean }>;
+}
+
+export async function saveTemplate(id: string, input: TemplateSave): Promise<{ ok: true } | { ok: false; message: string }> {
+  if (!isUuid(id)) return { ok: false, message: 'Modelo inválido.' };
+  const num = (v: string) => (v.trim() ? Number(v.replace(',', '.')) : null);
+  try {
+    const r = await call(`/uan/checklist-templates/${id}`, 'PUT', {
+      ...input,
+      items: input.items.map((i) => ({ ...i, min_value: num(i.min_value), max_value: num(i.max_value) })),
+    });
+    if (r.status !== 200) {
+      const fields = r.json?.errors?.[0]?.extensions?.fields;
+      return { ok: false, message: (fields && Object.values(fields)[0]) || errMsg(r, 'Não foi possível salvar o modelo.') };
+    }
+    revalidatePath(`/app/uan/modelos/${id}`);
+    return { ok: true };
+  } catch {
+    return { ok: false, message: FAIL };
+  }
+}
+
+export async function addSchedule(unitId: string, input: { template_id: string; weekdays: number[]; at_time: string; tolerance_minutes: number }): Promise<{ ok: true } | { ok: false; message: string }> {
+  if (!isUuid(unitId) || !isUuid(input.template_id)) return { ok: false, message: 'Agenda inválida.' };
+  try {
+    const r = await call(`/uan/units/${unitId}/checklist-schedules`, 'POST', input);
+    if (r.status !== 201) {
+      const fields = r.json?.errors?.[0]?.extensions?.fields;
+      return { ok: false, message: (fields && Object.values(fields)[0]) || errMsg(r, 'Não foi possível agendar.') };
+    }
+    revalidatePath(`/app/uan/unidades/${unitId}`);
+    return { ok: true };
+  } catch {
+    return { ok: false, message: FAIL };
+  }
+}
+
+export async function removeSchedule(unitId: string, scheduleId: string): Promise<{ ok: true } | { ok: false; message: string }> {
+  if (!isUuid(scheduleId)) return { ok: false, message: 'Agenda inválida.' };
+  try {
+    const r = await call(`/uan/checklist-schedules/${scheduleId}`, 'DELETE');
+    if (r.status !== 200) return { ok: false, message: errMsg(r, 'Não foi possível remover.') };
+    revalidatePath(`/app/uan/unidades/${unitId}`);
+    return { ok: true };
   } catch {
     return { ok: false, message: FAIL };
   }

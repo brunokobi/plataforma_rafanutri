@@ -9,6 +9,7 @@ const password = process.env.E2E_USER_PASSWORD;
 
 test('unidade produtora da UAN e convite da equipe', async ({ page, browser }) => {
   test.skip(!email || !password, 'Defina E2E_USER_EMAIL e E2E_USER_PASSWORD (usuário de teste com consultório).');
+  test.setTimeout(120_000);
   await page.goto('/login?next=/app');
   await page.getByLabel('E-mail').fill(email!);
   await page.getByLabel('Senha', { exact: true }).fill(password!);
@@ -91,6 +92,33 @@ test('unidade produtora da UAN e convite da equipe', async ({ page, browser }) =
   page.once('dialog', (d) => d.accept());
   await members.getByRole('button', { name: 'Remover Equipe E2E da equipe' }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Equipe E2E saiu da equipe.' })).toBeVisible({ timeout: 15_000 });
+
+  // RN-147/150: personalizar o modelo da biblioteca, editar itens e agendar
+  await page.getByRole('button', { name: 'Personalizar Abertura da cozinha' }).click();
+  await expect(page).toHaveURL(/\/app\/uan\/modelos\/[0-9a-f-]{36}\?unidade=/, { timeout: 15_000 });
+  const editor = page.getByRole('form', { name: 'Editar modelo' });
+  await expect(editor.getByLabel('Nome do modelo')).toHaveValue('Abertura da cozinha — personalizado');
+  await editor.getByLabel('Pergunta do item 1').fill('Piso e bancadas limpos e sem resíduos?');
+  await editor.getByRole('button', { name: 'Adicionar item' }).click();
+  await editor.getByLabel('Pergunta do item 10').fill('Termômetro de espeto calibrado?');
+  await editor.getByLabel('Crítico (exige foto e abre não conformidade)').last().check();
+  await editor.getByRole('button', { name: 'Salvar modelo' }).click();
+  await expect(editor.getByRole('status')).toContainText('Modelo salvo', { timeout: 15_000 });
+  await page.reload();
+  await expect(page.getByRole('form', { name: 'Editar modelo' }).getByLabel('Pergunta do item 10')).toHaveValue('Termômetro de espeto calibrado?');
+  await page.getByRole('link', { name: '← Voltar' }).click();
+
+  const sched = page.getByRole('form', { name: 'Agendar checklist' });
+  await sched.getByLabel('Checklist').selectOption({ label: 'Abertura da cozinha — personalizado' });
+  await sched.getByLabel('sáb', { exact: true }).check();
+  await sched.getByLabel('dom', { exact: true }).check();
+  await sched.getByLabel('Horário', { exact: true }).fill('00:01');
+  await sched.getByLabel('Tolerância (min)').fill('15');
+  await sched.getByRole('button', { name: 'Agendar' }).click();
+  await expect(page.getByRole('list', { name: 'Checklists agendados' }).getByText(/Abertura da cozinha — personalizado · todos os dias às 00:01/)).toBeVisible({ timeout: 15_000 });
+  const todayItem = page.getByRole('list', { name: 'Checklists de hoje' }).getByRole('listitem').filter({ hasText: 'Abertura da cozinha — personalizado' });
+  await expect(todayItem.getByText('Atrasado', { exact: true })).toBeVisible();
+  await expect(todayItem.getByRole('button', { name: 'Iniciar Abertura da cozinha — personalizado' })).toBeVisible();
 
   const edit = page.getByRole('form', { name: 'Dados da unidade' });
   await expect(edit.getByLabel('UF')).toHaveValue('ES');

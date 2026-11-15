@@ -902,6 +902,35 @@ try {
       assert.equal((await api(`/rafanutri/uan/non-conformities/${NC}/plans`, { token: a.token, method: 'POST', body: { what: 'Mais', due_date: '2026-12-01', who_text: 'RT' } })).status, 409, 'fechada não recebe plano');
       assert.ok((await api('/items/non_conformities?limit=1', { token: b.token })).status >= 400, 'coleção direta recusada');
     });
+    await check('UAN: modelos e agenda — biblioteca só leitura; cozinheiro não copia, não edita nem agenda; de fora não vê o modelo da empresa', async () => {
+      const list = (await api(`/rafanutri/uan/units/${U1}/checklists`, { token: a.token })).json.data;
+      const lib = list.templates.find((t) => t.name === 'Higiene dos manipuladores');
+      assert.ok(lib?.platform, 'modelo da biblioteca');
+      assert.equal((await api(`/rafanutri/uan/checklist-templates/${lib.id}`, { token: a.token, method: 'PUT', body: { name: 'X', category: 'other', frequency_hint: 'daily', active: true, items: [{ prompt: 'Teste?' }] } })).status, 404, 'biblioteca não edita');
+      assert.equal((await api(`/rafanutri/uan/units/${U1}/checklist-templates/copy`, { token: b.token, method: 'POST', body: { template_id: lib.id } })).status, 403, 'cozinheiro copia');
+      const copy = await api(`/rafanutri/uan/units/${U1}/checklist-templates/copy`, { token: a.token, method: 'POST', body: { template_id: lib.id } });
+      assert.equal(copy.status, 201, JSON.stringify(copy.json));
+      const T = copy.json.data.id;
+      const body = { name: 'Higiene — manhã', category: 'hygiene', frequency_hint: 'daily', active: true, items: [{ prompt: 'Touca em uso?', critical: true }, { prompt: 'Câmara fria', kind: 'number', unit: '°C', max_value: 5 }] };
+      assert.equal((await api(`/rafanutri/uan/checklist-templates/${T}`, { token: a.token, method: 'PUT', body })).status, 200, 'owner edita');
+      assert.equal((await api(`/rafanutri/uan/checklist-templates/${T}`, { token: a.token, method: 'PUT', body: { ...body, items: [{ prompt: 'X', kind: 'number' }] } })).status, 400, 'item numérico sem limite');
+      const seen = await api(`/rafanutri/uan/checklist-templates/${T}`, { token: b.token });
+      assert.equal(seen.status, 200);
+      assert.equal(seen.json.data.can_edit, false, 'cozinheiro só lê');
+      assert.equal(seen.json.data.items.length, 2);
+      assert.equal((await api(`/rafanutri/uan/checklist-templates/${T}`, { token: b.token, method: 'PUT', body })).status, 403, 'cozinheiro edita');
+      const out = await newUser('md');
+      created.users.push((await api('/users/me?fields=id', { token: out.token })).json.data.id);
+      assert.equal((await api(`/rafanutri/uan/checklist-templates/${T}`, { token: out.token })).status, 404, 'de fora lê');
+      assert.equal((await api(`/rafanutri/uan/units/${U1}/checklist-schedules`, { token: b.token, method: 'POST', body: { template_id: T, weekdays: [1, 2, 3, 4, 5, 6, 7], at_time: '00:15' } })).status, 403, 'cozinheiro agenda');
+      const sch = await api(`/rafanutri/uan/units/${U1}/checklist-schedules`, { token: a.token, method: 'POST', body: { template_id: T, weekdays: [1, 2, 3, 4, 5, 6, 7], at_time: '00:15', tolerance_minutes: 15 } });
+      assert.equal(sch.status, 201, JSON.stringify(sch.json));
+      const today = (await api(`/rafanutri/uan/units/${U1}/checklists`, { token: b.token })).json.data.today;
+      assert.ok(today.some((d) => d.template_id === T && ['overdue', 'pending'].includes(d.status)), 'agenda de hoje para a equipe');
+      assert.equal((await api(`/rafanutri/uan/checklist-schedules/${sch.json.data.id}`, { token: out.token, method: 'DELETE' })).status, 404, 'de fora remove');
+      assert.equal((await api(`/rafanutri/uan/checklist-schedules/${sch.json.data.id}`, { token: b.token, method: 'DELETE' })).status, 403, 'cozinheiro remove');
+      assert.equal((await api(`/rafanutri/uan/checklist-schedules/${sch.json.data.id}`, { token: a.token, method: 'DELETE' })).status, 200);
+    });
   } else {
     console.log('  (pulado) UAN entre unidades: defina ISOLATION_PSQL');
   }

@@ -1,8 +1,16 @@
 import { AlertTriangle, ClipboardCheck } from 'lucide-react';
 import Link from 'next/link';
+import { CopyTemplate, ScheduleManager } from '@/components/uan/checklist-schedule';
 import { StartChecklist } from '@/components/uan/start-checklist';
 import { Badge } from '@/components/ui/badge';
-import { FREQUENCY_LABEL, ncOverdue, SEVERITY_LABEL, type UnitChecklists } from '@/lib/uan/checklists';
+import { FREQUENCY_LABEL, ncOverdue, SEVERITY_LABEL, type DayItem, type UnitChecklists } from '@/lib/uan/checklists';
+
+const DAY_STATUS: Record<DayItem['status'], { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
+  done: { label: 'Feito', variant: 'default' },
+  in_progress: { label: 'Em andamento', variant: 'secondary' },
+  overdue: { label: 'Atrasado', variant: 'destructive' },
+  pending: { label: 'Pendente', variant: 'outline' },
+};
 
 const when = (iso: string) =>
   new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' });
@@ -18,6 +26,33 @@ export function UnitChecklistsSection({ unitId, data, useGeo }: { unitId: string
       <h2 id="checklists" className="flex items-center gap-2 font-display text-2xl font-semibold tracking-tight">
         <ClipboardCheck className="size-6 text-primary" aria-hidden="true" /> Checklists
       </h2>
+
+      {(data.today?.length ?? 0) > 0 && (
+        <div className="space-y-2">
+          <h3 className="font-semibold">Hoje</h3>
+          <ul aria-label="Checklists de hoje" className="divide-y divide-border rounded-2xl border border-border bg-card">
+            {data.today!.map((d) => {
+              const st = DAY_STATUS[d.status];
+              return (
+                <li key={d.schedule_id} className="flex flex-wrap items-center justify-between gap-2 p-3 text-sm">
+                  <span>
+                    <span className="font-medium">{d.template_name}</span>
+                    <span className="block text-xs text-muted-foreground">às {d.at_time} · tolerância {d.tolerance_minutes} min</span>
+                  </span>
+                  <span className="flex items-center gap-2">
+                    <Badge variant={st.variant}>{st.label}</Badge>
+                    {d.run_id ? (
+                      <Link href={`/app/uan/checklists/${d.run_id}`} className="font-medium text-primary underline">{d.status === 'done' ? 'Ver' : 'Continuar'}</Link>
+                    ) : (
+                      data.can_run && <StartChecklist unitId={unitId} templateId={d.template_id} name={d.template_name} useGeo={useGeo} />
+                    )}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
 
       <Link href={`/app/uan/unidades/${unitId}/nao-conformidades`} className="inline-block text-sm font-medium text-primary underline">
         Quadro de não conformidades{data.non_conformities.length ? ` (${data.non_conformities.length} em aberto)` : ''}
@@ -78,12 +113,18 @@ export function UnitChecklistsSection({ unitId, data, useGeo }: { unitId: string
                   </p>
                   {t.description && <p className="mt-1 text-xs text-muted-foreground">{t.description}</p>}
                 </div>
-                <StartChecklist unitId={unitId} templateId={t.id} name={t.name} useGeo={useGeo} />
+                <div className="flex flex-wrap items-start gap-2">
+                  <StartChecklist unitId={unitId} templateId={t.id} name={t.name} useGeo={useGeo} />
+                  {data.can_manage && t.platform && <CopyTemplate unitId={unitId} templateId={t.id} name={t.name} />}
+                  {t.editable && <Link href={`/app/uan/modelos/${t.id}?unidade=${unitId}`} className="inline-flex h-8 items-center px-2 text-sm font-medium text-primary underline">Editar</Link>}
+                </div>
               </li>
             ))}
           </ul>
         </div>
       )}
+
+      {data.can_manage && <ScheduleManager unitId={unitId} schedules={data.schedules ?? []} templates={data.templates} />}
 
       <div className="space-y-2">
         <h3 className="font-semibold">Concluídos</h3>

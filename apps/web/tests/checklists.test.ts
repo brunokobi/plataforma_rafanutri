@@ -62,3 +62,27 @@ describe('checklists de Boas Práticas (U1a)', () => {
     expect(outsideRadius(null, 200)).toBe(false);
   });
 });
+
+import { validateTemplateItems, weekdaysLabel, type TemplateItemInput } from '@/lib/uan/checklists';
+
+describe('editor de modelos e agenda (RN-147, RN-150)', () => {
+  const it0 = (p: Partial<TemplateItemInput> = {}): TemplateItemInput => ({ section: '', prompt: 'Piso limpo?', help: '', kind: 'compliance', unit: '', min_value: '', max_value: '', critical: false, ...p });
+
+  it('dias da semana em texto', () => {
+    expect(weekdaysLabel([1, 2, 3, 4, 5])).toBe('seg a sex');
+    expect(weekdaysLabel([1, 2, 3, 4, 5, 6, 7])).toBe('todos os dias');
+    expect(weekdaysLabel([5, 1, 3])).toBe('seg, qua e sex');
+    expect(weekdaysLabel([7])).toBe('dom');
+  });
+
+  it('validação dos itens (igual à do servidor)', () => {
+    expect(validateTemplateItems([it0()])).toBeNull();
+    expect(validateTemplateItems([])).toMatch(/1 a 200/);
+    expect(validateTemplateItems([it0(), it0({ prompt: 'ab' })])).toMatch(/^Item 2/);
+    expect(validateTemplateItems([it0({ kind: 'number' })])).toMatch(/mínimo ou o máximo/);
+    expect(validateTemplateItems([it0({ kind: 'number', max_value: '5' })])).toBeNull();
+    expect(validateTemplateItems([it0({ kind: 'number', min_value: '10', max_value: '5' })])).toMatch(/passa do máximo/);
+    expect(validateTemplateItems([it0({ kind: 'number', max_value: 'x' })])).toMatch(/inválidos/);
+    expect(validateTemplateItems([it0({ kind: 'number', min_value: '-18,5' })])).toBeNull();
+  });
+});

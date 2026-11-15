@@ -21,6 +21,80 @@ export interface ChecklistTemplateSummary {
   platform: boolean;
   item_count: number;
   critical_count: number;
+  /** Modelo da empresa que esta pessoa pode editar. */
+  editable?: boolean;
+}
+
+/** Checklist agendado para hoje e a situação (RN-150). */
+export interface DayItem {
+  schedule_id: string;
+  template_id: string;
+  template_name: string;
+  at_time: string;
+  tolerance_minutes: number;
+  status: 'done' | 'in_progress' | 'overdue' | 'pending';
+  run_id: string | null;
+}
+
+export interface Schedule {
+  id: string;
+  template_id: string;
+  template_name: string;
+  weekdays: number[];
+  at_time: string;
+  tolerance_minutes: number;
+  active: boolean;
+}
+
+export const WEEKDAY_SHORT = ['seg', 'ter', 'qua', 'qui', 'sex', 'sáb', 'dom'];
+/** "seg, qua e sex" / "todos os dias" / "seg a sex". */
+export function weekdaysLabel(days: number[]): string {
+  const d = [...new Set(days)].sort((a, b) => a - b);
+  if (d.length === 7) return 'todos os dias';
+  if (d.join() === '1,2,3,4,5') return 'seg a sex';
+  if (d.join() === '1,2,3,4,5,6') return 'seg a sáb';
+  const names = d.map((n) => WEEKDAY_SHORT[n - 1]!);
+  return names.length === 1 ? names[0]! : `${names.slice(0, -1).join(', ')} e ${names[names.length - 1]}`;
+}
+
+export interface TemplateItemInput {
+  section: string;
+  prompt: string;
+  help: string;
+  kind: 'compliance' | 'number';
+  unit: string;
+  min_value: string;
+  max_value: string;
+  critical: boolean;
+}
+
+export interface TemplateDetail {
+  template: { id: string; name: string; description: string | null; category: ChecklistCategory; frequency_hint: Frequency; active: boolean; platform: boolean; source_template_id: string | null };
+  can_edit: boolean;
+  items: Array<{ position: number; section: string | null; prompt: string; help: string | null; kind: 'compliance' | 'number'; unit: string | null; min_value: number | null; max_value: number | null; critical: boolean }>;
+}
+
+export const CATEGORY_LABEL: Record<ChecklistCategory, string> = {
+  bpf_audit: 'Auditoria de Boas Práticas', opening: 'Abertura', hygiene: 'Higiene', receiving: 'Recebimento', cleaning: 'Higienização',
+  temperature: 'Temperatura', pests: 'Pragas', water: 'Água', other: 'Outro',
+};
+
+/** Validação do editor (a mesma do servidor): mensagem do primeiro problema ou null. */
+export function validateTemplateItems(items: TemplateItemInput[]): string | null {
+  if (items.length < 1 || items.length > 200) return 'O modelo precisa de 1 a 200 itens.';
+  for (const [i, it] of items.entries()) {
+    const n = i + 1;
+    const p = it.prompt.trim();
+    if (p.length < 3 || p.length > 500) return `Item ${n}: escreva a pergunta (3 a 500 caracteres).`;
+    if (it.kind === 'number') {
+      const min = it.min_value.trim() ? Number(it.min_value.replace(',', '.')) : null;
+      const max = it.max_value.trim() ? Number(it.max_value.replace(',', '.')) : null;
+      if ((min !== null && !Number.isFinite(min)) || (max !== null && !Number.isFinite(max))) return `Item ${n}: limites inválidos.`;
+      if (min === null && max === null) return `Item ${n}: informe o mínimo ou o máximo.`;
+      if (min !== null && max !== null && min > max) return `Item ${n}: o mínimo passa do máximo.`;
+    }
+  }
+  return null;
 }
 
 export interface RunSummary {
@@ -54,9 +128,12 @@ export interface NonConformitySummary {
 
 export interface UnitChecklists {
   can_run: boolean;
+  can_manage?: boolean;
   templates: ChecklistTemplateSummary[];
   runs: RunSummary[];
   non_conformities: NonConformitySummary[];
+  today?: DayItem[];
+  schedules?: Schedule[];
 }
 
 export interface ChecklistAnswer {

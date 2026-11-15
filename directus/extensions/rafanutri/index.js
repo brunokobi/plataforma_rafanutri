@@ -2027,14 +2027,166 @@ export default {
       const ncs = await database('non_conformities').where('unit_id', a.unit.id).whereIn('status', ['open', 'in_progress'])
         .orderBy('due_at').limit(50)
         .select('id', 'title', 'severity', 'status', 'source', 'run_id', 'due_at', 'opened_at');
+      const today = (await database.raw('select * from checklist_day(?)', [a.unit.id])).rows
+        .map((r) => ({ ...r, at_time: String(r.at_time).slice(0, 5) }));
+      const schedules = canSupervise(a)
+        ? (await database('checklist_schedules as s').join('checklist_templates as t', 't.id', 's.template_id')
+            .where('s.unit_id', a.unit.id).orderBy('s.at_time')
+            .select('s.id', 's.template_id', 't.name as template_name', 's.weekdays', 's.at_time', 's.tolerance_minutes', 's.active'))
+            .map((r) => ({ ...r, at_time: String(r.at_time).slice(0, 5) }))
+        : [];
       res.json({
         data: {
           can_run: canRun(a) && a.unit.active,
-          templates,
+          can_manage: canSupervise(a),
+          templates: templates.map((t) => ({ ...t, editable: !t.platform && canSupervise(a) })),
           runs: runs.map((r) => ({ ...runOut(r), started_by_name: userName(r), mine: r.started_by === user })),
           non_conformities: ncs,
+          today,
+          schedules,
         },
       });
+    });
+
+    // ── Editor de modelos e agenda (RN-147, RN-150) ──────────────────────────────────────────
+    // Copiar e editar: owner da empresa, ou gestor/RT de alguma unidade dela. Biblioteca: só leitura (0038).
+    const TEMPLATE_CATEGORIES = new Set(['bpf_audit', 'opening', 'hygiene', 'receiving', 'cleaning', 'temperature', 'pests', 'water', 'other']);
+    const FREQUENCIES = new Set(['daily', 'weekly', 'monthly', 'on_demand']);
+    async function canEditTemplates(user, orgId) {
+      const owner = await database('organization_members').where({ organization_id: orgId, user_id: user, role: 'owner' }).first('id');
+      if (owner) return true;
+      return Boolean(await database('unit_members as m').join('production_units as u', 'u.id', 'm.unit_id')
+        .where({ 'u.organization_id': orgId, 'm.user_id': user }).whereIn('m.role', ['manager', 'technical_lead']).first('m.user_id'));
+    }
+    const templateNotFound = (res) => res.status(404).json({ errors: [{ message: 'Modelo não encontrado.', extensions: { code: 'NOT_FOUND' } }] });
+
+    function templateItems(list) {
+      if (!Array.isArray(list) || list.length < 1 || list.length > 200) return { errors: { items: 'O modelo precisa de 1 a 200 itens.' } };
+      const items = [];
+      for (const [i, it] of list.entries()) {
+        const n = i + 1;
+        const prompt = typeof it?.prompt === 'string' ? it.prompt.trim() : '';
+        if (prompt.length < 3 || prompt.length > 500) return { errors: { items: `Item ${n}: escreva a pergunta (3 a 500 caracteres).` } };
+        const kind = it.kind === 'number' ? 'number' : 'compliance';
+        const num = (v) => (v === null || v === undefined || v === '' ? null : Number(v));
+        const min = kind === 'number' ? num(it.min_value) : null;
+        const max = kind === 'number' ? num(it.max_value) : null;
+        if (kind === 'number') {
+          if ((min !== null && !Number.isFinite(min)) || (max !== null && !Number.isFinite(max))) return { errors: { items: `Item ${n}: limites inválidos.` } };
+          if (min === null && max === null) return { errors: { items: `Item ${n}: informe o mínimo ou o máximo.` } };
+          if (min !== null && max !== null && min > max) return { errors: { items: `Item ${n}: o mínimo passa do máximo.` } };
+        }
+        const str = (v, max) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : null);
+        const critical = it.critical === true;
+        items.push({
+          position: n, prompt, section: str(it.section, 120), help: str(it.help, 500), kind,
+          unit: kind === 'number' ? str(it.unit, 10) : null, min_value: min, max_value: max,
+          critical, photo_on_fail: critical || it.photo_on_fail === true,
+        });
+      }
+      return { items };
+    }
+
+    router.post('/uan/units/:id/checklist-templates/copy', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const a = await unitAccess(user, req.params.id);
+      if (!a) return unitNotFound(res);
+      if (!canSupervise(a)) return res.status(403).json({ errors: [{ message: 'Só o responsável, o gestor ou o RT personalizam modelos.', extensions: { code: 'FORBIDDEN' } }] });
+      if (!isUuid(req.body?.template_id)) return bad(res, { template_id: 'Escolha o modelo.' });
+      try {
+        const id = await withActor(user, async (trx) => (await trx.raw('select checklist_template_copy(?, ?, ?) as id', [req.body.template_id, a.unit.organization_id, user])).rows[0].id);
+        res.status(201).json({ data: { id } });
+      } catch (error) {
+        p0001(res, error, 'copiar modelo');
+      }
+    });
+
+    router.get('/uan/checklist-templates/:id', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      if (!isUuid(req.params.id)) return templateNotFound(res);
+      const t = await database('checklist_templates').where('id', req.params.id)
+        .first('id', 'organization_id', 'name', 'description', 'category', 'frequency_hint', 'active', 'source_template_id', 'updated_at');
+      if (!t) return templateNotFound(res);
+      const orgs = await uanOrgs(user);
+      if (t.organization_id ? !orgs.some((o) => o.id === t.organization_id) : orgs.length === 0) return templateNotFound(res);
+      const items = await database('checklist_template_items').where('template_id', t.id).orderBy('position')
+        .select('position', 'section', 'prompt', 'help', 'kind', 'unit', 'min_value', 'max_value', 'critical', 'photo_on_fail');
+      res.json({
+        data: {
+          template: { ...t, organization_id: undefined, platform: !t.organization_id },
+          can_edit: Boolean(t.organization_id) && (await canEditTemplates(user, t.organization_id)),
+          items: items.map((i) => ({ ...i, min_value: numOrNull(i.min_value), max_value: numOrNull(i.max_value) })),
+        },
+      });
+    });
+
+    router.put('/uan/checklist-templates/:id', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      if (!isUuid(req.params.id)) return templateNotFound(res);
+      const t = await database('checklist_templates').where('id', req.params.id).first('id', 'organization_id');
+      if (!t || !t.organization_id || !(await uanOrgs(user)).some((o) => o.id === t.organization_id)) return templateNotFound(res);
+      if (!(await canEditTemplates(user, t.organization_id))) return res.status(403).json({ errors: [{ message: 'Só o responsável, o gestor ou o RT editam modelos.', extensions: { code: 'FORBIDDEN' } }] });
+      const b = req.body ?? {};
+      const errors = {};
+      const name = typeof b.name === 'string' ? b.name.trim() : '';
+      if (name.length < 2 || name.length > 120) errors.name = 'Informe o nome (2 a 120 caracteres).';
+      const description = typeof b.description === 'string' && b.description.trim() ? b.description.trim() : null;
+      if (description && description.length > 500) errors.description = 'Até 500 caracteres.';
+      if (!TEMPLATE_CATEGORIES.has(b.category)) errors.category = 'Categoria inválida.';
+      if (!FREQUENCIES.has(b.frequency_hint)) errors.frequency_hint = 'Frequência inválida.';
+      if (typeof b.active !== 'boolean') errors.active = 'Valor inválido.';
+      const parsed = templateItems(b.items);
+      if (parsed.errors) Object.assign(errors, parsed.errors);
+      if (Object.keys(errors).length) return bad(res, errors);
+      try {
+        await withActor(user, async (trx) => {
+          await trx('checklist_templates').where('id', t.id).update({ name, description, category: b.category, frequency_hint: b.frequency_hint, active: b.active });
+          await trx('checklist_template_items').where('template_id', t.id).del();
+          await trx('checklist_template_items').insert(parsed.items.map((i) => ({ ...i, template_id: t.id })));
+        });
+        res.json({ data: { ok: true } });
+      } catch (error) {
+        p0001(res, error, 'salvar modelo');
+      }
+    });
+
+    router.post('/uan/units/:id/checklist-schedules', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const a = await unitAccess(user, req.params.id);
+      if (!a) return unitNotFound(res);
+      if (!canSupervise(a)) return res.status(403).json({ errors: [{ message: 'Só o responsável, o gestor ou o RT agendam checklists.', extensions: { code: 'FORBIDDEN' } }] });
+      const b = req.body ?? {};
+      const errors = {};
+      if (!isUuid(b.template_id)) errors.template_id = 'Escolha o modelo.';
+      const days = Array.isArray(b.weekdays) ? b.weekdays.map(Number) : [];
+      if (!days.length || days.some((d) => !Number.isInteger(d) || d < 1 || d > 7)) errors.weekdays = 'Escolha ao menos um dia.';
+      if (typeof b.at_time !== 'string' || !/^([01]\d|2[0-3]):[0-5]\d$/.test(b.at_time)) errors.at_time = 'Horário inválido.';
+      const tol = b.tolerance_minutes === undefined ? 60 : Number(b.tolerance_minutes);
+      if (!Number.isInteger(tol) || tol < 15 || tol > 720) errors.tolerance_minutes = 'Tolerância entre 15 e 720 minutos.';
+      if (Object.keys(errors).length) return bad(res, errors);
+      try {
+        const [row] = await withActor(user, (trx) => trx('checklist_schedules')
+          .insert({ unit_id: a.unit.id, organization_id: a.unit.organization_id, template_id: b.template_id, weekdays: days, at_time: b.at_time, tolerance_minutes: tol, created_by: user })
+          .returning(['id']));
+        res.status(201).json({ data: row });
+      } catch (error) {
+        p0001(res, error, 'agendar checklist');
+      }
+    });
+
+    router.delete('/uan/checklist-schedules/:id', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const s = isUuid(req.params.id) ? await database('checklist_schedules').where('id', req.params.id).first('id', 'unit_id') : null;
+      const a = s ? await unitAccess(user, s.unit_id) : null;
+      if (!a) return res.status(404).json({ errors: [{ message: 'Agenda não encontrada.', extensions: { code: 'NOT_FOUND' } }] });
+      if (!canSupervise(a)) return res.status(403).json({ errors: [{ message: 'Só o responsável, o gestor ou o RT mudam a agenda.', extensions: { code: 'FORBIDDEN' } }] });
+      await withActor(user, (trx) => trx('checklist_schedules').where('id', s.id).del());
+      res.json({ data: { ok: true } });
     });
 
     router.post('/uan/units/:id/checklist-runs', async (req, res) => {
