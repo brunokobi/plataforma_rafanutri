@@ -3,7 +3,7 @@
 import { AlertCircle, CalendarPlus, ChevronLeft, ChevronRight, Loader2, Video } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState, useTransition } from 'react';
+import { useRef, useState, useTransition } from 'react';
 import { AppointmentForm, type PatientOption } from '@/components/agenda/appointment-form';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -187,7 +187,13 @@ export function AgendaWeek({
   const router = useRouter();
   const [creating, setCreating] = useState(Boolean(defaultPatientId));
   const [message, setMessage] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
-  const [dragging, setDragging] = useState<Appointment | null>(null);
+  const [dragging, setDraggingState] = useState<Appointment | null>(null);
+  // A ref é lida no dragover/drop: o estado pode ainda não ter sido aplicado quando o primeiro dragover chega.
+  const draggingRef = useRef<Appointment | null>(null);
+  const setDragging = (a: Appointment | null) => {
+    draggingRef.current = a;
+    setDraggingState(a);
+  };
   const [dropDay, setDropDay] = useState<string | null>(null);
   const [moving, startMoving] = useTransition();
 
@@ -266,6 +272,7 @@ export function AgendaWeek({
             const list = appointments.filter((a) => localDate(a.starts_at) === d);
             const label = dayLabel(d);
             const isToday = d === todayDate;
+            const canDropNow = () => draggingRef.current !== null && localDate(draggingRef.current.starts_at) !== d;
             const canDrop = dragging !== null && localDate(dragging.starts_at) !== d;
             return (
               <section
@@ -273,7 +280,7 @@ export function AgendaWeek({
                 aria-label={`${label.weekday} ${label.day} ${label.month}`}
                 className={cn('min-w-0 rounded-2xl border border-border p-2', isToday && 'border-primary/60 bg-primary/5', canDrop && 'border-dashed', canDrop && dropDay === d && 'border-primary bg-primary/10')}
                 onDragOver={(e) => {
-                  if (!canDrop) return;
+                  if (!canDropNow()) return;
                   e.preventDefault();
                   e.dataTransfer.dropEffect = 'move';
                   if (dropDay !== d) setDropDay(d);
@@ -283,10 +290,11 @@ export function AgendaWeek({
                 }}
                 onDrop={(e) => {
                   e.preventDefault();
-                  const a = dragging;
+                  const a = draggingRef.current;
+                  const ok = canDropNow();
                   setDragging(null);
                   setDropDay(null);
-                  if (a && canDrop) moveTo(a, d);
+                  if (a && ok) moveTo(a, d);
                 }}
               >
                 <h2 className="mb-2 flex items-baseline gap-1.5 px-1 text-sm">
