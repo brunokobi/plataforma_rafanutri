@@ -436,6 +436,26 @@ Migração `0034_unit_invites.sql` (**aplicada na vpsrafa em 15/11/2026**, backu
 
 `GET /rafanutri/uan/units/:id` passa a trazer `can_manage_team`, `invitable_roles` e os convites pendentes (para owner, gestor e RT). Quem só está na equipe da UAN (sem consultório) entra direto em `/app/uan`.
 
+## Checklists de Boas Práticas (U1a)
+
+Migração `0035_checklists.sql` (**aplicada na vpsrafa em 15/11/2026**, backup `antes-0035-2026-11-15.dump`; testes em `db/tests/0035_checklists.test.sql`):
+
+- `checklist_templates` e `checklist_template_items`: modelos da **plataforma** (`organization_id` nulo, com `code`; só leitura) ou da organização (editor ainda por vir). Itens do tipo `compliance` (conforme, não conforme, não se aplica) ou `number` (valor medido com mínimo e máximo; fora do limite = não conforme), crítico e foto obrigatória na falha.
+- Biblioteca inicial (função `seed_platform_checklist`, idempotente): `rdc-216` (58 itens, 7 críticos, textos do BPF Check corrigidos), `abertura-cozinha` (9 itens, com geladeira até 5 °C e freezer até −18 °C) e `higiene-manipuladores` (8 itens). A RT revisa antes do piloto.
+- `checklist_runs`: execução por unidade, com `client_id` único (idempotente, preparado para o offline), localização e distância até a unidade (`geo_distance_m`), pontuação e contagens. `checklist_start` cria a execução e **copia** os itens para `checklist_answers`; mudar o modelo depois não altera execuções.
+- `checklist_answers`: o texto copiado não muda; resposta só com a execução em andamento. `checklist_complete` exige todas as respostas e, em item crítico não conforme, foto e comentário; calcula `score` = conformes ÷ (conformes + não conformes) e abre uma não conformidade por item crítico.
+- `non_conformities`: origem (checklist, temperatura, recebimento, manual), severidade, prazo padrão (`nc_due`: crítica 24 h, alta 72 h, média 7 dias, baixa 15 dias), foto.
+- Execuções, não conformidades e modelos entram na auditoria.
+
+| Endpoint | Quem |
+|---|---|
+| `GET /rafanutri/uan/units/:id/checklists` | Equipe da unidade: modelos, últimas execuções, não conformidades abertas, `can_run` |
+| `POST /rafanutri/uan/units/:id/checklist-runs` (`{ template_id, client_id, geo_lat, geo_lng, geo_accuracy_m }`) | Owner, RT, gestor, cozinheiro, estoquista (o auditor só consulta) |
+| `GET /rafanutri/uan/checklist-runs/:id` | Equipe da unidade |
+| `PUT /rafanutri/uan/checklist-runs/:id/answers/:position` (`{ value }` ou `{ number_value }`, `comment`) | Quem executa |
+| `POST`/`GET /rafanutri/uan/checklist-runs/:id/answers/:position/photo` | Executa / equipe da unidade (JPG ou PNG até 600 KB; no app, pelo proxy `/api/uan/checklists/:id/foto/:posição`) |
+| `POST /rafanutri/uan/checklist-runs/:id/complete`, `/cancel` | Quem executa; cancelar: quem iniciou, gestor, RT ou owner |
+
 ## Feedback do beta (RN-047)
 
 Migração `0032_feedback.sql` (**aplicada na vpsrafa em 14/11/2026**; testes em `db/tests/0032_feedback.test.sql`): `product_feedback` (consultório, autor, tipo `bug`/`idea`/`praise`/`other`, mensagem de 3 a 2.000 caracteres, caminho da página sem query string, status `new`/`read`/`done`). Gravado só por `POST /rafanutri/feedback` (qualquer conta logada, até 20 por dia); nenhum papel lê a coleção: o admin da plataforma consulta no Directus ou por SQL. Sem print de tela, porque a tela costuma ter dados de pacientes. O e2e grava mensagens com o prefixo `[e2e]`:

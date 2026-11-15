@@ -903,8 +903,8 @@ Referências: ANVISA RDC nº 429/2020 e IN nº 75/2020. Todos os valores abaixo 
 - **Depende de:** RN-122
 - **Descrição:** Criar `checklist_templates`, `checklist_template_items`, `checklist_runs` e `checklist_answers`, e o bucket de evidências.
 - **Tarefas técnicas:**
-  - [ ] Migração e RLS
-  - [ ] Gatilho que impede alteração de checklist concluído
+  - [x] Migração e RLS
+  - [x] Gatilho que impede alteração de checklist concluído
   - [ ] Bucket `uan-evidence` com política por caminho
 - **Arquivos/áreas:** `supabase/migrations/`
 - **Critérios de aceite:** Dado um checklist concluído, quando alguém tentar alterar uma resposta, então o banco recusa.
@@ -930,11 +930,11 @@ Referências: ANVISA RDC nº 429/2020 e IN nº 75/2020. Todos os valores abaixo 
 - **Depende de:** RN-147
 - **Descrição:** Tela mobile item a item, com foto, assinatura e geolocalização.
 - **Tarefas técnicas:**
-  - [ ] Interface de um item por vez, botões grandes, funcionamento com luvas em mente
-  - [ ] Captura de foto com compressão no cliente (máx. 1600 px)
+  - [x] Interface de um item por vez, botões grandes, funcionamento com luvas em mente
+  - [x] Captura de foto com compressão no cliente (máx. 1600 px)
   - [ ] Assinatura em canvas salva como PNG
-  - [ ] Geolocalização com aviso fora do raio
-  - [ ] Cálculo da pontuação e abertura automática de não conformidade em item crítico
+  - [x] Geolocalização com aviso fora do raio
+  - [x] Cálculo da pontuação e abertura automática de não conformidade em item crítico
 - **Arquivos/áreas:** `apps/web/app/(uan)/uan/[unitId]/checklists/run/[runId]/`, `packages/ui/src/mobile/`
 - **Critérios de aceite:** Dado um cozinheiro no celular, quando responde um item crítico como "não", então o app exige foto e comentário e, ao concluir, uma não conformidade é aberta.
 - **Testes:** e2e (viewport mobile).
@@ -1004,7 +1004,7 @@ Referências: ANVISA RDC nº 429/2020 e IN nº 75/2020. Todos os valores abaixo 
 - **Depende de:** RN-148, RN-151
 - **Descrição:** Registro, classificação e acompanhamento de não conformidades de qualquer origem.
 - **Tarefas técnicas:**
-  - [ ] Migração `non_conformities`
+  - [x] Migração `non_conformities`
   - [ ] Abertura manual e automática (checklist, temperatura, recebimento)
   - [ ] Quadro por status, filtros por severidade e origem
   - [ ] Prazo por severidade e destaque de atrasadas
