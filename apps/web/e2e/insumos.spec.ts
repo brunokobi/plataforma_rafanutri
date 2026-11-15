@@ -119,6 +119,30 @@ test('insumo com preço e fornecedor', async ({ page }) => {
     await expect(page.getByText('Aprovado', { exact: true }).first()).toBeVisible({ timeout: 15_000 });
     await page.goto(unitUrl);
     await expect(page.getByRole('list', { name: 'Almoço de hoje' })).toContainText(sheetName, { timeout: 15_000 });
+
+    // U3a: produção do dia — comensais, lista de preparo, requisição e desperdício
+    await page.getByRole('link', { name: 'Produção e desperdício' }).click();
+    await expect(page.getByRole('heading', { level: 1, name: 'Produção do dia' })).toBeVisible({ timeout: 15_000 });
+    const din = page.getByRole('form', { name: 'Comensais do Almoço' });
+    await din.getByLabel('Previstos').fill('10');
+    await din.getByLabel('Realizados').fill('8');
+    await din.getByRole('button', { name: 'Salvar comensais do Almoço' }).click();
+    await expect(page.getByLabel(`Porções de ${sheetName}`)).toHaveText('10', { timeout: 15_000 });
+    await expect(page.getByLabel(`Peso bruto de ${name}`)).toBeVisible();
+    const wf = page.getByRole('form', { name: `Pesagem de ${sheetName}` });
+    await wf.getByLabel('Produzido (kg)').fill('1');
+    await wf.getByLabel('Sobra limpa (kg)').fill('0,04');
+    await wf.getByLabel('Porções servidas').fill('8');
+    await wf.getByRole('button', { name: 'Salvar' }).click();
+    await expect(wf.getByRole('status')).toHaveText('Pesagem salva.', { timeout: 15_000 });
+    const rf = page.getByRole('form', { name: 'Pesagem de Resto das bandejas' });
+    await rf.getByLabel('Resto-ingesta das bandejas (kg)').fill('0,08');
+    await rf.getByLabel('Motivo').selectOption({ label: 'Sabor' });
+    await rf.getByRole('button', { name: 'Salvar' }).click();
+    const ind = page.getByLabel('Indicadores do Almoço');
+    await expect(ind).toContainText('4%', { timeout: 15_000 });
+    await expect(ind).toContainText('8,3%');
+    await expect(ind).toContainText('10 g');
   } finally {
     await page.goto(unitUrl);
     const ue = page.getByRole('form', { name: 'Dados da unidade' });

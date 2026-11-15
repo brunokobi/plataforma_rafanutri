@@ -63,7 +63,10 @@ export default async function UnitPage({ params }: { params: Promise<{ id: strin
             {menus && (
               <div className="space-y-2">
                 <TodayMenu data={menus} />
-                <Link href={`/app/uan/unidades/${detail.unit.id}/cardapios`} className="inline-block text-sm font-medium text-primary underline">Cardápios da unidade</Link>
+                <nav aria-label="Produção" className="flex flex-wrap gap-4 text-sm">
+                  <Link href={`/app/uan/unidades/${detail.unit.id}/cardapios`} className="font-medium text-primary underline">Cardápios da unidade</Link>
+                  <Link href={`/app/uan/unidades/${detail.unit.id}/producao`} className="font-medium text-primary underline">Produção e desperdício</Link>
+                </nav>
               </div>
             )}
 

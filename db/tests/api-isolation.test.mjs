@@ -1026,6 +1026,31 @@ try {
       assert.equal((await api(`/rafanutri/uan/units/${U1}/menus`, { token: out.token })).status, 404, 'de fora lista');
       assert.ok((await api('/items/menu_cycles?limit=1', { token: b.token })).status >= 400, 'coleção direta recusada');
     });
+    await check('UAN: produção — cozinheiro pesa mas não muda comensais; dia futuro recusado; de fora não vê', async () => {
+      const today = new Date(Date.now() - 3 * 3600e3).toISOString().slice(0, 10);
+      const tomorrow = new Date(Date.now() + 21 * 3600e3).toISOString().slice(0, 10);
+      assert.equal((await api(`/rafanutri/uan/units/${U1}/diners`, { token: b.token, method: 'POST', body: { day: today, service: 'lunch', planned: 10 } })).status, 403, 'cozinheiro muda comensais');
+      assert.equal((await api(`/rafanutri/uan/units/${U1}/diners`, { token: a.token, method: 'POST', body: { day: today, service: 'lunch', planned: 10, actual: 8 } })).status, 200);
+      const pat = await api(`/rafanutri/uan/units/${U1}/diners/pattern`, { token: a.token, method: 'POST', body: { from: today, to: today, weekdays: [1, 2, 3, 4, 5, 6, 7], service: 'dinner', planned: 5 } });
+      assert.equal(pat.json.data.days, 1, 'padrão aplicado');
+      const prod = await api(`/rafanutri/uan/units/${U1}/production?date=${today}`, { token: b.token });
+      assert.equal(prod.status, 200);
+      assert.ok(prod.json.data.menu.some((m) => m.name === 'Arroz cozido teste'), 'cardápio do dia na produção');
+      assert.ok(prod.json.data.graph.ingredients.every((i) => i.price_per_kg_cents === null), 'cozinheiro sem preço');
+      const root = prod.json.data.menu[0].sheet_root_id;
+      assert.equal((await api(`/rafanutri/uan/units/${U1}/waste`, { token: b.token, method: 'PUT', body: { day: today, service: 'lunch', sheet_root_id: root, produced_g: 1000, leftover_g: 40, portions_served: 7 } })).status, 200, 'cozinheiro pesa');
+      assert.equal((await api(`/rafanutri/uan/units/${U1}/waste`, { token: b.token, method: 'PUT', body: { day: today, service: 'lunch', sheet_root_id: root, produced_g: 1000, leftover_g: 50 } })).status, 200, 'corrige a mesma pesagem');
+      assert.equal((await api(`/rafanutri/uan/units/${U1}/waste`, { token: b.token, method: 'PUT', body: { day: today, service: 'lunch', sheet_root_id: root, produced_g: 10, leftover_g: 50 } })).status, 400, 'sobra maior que produzido');
+      assert.equal((await api(`/rafanutri/uan/units/${U1}/waste`, { token: b.token, method: 'PUT', body: { day: tomorrow, service: 'lunch', plate_waste_g: 10 } })).status, 409, 'dia futuro');
+      const after = (await api(`/rafanutri/uan/units/${U1}/production?date=${today}`, { token: a.token })).json.data;
+      assert.equal(after.waste.filter((w) => w.sheet_root_id === root).length, 1, 'um registro por preparação');
+      assert.equal(after.waste.find((w) => w.sheet_root_id === root).leftover_g, 50);
+      const out = await outsider();
+      assert.equal((await api(`/rafanutri/uan/units/${U1}/production`, { token: out.token })).status, 404, 'de fora lê');
+      assert.equal((await api(`/rafanutri/uan/units/${U1}/waste`, { token: out.token, method: 'PUT', body: { day: today, service: 'lunch', plate_waste_g: 10 } })).status, 404, 'de fora pesa');
+      assert.equal((await api(`/rafanutri/uan/units/${U2}/waste`, { token: b.token, method: 'PUT', body: { day: today, service: 'lunch', plate_waste_g: 10 } })).status, 404, 'outra unidade');
+      assert.ok((await api('/items/waste_records?limit=1', { token: b.token })).status >= 400, 'coleção direta recusada');
+    });
   } else {
     console.log('  (pulado) UAN entre unidades: defina ISOLATION_PSQL');
   }

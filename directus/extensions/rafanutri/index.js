@@ -3118,6 +3118,7 @@ export default {
         return {
           id: i.id, name: i.name, default_fc: Number(i.default_fc), allergens: i.allergens, food_name: i.food_name, per100g,
           price_per_kg_cents: withCost && i.price_cents !== null && grams ? Math.round((i.price_cents * 1000) / grams) : null,
+          purchase_unit: i.purchase_unit, grams_per_unit: grams,
         };
       });
       return ingredients;
@@ -3568,6 +3569,146 @@ export default {
         res.status(201).json({ data: { id } });
       } catch (error) {
         p0001(res, error, 'duplicar cardápio');
+      }
+    });
+
+    // ── Produção do dia: comensais, lista de preparo, requisição e desperdício (U3a) ────────────
+    // Ver: equipe da unidade. Comensais (previsto e realizado): owner, gestor, RT. Pesagem: quem executa.
+    const WASTE_REASONS = new Set(['taste', 'temperature', 'portion', 'presentation', 'repeated', 'overproduction', 'other']);
+
+    router.get('/uan/units/:id/production', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const a = await unitAccess(user, req.params.id);
+      if (!a) return unitNotFound(res);
+      const day = isIsoDate(req.query.date) ? req.query.date : localToday();
+      const seeCost = canSupervise(a) || a.roles.includes('stock_keeper');
+      const diners = await database('diner_counts').where({ unit_id: a.unit.id, day }).select('service', 'planned', 'actual');
+      // Cardápio aprovado do dia
+      const cycles = await database('menu_cycles').where({ unit_id: a.unit.id, status: 'approved' }).where('starts_on', '<=', day).select('id', 'name');
+      const menu = [];
+      for (const c of cycles) {
+        const idx = (await database.raw('select menu_day_index(?, ?::date) as d', [c.id, day])).rows[0].d;
+        const items = await database('menu_items').where({ cycle_id: c.id, day_index: idx }).select('service', 'slot', 'sheet_root_id');
+        menu.push(...items.map((i) => ({ ...i, cycle_name: c.name })));
+      }
+      const roots = [...new Set(menu.map((m) => m.sheet_root_id))];
+      const current = await currentSheets(roots);
+      const graph = { sheets: [], ingredients: [] };
+      for (const r of roots) {
+        const sh = current.get(r);
+        if (!sh) continue;
+        const g = await sheetGraph(sh.id, seeCost);
+        for (const x of g.sheets) if (!graph.sheets.some((y) => y.id === x.id)) graph.sheets.push(x);
+        for (const x of g.ingredients) if (!graph.ingredients.some((y) => y.id === x.id)) graph.ingredients.push(x);
+      }
+      // Adesão média por preparação nos últimos 30 dias (porções servidas ÷ comensais realizados)
+      const adhesion = roots.length ? (await database.raw(
+        `select w.sheet_root_id, sum(w.portions_served)::int as served, sum(d.actual)::int as diners
+           from waste_records w join diner_counts d on d.unit_id = w.unit_id and d.day = w.day and d.service = w.service
+          where w.unit_id = ? and w.sheet_root_id = any(?) and w.portions_served is not null and d.actual > 0
+            and w.day between ?::date - 30 and ?::date - 1
+          group by w.sheet_root_id`, [a.unit.id, roots, day, day])).rows : [];
+      const waste = await database('waste_records').where({ unit_id: a.unit.id, day })
+        .select('service', 'sheet_root_id', 'produced_g', 'leftover_g', 'plate_waste_g', 'prep_waste_g', 'portions_served', 'reason', 'notes', 'recorded_at');
+      const history = await database('waste_records as w')
+        .leftJoin('diner_counts as d', function () { this.on('d.unit_id', 'w.unit_id').andOn('d.day', 'w.day').andOn('d.service', 'w.service'); })
+        .where('w.unit_id', a.unit.id).whereBetween('w.day', [database.raw("?::date - 13", [day]), day])
+        .groupBy('w.day', 'w.service', 'd.actual')
+        .orderBy([{ column: 'w.day', order: 'desc' }, { column: 'w.service' }])
+        .select('w.day', 'w.service', 'd.actual as diners',
+          database.raw('coalesce(sum(w.produced_g), 0)::int as produced_g'), database.raw('coalesce(sum(w.leftover_g), 0)::int as leftover_g'),
+          database.raw('coalesce(sum(w.plate_waste_g), 0)::int as plate_waste_g'));
+      res.json({
+        data: {
+          unit: { id: a.unit.id, name: a.unit.name },
+          day,
+          can_plan: canSupervise(a),
+          can_record: canRun(a) && a.unit.active,
+          can_see_cost: seeCost,
+          diners,
+          menu: menu.map((m) => ({ ...m, sheet_id: current.get(m.sheet_root_id)?.id ?? null, name: current.get(m.sheet_root_id)?.name ?? '—' })),
+          graph,
+          adhesion: adhesion.map((r) => ({ sheet_root_id: r.sheet_root_id, rate: r.diners > 0 ? Math.round((r.served / r.diners) * 1000) / 1000 : null })),
+          waste,
+          history: history.map((h) => ({ ...h, day: dateOut(h.day) })),
+        },
+      });
+    });
+
+    router.post('/uan/units/:id/diners', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const a = await unitAccess(user, req.params.id);
+      if (!a) return unitNotFound(res);
+      if (!canSupervise(a)) return res.status(403).json({ errors: [{ message: 'Só o responsável, o gestor ou o RT registram comensais.', extensions: { code: 'FORBIDDEN' } }] });
+      const b = req.body ?? {};
+      if (!isIsoDate(b.day) || !MENU_SERVICES.includes(b.service)) return bad(res, { day: 'Dia ou serviço inválido.' });
+      const n = (v) => (v === undefined ? undefined : v === null || v === '' ? null : Number(v));
+      const planned = n(b.planned);
+      const actual = n(b.actual);
+      for (const [k, v] of [['planned', planned], ['actual', actual]]) {
+        if (v !== undefined && v !== null && (!Number.isInteger(v) || v < 0 || v > 100000)) return bad(res, { [k]: 'Número de comensais inválido.' });
+      }
+      const patch = { ...(planned !== undefined ? { planned } : {}), ...(actual !== undefined ? { actual } : {}), updated_by: user, updated_at: database.fn.now() };
+      await withActor(user, (trx) => trx('diner_counts').insert({ unit_id: a.unit.id, day: b.day, service: b.service, ...patch }).onConflict(['unit_id', 'day', 'service']).merge(Object.keys(patch)));
+      res.json({ data: { ok: true } });
+    });
+
+    router.post('/uan/units/:id/diners/pattern', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const a = await unitAccess(user, req.params.id);
+      if (!a) return unitNotFound(res);
+      if (!canSupervise(a)) return res.status(403).json({ errors: [{ message: 'Só o responsável, o gestor ou o RT registram comensais.', extensions: { code: 'FORBIDDEN' } }] });
+      const b = req.body ?? {};
+      const planned = Number(b.planned);
+      const days = Array.isArray(b.weekdays) ? b.weekdays.map(Number).filter((d) => Number.isInteger(d) && d >= 1 && d <= 7) : [];
+      if (!isIsoDate(b.from) || !isIsoDate(b.to) || b.to < b.from) return bad(res, { from: 'Período inválido.' });
+      if ((Date.parse(b.to) - Date.parse(b.from)) / 86_400_000 > 92) return bad(res, { to: 'Até 3 meses por vez.' });
+      if (!MENU_SERVICES.includes(b.service) || !days.length || !Number.isInteger(planned) || planned < 0 || planned > 100000) return bad(res, { planned: 'Informe serviço, dias e comensais.' });
+      const r = await withActor(user, (trx) => trx.raw(
+        `insert into diner_counts (unit_id, day, service, planned, updated_by)
+         select ?, d::date, ?, ?, ? from generate_series(?::date, ?::date, interval '1 day') d
+          where extract(isodow from d)::int = any(?)
+         on conflict (unit_id, day, service) do update set planned = excluded.planned, updated_by = excluded.updated_by, updated_at = now()`,
+        [a.unit.id, b.service, planned, user, b.from, b.to, days]));
+      res.json({ data: { days: r.rowCount } });
+    });
+
+    router.put('/uan/units/:id/waste', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const a = await unitAccess(user, req.params.id);
+      if (!a) return unitNotFound(res);
+      if (!canRun(a)) return runForbidden(res);
+      const b = req.body ?? {};
+      if (!isIsoDate(b.day) || !MENU_SERVICES.includes(b.service)) return bad(res, { day: 'Dia ou serviço inválido.' });
+      if (b.sheet_root_id !== null && b.sheet_root_id !== undefined && !isUuid(b.sheet_root_id)) return bad(res, { sheet_root_id: 'Preparação inválida.' });
+      const g = (v) => (v === null || v === undefined || v === '' ? null : Math.round(Number(String(v).replace(',', '.'))));
+      const row = {
+        unit_id: a.unit.id, organization_id: a.unit.organization_id, day: b.day, service: b.service, sheet_root_id: b.sheet_root_id || null,
+        produced_g: b.sheet_root_id ? g(b.produced_g) : null, leftover_g: b.sheet_root_id ? g(b.leftover_g) : null,
+        plate_waste_g: g(b.plate_waste_g), prep_waste_g: g(b.prep_waste_g), portions_served: b.sheet_root_id ? g(b.portions_served) : null,
+        reason: WASTE_REASONS.has(b.reason) ? b.reason : null,
+        notes: typeof b.notes === 'string' && b.notes.trim() ? b.notes.trim().slice(0, 500) : null,
+        recorded_by: user,
+      };
+      for (const k of ['produced_g', 'leftover_g', 'plate_waste_g', 'prep_waste_g', 'portions_served']) {
+        if (row[k] !== null && (!Number.isFinite(row[k]) || row[k] < 0 || row[k] > 10_000_000)) return bad(res, { [k]: 'Valor inválido.' });
+      }
+      if (row.produced_g !== null && row.leftover_g !== null && row.leftover_g > row.produced_g) return bad(res, { leftover_g: 'A sobra não pode passar do produzido.' });
+      try {
+        await withActor(user, async (trx) => {
+          const q = trx('waste_records').where({ unit_id: a.unit.id, day: b.day, service: b.service });
+          const existing = await (row.sheet_root_id ? q.where('sheet_root_id', row.sheet_root_id) : q.whereNull('sheet_root_id')).first('id');
+          if (existing) await trx('waste_records').where('id', existing.id).update(row);
+          else await trx('waste_records').insert(row);
+        });
+        res.json({ data: { ok: true } });
+      } catch (error) {
+        if (error?.code === '23514') return bad(res, { produced_g: 'Revise os pesos.' });
+        p0001(res, error, 'registrar pesagem');
       }
     });
 

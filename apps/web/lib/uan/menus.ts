@@ -97,3 +97,6 @@ export function repetitions(items: Array<Pick<MenuItem, 'day_index' | 'service' 
 export function optionsForSlot(options: MenuOption[], slot: MenuSlot): { match: MenuOption[]; others: MenuOption[] } {
   return { match: options.filter((o) => o.category === slot), others: options.filter((o) => o.category !== slot) };
 }
+
+/** Dias da semana ISO (1 = segunda) para formulários. */
+export const WEEKDAY_SHORT_FULL = ['seg', 'ter', 'qua', 'qui', 'sex', 'sáb', 'dom'];
