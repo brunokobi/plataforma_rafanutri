@@ -58,6 +58,7 @@ export default async function UanPage() {
                     <nav aria-label={`Cadastros de ${o.name}`} className="flex gap-3 text-sm">
                       <Link href={`/app/uan/insumos?empresa=${o.id}`} className="font-medium text-primary underline">Insumos</Link>
                       <Link href={`/app/uan/fornecedores?empresa=${o.id}`} className="font-medium text-primary underline">Fornecedores</Link>
+                      <Link href={`/app/uan/fichas?empresa=${o.id}`} className="font-medium text-primary underline">Fichas técnicas</Link>
                     </nav>
                   </div>
                   {o.is_owner && o.unit_limit !== null && (

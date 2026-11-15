@@ -55,6 +55,41 @@ test('insumo com preço e fornecedor', async ({ page }) => {
   await expect(page.getByText(/R\$\s?6,31\/kg/)).toBeVisible();
   await expect(page.getByRole('table').getByText(supplier)).toBeVisible();
 
+  // U2b: ficha técnica com o leite — cálculo ao vivo, escalonamento e aprovação
+  const insumoUrl = new URL(page.url()).pathname;
+  await page.goto('/app/uan');
+  await page.getByRole('navigation', { name: 'Cadastros de Consultório de Teste Rafanutri' }).getByRole('link', { name: 'Fichas técnicas' }).click();
+  await page.getByRole('button', { name: 'Nova ficha técnica' }).click();
+  const nf = page.getByRole('form', { name: 'Nova ficha técnica' });
+  const sheetName = `Mingau E2E ${stamp}`;
+  await nf.getByLabel('Nome da preparação').fill(sheetName);
+  await nf.getByLabel('Porções').fill('4');
+  await nf.getByRole('button', { name: 'Criar ficha' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: sheetName })).toBeVisible({ timeout: 15_000 });
+  await page.getByRole('button', { name: 'Adicionar ingrediente' }).click();
+  await page.getByLabel('Ingrediente 1').selectOption({ label: name });
+  await page.getByLabel('Peso bruto do ingrediente 1').fill('1000');
+  await page.getByLabel('Peso pronto (g)').fill('800');
+  const calc = page.getByRole('complementary', { name: 'Cálculo da ficha' });
+  await expect(calc.getByLabel('Rendimento')).toHaveText('800 g');
+  await expect(calc.getByLabel('Porção')).toHaveText('200 g');
+  await expect(calc.getByLabel('Custo total')).toHaveText(/R\$\s?6,31/);
+  await expect(calc.getByLabel('Alergênicos da ficha')).toContainText('Leite');
+  await expect(calc.getByRole('rowheader', { name: 'Energia' })).toBeVisible();
+  await page.getByRole('button', { name: 'Salvar rascunho' }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Rascunho salvo.' })).toBeVisible({ timeout: 15_000 });
+  await page.getByLabel('Escalar para').fill('8');
+  await page.getByRole('button', { name: 'Escalar' }).click();
+  await expect(page.getByLabel('Peso bruto do ingrediente 1')).toHaveValue('2000');
+  await expect(calc.getByLabel('Rendimento')).toHaveText('1.600 g');
+  await expect(calc.getByLabel('Porção')).toHaveText('200 g');
+  page.once('dialog', (d) => d.accept());
+  await page.getByRole('button', { name: 'Aprovar ficha' }).click();
+  await expect(page.getByText('Aprovada', { exact: true })).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByRole('button', { name: 'Nova versão' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Salvar rascunho' })).toHaveCount(0);
+  await page.goto(insumoUrl);
+
   // fora de uso (não acumula)
   const edit = page.getByRole('form', { name: 'Dados do insumo' });
   await edit.getByLabel('Insumo em uso').uncheck();

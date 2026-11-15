@@ -3067,6 +3067,292 @@ export default {
       }
     });
 
+    // ── Fichas técnicas (U2b: RN-129 a RN-134) ──────────────────────────────────────────────
+    // Ver: owner e equipe (custos só para owner, gestor, RT e estoquista). Editar: owner, gestor, RT.
+    // Aprovar: owner ou RT (tech_sheet_approve confere de novo). Os cálculos são do nutrition-core no app.
+    const SHEET_CATEGORIES = new Set(['main', 'side', 'garnish', 'salad', 'soup', 'dessert', 'bread', 'beverage', 'sauce', 'base', 'other']);
+    const SHEET_FIELDS = ['id', 'organization_id', 'root_id', 'parent_id', 'version', 'name', 'category', 'servings', 'cooked_weight_g', 'cooking_index', 'prep_minutes', 'equipment', 'notes', 'status', 'computed', 'approved_at', 'created_at', 'updated_at'];
+    const SHEET_NUTRIENTS = ['energy_kcal', 'protein_g', 'carbohydrate_g', 'lipid_g', 'saturated_fat_g', 'fiber_g', 'sodium_mg', 'calcium_mg', 'iron_mg', 'vitamin_c_mg'];
+    const sheetOut = (r) => ({ ...r, cooked_weight_g: numOrNull(r.cooked_weight_g), cooking_index: numOrNull(r.cooking_index) });
+    const sheetNotFound = (res) => notFoundMsg(res, 'Ficha');
+
+    async function sheetRoles(user, orgId) {
+      const org = (await uanOrgs(user)).find((o) => o.id === orgId);
+      if (!org) return null;
+      if (org.is_owner) return { edit: true, approve: true, cost: true };
+      const roles = await database('unit_members as m').join('production_units as u', 'u.id', 'm.unit_id').where({ 'u.organization_id': orgId, 'm.user_id': user }).pluck('m.role');
+      return {
+        edit: roles.some((r) => r === 'manager' || r === 'technical_lead'),
+        approve: roles.includes('technical_lead'),
+        cost: roles.some((r) => r === 'manager' || r === 'technical_lead' || r === 'stock_keeper'),
+      };
+    }
+    /** Gramas de uma unidade de compra (mesma regra do nutrition-core/units.ts); null se faltar o peso. */
+    function gramsPerPurchaseUnit(i) {
+      const n = (v) => (v === null || v === undefined ? null : Number(v));
+      switch (i.purchase_unit) {
+        case 'kg': return 1000;
+        case 'g': return 1;
+        case 'l': return 1000 * (n(i.density_g_ml) ?? 1);
+        case 'ml': return n(i.density_g_ml) ?? 1;
+        case 'un': return n(i.unit_weight_g);
+        case 'dz': return n(i.unit_weight_g) === null ? null : 12 * n(i.unit_weight_g);
+        default: return n(i.pack_grams);
+      }
+    }
+
+    /** Insumos com FC padrão, alergênicos, nutrientes por 100 g e (se pode ver custo) preço por kg vigente. */
+    async function ingredientInfos(ingIds, withCost) {
+      const ings = ingIds.length ? await database('ingredients as i').leftJoin('foods as f', 'f.id', 'i.food_id').whereIn('i.id', ingIds)
+        .select('i.id', 'i.name', 'i.default_fc', 'i.purchase_unit', 'i.density_g_ml', 'i.unit_weight_g', 'i.pack_grams', 'i.allergens', 'i.food_id', 'f.name as food_name',
+          database.raw('(select p.price_cents from ingredient_price_at(i.id) p) as price_cents')) : [];
+      const foodIds = [...new Set(ings.map((i) => i.food_id).filter((x) => x !== null))];
+      const nutr = foodIds.length ? await database('food_nutrients as fn').join('nutrients as n', 'n.id', 'fn.nutrient_id')
+        .whereIn('fn.food_id', foodIds).whereIn('n.code', SHEET_NUTRIENTS).select('fn.food_id', 'n.code', 'fn.amount_per_100g') : [];
+      const ingredients = ings.map((i) => {
+        const grams = gramsPerPurchaseUnit(i);
+        const per100g = i.food_id === null ? null : Object.fromEntries(SHEET_NUTRIENTS.map((c) => {
+          const row = nutr.find((n) => n.food_id === i.food_id && n.code === c);
+          return [c, row && row.amount_per_100g !== null ? Number(row.amount_per_100g) : null];
+        }));
+        return {
+          id: i.id, name: i.name, default_fc: Number(i.default_fc), allergens: i.allergens, food_name: i.food_name, per100g,
+          price_per_kg_cents: withCost && i.price_cents !== null && grams ? Math.round((i.price_cents * 1000) / grams) : null,
+        };
+      });
+      return ingredients;
+    }
+
+    /** Ficha + sub-receitas alcançáveis, insumos (com preço por kg vigente) e nutrientes por 100 g. */
+    async function sheetGraph(rootId, withCost) {
+      const sheets = new Map();
+      let frontier = [rootId];
+      while (frontier.length) {
+        const rows = await database('tech_sheets').whereIn('id', frontier).select(...SHEET_FIELDS);
+        const items = await database('tech_sheet_items').whereIn('sheet_id', frontier).orderBy('position').select('sheet_id', 'position', 'ingredient_id', 'sub_sheet_id', 'gross_g', 'fc', 'note');
+        const next = [];
+        for (const r of rows) {
+          sheets.set(r.id, { ...sheetOut(r), computed: withCost ? r.computed : null, items: items.filter((i) => i.sheet_id === r.id).map((i) => ({ ...i, sheet_id: undefined, gross_g: Number(i.gross_g), fc: numOrNull(i.fc) })) });
+          for (const i of items) if (i.sheet_id === r.id && i.sub_sheet_id && !sheets.has(i.sub_sheet_id) && !next.includes(i.sub_sheet_id)) next.push(i.sub_sheet_id);
+        }
+        frontier = next.filter((id) => !sheets.has(id));
+      }
+      const ingIds = [...new Set([...sheets.values()].flatMap((s) => s.items.map((i) => i.ingredient_id).filter(Boolean)))];
+      const ingredients = await ingredientInfos(ingIds, withCost);
+      return { sheets: [...sheets.values()], ingredients };
+    }
+
+    router.get('/uan/organizations/:id/tech-sheets', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const orgId = req.params.id;
+      const roles = isUuid(orgId) ? await sheetRoles(user, orgId) : null;
+      if (!roles) return notFoundMsg(res, 'Empresa');
+      let q = database('tech_sheets').where('organization_id', orgId).whereNot('status', 'archived').orderBy([{ column: 'name' }, { column: 'version', order: 'desc' }]).limit(500);
+      if (typeof req.query.q === 'string' && req.query.q.trim()) q = q.whereRaw('f_unaccent(lower(name)) like f_unaccent(lower(?))', [`%${req.query.q.trim().slice(0, 80)}%`]);
+      const rows = await q.select('id', 'root_id', 'version', 'name', 'category', 'servings', 'status', 'approved_at', 'updated_at', 'computed',
+        database.raw('(select count(*)::int from tech_sheet_items i where i.sheet_id = tech_sheets.id) as item_count'));
+      const org = await database('organizations').where('id', orgId).first('id', 'name');
+      res.json({
+        data: {
+          organization: org, can_edit: roles.edit, can_see_cost: roles.cost,
+          items: rows.map((r) => ({ ...r, cost_per_serving_cents: roles.cost ? (r.computed?.costPerServingCents ?? null) : null, computed: undefined })),
+        },
+      });
+    });
+
+    router.post('/uan/organizations/:id/tech-sheets', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const orgId = req.params.id;
+      const roles = isUuid(orgId) ? await sheetRoles(user, orgId) : null;
+      if (!roles) return notFoundMsg(res, 'Empresa');
+      if (!roles.edit) return res.status(403).json({ errors: [{ message: 'Só o responsável, o gestor ou o RT criam fichas.', extensions: { code: 'FORBIDDEN' } }] });
+      const b = req.body ?? {};
+      const name = typeof b.name === 'string' ? b.name.trim() : '';
+      const servings = Number(b.servings ?? 10);
+      const errors = {};
+      if (name.length < 2 || name.length > 120) errors.name = 'Informe o nome (2 a 120 caracteres).';
+      if (!SHEET_CATEGORIES.has(b.category ?? 'main')) errors.category = 'Categoria inválida.';
+      if (!Number.isInteger(servings) || servings < 1 || servings > 10000) errors.servings = 'Porções entre 1 e 10.000.';
+      if (Object.keys(errors).length) return bad(res, errors);
+      try {
+        const [row] = await withActor(user, (trx) => trx('tech_sheets').insert({ organization_id: orgId, name, category: b.category ?? 'main', servings, created_by: user }).returning(['id']));
+        res.status(201).json({ data: row });
+      } catch (error) {
+        p0001(res, error, 'criar ficha');
+      }
+    });
+
+    async function sheetAccess(user, id) {
+      if (!isUuid(id)) return null;
+      const sheet = await database('tech_sheets').where('id', id).first(...SHEET_FIELDS);
+      if (!sheet) return null;
+      const roles = await sheetRoles(user, sheet.organization_id);
+      return roles ? { sheet: sheetOut(sheet), roles } : null;
+    }
+
+    router.get('/uan/tech-sheets/:id', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const x = await sheetAccess(user, req.params.id);
+      if (!x) return sheetNotFound(res);
+      const graph = await sheetGraph(x.sheet.id, x.roles.cost);
+      const [steps, versions, catalog, subs] = await Promise.all([
+        database('tech_sheet_steps').where('sheet_id', x.sheet.id).orderBy('position').select('position', 'text', 'critical', 'target_temp'),
+        database('tech_sheets').where('root_id', x.sheet.root_id).orderBy('version', 'desc').select('id', 'version', 'status', 'approved_at', 'updated_at'),
+        x.roles.edit ? database('ingredients').where({ organization_id: x.sheet.organization_id, active: true }).orderBy('name').pluck('id').then((ids) => ingredientInfos(ids, x.roles.cost)) : [],
+        x.roles.edit ? database('tech_sheets').where('organization_id', x.sheet.organization_id).whereNot('root_id', x.sheet.root_id).whereNot('status', 'archived').orderBy('name').select('id', 'name', 'version', 'status') : [],
+      ]);
+      res.json({
+        data: {
+          sheet: { ...x.sheet, computed: x.roles.cost ? x.sheet.computed : null },
+          graph,
+          steps: steps.map((s) => ({ ...s, target_temp: numOrNull(s.target_temp) })),
+          versions,
+          can_edit: x.roles.edit && x.sheet.status === 'draft',
+          can_approve: x.roles.approve && x.sheet.status === 'draft',
+          can_new_version: x.roles.edit && x.sheet.status !== 'draft' && !versions.some((v) => v.status === 'draft'),
+          can_see_cost: x.roles.cost,
+          catalog: catalog.sort((a, b) => a.name.localeCompare(b.name, 'pt-BR')),
+          sub_sheets: subs,
+        },
+      });
+    });
+
+    // Grafo de uma ficha (para o editor calcular uma sub-receita recém-escolhida)
+    router.get('/uan/tech-sheets/:id/graph', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const x = await sheetAccess(user, req.params.id);
+      if (!x) return sheetNotFound(res);
+      res.json({ data: await sheetGraph(x.sheet.id, x.roles.cost) });
+    });
+
+    router.put('/uan/tech-sheets/:id', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const x = await sheetAccess(user, req.params.id);
+      if (!x) return sheetNotFound(res);
+      if (!x.roles.edit) return res.status(403).json({ errors: [{ message: 'Só o responsável, o gestor ou o RT editam fichas.', extensions: { code: 'FORBIDDEN' } }] });
+      if (x.sheet.status !== 'draft') return conflict(res, 'Ficha aprovada não se altera; crie uma nova versão');
+      const b = req.body ?? {};
+      const errors = {};
+      const str = (v, max) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : null);
+      const num = (v) => (v === null || v === undefined || v === '' ? null : Number(String(v).replace(',', '.')));
+      const name = typeof b.name === 'string' ? b.name.trim() : '';
+      if (name.length < 2 || name.length > 120) errors.name = 'Informe o nome (2 a 120 caracteres).';
+      if (!SHEET_CATEGORIES.has(b.category)) errors.category = 'Categoria inválida.';
+      const servings = Number(b.servings);
+      if (!Number.isInteger(servings) || servings < 1 || servings > 10000) errors.servings = 'Porções entre 1 e 10.000.';
+      const cooked = num(b.cooked_weight_g);
+      if (cooked !== null && !(cooked > 0)) errors.cooked_weight_g = 'Peso pronto inválido.';
+      const ic = num(b.cooking_index);
+      if (ic !== null && !(ic >= 0.05 && ic <= 10)) errors.cooking_index = 'IC entre 0,05 e 10.';
+      const prep = num(b.prep_minutes);
+      if (prep !== null && !(Number.isInteger(prep) && prep >= 1 && prep <= 2880)) errors.prep_minutes = 'Tempo inválido.';
+      const items = Array.isArray(b.items) ? b.items : [];
+      if (items.length > 200) errors.items = 'Até 200 ingredientes.';
+      const rows = [];
+      for (const [i, it] of items.entries()) {
+        const gross = num(it?.gross_g);
+        const fc = num(it?.fc);
+        if (!(gross > 0 && gross <= 1_000_000)) { errors.items = `Ingrediente ${i + 1}: peso bruto inválido.`; break; }
+        if (it.ingredient_id && it.sub_sheet_id) { errors.items = `Ingrediente ${i + 1}: escolha insumo ou sub-receita.`; break; }
+        if (!isUuid(it.ingredient_id) && !isUuid(it.sub_sheet_id)) { errors.items = `Ingrediente ${i + 1}: escolha o insumo.`; break; }
+        if (fc !== null && !(fc >= 1 && fc <= 20)) { errors.items = `Ingrediente ${i + 1}: FC entre 1 e 20.`; break; }
+        rows.push({ position: i + 1, ingredient_id: it.ingredient_id || null, sub_sheet_id: it.sub_sheet_id || null, gross_g: Math.round(gross * 10) / 10, fc: it.sub_sheet_id ? null : fc, note: str(it.note, 200) });
+      }
+      const steps = Array.isArray(b.steps) ? b.steps : [];
+      const stepRows = [];
+      for (const [i, st] of steps.entries()) {
+        const text = typeof st?.text === 'string' ? st.text.trim() : '';
+        if (text.length < 2 || text.length > 1000) { errors.steps = `Passo ${i + 1}: descreva o passo.`; break; }
+        const t = num(st.target_temp);
+        if (t !== null && !(t >= -60 && t <= 300)) { errors.steps = `Passo ${i + 1}: temperatura inválida.`; break; }
+        stepRows.push({ position: i + 1, text, critical: st.critical === true, target_temp: t });
+      }
+      if (Object.keys(errors).length) return bad(res, errors);
+      try {
+        await withActor(user, async (trx) => {
+          await trx('tech_sheets').where('id', x.sheet.id).update({ name, category: b.category, servings, cooked_weight_g: cooked, cooking_index: ic, prep_minutes: prep, equipment: str(b.equipment, 500), notes: str(b.notes, 2000) });
+          await trx('tech_sheet_items').where('sheet_id', x.sheet.id).del();
+          if (rows.length) await trx('tech_sheet_items').insert(rows.map((r) => ({ ...r, sheet_id: x.sheet.id })));
+          await trx('tech_sheet_steps').where('sheet_id', x.sheet.id).del();
+          if (stepRows.length) await trx('tech_sheet_steps').insert(stepRows.map((r) => ({ ...r, sheet_id: x.sheet.id })));
+        });
+        res.json({ data: { ok: true } });
+      } catch (error) {
+        p0001(res, error, 'salvar ficha');
+      }
+    });
+
+    router.post('/uan/tech-sheets/:id/approve', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const x = await sheetAccess(user, req.params.id);
+      if (!x) return sheetNotFound(res);
+      if (!x.roles.approve) return res.status(403).json({ errors: [{ message: 'Só o RT ou o responsável pela empresa aprovam fichas.', extensions: { code: 'FORBIDDEN' } }] });
+      const computed = req.body?.computed;
+      if (computed !== null && computed !== undefined && (typeof computed !== 'object' || JSON.stringify(computed).length > 20000)) return bad(res, { computed: 'Cálculo inválido.' });
+      try {
+        await withActor(user, (trx) => trx.raw('select * from tech_sheet_approve(?, ?, ?::jsonb)', [x.sheet.id, user, JSON.stringify(computed ?? {})]));
+        res.json({ data: { ok: true } });
+      } catch (error) {
+        p0001(res, error, 'aprovar ficha');
+      }
+    });
+
+    router.post('/uan/tech-sheets/:id/new-version', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const x = await sheetAccess(user, req.params.id);
+      if (!x) return sheetNotFound(res);
+      if (!x.roles.edit) return res.status(403).json({ errors: [{ message: 'Só o responsável, o gestor ou o RT editam fichas.', extensions: { code: 'FORBIDDEN' } }] });
+      try {
+        const id = await withActor(user, async (trx) => (await trx.raw('select tech_sheet_new_version(?, ?) as id', [x.sheet.id, user])).rows[0].id);
+        res.status(201).json({ data: { id } });
+      } catch (error) {
+        p0001(res, error, 'criar nova versão');
+      }
+    });
+
+    router.post('/uan/tech-sheets/:id/duplicate', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const x = await sheetAccess(user, req.params.id);
+      if (!x) return sheetNotFound(res);
+      if (!x.roles.edit) return res.status(403).json({ errors: [{ message: 'Só o responsável, o gestor ou o RT criam fichas.', extensions: { code: 'FORBIDDEN' } }] });
+      try {
+        const id = await withActor(user, async (trx) => {
+          const s = x.sheet;
+          const [row] = await trx('tech_sheets').insert({ organization_id: s.organization_id, name: `${s.name} (cópia)`.slice(0, 120), category: s.category, servings: s.servings, cooked_weight_g: s.cooked_weight_g, cooking_index: s.cooking_index, prep_minutes: s.prep_minutes, equipment: s.equipment, notes: s.notes, created_by: user }).returning(['id']);
+          await trx.raw('insert into tech_sheet_items (sheet_id, position, ingredient_id, sub_sheet_id, gross_g, fc, note) select ?, position, ingredient_id, sub_sheet_id, gross_g, fc, note from tech_sheet_items where sheet_id = ?', [row.id, s.id]);
+          await trx.raw('insert into tech_sheet_steps (sheet_id, position, text, critical, target_temp) select ?, position, text, critical, target_temp from tech_sheet_steps where sheet_id = ?', [row.id, s.id]);
+          return row.id;
+        });
+        res.status(201).json({ data: { id } });
+      } catch (error) {
+        p0001(res, error, 'duplicar ficha');
+      }
+    });
+
+    router.delete('/uan/tech-sheets/:id', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const x = await sheetAccess(user, req.params.id);
+      if (!x) return sheetNotFound(res);
+      if (!x.roles.edit) return res.status(403).json({ errors: [{ message: 'Só o responsável, o gestor ou o RT apagam fichas.', extensions: { code: 'FORBIDDEN' } }] });
+      if (x.sheet.status !== 'draft') return conflict(res, 'Só rascunho pode ser apagado; arquive a ficha aprovada');
+      if (await database('tech_sheet_items').where('sub_sheet_id', x.sheet.id).first('id')) return conflict(res, 'Esta ficha é usada como sub-receita em outra ficha.');
+      try {
+        await withActor(user, (trx) => trx('tech_sheets').where('id', x.sheet.id).del());
+        res.json({ data: { ok: true } });
+      } catch (error) {
+        p0001(res, error, 'apagar ficha');
+      }
+    });
+
     // ── Feedback do programa beta (RN-047) ──────────────────────────────────────────────────
     // Texto + tipo + caminho da página (sem query string). Lido só pelo admin da plataforma no Directus.
     const FEEDBACK_KINDS = new Set(['bug', 'idea', 'praise', 'other']);
