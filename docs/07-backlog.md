@@ -208,8 +208,8 @@ Status: `todo`, `doing`, `done`, `adiado` (fora do MVP, ver [ADR 0004](adr/0004-
 | [RN-150](plano/fase-5-uan-qualidade.md#rn-150--agenda-e-cobrança-de-checklists-pendentes) | Agenda e cobrança de checklists pendentes | feature | 3 | RN-147, RN-050 | todo |
 | [RN-151](plano/fase-5-uan-qualidade.md#rn-151--equipamentos-e-registro-de-temperatura) | Equipamentos e registro de temperatura | feature | 5 | RN-146 | doing |
 | [RN-152](plano/fase-5-uan-qualidade.md#rn-152--alertas-de-temperatura) | Alertas de temperatura | feature | 3 | RN-151, RN-050 | todo |
-| [RN-153](plano/fase-5-uan-qualidade.md#rn-153--não-conformidades) | Não conformidades | feature | 5 | RN-148, RN-151 | doing |
-| [RN-154](plano/fase-5-uan-qualidade.md#rn-154--plano-de-ação-5w2h) | Plano de ação 5W2H | feature | 3 | RN-153 | todo |
+| [RN-153](plano/fase-5-uan-qualidade.md#rn-153--não-conformidades) | Não conformidades | feature | 5 | RN-148, RN-151 | done |
+| [RN-154](plano/fase-5-uan-qualidade.md#rn-154--plano-de-ação-5w2h) | Plano de ação 5W2H | feature | 3 | RN-153 | doing |
 | [RN-155](plano/fase-5-uan-qualidade.md#rn-155--migração-de-documentos-e-treinamentos) | Migração de documentos e treinamentos | infra | 2 | RN-122 | todo |
 | [RN-156](plano/fase-5-uan-qualidade.md#rn-156--modelos-dos-4-pops-obrigatórios) | Modelos dos 4 POPs obrigatórios | feature | 5 | RN-155 | todo |
 | [RN-157](plano/fase-5-uan-qualidade.md#rn-157--manual-de-boas-práticas) | Manual de Boas Práticas | feature | 5 | RN-156 | todo |

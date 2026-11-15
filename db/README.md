@@ -471,6 +471,23 @@ Migração `0036_temperatures.sql` (**aplicada na vpsrafa em 15/11/2026**, backu
 | `GET /rafanutri/uan/equipment/:id?days=30` | Equipe da unidade (até 90 dias, 500 leituras) |
 | `POST /rafanutri/uan/units/:id/temperatures` (`{ equipment_id }` ou `{ food_stage, food_name }`, `value`, `corrective_action`, `client_id`) | Quem executa checklists |
 
+## Não conformidades e plano de ação 5W2H (RN-153, RN-154)
+
+Migração `0037_action_plans.sql` (**aplicada na vpsrafa em 15/11/2026**, backup `antes-0037-2026-11-15.dump`; testes em `db/tests/0037_action_plans.test.sql`):
+
+- Ciclo da NC: **aberta** → **em tratamento** (ao ganhar um plano) → **resolvida** (todos os planos concluídos) → **fechada**. A situação muda só pelos gatilhos dos planos e por `nc_close`; ninguém a força por update.
+- `action_plans`: o quê, por quê, onde (`where_`), quando (`due_date`), quem (`who_user` da equipe ou `who_text`), como, quanto (`how_much_cents`). Concluído não muda nem se apaga; NC fechada não recebe plano.
+- `nc_close(nc, usuário, nota, foto)`: exige a NC resolvida, a nota de verificação de eficácia e a foto (`closing_photo`). Fechada é definitiva.
+
+| Endpoint | Quem |
+|---|---|
+| `GET /rafanutri/uan/units/:id/non-conformities` | Equipe da unidade (abertas e fechadas nos últimos 30 dias, com contagem de ações) |
+| `POST /rafanutri/uan/units/:id/non-conformities` (`{ title, description, severity, image }`) | Quem executa checklists |
+| `GET /rafanutri/uan/non-conformities/:id`, `GET …/photo/opening\|closing` | Equipe da unidade |
+| `POST /rafanutri/uan/non-conformities/:id/plans`, `DELETE /rafanutri/uan/action-plans/:id` | Owner, gestor, RT |
+| `POST /rafanutri/uan/action-plans/:id/done` | O responsável pela ação ou quem supervisiona |
+| `POST /rafanutri/uan/non-conformities/:id/close` (`{ note, image }`) | Owner ou RT |
+
 ## Feedback do beta (RN-047)
 
 Migração `0032_feedback.sql` (**aplicada na vpsrafa em 14/11/2026**; testes em `db/tests/0032_feedback.test.sql`): `product_feedback` (consultório, autor, tipo `bug`/`idea`/`praise`/`other`, mensagem de 3 a 2.000 caracteres, caminho da página sem query string, status `new`/`read`/`done`). Gravado só por `POST /rafanutri/feedback` (qualquer conta logada, até 20 por dia); nenhum papel lê a coleção: o admin da plataforma consulta no Directus ou por SQL. Sem print de tela, porque a tela costuma ter dados de pacientes. O e2e grava mensagens com o prefixo `[e2e]`:

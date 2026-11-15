@@ -1005,9 +1005,9 @@ Referências: ANVISA RDC nº 429/2020 e IN nº 75/2020. Todos os valores abaixo 
 - **Descrição:** Registro, classificação e acompanhamento de não conformidades de qualquer origem.
 - **Tarefas técnicas:**
   - [x] Migração `non_conformities`
-  - [ ] Abertura manual e automática (checklist, temperatura, recebimento)
-  - [ ] Quadro por status, filtros por severidade e origem
-  - [ ] Prazo por severidade e destaque de atrasadas
+  - [x] Abertura manual e automática (checklist, temperatura, recebimento)
+  - [x] Quadro por status, filtros por severidade e origem
+  - [x] Prazo por severidade e destaque de atrasadas
 - **Arquivos/áreas:** `apps/web/app/(uan)/uan/[unitId]/non-conformities/`
 - **Critérios de aceite:** Dada uma não conformidade crítica aberta há 25 horas sem plano, quando o RT abre o quadro, então ela aparece como atrasada.
 - **Testes:** e2e, RLS.
@@ -1018,9 +1018,9 @@ Referências: ANVISA RDC nº 429/2020 e IN nº 75/2020. Todos os valores abaixo 
 - **Depende de:** RN-153
 - **Descrição:** Planos de ação 5W2H por não conformidade, com verificação de eficácia.
 - **Tarefas técnicas:**
-  - [ ] Migração `action_plans`
+  - [x] Migração `action_plans`
   - [ ] Formulário 5W2H e lembretes ao responsável
-  - [ ] Verificação pelo RT com evidência para fechar
+  - [x] Verificação pelo RT com evidência para fechar
 - **Arquivos/áreas:** `apps/web/app/(uan)/uan/[unitId]/non-conformities/[id]/`, `n8n/workflows/action-plan-reminders.json`
 - **Critérios de aceite:** Dada uma não conformidade com plano concluído, quando o RT tenta fechá-la sem evidência, então o sistema exige o anexo.
 - **Testes:** e2e.
