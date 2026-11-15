@@ -176,6 +176,25 @@ test('insumo com preço e fornecedor', async ({ page }) => {
     await expect(page.getByText('Inventário aprovado: os ajustes foram lançados no estoque.')).toBeVisible({ timeout: 15_000 });
     await page.getByRole('link', { name: /← Estoque de/ }).click();
     await expect(page.getByLabel(`Saldo de ${name}`)).toHaveText('1,5 L', { timeout: 15_000 });
+
+    // U4b: compras — necessidade do dia, pedido por fornecedor, envio e recebimento com recusa por temperatura
+    await page.goto(unitUrl);
+    await page.getByRole('link', { name: 'Compras', exact: true }).click();
+    await expect(page.getByRole('heading', { level: 1, name: 'Compras' })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByLabel(`Comprar ${name}`)).toBeVisible();
+    await page.getByRole('button', { name: /Gerar \d+ pedido/ }).click();
+    await expect(page.getByRole('status').filter({ hasText: 'em rascunho' })).toBeVisible({ timeout: 15_000 });
+    await page.getByRole('list', { name: 'Pedidos de compra' }).getByRole('link').first().click();
+    await expect(page.getByRole('heading', { level: 1, name: /^Pedido/ })).toBeVisible({ timeout: 15_000 });
+    await page.getByRole('button', { name: 'Marcar como enviado' }).click();
+    const rc = page.getByRole('form', { name: 'Recebimento' });
+    await expect(rc).toBeVisible({ timeout: 15_000 });
+    await rc.getByLabel('Nota fiscal').fill('NF E2E');
+    await rc.getByLabel('Temperatura (°C)').first().fill('12');
+    await expect(rc.getByText(/acima do limite de 7 °C/)).toBeVisible();
+    await rc.getByLabel(/Motivo da recusa/).fill('Chegou quente');
+    await rc.getByRole('button', { name: 'Registrar recebimento' }).click();
+    await expect(page.getByRole('region', { name: 'Recebimentos' })).toContainText('recusado — Chegou quente', { timeout: 15_000 });
   } finally {
     await page.goto(unitUrl);
     const ue = page.getByRole('form', { name: 'Dados da unidade' });

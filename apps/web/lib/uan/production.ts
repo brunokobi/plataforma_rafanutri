@@ -18,7 +18,7 @@ export interface ProductionDay {
   can_see_cost: boolean;
   diners: Array<{ service: MenuService; planned: number | null; actual: number | null }>;
   menu: Array<{ service: MenuService; slot: MenuSlot; sheet_root_id: string; sheet_id: string | null; name: string; cycle_name: string }>;
-  graph: SheetGraph & { ingredients: ProductionIngredient[] };
+  graph: { sheets: SheetGraph['sheets']; ingredients: ProductionIngredient[] };
   adhesion: Array<{ sheet_root_id: string; rate: number | null }>;
   waste: WasteRow[];
   history: Array<{ day: string; service: MenuService; diners: number | null; produced_g: number; leftover_g: number; plate_waste_g: number }>;

@@ -3905,6 +3905,246 @@ export default {
       }
     });
 
+    // ── Compras: necessidade, pedido e recebimento (U4b: RN-139 a RN-141) ───────────────────────
+    // Owner, gestor, RT e estoquista. A necessidade é calculada no app (nutrition-core/purchaseRequirements)
+    // com os dados deste endpoint; o recebimento passa pela função receive_order (0047).
+    const PO_FIELDS = ['id', 'unit_id', 'supplier_id', 'status', 'expected_on', 'notes', 'created_at', 'sent_at', 'received_at'];
+    const poOut = (o) => ({ ...o, expected_on: dateOut(o.expected_on) });
+
+    router.get('/uan/units/:id/purchase-needs', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const a = await unitAccess(user, req.params.id);
+      if (!a) return unitNotFound(res);
+      if (!canStock(a)) return stockForbidden(res);
+      const from = isIsoDate(req.query.from) ? req.query.from : localToday();
+      const to = isIsoDate(req.query.to) ? req.query.to : from;
+      const span = Math.round((Date.parse(to) - Date.parse(from)) / 86_400_000);
+      if (span < 0 || span > 31) return bad(res, { to: 'Período de até 31 dias.' });
+      const cycles = await database('menu_cycles').where({ unit_id: a.unit.id, status: 'approved' }).where('starts_on', '<=', to).select('id', 'starts_on', 'length_days');
+      const days = [];
+      const roots = new Set();
+      for (let i = 0; i <= span; i++) {
+        const d = new Date(Date.parse(`${from}T12:00:00Z`) + i * 86_400_000).toISOString().slice(0, 10);
+        const items = [];
+        for (const c of cycles) {
+          const start = dateOut(c.starts_on);
+          if (start > d) continue;
+          const idx = (Math.round((Date.parse(`${d}T12:00:00Z`) - Date.parse(`${start}T12:00:00Z`)) / 86_400_000) % c.length_days) + 1;
+          const rows = await database('menu_items').where({ cycle_id: c.id, day_index: idx }).select('service', 'slot', 'sheet_root_id');
+          for (const r of rows) { items.push(r); roots.add(r.sheet_root_id); }
+        }
+        days.push({ day: d, items });
+      }
+      const diners = await database('diner_counts').where('unit_id', a.unit.id).whereBetween('day', [from, to]).select('day', 'service', 'planned');
+      const current = await currentSheets([...roots]);
+      const graph = { sheets: [], ingredients: [] };
+      for (const r of roots) {
+        const sh = current.get(r);
+        if (!sh) continue;
+        const g = await sheetGraph(sh.id, true);
+        for (const x of g.sheets) if (!graph.sheets.some((y) => y.id === x.id)) graph.sheets.push(x);
+        for (const x of g.ingredients) if (!graph.ingredients.some((y) => y.id === x.id)) graph.ingredients.push(x);
+      }
+      const adhesion = roots.size ? (await database.raw(
+        `select w.sheet_root_id, sum(w.portions_served)::int as served, sum(d.actual)::int as diners
+           from waste_records w join diner_counts d on d.unit_id = w.unit_id and d.day = w.day and d.service = w.service
+          where w.unit_id = ? and w.sheet_root_id = any(?) and w.portions_served is not null and d.actual > 0 and w.day between ?::date - 30 and ?::date - 1
+          group by w.sheet_root_id`, [a.unit.id, [...roots], from, from])).rows : [];
+      const stock = await database('stock_balance').where('unit_id', a.unit.id).select('ingredient_id', 'quantity_g');
+      const openRows = await database('purchase_order_items as i').join('purchase_orders as o', 'o.id', 'i.order_id').join('ingredients as g', 'g.id', 'i.ingredient_id')
+        .where({ 'o.unit_id': a.unit.id, 'o.status': 'sent' }).select('i.ingredient_id', 'i.quantity_units', 'i.received_units', ...['purchase_unit', 'density_g_ml', 'unit_weight_g', 'pack_grams'].map((f) => `g.${f}`));
+      const openG = {};
+      for (const r of openRows) {
+        const gpu = gramsPerPurchaseUnit(r);
+        if (gpu) openG[r.ingredient_id] = (openG[r.ingredient_id] ?? 0) + Math.max(0, Number(r.quantity_units) - Number(r.received_units)) * gpu;
+      }
+      const ingIds = graph.ingredients.map((i) => i.id);
+      const prefs = ingIds.length ? (await database.raw(
+        `select distinct on (p.ingredient_id) p.ingredient_id, p.supplier_id, s.name as supplier_name, p.price_cents
+           from ingredient_prices p left join suppliers s on s.id = p.supplier_id
+          where p.ingredient_id = any(?) and p.valid_from <= current_date order by p.ingredient_id, p.valid_from desc, p.created_at desc`, [ingIds])).rows : [];
+      res.json({
+        data: {
+          unit: { id: a.unit.id, name: a.unit.name }, from, to,
+          days: days.map((d) => ({ ...d, items: d.items.map((i) => ({ ...i, sheet_id: current.get(i.sheet_root_id)?.id ?? null, name: current.get(i.sheet_root_id)?.name ?? '—' })) })),
+          diners: diners.map((d) => ({ ...d, day: dateOut(d.day) })),
+          graph,
+          adhesion: adhesion.map((r) => ({ sheet_root_id: r.sheet_root_id, rate: r.diners > 0 ? Math.round((r.served / r.diners) * 1000) / 1000 : null })),
+          stock: stock.map((s2) => ({ ingredient_id: s2.ingredient_id, quantity_g: Number(s2.quantity_g) })),
+          open_orders: Object.entries(openG).map(([ingredient_id, g]) => ({ ingredient_id, quantity_g: g })),
+          preferred: prefs,
+          suppliers: await database('suppliers').where({ organization_id: a.unit.organization_id, active: true }).orderBy('name').select('id', 'name'),
+        },
+      });
+    });
+
+    function poItems(list) {
+      if (!Array.isArray(list) || !list.length || list.length > 300) return { error: 'Inclua de 1 a 300 itens.' };
+      const items = [];
+      for (const it of list) {
+        const q = parseQty(it?.quantity_units);
+        if (!isUuid(it?.ingredient_id) || !q) return { error: 'Item inválido: confira insumo e quantidade.' };
+        const price = it.unit_price === undefined || it.unit_price === null || it.unit_price === '' ? null : Number(String(it.unit_price).replace(',', '.'));
+        if (price !== null && (!Number.isFinite(price) || price < 0 || price > 1_000_000)) return { error: 'Preço inválido.' };
+        if (items.some((x) => x.ingredient_id === it.ingredient_id)) return { error: 'Insumo repetido no pedido.' };
+        items.push({ ingredient_id: it.ingredient_id, quantity_units: Math.round(q * 100) / 100, unit_price_cents: price === null ? null : Math.round(price * 100) });
+      }
+      return { items };
+    }
+    async function fillPrices(items) {
+      const missing = items.filter((i) => i.unit_price_cents === null).map((i) => i.ingredient_id);
+      if (!missing.length) return items;
+      const rows = (await database.raw('select ingredient_id, price_cents from (select distinct on (ingredient_id) ingredient_id, price_cents from ingredient_prices where ingredient_id = any(?) and valid_from <= current_date order by ingredient_id, valid_from desc, created_at desc) p', [missing])).rows;
+      return items.map((i) => (i.unit_price_cents === null ? { ...i, unit_price_cents: rows.find((r) => r.ingredient_id === i.ingredient_id)?.price_cents ?? null } : i));
+    }
+
+    router.get('/uan/units/:id/purchase-orders', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const a = await unitAccess(user, req.params.id);
+      if (!a) return unitNotFound(res);
+      if (!canStock(a)) return stockForbidden(res);
+      const rows = await database('purchase_orders as o').leftJoin('suppliers as s', 's.id', 'o.supplier_id').where('o.unit_id', a.unit.id)
+        .orderBy('o.created_at', 'desc').limit(100)
+        .select(...PO_FIELDS.map((f) => `o.${f}`), 's.name as supplier_name',
+          database.raw('(select count(*)::int from purchase_order_items i where i.order_id = o.id) as item_count'),
+          database.raw('(select coalesce(sum(round(i.quantity_units * coalesce(i.unit_price_cents, 0))), 0)::bigint from purchase_order_items i where i.order_id = o.id) as total_cents'));
+      res.json({ data: { unit: { id: a.unit.id, name: a.unit.name }, items: rows.map((r) => ({ ...poOut(r), total_cents: Number(r.total_cents) })) } });
+    });
+
+    router.post('/uan/units/:id/purchase-orders', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const a = await unitAccess(user, req.params.id);
+      if (!a) return unitNotFound(res);
+      if (!canStock(a)) return stockForbidden(res);
+      const orders = Array.isArray(req.body?.orders) ? req.body.orders : [req.body ?? {}];
+      if (!orders.length || orders.length > 50) return bad(res, { orders: 'Nada para gerar.' });
+      const parsed = [];
+      for (const o of orders) {
+        if (o.supplier_id && !isUuid(o.supplier_id)) return bad(res, { supplier_id: 'Fornecedor inválido.' });
+        if (o.expected_on && !isIsoDate(o.expected_on)) return bad(res, { expected_on: 'Data inválida.' });
+        const p = poItems(o.items);
+        if (p.error) return bad(res, { items: p.error });
+        parsed.push({ supplier_id: o.supplier_id || null, expected_on: o.expected_on || null, items: await fillPrices(p.items) });
+      }
+      try {
+        const ids = await withActor(user, async (trx) => {
+          const out = [];
+          for (const o of parsed) {
+            const [row] = await trx('purchase_orders').insert({ unit_id: a.unit.id, organization_id: a.unit.organization_id, supplier_id: o.supplier_id, expected_on: o.expected_on, created_by: user }).returning(['id']);
+            await trx('purchase_order_items').insert(o.items.map((i) => ({ ...i, order_id: row.id })));
+            out.push(row.id);
+          }
+          return out;
+        });
+        res.status(201).json({ data: { ids, id: ids[0] } });
+      } catch (error) {
+        p0001(res, error, 'criar pedido');
+      }
+    });
+
+    async function poAccess(user, id) {
+      if (!isUuid(id)) return null;
+      const order = await database('purchase_orders').where('id', id).first(...PO_FIELDS);
+      if (!order) return null;
+      const a = await unitAccess(user, order.unit_id);
+      return a && canStock(a) ? { order: poOut(order), a } : null;
+    }
+
+    router.get('/uan/purchase-orders/:id', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const x = await poAccess(user, req.params.id);
+      if (!x) return notFoundMsg(res, 'Pedido');
+      const items = await database('purchase_order_items as i').join('ingredients as g', 'g.id', 'i.ingredient_id').where('i.order_id', x.order.id).orderBy('g.name')
+        .select('i.ingredient_id', 'i.quantity_units', 'i.unit_price_cents', 'i.received_units', 'g.name', 'g.storage', 'g.category', ...['purchase_unit', 'density_g_ml', 'unit_weight_g', 'pack_grams'].map((f) => `g.${f}`));
+      const supplier = x.order.supplier_id ? await database('suppliers').where('id', x.order.supplier_id).first('id', 'name', 'phone', 'email') : null;
+      const receipts = await database('goods_receipts as r').leftJoin('directus_users as u', 'u.id', 'r.received_by').where('r.order_id', x.order.id)
+        .select('r.id', 'r.invoice_number', 'r.received_at', 'u.first_name', 'u.last_name');
+      const receiptItems = receipts.length ? await database('goods_receipt_items').whereIn('receipt_id', receipts.map((r) => r.id))
+        .select('receipt_id', 'ingredient_id', 'quantity_units', 'accepted', 'lot_code', 'expires_on', 'temperature', 'reject_reason', 'non_conformity_id') : [];
+      res.json({
+        data: {
+          order: x.order,
+          unit: { id: x.a.unit.id, name: x.a.unit.name },
+          supplier,
+          suppliers: await database('suppliers').where({ organization_id: x.a.unit.organization_id, active: true }).orderBy('name').select('id', 'name'),
+          catalog: x.order.status === 'draft' ? await database('ingredients').where({ organization_id: x.a.unit.organization_id, active: true }).orderBy('name').select('id', 'name', 'purchase_unit') : [],
+          items: items.map((i) => ({ ingredient_id: i.ingredient_id, name: i.name, storage: i.storage, category: i.category, purchase_unit: i.purchase_unit, quantity_units: Number(i.quantity_units), unit_price_cents: i.unit_price_cents, received_units: Number(i.received_units) })),
+          receipts: receipts.map((r) => ({ id: r.id, invoice_number: r.invoice_number, received_at: r.received_at, received_by_name: userName(r), items: receiptItems.filter((ri) => ri.receipt_id === r.id).map((ri) => ({ ...ri, quantity_units: Number(ri.quantity_units), temperature: numOrNull(ri.temperature), expires_on: dateOut(ri.expires_on) })) })),
+        },
+      });
+    });
+
+    router.put('/uan/purchase-orders/:id', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const x = await poAccess(user, req.params.id);
+      if (!x) return notFoundMsg(res, 'Pedido');
+      if (x.order.status !== 'draft') return conflict(res, 'Só o pedido em rascunho pode ser alterado.');
+      const b = req.body ?? {};
+      if (b.supplier_id && !isUuid(b.supplier_id)) return bad(res, { supplier_id: 'Fornecedor inválido.' });
+      if (b.expected_on && !isIsoDate(b.expected_on)) return bad(res, { expected_on: 'Data inválida.' });
+      const p = poItems(b.items);
+      if (p.error) return bad(res, { items: p.error });
+      try {
+        await withActor(user, async (trx) => {
+          await trx('purchase_orders').where('id', x.order.id).update({ supplier_id: b.supplier_id || null, expected_on: b.expected_on || null, notes: typeof b.notes === 'string' && b.notes.trim() ? b.notes.trim().slice(0, 1000) : null });
+          await trx('purchase_order_items').where('order_id', x.order.id).del();
+          await trx('purchase_order_items').insert(p.items.map((i) => ({ ...i, order_id: x.order.id })));
+        });
+        res.json({ data: { ok: true } });
+      } catch (error) {
+        p0001(res, error, 'salvar pedido');
+      }
+    });
+
+    for (const action of ['send', 'cancel']) router.post(`/uan/purchase-orders/:id/${action}`, async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const x = await poAccess(user, req.params.id);
+      if (!x) return notFoundMsg(res, 'Pedido');
+      const allowed = action === 'send' ? x.order.status === 'draft' : ['draft', 'sent'].includes(x.order.status);
+      if (!allowed) return conflict(res, 'Ação não permitida na situação atual do pedido.');
+      await withActor(user, (trx) => trx('purchase_orders').where('id', x.order.id).update({ status: action === 'send' ? 'sent' : 'cancelled' }));
+      res.json({ data: { ok: true } });
+    });
+
+    router.post('/uan/purchase-orders/:id/receive', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const x = await poAccess(user, req.params.id);
+      if (!x) return notFoundMsg(res, 'Pedido');
+      const b = req.body ?? {};
+      const list = Array.isArray(b.items) ? b.items : [];
+      if (!list.length) return bad(res, { items: 'Confira ao menos um item.' });
+      const items = [];
+      for (const it of list) {
+        if (!isUuid(it?.ingredient_id)) return bad(res, { items: 'Item inválido.' });
+        const qty = Number(String(it.quantity_units ?? '').replace(',', '.'));
+        const temp = it.temperature === undefined || it.temperature === null || it.temperature === '' ? null : Number(String(it.temperature).replace(',', '.').replace('−', '-'));
+        const price = it.unit_price === undefined || it.unit_price === null || it.unit_price === '' ? null : Number(String(it.unit_price).replace(',', '.'));
+        if (!Number.isFinite(qty) || qty < 0) return bad(res, { items: 'Quantidade inválida.' });
+        if (temp !== null && (!Number.isFinite(temp) || temp < -60 || temp > 100)) return bad(res, { items: 'Temperatura inválida.' });
+        if (price !== null && (!Number.isFinite(price) || price < 0)) return bad(res, { items: 'Preço inválido.' });
+        if (it.expires_on && !isIsoDate(it.expires_on)) return bad(res, { items: 'Validade inválida.' });
+        items.push({
+          ingredient_id: it.ingredient_id, quantity_units: qty, accepted: it.accepted === true, lot_code: typeof it.lot_code === 'string' ? it.lot_code.slice(0, 60) : null,
+          expires_on: it.expires_on || null, temperature: temp, unit_price_cents: price === null ? null : Math.round(price * 100),
+          reject_reason: typeof it.reject_reason === 'string' ? it.reject_reason.slice(0, 500) : null,
+        });
+      }
+      try {
+        const id = await withActor(user, async (trx) => (await trx.raw('select receive_order(?, ?, ?, ?, ?::jsonb) as id',
+          [x.order.id, user, typeof b.invoice_number === 'string' ? b.invoice_number.slice(0, 60) : null, typeof b.notes === 'string' ? b.notes.slice(0, 1000) : null, JSON.stringify(items)])).rows[0].id);
+        res.json({ data: { id } });
+      } catch (error) {
+        p0001(res, error, 'receber pedido');
+      }
+    });
+
     // ── Feedback do programa beta (RN-047) ──────────────────────────────────────────────────
     // Texto + tipo + caminho da página (sem query string). Lido só pelo admin da plataforma no Directus.
     const FEEDBACK_KINDS = new Set(['bug', 'idea', 'praise', 'other']);
