@@ -1165,8 +1165,8 @@ Referências: ANVISA RDC nº 429/2020 e IN nº 75/2020. Todos os valores abaixo 
 - **Descrição:** Visão por unidade e consolidada: checklists em dia, pontuação, temperaturas fora do limite, não conformidades abertas, documentos vencidos e treinamentos pendentes.
 - **Tarefas técnicas:**
   - [ ] Visões SQL agregadas (materializadas e atualizadas a cada 15 minutos)
-  - [ ] Índice de conformidade da unidade (fórmula documentada e configurável)
-  - [ ] Comparativo entre unidades para o owner
+  - [x] Índice de conformidade da unidade (fórmula documentada e configurável)
+  - [x] Comparativo entre unidades para o owner
 - **Arquivos/áreas:** `apps/web/app/(uan)/uan/[unitId]/compliance/`, `supabase/migrations/`
 - **Critérios de aceite:** Dadas 3 unidades, quando o owner abre o painel, então vê o índice de cada uma e consegue abrir os itens pendentes.
 - **Testes:** integração (visões), e2e.

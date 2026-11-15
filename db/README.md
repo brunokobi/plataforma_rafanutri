@@ -505,6 +505,19 @@ Migração `0037_action_plans.sql` (**aplicada na vpsrafa em 15/11/2026**, backu
 | `POST /rafanutri/uan/action-plans/:id/done` | O responsável pela ação ou quem supervisiona |
 | `POST /rafanutri/uan/non-conformities/:id/close` (`{ note, image }`) | Owner ou RT |
 
+## Painel de conformidade (RN-165)
+
+Migração `0039_compliance.sql` (**aplicada na vpsrafa em 15/11/2026**, backup `antes-0039-2026-11-15.dump`; testes em `db/tests/0039_compliance.test.sql`): `uan_compliance(unidade, dias = 30, pesos)` devolve `{ index, components, weights, counts }`.
+
+| Componente | Peso | Cálculo |
+|---|---|---|
+| `schedule` | 30 | Ocorrências da agenda em dias anteriores a hoje (desde a criação da agenda) com checklist concluído no mesmo dia |
+| `score` | 30 | Média da pontuação dos checklists concluídos no período |
+| `temperature` | 20 | Leituras dentro do limite ÷ leituras do período |
+| `deadlines` | 20 | 100 − 20 por não conformidade aberta com prazo vencido (mínimo 0) |
+
+Componente sem dados fica de fora e os pesos se redistribuem; sem nenhum, `index` é nulo. `counts` traz as pendências (NCs atrasadas, checklists atrasados hoje, equipamentos sem leitura no prazo). `GET /rafanutri/uan/compliance?days=30` (7 a 90) devolve o índice de cada unidade ativa: o owner vê todas as da empresa; a equipe, só as dela.
+
 ## Feedback do beta (RN-047)
 
 Migração `0032_feedback.sql` (**aplicada na vpsrafa em 14/11/2026**; testes em `db/tests/0032_feedback.test.sql`): `product_feedback` (consultório, autor, tipo `bug`/`idea`/`praise`/`other`, mensagem de 3 a 2.000 caracteres, caminho da página sem query string, status `new`/`read`/`done`). Gravado só por `POST /rafanutri/feedback` (qualquer conta logada, até 20 por dia); nenhum papel lê a coleção: o admin da plataforma consulta no Directus ou por SQL. Sem print de tela, porque a tela costuma ter dados de pacientes. O e2e grava mensagens com o prefixo `[e2e]`:

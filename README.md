@@ -193,7 +193,7 @@ O que está feito e o que falta: [docs/plano/progresso.md](docs/plano/progresso.
 | `pnpm test` | Testes unitários e de componente (Vitest + Testing Library) |
 | `pnpm test:e2e` | Testes end-to-end (Playwright). Com `E2E_USER_EMAIL` e `E2E_USER_PASSWORD` (usuário de teste com consultório) roda também o login real e o fluxo completo de consulta; `E2E_BASE_URL=https://rafanutri.brunokobi.tech` testa a produção (um navegador por vez, por causa do limite de requisições do Directus). No WSL Ubuntu 20.04, instale o navegador com `PLAYWRIGHT_HOST_PLATFORM_OVERRIDE=ubuntu22.04-x64 npx playwright install chromium` e use a mesma variável ao rodar |
 | `node --test db/tests/extension-foods.test.mjs` | Regras puras da extensão (conversão do rótulo, composição da preparação) |
-| `db/scripts/isolation-test.sh` | Isolamento entre consultórios pela API em produção (78 verificações; sem token de admin, limpa pelo banco via SSH). No CI: workflow `isolation.yml`, semanal, com o secret `ISOLATION_SSH_KEY` |
+| `db/scripts/isolation-test.sh` | Isolamento entre consultórios pela API em produção (79 verificações; sem token de admin, limpa pelo banco via SSH). No CI: workflow `isolation.yml`, semanal, com o secret `ISOLATION_SSH_KEY` |
 
 ## Deploy
 
