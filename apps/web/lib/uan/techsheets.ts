@@ -151,3 +151,15 @@ export function scaleItems(items: EditItem[], factor: number): EditItem[] {
     return g === null ? it : { ...it, gross: String(Math.round(g * factor * 10) / 10).replace('.', ',') };
   });
 }
+
+/** Insumos ligados à base cujo dado de algum nutriente principal não foi analisado (NA na TACO). */
+export function notAnalyzed(itemIds: Array<string | null>, ingredients: IngredientInfo[]): string[] {
+  const main = ['energy_kcal', 'protein_g', 'carbohydrate_g', 'lipid_g'];
+  const byId = new Map(ingredients.map((i) => [i.id, i]));
+  const out = new Set<string>();
+  for (const id of itemIds) {
+    const i = id ? byId.get(id) : undefined;
+    if (i?.per100g && main.some((c) => i.per100g![c] === null || i.per100g![c] === undefined)) out.add(i.name);
+  }
+  return [...out];
+}

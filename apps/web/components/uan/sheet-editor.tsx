@@ -17,6 +17,7 @@ import {
   scaleItems,
   SHEET_CATEGORY_LABEL,
   SHEET_STATUS_LABEL,
+  notAnalyzed,
   sheetAllergens,
   type EditItem,
   type SheetCategory,
@@ -59,6 +60,7 @@ export function SheetEditor({ detail }: { detail: SheetDetail }) {
   const result = calculate(s.id, buildInputs(s.id, graph, catalog, editable ? edit : undefined));
   const allergens = sheetAllergens(s.id, graph, catalog, editable ? items : undefined);
   const cost = detail.can_see_cost;
+  const na = notAnalyzed((editable ? items : saved.items).map((i) => i.ingredient_id), catalog);
 
   const setItem = (i: number, p: Partial<EditItem>) => setItems((l) => l.map((x, j) => (j === i ? { ...x, ...p } : x)));
   const choose = (i: number, value: string) => {
@@ -308,6 +310,9 @@ export function SheetEditor({ detail }: { detail: SheetDetail }) {
             <h2 className="font-semibold">Informação nutricional</h2>
             {result.missingNutrients.length > 0 && (
               <p role="note" className="flex items-start gap-1 text-xs text-amber-700 dark:text-amber-400"><AlertTriangle className="mt-0.5 size-3 shrink-0" aria-hidden="true" /> Dados incompletos: sem vínculo com a base de alimentos — {result.missingNutrients.join(', ')}</p>
+            )}
+            {na.length > 0 && (
+              <p role="note" className="flex items-start gap-1 text-xs text-amber-700 dark:text-amber-400"><AlertTriangle className="mt-0.5 size-3 shrink-0" aria-hidden="true" /> Valor não analisado na base (NA) em energia ou macronutrientes: {na.join(', ')}. Escolha outro alimento da base no cadastro do insumo.</p>
             )}
             <table className="w-full text-sm tabular-nums">
               <caption className="sr-only">Nutrientes por porção e por 100 g</caption>

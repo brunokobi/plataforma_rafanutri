@@ -37,7 +37,7 @@ test('insumo com preço e fornecedor', async ({ page }) => {
   await f.getByLabel('Armazenamento').selectOption({ label: 'Refrigerado' });
   await f.getByLabel('Unidade de compra').selectOption({ label: 'L' });
   await f.getByLabel('Densidade (g/mL)').fill('1,03');
-  await f.getByLabel('Buscar na TACO').fill('leite de vaca integral');
+  await f.getByLabel('Buscar na TACO').fill('leite de vaca achocolatado');
   await f.getByRole('list', { name: 'Alimentos encontrados' }).getByRole('button').first().click();
   await expect(f.getByText(/Ligado a:/)).toBeVisible();
   await f.getByLabel('Leite', { exact: true }).check();
@@ -67,13 +67,13 @@ test('insumo com preço e fornecedor', async ({ page }) => {
   await nf.getByRole('button', { name: 'Criar ficha' }).click();
   await expect(page.getByRole('heading', { level: 1, name: sheetName })).toBeVisible({ timeout: 15_000 });
   await page.getByRole('button', { name: 'Adicionar ingrediente' }).click();
-  await page.getByLabel('Ingrediente 1').selectOption({ label: name });
+  await page.getByLabel('Ingrediente 1', { exact: true }).selectOption({ label: name });
   await page.getByLabel('Peso bruto do ingrediente 1').fill('1000');
   await page.getByLabel('Peso pronto (g)').fill('800');
   const calc = page.getByRole('complementary', { name: 'Cálculo da ficha' });
-  await expect(calc.getByLabel('Rendimento')).toHaveText('800 g');
-  await expect(calc.getByLabel('Porção')).toHaveText('200 g');
-  await expect(calc.getByLabel('Custo total')).toHaveText(/R\$\s?6,31/);
+  await expect(calc.getByLabel('Rendimento', { exact: true })).toHaveText('800 g');
+  await expect(calc.getByLabel('Porção', { exact: true })).toHaveText('200 g');
+  await expect(calc.getByLabel('Custo total', { exact: true })).toHaveText(/R\$\s?6,31/);
   await expect(calc.getByLabel('Alergênicos da ficha')).toContainText('Leite');
   await expect(calc.getByRole('rowheader', { name: 'Energia' })).toBeVisible();
   await page.getByRole('button', { name: 'Salvar rascunho' }).click();
@@ -81,8 +81,8 @@ test('insumo com preço e fornecedor', async ({ page }) => {
   await page.getByLabel('Escalar para').fill('8');
   await page.getByRole('button', { name: 'Escalar' }).click();
   await expect(page.getByLabel('Peso bruto do ingrediente 1')).toHaveValue('2000');
-  await expect(calc.getByLabel('Rendimento')).toHaveText('1.600 g');
-  await expect(calc.getByLabel('Porção')).toHaveText('200 g');
+  await expect(calc.getByLabel('Rendimento', { exact: true })).toHaveText('1.600 g');
+  await expect(calc.getByLabel('Porção', { exact: true })).toHaveText('200 g');
   page.once('dialog', (d) => d.accept());
   await page.getByRole('button', { name: 'Aprovar ficha' }).click();
   await expect(page.getByText('Aprovada', { exact: true })).toBeVisible({ timeout: 20_000 });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildInputs, calculate, scaleItems, sheetAllergens, type IngredientInfo, type SheetGraph } from '@/lib/uan/techsheets';
+import { buildInputs, calculate, notAnalyzed, scaleItems, sheetAllergens, type IngredientInfo, type SheetGraph } from '@/lib/uan/techsheets';
 
 const ing = (id: string, name: string, p: Partial<IngredientInfo> = {}): IngredientInfo => ({ id, name, default_fc: 1, allergens: [], food_name: null, per100g: null, price_per_kg_cents: null, ...p });
 const sheet = (id: string, name: string, items: SheetGraph['sheets'][number]['items'], p: Partial<SheetGraph['sheets'][number]> = {}): SheetGraph['sheets'][number] => ({
@@ -44,5 +44,10 @@ describe('fichas técnicas no app (U2b)', () => {
   it('escalar de 10 para 250 porções multiplica os pesos por 25', () => {
     const out = scaleItems([{ ingredient_id: 'a', sub_sheet_id: null, gross: '1000', fc: '', note: '' }, { ingredient_id: 'b', sub_sheet_id: null, gross: '12,5', fc: '', note: '' }], 25);
     expect(out.map((i) => i.gross)).toEqual(['25000', '312,5']);
+  });
+
+  it('avisa quando a base não analisou energia ou macronutrientes (NA)', () => {
+    const list = [ing('a', 'Leite', { per100g: { energy_kcal: null, protein_g: null } }), ing('b', 'Massa', { per100g: { energy_kcal: 370, protein_g: 10, carbohydrate_g: 75, lipid_g: 1 } }), ing('c', 'Sal')];
+    expect(notAnalyzed(['a', 'b', 'c', null], list)).toEqual(['Leite']);
   });
 });
