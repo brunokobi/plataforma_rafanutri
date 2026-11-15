@@ -111,12 +111,12 @@ test('insumo com preço e fornecedor', async ({ page }) => {
     await page.getByLabel('Prato principal do dia 1').selectOption({ label: sheetName });
     await expect(page.getByRole('row').filter({ hasText: 'Dia 1' }).getByText(/do teto/)).toBeVisible({ timeout: 15_000 });
     await page.getByRole('button', { name: 'Enviar para aprovação' }).click();
-    await expect(page.getByRole('alert')).toContainText('acima do teto de custo');
+    await expect(page.getByRole('alert').filter({ hasText: 'acima do teto de custo' })).toBeVisible();
     await page.getByLabel('Observação ou justificativa').fill('Teto baixo de propósito no teste automatizado');
     await page.getByRole('button', { name: 'Enviar para aprovação' }).click();
     await expect(page.getByText('Enviado para aprovação', { exact: true })).toBeVisible({ timeout: 15_000 });
     await page.getByRole('button', { name: 'Aprovar cardápio' }).click();
-    await expect(page.getByText('Aprovado', { exact: true })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText('Aprovado', { exact: true }).first()).toBeVisible({ timeout: 15_000 });
     await page.goto(unitUrl);
     await expect(page.getByRole('list', { name: 'Almoço de hoje' })).toContainText(sheetName, { timeout: 15_000 });
   } finally {
