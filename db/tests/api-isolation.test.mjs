@@ -721,11 +721,15 @@ try {
   });
   if (process.env.ISOLATION_PSQL) {
     const uidB = created.users[1];
-    execSync(process.env.ISOLATION_PSQL, {
-      input: `update organizations set modules = '{clinical,uan}' where id = '${A}' and name = 'Consultório Teste A';
+    // Só o consultório A criado por este teste (id recém-criado, dono com e-mail @example.com).
+    const enabled = String(execSync(process.env.ISOLATION_PSQL, {
+      input: `update organizations o set modules = '{clinical,uan}' where o.id = '${A}'
+                and exists (select 1 from organization_members m join directus_users u on u.id = m.user_id
+                            where m.organization_id = o.id and m.role = 'owner' and u.email like '%@example.com') returning 'UAN_ON';
               insert into organization_contracts (organization_id, plan, units_contracted) values ('${A}', 'uan_pilot', 2);`,
-      stdio: ['pipe', 'ignore', 'inherit'],
-    });
+      stdio: ['pipe', 'pipe', 'inherit'],
+    }));
+    assert.ok(enabled.includes('UAN_ON'), `módulo UAN não habilitado em A: ${enabled}`);
     const u1 = await api('/rafanutri/uan/units', { token: a.token, method: 'POST', body: { organization_id: A, name: 'Unidade Teste 1', kind: 'industrial' } });
     const u2 = await api('/rafanutri/uan/units', { token: a.token, method: 'POST', body: { organization_id: A, name: 'Unidade Teste 2' } });
     assert.equal(u1.status, 201, JSON.stringify(u1.json)); assert.equal(u2.status, 201);
