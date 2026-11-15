@@ -6,6 +6,7 @@ import { AppHeader } from '@/components/app/app-header';
 import { LicenseBadge } from '@/components/uan/license-badge';
 import { UnitForm } from '@/components/uan/unit-form';
 import { UnitChecklistsSection } from '@/components/uan/unit-checklists';
+import { TodayMenu } from '@/components/uan/today-menu';
 import { UnitTemperaturesSection } from '@/components/uan/unit-temperatures';
 import { UnitTeam } from '@/components/uan/unit-team';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -13,6 +14,7 @@ import { today } from '@/lib/appointments/schema';
 import { getCurrentUser } from '@/lib/auth/session';
 import { getUnit } from '@/lib/uan/actions';
 import { getUnitChecklists } from '@/lib/uan/checklist-actions';
+import { getUnitMenus } from '@/lib/uan/menu-actions';
 import { getUnitTemperatures } from '@/lib/uan/temperature-actions';
 import { formatCnpj, UNIT_KIND_LABEL, UNIT_ROLE_LABEL } from '@/lib/uan/types';
 
@@ -22,7 +24,7 @@ export default async function UnitPage({ params }: { params: Promise<{ id: strin
   const { id } = await params;
   const user = await getCurrentUser();
   if (!user) redirect(`/login?next=/app/uan/unidades/${id}`);
-  const [detail, checklists, temperatures] = await Promise.all([getUnit(id), getUnitChecklists(id), getUnitTemperatures(id)]);
+  const [detail, checklists, temperatures, menus] = await Promise.all([getUnit(id), getUnitChecklists(id), getUnitTemperatures(id), getUnitMenus(id)]);
   if (detail === undefined) notFound();
   const todayDate = today();
 
@@ -56,6 +58,13 @@ export default async function UnitPage({ params }: { params: Promise<{ id: strin
                 <div><dt className="text-muted-foreground">Alvará sanitário</dt><dd>{detail.unit.sanitary_license || '—'}</dd></div>
                 <div><dt className="text-muted-foreground">Seu papel</dt><dd>{detail.roles.map((r) => UNIT_ROLE_LABEL[r]).join(', ')}</dd></div>
               </dl>
+            )}
+
+            {menus && (
+              <div className="space-y-2">
+                <TodayMenu data={menus} />
+                <Link href={`/app/uan/unidades/${detail.unit.id}/cardapios`} className="inline-block text-sm font-medium text-primary underline">Cardápios da unidade</Link>
+              </div>
             )}
 
             {checklists ? (

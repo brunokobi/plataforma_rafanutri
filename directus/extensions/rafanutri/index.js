@@ -3353,6 +3353,224 @@ export default {
       }
     });
 
+    // ── Cardápio cíclico e aprovação (U2c: RN-135, RN-136, RN-224) ───────────────────────────
+    // Ver: equipe da unidade (cozinheiro, estoquista e auditor só os aprovados). Montar e enviar: owner, gestor, RT.
+    // Aprovar e devolver: owner ou gestor. O custo vem do cálculo gravado na aprovação de cada ficha.
+    const MENU_SERVICES = ['breakfast', 'morning_snack', 'lunch', 'afternoon_snack', 'dinner', 'supper'];
+    const MENU_SLOTS = ['main', 'side', 'garnish', 'salad', 'soup', 'dessert', 'bread', 'beverage', 'sauce', 'other'];
+    const CYCLE_FIELDS = ['id', 'unit_id', 'name', 'starts_on', 'length_days', 'services', 'slots', 'cost_target_cents', 'status', 'justification', 'submitted_at', 'approved_at', 'created_at', 'updated_at'];
+    const cycleOut = (c) => ({ ...c, starts_on: dateOut(c.starts_on) });
+    const menuNotFound = (res) => notFoundMsg(res, 'Cardápio');
+    const canApproveMenu = (a) => a.isOwner || a.roles.includes('manager');
+    const localToday = () => new Date(Date.now() - 3 * 3600e3).toISOString().slice(0, 10); // America/Sao_Paulo (sem horário de verão)
+
+    /** Versão aprovada mais recente de cada raiz de ficha. */
+    async function currentSheets(rootIds) {
+      if (!rootIds.length) return new Map();
+      const rows = await database('tech_sheets').whereIn('root_id', rootIds).where('status', 'approved').select('id', 'root_id', 'name', 'category', 'version', 'computed');
+      return new Map(rows.map((r) => [r.root_id, r]));
+    }
+    /** Custo por refeição (dia × serviço) e o que passa do teto. */
+    function menuCost(cycle, items, sheets) {
+      const totals = {};
+      for (const it of items) {
+        const c = sheets.get(it.sheet_root_id)?.computed?.costPerServingCents;
+        const k = `${it.day_index}:${it.service}`;
+        totals[k] = (totals[k] ?? 0) + (Number.isFinite(c) ? c : 0);
+      }
+      const over = cycle.cost_target_cents
+        ? Object.entries(totals).filter(([, v]) => v > cycle.cost_target_cents).map(([k, v]) => ({ day: Number(k.split(':')[0]), service: k.split(':')[1], cost_cents: v, pct: Math.round(((v - cycle.cost_target_cents) / cycle.cost_target_cents) * 1000) / 10 }))
+        : [];
+      return { totals, over };
+    }
+    async function menuAccess(user, id) {
+      if (!isUuid(id)) return null;
+      const cycle = await database('menu_cycles').where('id', id).first(...CYCLE_FIELDS);
+      if (!cycle) return null;
+      const a = await unitAccess(user, cycle.unit_id);
+      if (!a) return null;
+      if (!canSupervise(a) && cycle.status !== 'approved') return null;
+      return { cycle: cycleOut(cycle), a };
+    }
+
+    router.get('/uan/units/:id/menus', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const a = await unitAccess(user, req.params.id);
+      if (!a) return unitNotFound(res);
+      let q = database('menu_cycles').where('unit_id', a.unit.id).orderBy('starts_on', 'desc').limit(100);
+      if (!canSupervise(a)) q = q.where('status', 'approved');
+      const cycles = (await q.select(...CYCLE_FIELDS)).map(cycleOut);
+      // Cardápio de hoje: ciclos aprovados já iniciados
+      const today = localToday();
+      const active = cycles.filter((c) => c.status === 'approved' && c.starts_on <= today);
+      const todayItems = [];
+      for (const c of active) {
+        const day = (await database.raw('select menu_day_index(?, ?::date) as d', [c.id, today])).rows[0].d;
+        const items = await database('menu_items').where({ cycle_id: c.id, day_index: day }).select('service', 'slot', 'sheet_root_id');
+        const sheets = await currentSheets([...new Set(items.map((i) => i.sheet_root_id))]);
+        todayItems.push({ cycle_id: c.id, cycle_name: c.name, day_index: day, items: items.map((i) => ({ service: i.service, slot: i.slot, sheet_id: sheets.get(i.sheet_root_id)?.id ?? null, name: sheets.get(i.sheet_root_id)?.name ?? '—' })) });
+      }
+      res.json({ data: { unit: { id: a.unit.id, name: a.unit.name, organization_id: a.unit.organization_id }, can_edit: canSupervise(a) && a.unit.active, today, today_menus: todayItems, cycles } });
+    });
+
+    function cycleBody(b) {
+      const errors = {};
+      const name = typeof b.name === 'string' ? b.name.trim() : '';
+      if (name.length < 2 || name.length > 120) errors.name = 'Informe o nome (2 a 120 caracteres).';
+      if (!isIsoDate(b.starts_on)) errors.starts_on = 'Informe a data de início.';
+      const len = Number(b.length_days);
+      if (!Number.isInteger(len) || len < 7 || len > 56) errors.length_days = 'Ciclo de 7 a 56 dias.';
+      const services = Array.isArray(b.services) ? MENU_SERVICES.filter((x) => b.services.includes(x)) : [];
+      if (!services.length) errors.services = 'Escolha ao menos um serviço.';
+      const slots = Array.isArray(b.slots) ? MENU_SLOTS.filter((x) => b.slots.includes(x)) : [];
+      if (!slots.length) errors.slots = 'Escolha ao menos uma posição do prato.';
+      let target = null;
+      if (b.cost_target !== undefined && b.cost_target !== null && b.cost_target !== '') {
+        const n = Number(String(b.cost_target).replace(',', '.'));
+        if (!Number.isFinite(n) || n <= 0 || n > 10000) errors.cost_target = 'Teto de custo inválido.';
+        else target = Math.round(n * 100);
+      }
+      return Object.keys(errors).length ? { errors } : { data: { name, starts_on: b.starts_on, length_days: len, services, slots, cost_target_cents: target } };
+    }
+
+    router.post('/uan/units/:id/menus', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const a = await unitAccess(user, req.params.id);
+      if (!a) return unitNotFound(res);
+      if (!canSupervise(a)) return res.status(403).json({ errors: [{ message: 'Só o responsável, o gestor ou o RT montam cardápios.', extensions: { code: 'FORBIDDEN' } }] });
+      const parsed = cycleBody(req.body ?? {});
+      if (parsed.errors) return bad(res, parsed.errors);
+      try {
+        const [row] = await withActor(user, (trx) => trx('menu_cycles').insert({ ...parsed.data, unit_id: a.unit.id, organization_id: a.unit.organization_id, created_by: user }).returning(['id']));
+        res.status(201).json({ data: row });
+      } catch (error) {
+        p0001(res, error, 'criar cardápio');
+      }
+    });
+
+    router.get('/uan/menus/:id', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const x = await menuAccess(user, req.params.id);
+      if (!x) return menuNotFound(res);
+      const items = await database('menu_items').where('cycle_id', x.cycle.id).select('day_index', 'service', 'slot', 'sheet_root_id');
+      const sheets = await currentSheets([...new Set(items.map((i) => i.sheet_root_id))]);
+      const seeCost = canSupervise(x.a) || x.a.roles.includes('stock_keeper');
+      const editor = canSupervise(x.a);
+      const options = editor
+        ? await database('tech_sheets').where({ organization_id: x.a.unit.organization_id, status: 'approved' }).orderBy('name').select('root_id', 'name', 'category', 'computed')
+        : [];
+      const history = await database('menu_approvals as h').leftJoin('directus_users as u', 'u.id', 'h.user_id').where('h.cycle_id', x.cycle.id)
+        .orderBy('h.created_at', 'desc').limit(50).select('h.action', 'h.note', 'h.cost_check', 'h.created_at', 'u.first_name', 'u.last_name');
+      const cost = menuCost(x.cycle, items, sheets);
+      res.json({
+        data: {
+          cycle: x.cycle,
+          unit: { id: x.a.unit.id, name: x.a.unit.name },
+          items: items.map((i) => {
+            const sh = sheets.get(i.sheet_root_id);
+            return { ...i, sheet_id: sh?.id ?? null, name: sh?.name ?? '—', category: sh?.category ?? null, cost_cents: seeCost ? (sh?.computed?.costPerServingCents ?? null) : null };
+          }),
+          options: options.map((o) => ({ root_id: o.root_id, name: o.name, category: o.category, cost_cents: seeCost ? (o.computed?.costPerServingCents ?? null) : null })),
+          cost: seeCost ? cost : null,
+          history: history.map((h) => ({ ...h, user_name: userName(h), first_name: undefined, last_name: undefined })),
+          can_edit: editor,
+          can_submit: editor && x.cycle.status === 'draft',
+          can_approve: canApproveMenu(x.a) && x.cycle.status === 'submitted',
+        },
+      });
+    });
+
+    router.put('/uan/menus/:id', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const x = await menuAccess(user, req.params.id);
+      if (!x) return menuNotFound(res);
+      if (!canSupervise(x.a)) return res.status(403).json({ errors: [{ message: 'Só o responsável, o gestor ou o RT alteram cardápios.', extensions: { code: 'FORBIDDEN' } }] });
+      const parsed = cycleBody(req.body ?? {});
+      if (parsed.errors) return bad(res, parsed.errors);
+      try {
+        await withActor(user, async (trx) => {
+          await trx('menu_cycles').where('id', x.cycle.id).update(parsed.data);
+          // Itens que ficaram fora do ciclo (dia, serviço ou posição removidos) saem
+          await trx('menu_items').where('cycle_id', x.cycle.id)
+            .where((q) => q.where('day_index', '>', parsed.data.length_days).orWhereNotIn('service', parsed.data.services).orWhereNotIn('slot', parsed.data.slots)).del();
+        });
+        res.json({ data: { ok: true } });
+      } catch (error) {
+        p0001(res, error, 'alterar cardápio');
+      }
+    });
+
+    router.put('/uan/menus/:id/items', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const x = await menuAccess(user, req.params.id);
+      if (!x) return menuNotFound(res);
+      if (!canSupervise(x.a)) return res.status(403).json({ errors: [{ message: 'Só o responsável, o gestor ou o RT alteram cardápios.', extensions: { code: 'FORBIDDEN' } }] });
+      const b = req.body ?? {};
+      const day = Number(b.day_index);
+      if (!Number.isInteger(day) || day < 1 || day > x.cycle.length_days || !x.cycle.services.includes(b.service) || !x.cycle.slots.includes(b.slot)) return bad(res, { day_index: 'Posição inválida.' });
+      if (b.sheet_root_id !== null && !isUuid(b.sheet_root_id)) return bad(res, { sheet_root_id: 'Ficha inválida.' });
+      try {
+        await withActor(user, async (trx) => {
+          if (b.sheet_root_id === null) await trx('menu_items').where({ cycle_id: x.cycle.id, day_index: day, service: b.service, slot: b.slot }).del();
+          else await trx('menu_items').insert({ cycle_id: x.cycle.id, day_index: day, service: b.service, slot: b.slot, sheet_root_id: b.sheet_root_id })
+            .onConflict(['cycle_id', 'day_index', 'service', 'slot']).merge(['sheet_root_id']);
+        });
+        res.json({ data: { ok: true } });
+      } catch (error) {
+        p0001(res, error, 'alterar item do cardápio');
+      }
+    });
+
+    for (const action of ['submit', 'approve', 'return']) router.post(`/uan/menus/:id/${action}`, async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const x = await menuAccess(user, req.params.id);
+      if (!x) return menuNotFound(res);
+      if (action === 'submit' ? !canSupervise(x.a) : !canApproveMenu(x.a)) {
+        return res.status(403).json({ errors: [{ message: action === 'submit' ? 'Só o responsável, o gestor ou o RT enviam cardápios.' : 'Só o gestor ou o responsável pela empresa aprovam cardápios.', extensions: { code: 'FORBIDDEN' } }] });
+      }
+      const note = typeof req.body?.note === 'string' ? req.body.note.trim().slice(0, 1000) : '';
+      let check = null;
+      if (action === 'submit') {
+        const items = await database('menu_items').where('cycle_id', x.cycle.id).select('day_index', 'service', 'slot', 'sheet_root_id');
+        const cost = menuCost(x.cycle, items, await currentSheets([...new Set(items.map((i) => i.sheet_root_id))]));
+        check = { target_cents: x.cycle.cost_target_cents, over: cost.over };
+        if (cost.over.length && note.length < 10) {
+          return res.status(400).json({ errors: [{ message: `Cardápio acima do teto de custo em ${cost.over.length} refeição(ões): escreva a justificativa (ao menos 10 caracteres).`, extensions: { code: 'COST_OVER', fields: { note: 'Justifique o custo acima do teto.' }, over: cost.over } }] });
+        }
+      }
+      try {
+        await withActor(user, (trx) => trx.raw('select * from menu_transition(?, ?, ?, ?, ?::jsonb)', [x.cycle.id, user, action, note || null, check ? JSON.stringify(check) : null]));
+        res.json({ data: { ok: true } });
+      } catch (error) {
+        p0001(res, error, 'mudar situação do cardápio');
+      }
+    });
+
+    router.post('/uan/menus/:id/duplicate', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const x = await menuAccess(user, req.params.id);
+      if (!x) return menuNotFound(res);
+      if (!canSupervise(x.a)) return res.status(403).json({ errors: [{ message: 'Só o responsável, o gestor ou o RT montam cardápios.', extensions: { code: 'FORBIDDEN' } }] });
+      try {
+        const id = await withActor(user, async (trx) => {
+          const c = x.cycle;
+          const [row] = await trx('menu_cycles').insert({ unit_id: c.unit_id, organization_id: x.a.unit.organization_id, name: `${c.name} (cópia)`.slice(0, 120), starts_on: c.starts_on, length_days: c.length_days, services: c.services, slots: c.slots, cost_target_cents: c.cost_target_cents, created_by: user }).returning(['id']);
+          await trx.raw('insert into menu_items (cycle_id, day_index, service, slot, sheet_root_id) select ?, day_index, service, slot, sheet_root_id from menu_items where cycle_id = ?', [row.id, c.id]);
+          return row.id;
+        });
+        res.status(201).json({ data: { id } });
+      } catch (error) {
+        p0001(res, error, 'duplicar cardápio');
+      }
+    });
+
     // ── Feedback do programa beta (RN-047) ──────────────────────────────────────────────────
     // Texto + tipo + caminho da página (sem query string). Lido só pelo admin da plataforma no Directus.
     const FEEDBACK_KINDS = new Set(['bug', 'idea', 'praise', 'other']);

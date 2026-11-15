@@ -88,6 +88,44 @@ test('insumo com preço e fornecedor', async ({ page }) => {
   await expect(page.getByText('Aprovada', { exact: true })).toBeVisible({ timeout: 20_000 });
   await expect(page.getByRole('button', { name: 'Nova versão' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Salvar rascunho' })).toHaveCount(0);
+
+  // U2c: cardápio com a ficha aprovada, teto de custo, envio com justificativa e aprovação
+  await page.goto('/app/uan');
+  await page.getByRole('button', { name: 'Nova unidade' }).click();
+  const uf = page.getByRole('form', { name: 'Nova unidade' });
+  const unitName = `Cardápio E2E ${stamp}`;
+  await uf.getByLabel('Nome da unidade').fill(unitName);
+  await uf.getByRole('button', { name: 'Criar unidade' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: unitName })).toBeVisible({ timeout: 15_000 });
+  const unitUrl = new URL(page.url()).pathname;
+  try {
+    await page.getByRole('link', { name: 'Cardápios da unidade' }).click();
+    await page.getByRole('button', { name: 'Novo cardápio' }).click();
+    const cf = page.getByRole('form', { name: 'Novo cardápio' });
+    await cf.getByLabel('Nome do cardápio').fill('Semana E2E');
+    await cf.getByLabel('Começa em').fill(new Date(Date.now() - 3 * 3600e3).toISOString().slice(0, 10));
+    await cf.getByLabel('Ciclo').selectOption('7');
+    await cf.getByLabel('Teto de custo por refeição (R$, opcional)').fill('0,10');
+    await cf.getByRole('button', { name: 'Criar cardápio' }).click();
+    await expect(page.getByRole('heading', { level: 1, name: 'Semana E2E' })).toBeVisible({ timeout: 15_000 });
+    await page.getByLabel('Prato principal do dia 1').selectOption({ label: sheetName });
+    await expect(page.getByRole('row').filter({ hasText: 'Dia 1' }).getByText(/do teto/)).toBeVisible({ timeout: 15_000 });
+    await page.getByRole('button', { name: 'Enviar para aprovação' }).click();
+    await expect(page.getByRole('alert')).toContainText('acima do teto de custo');
+    await page.getByLabel('Observação ou justificativa').fill('Teto baixo de propósito no teste automatizado');
+    await page.getByRole('button', { name: 'Enviar para aprovação' }).click();
+    await expect(page.getByText('Enviado para aprovação', { exact: true })).toBeVisible({ timeout: 15_000 });
+    await page.getByRole('button', { name: 'Aprovar cardápio' }).click();
+    await expect(page.getByText('Aprovado', { exact: true })).toBeVisible({ timeout: 15_000 });
+    await page.goto(unitUrl);
+    await expect(page.getByRole('list', { name: 'Almoço de hoje' })).toContainText(sheetName, { timeout: 15_000 });
+  } finally {
+    await page.goto(unitUrl);
+    const ue = page.getByRole('form', { name: 'Dados da unidade' });
+    await ue.getByLabel(/Unidade ativa/).uncheck();
+    await ue.getByRole('button', { name: 'Salvar unidade' }).click();
+    await expect(ue.getByRole('status')).toHaveText('Unidade salva.', { timeout: 15_000 });
+  }
   await page.goto(insumoUrl);
 
   // fora de uso (não acumula)
