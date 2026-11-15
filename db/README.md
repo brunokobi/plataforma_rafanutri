@@ -608,6 +608,10 @@ Migração `0047_purchasing.sql` (**aplicada na vpsrafa em 15/11/2026**, backup 
 | `GET /rafanutri/uan/units/:id/purchase-needs?from=&to=` (até 31 dias) | Owner, gestor, RT, estoquista |
 | `GET`/`POST /rafanutri/uan/units/:id/purchase-orders` (`{ orders: [...] }`), `GET`/`PUT /rafanutri/uan/purchase-orders/:id`, `POST …/send`, `…/cancel`, `…/receive` | Idem |
 
+## Custos planejado × realizado (U5: RN-229)
+
+Sem migração: `GET /rafanutri/uan/units/:id/costs?from=&to=` (até 31 dias; owner, gestor, RT, estoquista) devolve o plano do período (o mesmo da necessidade de compra: cardápios aprovados, comensais previstos e realizados, fichas, adesão) e `consumption`: retiradas `out_production` por dia e insumo, valorizadas pelo custo do lote (`cost_per_kg_cents`); sem custo no lote, pelo preço vigente do insumo (`estimated`). O campo `criterion` registra esse critério. Os indicadores (custo por refeição, diferença, desvio por produto, curva ABC) são calculados no app com `nutrition-core/costs.ts`.
+
 ## Feedback do beta (RN-047)
 
 Migração `0032_feedback.sql` (**aplicada na vpsrafa em 14/11/2026**; testes em `db/tests/0032_feedback.test.sql`): `product_feedback` (consultório, autor, tipo `bug`/`idea`/`praise`/`other`, mensagem de 3 a 2.000 caracteres, caminho da página sem query string, status `new`/`read`/`done`). Gravado só por `POST /rafanutri/feedback` (qualquer conta logada, até 20 por dia); nenhum papel lê a coleção: o admin da plataforma consulta no Directus ou por SQL. Sem print de tela, porque a tela costuma ter dados de pacientes. O e2e grava mensagens com o prefixo `[e2e]`:

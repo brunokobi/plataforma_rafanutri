@@ -234,7 +234,7 @@ Status: `todo`, `doing`, `done`, `adiado` (fora do MVP, ver [ADR 0004](adr/0004-
 | [RN-226](plano/fase-5-uan-qualidade.md#rn-226--controle-de-desperdício-sobra-e-resto-ingesta) | Controle de desperdício: sobra e resto-ingesta | feature | 5 | RN-137 | doing |
 | [RN-227](plano/fase-5-uan-qualidade.md#rn-227--adesão-por-preparação) | Adesão por preparação | feature | 2 | RN-137 | done |
 | [RN-228](plano/fase-5-uan-qualidade.md#rn-228--recebimento-com-xml-da-nf-e) | Recebimento com XML da NF-e | feature | 3 | RN-140, RN-141 | todo |
-| [RN-229](plano/fase-5-uan-qualidade.md#rn-229--planejado--realizado-curva-abc-e-metas-de-custo) | Planejado × realizado, curva ABC e metas de custo | feature | 5 | RN-138, RN-143, RN-226 | todo |
+| [RN-229](plano/fase-5-uan-qualidade.md#rn-229--planejado--realizado-curva-abc-e-metas-de-custo) | Planejado × realizado, curva ABC e metas de custo | feature | 5 | RN-138, RN-143, RN-226 | doing |
 | [RN-230](plano/fase-5-uan-qualidade.md#rn-230--ia-plano-de-ação-sugerido-para-não-conformidade) | IA: plano de ação sugerido para não conformidade | ia | 3 | RN-153, RN-154, RN-082, RN-077 | todo |
 | [RN-231](plano/fase-5-uan-qualidade.md#rn-231--ia-cenários-de-cardápio-com-regras-e-nota) | IA: cenários de cardápio com regras e nota | ia | 8 | RN-221, RN-224, RN-138, RN-082 | todo |
 | [RN-232](plano/fase-5-uan-qualidade.md#rn-232--ia-vínculo-do-insumo-com-a-tacotbca-e-fcic-de-referência) | IA: vínculo do insumo com a TACO/TBCA e FC/IC de referência | ia | 3 | RN-126, RN-082 | todo |

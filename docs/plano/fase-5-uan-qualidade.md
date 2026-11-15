@@ -1348,9 +1348,9 @@ Acrescentados depois da comparação com o TecFood e o NutriUAN. A ordem e o agr
 - **Depende de:** RN-138, RN-143, RN-226
 - **Descrição:** Painel da unidade e da rede: custo per capita planejado × realizado (diário e acumulado), consumo por produto contra o per capita, efetivos previstos × servidos, curva ABC planejada e realizada (também por fornecedor), CMV, metas de custo por refeição e ticket médio com alerta e trava no cardápio.
 - **Tarefas técnicas:**
-  - [ ] Indicadores no motor, com testes
-  - [ ] Comparação no mesmo dia (não só no fechamento do mês)
-  - [ ] Critério de consumo explícito (retiradas do estoque ou CMV clássico) registrado no resultado
+  - [x] Indicadores no motor, com testes
+  - [x] Comparação no mesmo dia (não só no fechamento do mês)
+  - [x] Critério de consumo explícito (retiradas do estoque ou CMV clássico) registrado no resultado
 - **Critérios de aceite:** Dado um mês com custo planejado de R$ 12,00 por refeição e realizado de R$ 13,10, quando abrir o painel, então vê a diferença de 9,2% e os 5 produtos que mais explicam o desvio.
 - **Testes:** unidade, e2e.
 
