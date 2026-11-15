@@ -98,6 +98,19 @@
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "ss01", "cv11";
   }
+  /* Controles nativos (lista do select, calendário) no tema certo: sem isso, no escuro a lista abre
+     com fundo branco e texto claro herdado, e só a opção selecionada aparece. */
+  :root {
+    color-scheme: light;
+  }
+  .dark {
+    color-scheme: dark;
+  }
+  select option,
+  select optgroup {
+    background-color: var(--popover);
+    color: var(--popover-foreground);
+  }
   @media (prefers-reduced-motion: reduce) {
     html {
       scroll-behavior: auto;
