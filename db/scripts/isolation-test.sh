@@ -8,7 +8,7 @@ cd "$(dirname "$0")/../.."
 KEY="${SSH_KEY:-$HOME/vpsOracleBruno/ssh/ssh-key-2026-07-18.key}"
 HOST="${ISOLATION_HOST:-ubuntu@130.61.140.66}"
 URL="${DIRECTUS_URL:-https://rafanutri-api.brunokobi.tech}"
-psql_prod() { ssh -i "$KEY" "$HOST" 'docker exec -i rafanutri-postgres sh -c "psql -v ON_ERROR_STOP=1 -U \$POSTGRES_USER -d \$POSTGRES_DB -tA"'; }
+psql_prod() { ssh -o BatchMode=yes -i "$KEY" "$HOST" 'docker exec -i rafanutri-postgres sh -c "psql -v ON_ERROR_STOP=1 -U \$POSTGRES_USER -d \$POSTGRES_DB -tA"'; }
 
 COLLECTIONS=$(echo "select string_agg(table_name, ',' order by table_name) from information_schema.tables where table_schema = 'public' and table_name not like 'directus_%';" | psql_prod)
 [ -n "$COLLECTIONS" ] || { echo "Não consegui listar as tabelas do banco." >&2; exit 2; }

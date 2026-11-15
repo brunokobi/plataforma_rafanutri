@@ -1,0 +1,42 @@
+name: Isolamento da API
+
+# RN-008/RN-213 — Roda db/scripts/isolation-test.sh contra produção (cria consultórios e contas
+# @example.com e apaga tudo pelo banco no fim). Semanal e manual, não a cada push: cada rodada
+# escreve em produção e gasta o limite de requisições do Directus.
+# Só roda com o secret ISOLATION_SSH_KEY (chave SSH da vpsrafa); sem ele, o job é pulado.
+on:
+  schedule:
+    - cron: '0 9 * * 1' # segunda, 06:00 em Brasília
+  workflow_dispatch:
+
+concurrency:
+  group: isolation
+  cancel-in-progress: false
+
+jobs:
+  isolation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      HAS_KEY: ${{ secrets.ISOLATION_SSH_KEY != '' }}
+    steps:
+      - name: Sem chave, nada a fazer
+        if: env.HAS_KEY != 'true'
+        run: echo "Defina o secret ISOLATION_SSH_KEY para rodar o teste de isolamento." >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/checkout@v4
+        if: env.HAS_KEY == 'true'
+      - uses: actions/setup-node@v4
+        if: env.HAS_KEY == 'true'
+        with:
+          node-version-file: .nvmrc
+      - name: Chave SSH e host conhecido (fixado)
+        if: env.HAS_KEY == 'true'
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/vpsrafa && chmod 600 ~/.ssh/vpsrafa
+          echo '130.61.140.66 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKmmV9giZSzlIxAOmqj0JqmOTt6tWEWq6DyFjUVr8JZ9' > ~/.ssh/known_hosts
+        env:
+          KEY: ${{ secrets.ISOLATION_SSH_KEY }}
+      - name: Teste de isolamento
+        if: env.HAS_KEY == 'true'
+        run: SSH_KEY="$HOME/.ssh/vpsrafa" db/scripts/isolation-test.sh
