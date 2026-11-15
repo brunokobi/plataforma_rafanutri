@@ -25,6 +25,7 @@ test('checklist, temperaturas e não conformidade no celular', async ({ page }) 
   await form.getByLabel('Nome da unidade').fill(name);
   await form.getByRole('button', { name: 'Criar unidade' }).click();
   await expect(page.getByRole('heading', { level: 1, name })).toBeVisible({ timeout: 15_000 });
+  const unitUrl = new URL(page.url()).pathname;
 
   try {
     await page.getByRole('list', { name: 'Modelos de checklist' }).getByRole('button', { name: 'Iniciar Abertura da cozinha' }).click();
@@ -149,8 +150,7 @@ test('checklist, temperaturas e não conformidade no celular', async ({ page }) 
     await page.getByRole('link', { name: /← Não conformidades de/ }).click();
     await expect(page.getByRole('list', { name: 'Fechada' }).getByText(/Geladeira E2E/)).toBeVisible({ timeout: 15_000 });
   } finally {
-    await page.goto(page.url().includes('/unidades/') ? page.url() : '/app/uan');
-    if (!page.url().includes('/unidades/')) await page.getByRole('link', { name }).click();
+    await page.goto(unitUrl);
     const edit = page.getByRole('form', { name: 'Dados da unidade' });
     await edit.getByLabel(/Unidade ativa/).uncheck();
     await edit.getByRole('button', { name: 'Salvar unidade' }).click();
