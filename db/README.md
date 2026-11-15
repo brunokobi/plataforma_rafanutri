@@ -456,6 +456,23 @@ Migração `0035_checklists.sql` (**aplicada na vpsrafa em 15/11/2026**, backup 
 | `POST`/`GET /rafanutri/uan/checklist-runs/:id/answers/:position/photo` | Executa / equipe da unidade (JPG ou PNG até 600 KB; no app, pelo proxy `/api/uan/checklists/:id/foto/:posição`) |
 | `POST /rafanutri/uan/checklist-runs/:id/complete`, `/cancel` | Quem executa; cancelar: quem iniciou, gestor, RT ou owner |
 
+### Editor de modelos e agenda (RN-147, RN-150)
+
+Migração `0038_checklist_editor.sql` (**aplicada na vpsrafa em 15/11/2026**, backup `antes-0038-2026-11-15.dump`; testes em `db/tests/0038_checklist_editor.test.sql`):
+
+- Modelos e itens da biblioteca são só leitura (gatilho `checklist_platform_guard`; a carga marca `rafanutri.seed`). `checklist_template_copy(modelo, empresa, usuário)` copia para a empresa (nome "— personalizado"; `source_template_id` guarda a origem).
+- Apagar item de um modelo zera só `checklist_answers.item_id` das respostas já gravadas (também em checklists concluídos).
+- `checklist_schedules`: unidade, modelo, dias ISO (1 = segunda), horário, tolerância (15 a 720 min). `checklist_day(unidade, instante)` devolve os agendados do dia (fuso de São Paulo) com a situação: `done`, `in_progress`, `pending`, `overdue`.
+
+| Endpoint | Quem |
+|---|---|
+| `POST /rafanutri/uan/units/:id/checklist-templates/copy` | Owner, gestor, RT |
+| `GET /rafanutri/uan/checklist-templates/:id` | Quem atua em alguma empresa com UAN (modelo da empresa: só quem é dela) |
+| `PUT /rafanutri/uan/checklist-templates/:id` (dados e `items`, substitui todos) | Owner da empresa, gestor ou RT de alguma unidade dela |
+| `POST /rafanutri/uan/units/:id/checklist-schedules`, `DELETE /rafanutri/uan/checklist-schedules/:id` | Owner, gestor, RT |
+
+`GET /rafanutri/uan/units/:id/checklists` passa a trazer `today`, `schedules` (para quem supervisiona), `can_manage` e `editable` por modelo.
+
 ## Equipamentos e temperaturas (RN-151)
 
 Migração `0036_temperatures.sql` (**aplicada na vpsrafa em 15/11/2026**, backup `antes-0036-2026-11-15.dump`; testes em `db/tests/0036_temperatures.test.sql`):

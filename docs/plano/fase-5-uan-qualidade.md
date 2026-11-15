@@ -916,10 +916,10 @@ Referências: ANVISA RDC nº 429/2020 e IN nº 75/2020. Todos os valores abaixo 
 - **Depende de:** RN-146
 - **Descrição:** Editor de modelos e biblioteca inicial baseada na RDC 216/2004 e na RDC 275/2002.
 - **Tarefas técnicas:**
-  - [ ] Editor de itens (tipos de resposta, limites, críticos, foto obrigatória)
+  - [x] Editor de itens (tipos de resposta, limites, críticos, foto obrigatória)
   - [ ] Agendamento por regra de recorrência
   - [ ] Biblioteca: abertura da cozinha, higiene de manipuladores, recebimento, higienização de setores, temperatura de equipamentos, controle de pragas, reservatório de água
-  - [ ] Copiar modelo da biblioteca para a organização
+  - [x] Copiar modelo da biblioteca para a organização
 - **Arquivos/áreas:** `apps/web/app/(uan)/uan/checklist-templates/`, `supabase/seed/checklists/`
 - **Critérios de aceite:** Dado o modelo "Higiene dos manipuladores" da biblioteca, quando o RT o copia e agenda para todo dia às 7h, então os checklists diários aparecem na agenda da unidade.
 - **Testes:** e2e.
@@ -961,7 +961,7 @@ Referências: ANVISA RDC nº 429/2020 e IN nº 75/2020. Todos os valores abaixo 
 - **Descrição:** Gerar as instâncias agendadas e avisar quem está atrasado.
 - **Tarefas técnicas:**
   - [ ] Job que cria `checklist_runs` do dia a partir da regra de recorrência
-  - [ ] Marcação de `overdue` com tolerância
+  - [x] Marcação de `overdue` com tolerância
   - [ ] Push e WhatsApp para o executor e resumo diário para o RT
 - **Arquivos/áreas:** `supabase/functions/checklist-scheduler/`, `n8n/workflows/checklist-overdue.json`
 - **Critérios de aceite:** Dado um checklist às 7h com tolerância de 1h, quando não for feito até 8h, então fica `overdue` e o RT é avisado.

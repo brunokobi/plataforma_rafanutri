@@ -202,10 +202,10 @@ Status: `todo`, `doing`, `done`, `adiado` (fora do MVP, ver [ADR 0004](adr/0004-
 | [RN-144](plano/fase-5-uan-qualidade.md#rn-144--inventário-e-ajustes) | Inventário e ajustes | feature | 3 | RN-143 | todo |
 | [RN-145](plano/fase-5-uan-qualidade.md#rn-145--alertas-de-validade-e-estoque-mínimo) | Alertas de validade e estoque mínimo | feature | 3 | RN-143, RN-050 | todo |
 | [RN-146](plano/fase-5-uan-qualidade.md#rn-146--migração-de-checklists) | Migração de checklists | infra | 3 | RN-122 | done |
-| [RN-147](plano/fase-5-uan-qualidade.md#rn-147--editor-de-modelos-e-biblioteca-padrão) | Editor de modelos e biblioteca padrão | feature | 5 | RN-146 | doing |
+| [RN-147](plano/fase-5-uan-qualidade.md#rn-147--editor-de-modelos-e-biblioteca-padrão) | Editor de modelos e biblioteca padrão | feature | 5 | RN-146 | done |
 | [RN-148](plano/fase-5-uan-qualidade.md#rn-148--execução-de-checklist-no-celular) | Execução de checklist no celular | feature | 8 | RN-147 | doing |
 | [RN-149](plano/fase-5-uan-qualidade.md#rn-149--modo-offline-dos-checklists) | Modo offline dos checklists | feature | 8 | RN-148 | todo |
-| [RN-150](plano/fase-5-uan-qualidade.md#rn-150--agenda-e-cobrança-de-checklists-pendentes) | Agenda e cobrança de checklists pendentes | feature | 3 | RN-147, RN-050 | todo |
+| [RN-150](plano/fase-5-uan-qualidade.md#rn-150--agenda-e-cobrança-de-checklists-pendentes) | Agenda e cobrança de checklists pendentes | feature | 3 | RN-147, RN-050 | doing |
 | [RN-151](plano/fase-5-uan-qualidade.md#rn-151--equipamentos-e-registro-de-temperatura) | Equipamentos e registro de temperatura | feature | 5 | RN-146 | doing |
 | [RN-152](plano/fase-5-uan-qualidade.md#rn-152--alertas-de-temperatura) | Alertas de temperatura | feature | 3 | RN-151, RN-050 | todo |
 | [RN-153](plano/fase-5-uan-qualidade.md#rn-153--não-conformidades) | Não conformidades | feature | 5 | RN-148, RN-151 | done |
