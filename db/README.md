@@ -553,6 +553,23 @@ Migração `0043_tech_sheets.sql` (**aplicada na vpsrafa em 15/11/2026**, backup
 | `PUT /rafanutri/uan/tech-sheets/:id` (dados, `items`, `steps`; substitui) | Owner, gestor, RT; só rascunho |
 | `POST …/approve` (`{ computed }`), `…/new-version`, `…/duplicate`; `DELETE` (rascunho que não é sub-receita) | Aprovar: owner ou RT; o resto: owner, gestor, RT |
 
+## Cardápio cíclico e aprovação (U2c: RN-135, RN-136, RN-224)
+
+Migração `0044_menus.sql` (**aplicada na vpsrafa em 15/11/2026**, backup `antes-0044-2026-11-15.dump`; testes em `db/tests/0044_menus.test.sql`):
+
+- `menu_cycles`: unidade, nome, início, duração (7 a 56 dias), `services` (desjejum, colação, almoço, lanche, jantar, ceia), `slots` (composição do prato), teto de custo por refeição, `status` (`draft`, `submitted`, `approved`), justificativa.
+- `menu_items`: dia, serviço, posição e `sheet_root_id` (raiz da ficha técnica; o cardápio usa a versão aprovada mais recente). Só ficha aprovada da empresa; dia, serviço e posição do ciclo.
+- `menu_approvals`: histórico (enviado, aprovado, devolvido, reaberto) com o resultado da conferência de custo.
+- `menu_transition(ciclo, usuário, 'submit'|'approve'|'return', nota, cost_check)`; status só por ela. Mudar item ou dados de cardápio enviado/aprovado volta para rascunho e registra "reaberto". `menu_day_index(ciclo, data)`.
+
+| Endpoint | Quem |
+|---|---|
+| `GET /rafanutri/uan/units/:id/menus` (ciclos e cardápio de hoje) | Equipe da unidade (cozinheiro, estoquista e auditor: só aprovados) |
+| `POST /rafanutri/uan/units/:id/menus`, `PUT /rafanutri/uan/menus/:id`, `PUT …/items`, `POST …/duplicate` | Owner, gestor, RT |
+| `GET /rafanutri/uan/menus/:id` (itens, opções, custo por refeição, histórico) | Idem; custo para quem supervisiona e estoquista |
+| `POST …/submit` (acima do teto exige justificativa ≥ 10 caracteres; erro `COST_OVER`) | Owner, gestor, RT |
+| `POST …/approve`, `…/return` (com nota) | Owner ou gestor |
+
 ## Feedback do beta (RN-047)
 
 Migração `0032_feedback.sql` (**aplicada na vpsrafa em 14/11/2026**; testes em `db/tests/0032_feedback.test.sql`): `product_feedback` (consultório, autor, tipo `bug`/`idea`/`praise`/`other`, mensagem de 3 a 2.000 caracteres, caminho da página sem query string, status `new`/`read`/`done`). Gravado só por `POST /rafanutri/feedback` (qualquer conta logada, até 20 por dia); nenhum papel lê a coleção: o admin da plataforma consulta no Directus ou por SQL. Sem print de tela, porque a tela costuma ter dados de pacientes. O e2e grava mensagens com o prefixo `[e2e]`:

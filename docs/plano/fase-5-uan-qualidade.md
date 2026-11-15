@@ -753,8 +753,8 @@ Referências: ANVISA RDC nº 429/2020 e IN nº 75/2020. Todos os valores abaixo 
 - **Depende de:** RN-129
 - **Descrição:** Criar `menu_cycles`, `menu_days`, `menu_items` e `diner_counts`.
 - **Tarefas técnicas:**
-  - [ ] Migração e RLS
-  - [ ] Visão `menu_calendar` que expande o ciclo em datas reais
+  - [x] Migração e RLS
+  - [x] Visão `menu_calendar` que expande o ciclo em datas reais
 - **Arquivos/áreas:** `supabase/migrations/`
 - **Critérios de aceite:** Dado um ciclo de 28 dias iniciado em 01/03, quando consultar a visão para 30/03, então retorna o dia 2 do ciclo.
 - **Testes:** integração, RLS.
@@ -766,10 +766,10 @@ Referências: ANVISA RDC nº 429/2020 e IN nº 75/2020. Todos os valores abaixo 
 - **Descrição:** Calendário por ciclo e serviço, com slots (prato principal, guarnição, salada, sobremesa, bebida) preenchidos com fichas técnicas.
 - **Tarefas técnicas:**
   - [ ] Grade de dias × serviços com arrastar e soltar
-  - [ ] Busca de fichas aprovadas por categoria
+  - [x] Busca de fichas aprovadas por categoria
   - [ ] Per capita e adesão por item
-  - [ ] Avisos de repetição (mesma preparação em menos de N dias) e de monotonia de cores e métodos de cocção
-  - [ ] Duplicar ciclo e publicar para a unidade
+  - [x] Avisos de repetição (mesma preparação em menos de N dias) e de monotonia de cores e métodos de cocção
+  - [x] Duplicar ciclo e publicar para a unidade
 - **Arquivos/áreas:** `apps/web/app/(uan)/uan/[unitId]/menus/[cycleId]/`
 - **Critérios de aceite:** Dado um ciclo de 4 semanas, quando o RT preenche o almoço e publica, então os cozinheiros veem o cardápio do dia na unidade.
 - **Testes:** e2e.
@@ -1265,7 +1265,7 @@ Acrescentados depois da comparação com o TecFood e o NutriUAN. A ordem e o agr
 - **Descrição:** Alergênicos marcados no insumo (individual ou em lote) propagam para a ficha técnica e o cardápio, com destaque nas emissões e no cardápio publicado (RDC 26/2015).
 - **Tarefas técnicas:**
   - [ ] Lista de alergênicos com sigla e ícone
-  - [ ] Propagação calculada (não digitada) até a ficha e o cardápio
+  - [x] Propagação calculada (não digitada) até a ficha e o cardápio
   - [ ] Versão do cardápio do dia e da semana com destaque de alergênicos
 - **Critérios de aceite:** Dado um insumo com leite, quando ele entra numa ficha usada no almoço de terça, então o cardápio de terça mostra o alergênico leite naquele prato.
 - **Testes:** unidade, e2e.
@@ -1288,8 +1288,8 @@ Acrescentados depois da comparação com o TecFood e o NutriUAN. A ordem e o agr
 - **Depende de:** RN-136
 - **Descrição:** Cardápio passa por rascunho, enviado e aprovado (RT da unidade → gestor ou cliente), com prazo, histórico de alterações e trava quando está fora da meta de custo ou das regras (liberação só com justificativa). A necessidade de compra só é gerada para cardápio aprovado.
 - **Tarefas técnicas:**
-  - [ ] Estados e histórico em `menu_approvals`
-  - [ ] Alteração depois de aprovado volta para revisão e fica registrada
+  - [x] Estados e histórico em `menu_approvals`
+  - [x] Alteração depois de aprovado volta para revisão e fica registrada
   - [ ] Aviso de prazo no painel (e por WhatsApp/e-mail quando o n8n e o Resend existirem)
 - **Critérios de aceite:** Dado um cardápio 12% acima do teto de custo, quando o RT envia, então o sistema exige justificativa e o gestor vê o desvio antes de aprovar.
 - **Testes:** e2e.
