@@ -38,8 +38,13 @@ test('arrastar consulta para outro dia', async ({ page }) => {
   const card = openCard(mon).first();
   await expect(card).toBeVisible();
   try {
-    // Solta no topo da coluna: com várias consultas canceladas de rodadas anteriores, o centro fica fora da tela.
-    await card.dragTo(wed, { targetPosition: { x: 24, y: 16 } });
+    // Eventos de arrastar disparados direto (o dragTo do Playwright às vezes não dispara o drag nativo).
+    const dt = await page.evaluateHandle(() => new DataTransfer());
+    await card.dispatchEvent('dragstart', { dataTransfer: dt });
+    await wed.dispatchEvent('dragenter', { dataTransfer: dt });
+    await wed.dispatchEvent('dragover', { dataTransfer: dt });
+    await wed.dispatchEvent('drop', { dataTransfer: dt });
+    await card.dispatchEvent('dragend', { dataTransfer: dt });
     await expect(page.getByRole('status').filter({ hasText: /remarcada para qua .* às 06:15/ })).toBeVisible({ timeout: 15_000 });
     await expect(openCard(wed)).toHaveCount(1);
   } finally {
