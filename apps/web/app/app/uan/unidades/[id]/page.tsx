@@ -5,6 +5,7 @@ import { notFound, redirect } from 'next/navigation';
 import { AppHeader } from '@/components/app/app-header';
 import { LicenseBadge } from '@/components/uan/license-badge';
 import { UnitForm } from '@/components/uan/unit-form';
+import { UnitTeam } from '@/components/uan/unit-team';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { today } from '@/lib/appointments/schema';
 import { getCurrentUser } from '@/lib/auth/session';
@@ -53,22 +54,15 @@ export default async function UnitPage({ params }: { params: Promise<{ id: strin
               </dl>
             )}
 
-            {(detail.is_owner || detail.members.length > 0) && (
-              <section aria-labelledby="equipe" className="space-y-3">
-                <h2 id="equipe" className="font-display text-2xl font-semibold tracking-tight">Equipe</h2>
-                {detail.members.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">Ninguém na equipe ainda. O convite de cozinheiros, estoquistas e RT por link vem na próxima etapa.</p>
-                ) : (
-                  <ul className="divide-y divide-border rounded-2xl border border-border bg-card">
-                    {detail.members.map((m) => (
-                      <li key={`${m.user_id}-${m.role}`} className="flex flex-wrap items-center justify-between gap-2 p-3 text-sm">
-                        <span className="font-medium">{[m.first_name, m.last_name].filter(Boolean).join(' ') || m.email}</span>
-                        <span className="text-muted-foreground">{UNIT_ROLE_LABEL[m.role]}</span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </section>
+            {detail.can_manage_team && (
+              <UnitTeam
+                unitId={detail.unit.id}
+                unitName={detail.unit.name}
+                unitActive={detail.unit.active}
+                members={detail.members}
+                invites={detail.invites ?? []}
+                invitableRoles={detail.invitable_roles ?? []}
+              />
             )}
           </>
         )}

@@ -19,6 +19,13 @@ describe('landingRedirect', () => {
   it('com consultório no onboarding: volta para o painel', () => {
     expect(landingRedirect('onboarding', [org], true)).toBe('/app');
   });
+  it('só na equipe de uma unidade UAN: vai para o módulo UAN (RN-220)', () => {
+    expect(landingRedirect('app', [], true, true)).toBe('/app/uan');
+    expect(landingRedirect('onboarding', [], true, true)).toBe('/app/uan');
+    expect(landingRedirect('app', [], false, true)).toBe('/app/uan');
+    expect(landingRedirect('app', [org], true, true)).toBeNull();
+    expect(landingRedirect('app', null, true, true)).toBeNull();
+  });
   it('sem consultório no onboarding: fica no onboarding', () => {
     expect(landingRedirect('onboarding', [], true)).toBeNull();
   });

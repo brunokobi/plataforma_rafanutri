@@ -55,6 +55,17 @@ export interface UnitMember {
   first_name: string | null;
   last_name: string | null;
   email: string | null;
+  /** A própria pessoa logada. */
+  is_self?: boolean;
+}
+
+/** Convite pendente da equipe (RN-220). */
+export interface UnitInvite {
+  id: string;
+  role: UnitRole;
+  label: string | null;
+  expires_at: string;
+  date_created: string;
 }
 
 export interface UnitDetail {
@@ -62,7 +73,42 @@ export interface UnitDetail {
   is_owner: boolean;
   roles: UnitRole[];
   can_edit: boolean;
+  /** Owner, gestor ou RT: vê a equipe e os convites. */
+  can_manage_team?: boolean;
+  /** Papéis que esta pessoa pode convidar, trocar ou remover. */
+  invitable_roles?: UnitRole[];
   members: UnitMember[];
+  invites?: UnitInvite[];
+}
+
+/** O que cada papel faz, mostrado no convite. */
+export const UNIT_ROLE_HINT: Record<UnitRole, string> = {
+  technical_lead: 'Responde tecnicamente pela unidade: aprova cardápios, fichas e planos de ação.',
+  manager: 'Administra a unidade e a equipe operacional.',
+  cook: 'Preenche checklists, temperaturas e registros da produção.',
+  stock_keeper: 'Registra recebimento, estoque e validade dos insumos.',
+  auditor: 'Consulta registros e relatórios, sem alterar.',
+};
+
+/** Pré-visualização pública do convite. */
+export interface UnitInvitePreview {
+  organization: string;
+  unit: string;
+  kind: UnitKind;
+  role: UnitRole;
+  label: string | null;
+  expires_at: string;
+}
+
+/** Dados do cadastro pelo convite (validados também no servidor). */
+export function validateStaffSignup(input: { full_name: string; email: string; password: string; confirm: string }): Record<string, string> {
+  const errors: Record<string, string> = {};
+  const name = input.full_name.trim();
+  if (name.length < 2 || name.length > 120) errors.full_name = 'Informe seu nome.';
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(input.email.trim()) || input.email.length > 254) errors.email = 'Informe um e-mail válido.';
+  if (input.password.length < 8 || input.password.length > 128) errors.password = 'A senha precisa ter de 8 a 128 caracteres.';
+  else if (input.password !== input.confirm) errors.confirm = 'As senhas não conferem.';
+  return errors;
 }
 
 export interface UnitInput {

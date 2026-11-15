@@ -1784,7 +1784,22 @@ export default {
             .orderBy(['du.first_name', 'um.role'])
             .select('um.user_id', 'um.role', 'du.first_name', 'du.last_name', 'du.email')
         : [];
-      res.json({ data: { unit: unitOut(a.unit), is_owner: a.isOwner, roles: a.roles, can_edit: a.isOwner || a.roles.includes('manager'), members } });
+      const invites = canManage
+        ? await database('unit_invites').where({ unit_id: a.unit.id }).whereNull('used_at').whereNull('revoked_at')
+            .where('expires_at', '>', database.fn.now()).orderBy('date_created', 'desc').select('id', 'role', 'label', 'expires_at', 'date_created')
+        : [];
+      res.json({
+        data: {
+          unit: unitOut(a.unit),
+          is_owner: a.isOwner,
+          roles: a.roles,
+          can_edit: a.isOwner || a.roles.includes('manager'),
+          can_manage_team: canManage,
+          invitable_roles: canManage ? [...invitableRoles(a)] : [],
+          members: members.map((m) => ({ ...m, is_self: m.user_id === user })),
+          invites,
+        },
+      });
     });
 
     router.put('/uan/units/:id', async (req, res) => {
@@ -1802,6 +1817,164 @@ export default {
         res.json({ data: unitOut(row) });
       } catch (error) {
         unitDbError(res, error);
+      }
+    });
+
+    // ── Equipe da unidade: convite por link, troca de papel e remoção (RN-220) ──────────────
+    // O owner convida e administra qualquer papel; gestor e RT só cozinheiro, estoquista e auditor.
+    // Quem aceita entra em unit_members (nunca em organization_members). Regras repetidas no banco (0034).
+    const UNIT_ROLES = ['technical_lead', 'manager', 'cook', 'stock_keeper', 'auditor'];
+    const STAFF_ROLES = new Set(['cook', 'stock_keeper', 'auditor']);
+    const invitableRoles = (a) => (a.isOwner ? new Set(UNIT_ROLES) : a.roles.some((r) => r === 'manager' || r === 'technical_lead') ? STAFF_ROLES : new Set());
+    const teamForbidden = (res) => res.status(403).json({ errors: [{ message: 'Você não pode alterar este papel na equipe.', extensions: { code: 'FORBIDDEN' } }] });
+    const unitInviteGone = (res) => res.status(410).json({ errors: [{ message: 'Este convite não está mais disponível. Peça um novo ao responsável pela unidade.', extensions: { code: 'INVITE_UNAVAILABLE' } }] });
+    const rtTaken = (error) => (error?.code === '23505' && /unit_members_one_rt/.test(error.constraint ?? error.message ?? '')) || (error?.code === 'P0001' && /já tem um RT/.test(error.message ?? ''));
+    const RT_TAKEN = 'Esta unidade já tem um RT. Troque o papel do RT atual antes.';
+
+    async function pendingUnitInvite(token) {
+      if (typeof token !== 'string' || !TOKEN_FORMAT.test(token)) return null;
+      return (await database('unit_invites as i')
+        .join('production_units as u', 'u.id', 'i.unit_id')
+        .join('organizations as o', 'o.id', 'i.organization_id')
+        .where('i.token_hash', hashToken(token))
+        .whereNull('i.used_at').whereNull('i.revoked_at')
+        .where('i.expires_at', '>', database.fn.now())
+        .where('u.active', true)
+        .whereRaw("'uan' = any (o.modules)")
+        .first('i.id', 'i.role', 'i.label', 'i.expires_at', 'u.id as unit_id', 'u.name as unit_name', 'u.kind', 'o.name as org_name')) ?? null;
+    }
+
+    /** Aceita dentro de uma transação com o autor; devolve a unidade, null se indisponível. */
+    async function acceptUnitInvite(token, userId) {
+      return withActor(userId, async (trx) => (await trx.raw('select unit_invite_accept(?, ?) as unit_id', [hashToken(token), userId])).rows[0].unit_id);
+    }
+
+    router.post('/uan/units/:id/invites', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const a = await unitAccess(user, req.params.id);
+      if (!a) return unitNotFound(res);
+      const role = req.body?.role;
+      if (!UNIT_ROLES.includes(role)) return bad(res, { role: 'Escolha o papel.' });
+      if (!invitableRoles(a).has(role)) return teamForbidden(res);
+      const label = typeof req.body?.label === 'string' && req.body.label.trim() ? req.body.label.trim().slice(0, 120) : null;
+      if (!a.unit.active) return conflict(res, 'Ative a unidade antes de convidar a equipe.');
+      const token = randomBytes(32).toString('base64url');
+      try {
+        const [row] = await withActor(user, (trx) => trx('unit_invites')
+          .insert({ organization_id: a.unit.organization_id, unit_id: a.unit.id, role, label, token_hash: hashToken(token), expires_at: database.raw("now() + interval '7 days'"), user_created: user })
+          .returning(['id', 'role', 'label', 'expires_at']));
+        res.status(201).json({ data: { ...row, token } });
+      } catch (error) {
+        if (error?.code === 'P0001') return conflict(res, error.message.split('\n')[0].replace(/^.* - /, ''));
+        logger.error({ err: error }, 'rafanutri: falha ao criar convite da unidade');
+        res.status(500).json({ errors: [{ message: 'Não foi possível criar o convite agora.', extensions: { code: 'INTERNAL_SERVER_ERROR' } }] });
+      }
+    });
+
+    router.post('/uan/units/:id/invites/:inviteId/revoke', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const a = await unitAccess(user, req.params.id);
+      if (!a) return unitNotFound(res);
+      if (!isUuid(req.params.inviteId)) return unitInviteGone(res);
+      const inv = await database('unit_invites').where({ id: req.params.inviteId, unit_id: a.unit.id }).whereNull('used_at').whereNull('revoked_at').first('id', 'role');
+      if (!inv) return unitInviteGone(res);
+      if (!invitableRoles(a).has(inv.role)) return teamForbidden(res);
+      await withActor(user, (trx) => trx('unit_invites').where({ id: inv.id }).whereNull('used_at').whereNull('revoked_at').update({ revoked_at: trx.fn.now() }));
+      res.json({ data: { ok: true } });
+    });
+
+    /** Troca de papel ({user_id, role, new_role}) ou remoção ({user_id, role}, sem new_role). */
+    router.post('/uan/units/:id/members', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const a = await unitAccess(user, req.params.id);
+      if (!a) return unitNotFound(res);
+      const { user_id: target, role, new_role: newRole } = req.body ?? {};
+      if (!isUuid(target) || !UNIT_ROLES.includes(role) || (newRole !== undefined && newRole !== null && !UNIT_ROLES.includes(newRole))) {
+        return bad(res, { role: 'Papel inválido.' });
+      }
+      const allowed = invitableRoles(a);
+      if (!allowed.has(role) || (newRole && !allowed.has(newRole))) return teamForbidden(res);
+      const exists = await database('unit_members').where({ unit_id: a.unit.id, user_id: target, role }).first('user_id');
+      if (!exists) return res.status(404).json({ errors: [{ message: 'Pessoa não encontrada na equipe.', extensions: { code: 'NOT_FOUND' } }] });
+      try {
+        await withActor(user, async (trx) => {
+          await trx('unit_members').where({ unit_id: a.unit.id, user_id: target, role }).del();
+          if (newRole) await trx('unit_members').insert({ unit_id: a.unit.id, user_id: target, role: newRole }).onConflict(['unit_id', 'user_id', 'role']).ignore();
+        });
+        res.json({ data: { ok: true } });
+      } catch (error) {
+        if (rtTaken(error)) return conflict(res, RT_TAKEN);
+        logger.error({ err: error }, 'rafanutri: falha ao alterar a equipe da unidade');
+        res.status(500).json({ errors: [{ message: 'Não foi possível alterar a equipe agora.', extensions: { code: 'INTERNAL_SERVER_ERROR' } }] });
+      }
+    });
+
+    // Público (sem login): ver o convite e criar a conta
+    router.post('/public/unit-invites/open', async (req, res) => {
+      const inv = await pendingUnitInvite(req.body?.token);
+      if (!inv) return unitInviteGone(res);
+      res.json({ data: { organization: inv.org_name, unit: inv.unit_name, kind: inv.kind, role: inv.role, label: inv.label, expires_at: inv.expires_at } });
+    });
+
+    router.post('/public/unit-invites/accept', async (req, res) => {
+      const b = req.body ?? {};
+      const fullName = typeof b.full_name === 'string' ? b.full_name.trim().replace(/\s+/g, ' ') : '';
+      const email = typeof b.email === 'string' ? b.email.trim().toLowerCase() : '';
+      const password = typeof b.password === 'string' ? b.password : '';
+      const errors = {};
+      if (fullName.length < 2 || fullName.length > 120) errors.full_name = 'Informe seu nome.';
+      if (!EMAIL.test(email) || email.length > 254) errors.email = 'Informe um e-mail válido.';
+      if (password.length < 8 || password.length > 128) errors.password = 'A senha precisa ter de 8 a 128 caracteres.';
+      if (Object.keys(errors).length) return bad(res, errors);
+      const inv = await pendingUnitInvite(b.token);
+      if (!inv) return unitInviteGone(res);
+      if (await database('directus_users').whereRaw('lower(email) = ?', [email]).first('id')) {
+        return res.status(409).json({ errors: [{ message: 'Já existe uma conta com este e-mail. Entre com ela para aceitar o convite.', extensions: { code: 'ACCOUNT_EXISTS' } }] });
+      }
+      const settings = await database('directus_settings').first('public_registration_role');
+      if (!settings?.public_registration_role) {
+        logger.error('rafanutri: sem papel de cadastro público para a equipe da UAN');
+        return res.status(500).json({ errors: [{ message: 'Não foi possível criar seu acesso agora.', extensions: { code: 'INTERNAL_SERVER_ERROR' } }] });
+      }
+      const [first, ...rest] = fullName.split(' ');
+      let userId = null;
+      try {
+        const users = new services.UsersService({ schema: await getSchema(), accountability: null });
+        userId = await users.createOne({ email, password, role: settings.public_registration_role, status: 'active', first_name: first, last_name: rest.join(' ') || null });
+        const unitId = await acceptUnitInvite(b.token, userId);
+        if (!unitId) {
+          await users.deleteOne(userId);
+          return unitInviteGone(res);
+        }
+        res.status(201).json({ data: { email, unit_id: unitId } });
+      } catch (error) {
+        if (userId) await database('directus_users').where({ id: userId }).del().catch(() => {});
+        if (rtTaken(error)) return conflict(res, 'Esta unidade já tem um RT. Peça um novo convite com outro papel.');
+        logger.error({ err: error }, 'rafanutri: falha ao aceitar convite da unidade');
+        res.status(500).json({ errors: [{ message: 'Não foi possível criar seu acesso agora. Tente de novo em instantes.', extensions: { code: 'INTERNAL_SERVER_ERROR' } }] });
+      }
+    });
+
+    // Com login: conta já existente (profissional) aceita o convite
+    router.post('/unit-invites/accept', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const inv = await pendingUnitInvite(req.body?.token);
+      if (!inv) return unitInviteGone(res);
+      if (await isPatientAccount(user)) {
+        return res.status(403).json({ errors: [{ message: 'Esta é uma conta da área do paciente. Crie um acesso de equipe com outro e-mail.', extensions: { code: 'FORBIDDEN' } }] });
+      }
+      try {
+        const unitId = await acceptUnitInvite(req.body.token, user);
+        if (!unitId) return unitInviteGone(res);
+        res.json({ data: { unit_id: unitId } });
+      } catch (error) {
+        if (rtTaken(error)) return conflict(res, 'Esta unidade já tem um RT. Peça um novo convite com outro papel.');
+        logger.error({ err: error }, 'rafanutri: falha ao aceitar convite da unidade');
+        res.status(500).json({ errors: [{ message: 'Não foi possível aceitar o convite agora.', extensions: { code: 'INTERNAL_SERVER_ERROR' } }] });
       }
     });
 

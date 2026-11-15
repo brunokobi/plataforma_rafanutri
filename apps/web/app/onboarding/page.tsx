@@ -7,6 +7,7 @@ import { getMyOrganizations, landingRedirect } from '@/lib/auth/organizations';
 import { getPatientArea } from '@/lib/patient-area/actions';
 import { getCurrentUser } from '@/lib/auth/session';
 import { isSignupOpen } from '@/lib/flags';
+import { getUanContext } from '@/lib/uan/actions';
 
 export const metadata: Metadata = { title: 'Configure seu consultório', robots: { index: false } };
 
@@ -15,7 +16,10 @@ export default async function OnboardingPage() {
   if (!user) redirect('/login?next=/onboarding');
   // Conta de paciente vai para a área do paciente (não cria consultório)
   if ((await getPatientArea())?.patient_account) redirect('/p');
-  const target = landingRedirect('onboarding', await getMyOrganizations(), isSignupOpen());
+  const organizations = await getMyOrganizations();
+  // Sem consultório: pode ser só da equipe de uma unidade UAN (RN-220)
+  const uanOrgs = organizations?.length === 0 ? await getUanContext() : null;
+  const target = landingRedirect('onboarding', organizations, isSignupOpen(), Boolean(uanOrgs?.length));
   if (target) redirect(target);
   const name = [user.first_name, user.last_name].filter(Boolean).join(' ');
 

@@ -1,11 +1,13 @@
 import { expect, test } from '@playwright/test';
 
 // RN-121 a RN-123 — UAN: o owner (consultório de teste com o módulo habilitado e contrato de 2 unidades)
-// cria uma unidade, vê o alerta do alvará vencendo e a desativa no fim (para liberar a vaga do contrato).
+// cria uma unidade, vê o alerta do alvará vencendo, convida um cozinheiro por link (RN-220) e a desativa
+// no fim (para liberar a vaga do contrato). A conta da equipe é fixa por projeto (@example.com, sem dados):
+// na primeira execução é criada pelo convite; nas seguintes, entra com ela e aceita.
 const email = process.env.E2E_USER_EMAIL;
 const password = process.env.E2E_USER_PASSWORD;
 
-test('unidade produtora da UAN', async ({ page }) => {
+test('unidade produtora da UAN e convite da equipe', async ({ page, browser }) => {
   test.skip(!email || !password, 'Defina E2E_USER_EMAIL e E2E_USER_PASSWORD (usuário de teste com consultório).');
   await page.goto('/login?next=/app');
   await page.getByLabel('E-mail').fill(email!);
@@ -35,6 +37,58 @@ test('unidade produtora da UAN', async ({ page }) => {
   await expect(page.getByText('Cozinha industrial · CNPJ 12.345.678/0001-90')).toBeVisible();
   await expect(page.getByText(/Alvará vence em 10 dia\(s\)/)).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+
+  // RN-220: convite do cozinheiro por link
+  const invite = page.getByRole('form', { name: 'Convidar para a equipe' });
+  await expect(invite.getByLabel('Papel')).toHaveValue('cook');
+  await invite.getByLabel('Para quem (opcional)').fill('Equipe E2E');
+  await invite.getByRole('button', { name: 'Gerar link' }).click();
+  const link = await page.getByLabel('Link do convite').inputValue({ timeout: 15_000 });
+  expect(link).toMatch(/\/uan\/convite\/[A-Za-z0-9_-]{43}$/);
+  await expect(page.getByRole('list', { name: 'Convites pendentes' }).getByText(/Cozinheiro\(a\) · Equipe E2E/)).toBeVisible();
+
+  const staffEmail = `e2e-equipe-${test.info().project.name}@example.com`;
+  const staffPassword = 'Equipe-E2E-2026!';
+  const staffCtx = await browser.newContext({ baseURL: test.info().project.use.baseURL, viewport: page.viewportSize() });
+  try {
+    const staff = await staffCtx.newPage();
+    await staff.goto(new URL(link).pathname);
+    await expect(staff.getByRole('heading', { level: 1, name: 'Você foi convidado(a) para a equipe' })).toBeVisible();
+    await expect(staff.getByText(name)).toBeVisible();
+    await expect(staff.getByLabel('Seu nome')).toHaveValue('Equipe E2E');
+    await staff.getByLabel('E-mail').fill(staffEmail);
+    await staff.getByLabel('Crie uma senha').fill(staffPassword);
+    await staff.getByLabel('Repita a senha').fill(staffPassword);
+    await staff.getByRole('button', { name: 'Criar acesso e entrar' }).click();
+    const unitUrl = /\/app\/uan\/unidades\/[0-9a-f-]{36}$/;
+    const exists = staff.getByRole('alert').filter({ hasText: 'Já existe uma conta' });
+    await expect(staff.getByRole('heading', { level: 1, name }).or(exists)).toBeVisible({ timeout: 20_000 });
+    if (await exists.isVisible()) {
+      await exists.getByRole('link', { name: 'Entrar' }).click();
+      await staff.getByLabel('E-mail').fill(staffEmail);
+      await staff.getByLabel('Senha', { exact: true }).fill(staffPassword);
+      await staff.getByRole('button', { name: 'Entrar' }).click();
+      await staff.getByRole('button', { name: 'Aceitar convite' }).click({ timeout: 20_000 });
+    }
+    await expect(staff).toHaveURL(unitUrl, { timeout: 20_000 });
+    await expect(staff.getByRole('heading', { level: 1, name })).toBeVisible();
+    await expect(staff.getByText('Cozinheiro(a)')).toBeVisible();
+    await expect(staff.getByRole('heading', { name: 'Equipe' })).toHaveCount(0);
+    // Só da equipe UAN: o início leva ao módulo UAN, não ao onboarding do consultório
+    await staff.goto('/app');
+    await expect(staff).toHaveURL(/\/app\/uan$/, { timeout: 15_000 });
+    expect(await staff.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+  } finally {
+    await staffCtx.close();
+  }
+
+  // owner vê o cozinheiro na equipe e o remove
+  await page.reload();
+  const members = page.getByRole('list', { name: 'Membros da equipe' });
+  await expect(members.getByText('Equipe E2E')).toBeVisible();
+  page.once('dialog', (d) => d.accept());
+  await members.getByRole('button', { name: 'Remover Equipe E2E da equipe' }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Equipe E2E saiu da equipe.' })).toBeVisible({ timeout: 15_000 });
 
   const edit = page.getByRole('form', { name: 'Dados da unidade' });
   await expect(edit.getByLabel('UF')).toHaveValue('ES');

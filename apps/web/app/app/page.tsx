@@ -16,6 +16,7 @@ import { isSignupOpen } from '@/lib/flags';
 import { buildModuleSections } from '@/lib/modules/access';
 import { getPlan } from '@/lib/modules/plans';
 import { getUserPlan } from '@/lib/modules/user-plan';
+import { getUanContext } from '@/lib/uan/actions';
 
 export const metadata: Metadata = { title: 'Início', robots: { index: false } };
 
@@ -24,7 +25,9 @@ export default async function AppHome({ searchParams }: { searchParams: Promise<
   if (!user) redirect('/login?next=/app');
 
   const organizations = await getMyOrganizations();
-  const target = landingRedirect('app', organizations, isSignupOpen());
+  // Sem consultório: pode ser só da equipe de uma unidade UAN (RN-220)
+  const uanOrgs = organizations?.length === 0 ? await getUanContext() : null;
+  const target = landingRedirect('app', organizations, isSignupOpen(), Boolean(uanOrgs?.length));
   if (target) redirect(target);
 
   const organization = organizations?.[0] ?? null;

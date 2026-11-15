@@ -740,9 +740,22 @@ try {
       assert.equal((await api(`/rafanutri/uan/units/${U1}`, { token: b.token })).status, 404);
       assert.equal((await api(`/rafanutri/uan/units/${U1}`, { token: b.token, method: 'PUT', body: { name: 'Invadida' } })).status, 404);
     });
-    execSync(process.env.ISOLATION_PSQL, {
-      input: `insert into unit_members (unit_id, user_id, role) select '${U1}', '${uidB}', 'cook' where exists (select 1 from directus_users where id = '${uidB}' and email like '%@example.com');`,
-      stdio: ['pipe', 'ignore', 'inherit'],
+    // RN-220: B entra como cozinheiro da unidade 1 pelo link de convite (não por SQL).
+    await check('UAN: convite por link — só quem administra convida; uso único; token falso 410', async () => {
+      assert.equal((await api(`/rafanutri/uan/units/${U1}/invites`, { token: b.token, method: 'POST', body: { role: 'cook' } })).status, 404, 'B ainda não é da unidade');
+      assert.equal((await api(`/rafanutri/uan/units/${U1}/invites`, { method: 'POST', body: { role: 'cook' } })).status, 401);
+      const inv = await api(`/rafanutri/uan/units/${U1}/invites`, { token: a.token, method: 'POST', body: { role: 'cook', label: 'Teste B' } });
+      assert.equal(inv.status, 201, JSON.stringify(inv.json));
+      const open = await api('/rafanutri/public/unit-invites/open', { method: 'POST', body: { token: inv.json.data.token } });
+      assert.equal(open.status, 200);
+      assert.deepEqual([open.json.data.unit, open.json.data.role], ['Unidade Teste 1', 'cook']);
+      assert.equal(open.json.data.organization_id, undefined, 'sem ids no convite público');
+      assert.equal((await api('/rafanutri/unit-invites/accept', { method: 'POST', body: { token: inv.json.data.token } })).status, 401);
+      const acc = await api('/rafanutri/unit-invites/accept', { token: b.token, method: 'POST', body: { token: inv.json.data.token } });
+      assert.equal(acc.status, 200, JSON.stringify(acc.json));
+      assert.equal(acc.json.data.unit_id, U1);
+      assert.equal((await api('/rafanutri/unit-invites/accept', { token: b.token, method: 'POST', body: { token: inv.json.data.token } })).status, 410, 'uso único');
+      assert.equal((await api('/rafanutri/public/unit-invites/open', { method: 'POST', body: { token: 'x'.repeat(43) } })).status, 410);
     });
     await check('UAN: cozinheiro da unidade 1 não vê a 2, não edita, não vê a equipe nem o clínico', async () => {
       const ctx = (await api('/rafanutri/uan/context', { token: b.token })).json.data;
@@ -761,6 +774,41 @@ try {
       assert.ok((await api('/rafanutri/finance/transactions', { token: b.token })).json.data?.transactions?.every((t) => t.organization_id !== A) ?? true, 'financeiro de A');
       const own = (await api(`/rafanutri/uan/units/${U1}`, { token: a.token })).json.data;
       assert.ok(own.can_edit && own.members.some((m) => m.user_id === uidB && m.role === 'cook'), 'owner vê a equipe');
+    });
+    await check('UAN: cozinheiro não convida, não troca papel nem cancela convite; owner administra', async () => {
+      assert.equal((await api(`/rafanutri/uan/units/${U1}/invites`, { token: b.token, method: 'POST', body: { role: 'cook' } })).status, 403, 'cozinheiro convida');
+      assert.equal((await api(`/rafanutri/uan/units/${U2}/invites`, { token: b.token, method: 'POST', body: { role: 'cook' } })).status, 404, 'convida em outra unidade');
+      const pending = await api(`/rafanutri/uan/units/${U1}/invites`, { token: a.token, method: 'POST', body: { role: 'auditor' } });
+      assert.equal(pending.status, 201);
+      assert.equal((await api(`/rafanutri/uan/units/${U1}/invites/${pending.json.data.id}/revoke`, { token: b.token, method: 'POST', body: {} })).status, 403, 'cozinheiro cancela');
+      assert.equal((await api(`/rafanutri/uan/units/${U1}/members`, { token: b.token, method: 'POST', body: { user_id: uidB, role: 'cook', new_role: 'manager' } })).status, 403, 'promove a si mesmo');
+      assert.equal((await api(`/rafanutri/uan/units/${U1}/invites/${pending.json.data.id}/revoke`, { token: a.token, method: 'POST', body: {} })).status, 200);
+      assert.equal((await api('/rafanutri/public/unit-invites/open', { method: 'POST', body: { token: pending.json.data.token } })).status, 410, 'revogado');
+    });
+    await check('UAN: conta criada pelo convite entra só na unidade, sem consultório', async () => {
+      const inv = await api(`/rafanutri/uan/units/${U1}/invites`, { token: a.token, method: 'POST', body: { role: 'stock_keeper' } });
+      const email = `isol-uan-${Date.now()}@example.com`;
+      const password = `Senha-${Math.random().toString(36).slice(2)}A1`;
+      assert.equal((await api('/rafanutri/public/unit-invites/accept', { method: 'POST', body: { token: inv.json.data.token, full_name: 'Estoquista Teste', email: 'x', password } })).status, 400);
+      const acc = await api('/rafanutri/public/unit-invites/accept', { method: 'POST', body: { token: inv.json.data.token, full_name: 'Estoquista Teste', email, password } });
+      assert.equal(acc.status, 201, JSON.stringify(acc.json));
+      const login = await api('/auth/login', { method: 'POST', body: { email, password } });
+      assert.equal(login.status, 200);
+      const c = login.json.data.access_token;
+      const me = await api('/users/me?fields=id', { token: c });
+      created.users.push(me.json.data.id);
+      assert.deepEqual((await api('/rafanutri/me/organizations', { token: c })).json.data, [], 'sem consultório');
+      const ctx = (await api('/rafanutri/uan/context', { token: c })).json.data;
+      assert.deepEqual(ctx.flatMap((o) => o.units.map((u) => u.id)), [U1]);
+      const pats = await api('/items/patients?fields=id&limit=1', { token: c });
+      assert.ok(pats.status >= 400 || pats.json.data.length === 0, 'pacientes');
+      assert.equal((await api(`/rafanutri/uan/units/${U2}`, { token: c })).status, 404);
+      // owner troca o papel e remove
+      assert.equal((await api(`/rafanutri/uan/units/${U1}/members`, { token: a.token, method: 'POST', body: { user_id: me.json.data.id, role: 'stock_keeper', new_role: 'auditor' } })).status, 200);
+      assert.deepEqual((await api('/rafanutri/uan/context', { token: c })).json.data[0].units[0].roles, ['auditor']);
+      assert.equal((await api(`/rafanutri/uan/units/${U1}/members`, { token: a.token, method: 'POST', body: { user_id: me.json.data.id, role: 'auditor' } })).status, 200);
+      assert.deepEqual((await api('/rafanutri/uan/context', { token: c })).json.data, [], 'removido não vê mais a unidade');
+      assert.equal((await api(`/rafanutri/uan/units/${U1}`, { token: c })).status, 404);
     });
   } else {
     console.log('  (pulado) UAN entre unidades: defina ISOLATION_PSQL');
