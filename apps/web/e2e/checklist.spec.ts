@@ -149,6 +149,16 @@ test('checklist, temperaturas e não conformidade no celular', async ({ page }) 
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
     await page.getByRole('link', { name: /← Não conformidades de/ }).click();
     await expect(page.getByRole('list', { name: 'Fechada' }).getByText(/Geladeira E2E/)).toBeVisible({ timeout: 15_000 });
+
+    // RN-165: painel de conformidade com a unidade (checklist 87,5%; 2 de 4 leituras no limite: 4 °C e o frango a 78 °C)
+    await page.goto('/app/uan/conformidade');
+    const card = page.getByRole('listitem').filter({ has: page.getByRole('link', { name, exact: true }) });
+    const comps = card.getByRole('definition');
+    await expect(card.getByLabel(`Componentes do índice de ${name}`)).toBeVisible({ timeout: 15_000 });
+    await expect(comps.nth(1)).toHaveText('87,5%');
+    await expect(comps.nth(2)).toHaveText('50%');
+    await expect(card.getByText(/^\d{1,3}(,\d)?%$/).first()).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
   } finally {
     await page.goto(unitUrl);
     const edit = page.getByRole('form', { name: 'Dados da unidade' });

@@ -27,6 +27,9 @@ export default async function UanPage() {
         <div>
           <h1 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">UAN e Qualidade</h1>
           <p className="mt-1 text-sm text-muted-foreground">Unidades produtoras e a equipe de cada uma.</p>
+          {orgs && orgs.length > 0 && (
+            <Link href="/app/uan/conformidade" className="mt-2 inline-block text-sm font-medium text-primary underline">Painel de conformidade</Link>
+          )}
         </div>
 
         {orgs === null ? (

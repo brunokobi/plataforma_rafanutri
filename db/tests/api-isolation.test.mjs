@@ -931,6 +931,17 @@ try {
       assert.equal((await api(`/rafanutri/uan/checklist-schedules/${sch.json.data.id}`, { token: b.token, method: 'DELETE' })).status, 403, 'cozinheiro remove');
       assert.equal((await api(`/rafanutri/uan/checklist-schedules/${sch.json.data.id}`, { token: a.token, method: 'DELETE' })).status, 200);
     });
+    await check('UAN: painel de conformidade — owner vê as unidades da empresa; cozinheiro só a dele; de fora, nada', async () => {
+      const own = (await api('/rafanutri/uan/compliance', { token: a.token })).json.data.organizations.find((o) => o.id === A);
+      assert.ok(own.units.some((u) => u.id === U1), 'owner vê a unidade 1');
+      const mine = (await api('/rafanutri/uan/compliance', { token: b.token })).json.data.organizations.find((o) => o.id === A);
+      assert.deepEqual(mine.units.map((u) => u.id), [U1], 'cozinheiro só a unidade 1');
+      assert.ok('index' in mine.units[0] && 'components' in mine.units[0], 'índice calculado');
+      const out = await newUser('cp');
+      created.users.push((await api('/users/me?fields=id', { token: out.token })).json.data.id);
+      assert.deepEqual((await api('/rafanutri/uan/compliance', { token: out.token })).json.data.organizations, [], 'de fora');
+      assert.equal((await api('/rafanutri/uan/compliance')).status, 401);
+    });
   } else {
     console.log('  (pulado) UAN entre unidades: defina ISOLATION_PSQL');
   }

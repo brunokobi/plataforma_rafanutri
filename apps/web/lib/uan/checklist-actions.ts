@@ -205,3 +205,14 @@ export async function removeSchedule(unitId: string, scheduleId: string): Promis
     return { ok: false, message: FAIL };
   }
 }
+
+// ── Painel de conformidade (RN-165) ──────────────────────────────────────
+
+export async function getCompliance(days = 30): Promise<import('@/lib/uan/compliance').ComplianceData | null> {
+  try {
+    const r = await call(`/uan/compliance?days=${Math.min(90, Math.max(7, Math.round(days)))}`);
+    return r.status === 200 ? (r.json?.data as import('@/lib/uan/compliance').ComplianceData) : null;
+  } catch {
+    return null;
+  }
+}

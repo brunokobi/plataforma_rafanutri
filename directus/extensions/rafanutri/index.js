@@ -2765,6 +2765,28 @@ export default {
       }
     });
 
+    // ── Painel de conformidade (RN-165) ──────────────────────────────────────────────────────
+    // Índice por unidade ativa (fórmula em uan_compliance, 0039). O owner vê todas as unidades da empresa;
+    // a equipe, só as unidades em que tem papel.
+    router.get('/uan/compliance', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const days = Math.min(90, Math.max(7, Number(req.query.days) || 30));
+      const out = [];
+      for (const o of await uanOrgs(user)) {
+        let q = database('production_units').where({ organization_id: o.id, active: true }).orderBy('name');
+        if (!o.is_owner) q = q.whereIn('id', database('unit_members').where('user_id', user).select('unit_id'));
+        const units = await q.select('id', 'name', 'kind');
+        const rows = [];
+        for (const u of units) {
+          const c = (await database.raw('select uan_compliance(?, ?) as c', [u.id, days])).rows[0].c;
+          rows.push({ ...u, ...c, index: c.index === null ? null : Number(c.index) });
+        }
+        out.push({ id: o.id, name: o.name, is_owner: o.is_owner, units: rows });
+      }
+      res.json({ data: { days, organizations: out } });
+    });
+
     // ── Feedback do programa beta (RN-047) ──────────────────────────────────────────────────
     // Texto + tipo + caminho da página (sem query string). Lido só pelo admin da plataforma no Directus.
     const FEEDBACK_KINDS = new Set(['bug', 'idea', 'praise', 'other']);

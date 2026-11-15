@@ -86,3 +86,26 @@ describe('editor de modelos e agenda (RN-147, RN-150)', () => {
     expect(validateTemplateItems([it0({ kind: 'number', min_value: '-18,5' })])).toBeNull();
   });
 });
+
+import { indexLevel, pendingCount, rankUnits, type UnitCompliance } from '@/lib/uan/compliance';
+
+describe('painel de conformidade (RN-165)', () => {
+  const unit = (name: string, index: number | null, counts: Partial<UnitCompliance['counts']> = {}): UnitCompliance => ({
+    id: name, name, kind: 'restaurant', days: 30, index, components: {}, weights: {},
+    counts: { scheduled: 0, scheduled_done: 0, runs_completed: 0, readings: 0, readings_in_range: 0, nc_open: 0, nc_overdue: 0, nc_critical_open: 0, equipment_overdue: 0, checklists_overdue_today: 0, ...counts },
+  });
+  it('faixas do índice', () => {
+    expect(indexLevel(92)).toBe('good');
+    expect(indexLevel(85)).toBe('good');
+    expect(indexLevel(84.9)).toBe('attention');
+    expect(indexLevel(70)).toBe('attention');
+    expect(indexLevel(69.9)).toBe('critical');
+    expect(indexLevel(null)).toBeNull();
+  });
+  it('comparativo: pior primeiro, sem dados no fim', () => {
+    expect(rankUnits([unit('B', 90), unit('C', null), unit('A', 60)]).map((u) => u.name)).toEqual(['A', 'B', 'C']);
+  });
+  it('pendências que pedem ação', () => {
+    expect(pendingCount(unit('A', 50, { nc_overdue: 2, equipment_overdue: 1, checklists_overdue_today: 1, nc_open: 5 }))).toBe(4);
+  });
+});
