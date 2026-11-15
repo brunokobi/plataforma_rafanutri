@@ -14,11 +14,11 @@ test('arrastar consulta para outro dia', async ({ page }) => {
   d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() || 7) - 1));
   const monday = d.toISOString().slice(0, 10);
 
-  await page.goto(`/login?next=/app/agenda?semana=${monday}`);
+  await page.goto(`/login?next=/app/agenda`);
   await page.getByLabel('E-mail').fill(email!);
   await page.getByLabel('Senha', { exact: true }).fill(password!);
   await page.getByRole('button', { name: 'Entrar' }).click();
-  await expect(page).toHaveURL(/\/app\/agenda/);
+  await expect(page).toHaveURL(/^[^?]*\/app\/agenda$/);
   await page.goto(`/app/agenda?semana=${monday}`);
 
   await page.getByRole('button', { name: 'Nova consulta' }).click();
@@ -26,7 +26,7 @@ test('arrastar consulta para outro dia', async ({ page }) => {
   const patient = form.getByLabel('Paciente');
   await patient.selectOption({ index: 1 });
   await form.getByLabel('Data').fill(monday);
-  await form.getByLabel('Horário').fill('06:15');
+  await form.getByLabel('Horário', { exact: true }).fill('06:15');
   await form.getByRole('button', { name: 'Marcar consulta' }).click();
   await expect(form).toBeHidden({ timeout: 15_000 });
 
