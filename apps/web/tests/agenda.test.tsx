@@ -125,6 +125,28 @@ describe('AgendaWeek', () => {
     expect(rescheduleAppointment).toHaveBeenCalledWith('a', { date: '2026-11-11', time: '15:00', duration: 45 });
   });
 
+  it('arrastar para outro dia remarca no mesmo horário e duração (RN-022)', async () => {
+    render(<AgendaWeek start={start} todayDate="2026-11-11" appointments={[appt('a', '2026-11-11', '09:00', '09:45'), appt('c', '2026-11-12', '10:00', '11:00', { status: 'completed' })]} patients={[P1]} />);
+    const [card, done] = screen.getAllByRole('listitem');
+    expect(card!.getAttribute('draggable')).toBe('true');
+    expect(done!.getAttribute('draggable')).toBe('false');
+    const dataTransfer = { setData: vi.fn(), effectAllowed: '', dropEffect: '' };
+    fireEvent.dragStart(card!, { dataTransfer });
+    const friday = screen.getByRole('region', { name: /^sex 13/ });
+    fireEvent.dragOver(friday, { dataTransfer });
+    await act(async () => fireEvent.drop(friday, { dataTransfer }));
+    expect(rescheduleAppointment).toHaveBeenCalledWith('a', { date: '2026-11-13', time: '09:00', duration: 45 });
+    expect(await screen.findByText(/remarcada para sex 13 .* às 09:00/)).toBeTruthy();
+  });
+
+  it('soltar no mesmo dia não remarca', async () => {
+    render(<AgendaWeek start={start} todayDate="2026-11-11" appointments={[appt('a', '2026-11-11', '09:00', '09:45')]} patients={[P1]} />);
+    const dataTransfer = { setData: vi.fn(), effectAllowed: '', dropEffect: '' };
+    fireEvent.dragStart(screen.getByRole('listitem'), { dataTransfer });
+    await act(async () => fireEvent.drop(screen.getByRole('region', { name: /^qua 11/ }), { dataTransfer }));
+    expect(rescheduleAppointment).not.toHaveBeenCalled();
+  });
+
   it('marca consulta escolhendo um horário livre sugerido', async () => {
     render(<AgendaWeek start={start} todayDate="2026-11-11" appointments={[]} patients={[P1]} defaultPatientId={P1.id} />);
     // com paciente pré-escolhido (vindo da ficha), o formulário já abre

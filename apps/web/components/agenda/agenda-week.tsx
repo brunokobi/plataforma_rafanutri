@@ -41,13 +41,25 @@ const STATUS_STYLE: Record<AppointmentStatus, string> = {
   no_show: 'border-l-tomato opacity-70',
 };
 
-function AppointmentCard({ a, onMessage, pkg }: { a: Appointment; onMessage: (m: { kind: 'ok' | 'error'; text: string }) => void; pkg?: { name: string; used: number; total: number } }) {
+function AppointmentCard({
+  a,
+  onMessage,
+  pkg,
+  onDrag,
+}: {
+  a: Appointment;
+  onMessage: (m: { kind: 'ok' | 'error'; text: string }) => void;
+  pkg?: { name: string; used: number; total: number };
+  /** Início/fim do arraste para remarcar (RN-022). */
+  onDrag?: (a: Appointment | null) => void;
+}) {
   const [pending, startTransition] = useTransition();
   const [rescheduling, setRescheduling] = useState(false);
   const [date, setDate] = useState(localDate(a.starts_at));
   const [time, setTime] = useState(localTime(a.starts_at));
   const open = OPEN_STATUSES.includes(a.status);
   const name = a.patient_id?.full_name ?? 'Paciente';
+  const movable = Boolean(onDrag) && (open || a.status === 'no_show') && !rescheduling && !pending;
 
   const run = (fn: () => Promise<{ ok: boolean; message?: string }>, okText: string) =>
     startTransition(async () => {
@@ -57,7 +69,18 @@ function AppointmentCard({ a, onMessage, pkg }: { a: Appointment; onMessage: (m:
     });
 
   return (
-    <li className={cn('rounded-xl border border-border border-l-4 bg-card p-3 text-sm', STATUS_STYLE[a.status])} aria-label={`${localTime(a.starts_at)} ${name}`}>
+    <li
+      className={cn('rounded-xl border border-border border-l-4 bg-card p-3 text-sm', STATUS_STYLE[a.status], movable && 'lg:cursor-grab')}
+      aria-label={`${localTime(a.starts_at)} ${name}`}
+      draggable={movable}
+      title={movable ? 'Arraste para outro dia para remarcar no mesmo horário' : undefined}
+      onDragStart={(e) => {
+        e.dataTransfer.setData('text/plain', a.id);
+        e.dataTransfer.effectAllowed = 'move';
+        onDrag?.(a);
+      }}
+      onDragEnd={() => onDrag?.(null)}
+    >
       <div className="flex items-start justify-between gap-2">
         <p className="font-semibold tabular-nums">
           {localTime(a.starts_at)}–{localTime(a.ends_at)}
@@ -164,6 +187,19 @@ export function AgendaWeek({
   const router = useRouter();
   const [creating, setCreating] = useState(Boolean(defaultPatientId));
   const [message, setMessage] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
+  const [dragging, setDragging] = useState<Appointment | null>(null);
+  const [dropDay, setDropDay] = useState<string | null>(null);
+  const [moving, startMoving] = useTransition();
+
+  const moveTo = (a: Appointment, date: string) => {
+    const name = a.patient_id?.full_name ?? 'Paciente';
+    const time = localTime(a.starts_at);
+    startMoving(async () => {
+      const r = await rescheduleAppointment(a.id, { date, time, duration: durationOf(a) });
+      const d = dayLabel(date);
+      setMessage(r.ok ? { kind: 'ok', text: `Consulta de ${name} remarcada para ${d.weekday} ${d.day} ${d.month} às ${time}.` } : { kind: 'error', text: r.message ?? 'Algo deu errado.' });
+    });
+  };
   const days = weekDays(start);
   const end = days[6]!;
   const range = `${dayLabel(start).day} ${dayLabel(start).month} – ${dayLabel(end).day} ${dayLabel(end).month}`;
@@ -186,7 +222,10 @@ export function AgendaWeek({
           <p className="ml-1 font-medium" aria-live="polite">{range}</p>
         </div>
         <div className="flex items-center gap-3">
-          <p className="text-sm text-muted-foreground">{active.length} consulta(s) na semana</p>
+          <p className="text-sm text-muted-foreground">
+            {active.length} consulta(s) na semana
+            <span className="hidden lg:inline"> · arraste uma consulta para outro dia para remarcar</span>
+          </p>
           <Button type="button" onClick={() => { setCreating(true); setMessage(null); }} disabled={creating}>
             <CalendarPlus className="size-4" /> Nova consulta
           </Button>
@@ -209,7 +248,10 @@ export function AgendaWeek({
         />
       )}
 
-      {message && (
+      {moving && (
+        <p role="status" className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="size-4 animate-spin" /> Remarcando…</p>
+      )}
+      {message && !moving && (
         <p role="status" className={cn('text-sm', message.kind === 'ok' ? 'text-primary' : 'text-destructive')}>{message.text}</p>
       )}
 
@@ -224,8 +266,29 @@ export function AgendaWeek({
             const list = appointments.filter((a) => localDate(a.starts_at) === d);
             const label = dayLabel(d);
             const isToday = d === todayDate;
+            const canDrop = dragging !== null && localDate(dragging.starts_at) !== d;
             return (
-              <section key={d} aria-label={`${label.weekday} ${label.day} ${label.month}`} className={cn('min-w-0 rounded-2xl border border-border p-2', isToday && 'border-primary/60 bg-primary/5')}>
+              <section
+                key={d}
+                aria-label={`${label.weekday} ${label.day} ${label.month}`}
+                className={cn('min-w-0 rounded-2xl border border-border p-2', isToday && 'border-primary/60 bg-primary/5', canDrop && 'border-dashed', canDrop && dropDay === d && 'border-primary bg-primary/10')}
+                onDragOver={(e) => {
+                  if (!canDrop) return;
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = 'move';
+                  if (dropDay !== d) setDropDay(d);
+                }}
+                onDragLeave={(e) => {
+                  if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDropDay(null);
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const a = dragging;
+                  setDragging(null);
+                  setDropDay(null);
+                  if (a && canDrop) moveTo(a, d);
+                }}
+              >
                 <h2 className="mb-2 flex items-baseline gap-1.5 px-1 text-sm">
                   <span className="font-medium capitalize text-muted-foreground">{label.weekday}</span>
                   <span className={cn('font-semibold', isToday && 'text-primary')}>{label.day}</span>
@@ -236,7 +299,7 @@ export function AgendaWeek({
                 ) : (
                   <ul className="space-y-2">
                     {list.map((a) => (
-                      <AppointmentCard key={a.id} a={a} onMessage={setMessage} pkg={a.patient_id ? packages[a.patient_id.id] : undefined} />
+                      <AppointmentCard key={a.id} a={a} onMessage={setMessage} pkg={a.patient_id ? packages[a.patient_id.id] : undefined} onDrag={moving ? undefined : setDragging} />
                     ))}
                   </ul>
                 )}
