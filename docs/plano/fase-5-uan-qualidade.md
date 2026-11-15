@@ -945,11 +945,11 @@ Referências: ANVISA RDC nº 429/2020 e IN nº 75/2020. Todos os valores abaixo 
 - **Depende de:** RN-148
 - **Descrição:** Executar checklists e registrar temperaturas sem internet, sincronizando depois.
 - **Tarefas técnicas:**
-  - [ ] Service worker com cache dos modelos e das telas
-  - [ ] IndexedDB para respostas, fotos e assinaturas pendentes
-  - [ ] Fila de sincronização com `client_id` idempotente e nova tentativa com backoff
-  - [ ] Indicador de "pendente de envio"
-  - [ ] Política de conflito: o servidor rejeita runs já concluídos por outra pessoa e o app mostra o aviso
+  - [x] Service worker com cache dos modelos e das telas
+  - [x] IndexedDB para respostas, fotos e assinaturas pendentes
+  - [x] Fila de sincronização com `client_id` idempotente e nova tentativa com backoff
+  - [x] Indicador de "pendente de envio"
+  - [x] Política de conflito: o servidor rejeita runs já concluídos por outra pessoa e o app mostra o aviso
 - **Arquivos/áreas:** `apps/web/lib/offline/`, `apps/web/public/sw.js`
 - **Critérios de aceite:** Dado um celular em modo avião, quando o cozinheiro conclui um checklist com 2 fotos e volta a ficar online, então o checklist aparece no servidor com o horário original e as fotos, sem duplicar.
 - **Testes:** e2e (Playwright com `context.setOffline`), unidade (fila).

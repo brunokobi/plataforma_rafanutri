@@ -458,6 +458,8 @@ Migração `0035_checklists.sql` (**aplicada na vpsrafa em 15/11/2026**, backup 
 
 Migração `0040_checklist_signature.sql` (aplicada em 15/11/2026): `checklist_runs.signature` (PNG) e `signed_by`, gravados por `POST /rafanutri/uan/checklist-runs/:id/signature` só com o checklist em andamento; lidos por `GET …/signature` (no app, `/api/uan/checklists/:id/assinatura`).
 
+Migração `0041_offline_answers.sql` (aplicada em 15/11/2026, backup `antes-0041-2026-11-15.dump`): no modo offline (RN-149) o app envia `answered_at` com o horário do aparelho; o gatilho das respostas aceita se estiver entre 72 h atrás e 5 min à frente (limitado a agora); fora disso, usa o horário do servidor.
+
 ### Editor de modelos e agenda (RN-147, RN-150)
 
 Migração `0038_checklist_editor.sql` (**aplicada na vpsrafa em 15/11/2026**, backup `antes-0038-2026-11-15.dump`; testes em `db/tests/0038_checklist_editor.test.sql`):
