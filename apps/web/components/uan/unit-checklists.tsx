@@ -19,6 +19,9 @@ export function UnitChecklistsSection({ unitId, data, useGeo }: { unitId: string
         <ClipboardCheck className="size-6 text-primary" aria-hidden="true" /> Checklists
       </h2>
 
+      <Link href={`/app/uan/unidades/${unitId}/nao-conformidades`} className="inline-block text-sm font-medium text-primary underline">
+        Quadro de não conformidades{data.non_conformities.length ? ` (${data.non_conformities.length} em aberto)` : ''}
+      </Link>
       {data.non_conformities.length > 0 && (
         <div className="space-y-2">
           <h3 className="font-semibold">Não conformidades abertas</h3>
@@ -28,7 +31,7 @@ export function UnitChecklistsSection({ unitId, data, useGeo }: { unitId: string
               return (
                 <li key={nc.id} className="flex flex-wrap items-start justify-between gap-2 p-3 text-sm">
                   <span className="min-w-0 flex-1">
-                    <span className="font-medium">{nc.title}</span>
+                    <Link href={`/app/uan/nao-conformidades/${nc.id}`} className="font-medium hover:underline">{nc.title}</Link>
                     <span className="block text-xs text-muted-foreground">
                       Prazo {when(nc.due_at)}
                       {nc.run_id && <> · <Link href={`/app/uan/checklists/${nc.run_id}`} className="underline">ver checklist</Link></>}

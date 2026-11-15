@@ -875,6 +875,33 @@ try {
       const hist = await api(`/rafanutri/uan/equipment/${EQ}`, { token: a.token });
       assert.equal(hist.json.data.readings.length, 2, 'histórico do owner');
     });
+    await check('UAN: não conformidade — cozinheiro abre e conclui a ação dele; só quem supervisiona planeja; fechar exige RT/owner e foto; de fora não vê', async () => {
+      const PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAEUlEQVR4nGM4YWODFTEMLQkAZZlQAVIPr1MAAAAASUVORK5CYII=';
+      const open = await api(`/rafanutri/uan/units/${U1}/non-conformities`, { token: b.token, method: 'POST', body: { title: 'Ralo entupido', severity: 'medium' } });
+      assert.equal(open.status, 201, JSON.stringify(open.json));
+      const NC = open.json.data.id;
+      assert.equal(open.json.data.status, 'open');
+      assert.equal((await api(`/rafanutri/uan/non-conformities/${NC}/plans`, { token: b.token, method: 'POST', body: { what: 'Desentupir', due_date: '2026-12-01', who_text: 'Eu' } })).status, 403, 'cozinheiro planeja');
+      const uidB2 = created.users[1];
+      const plan = await api(`/rafanutri/uan/non-conformities/${NC}/plans`, { token: a.token, method: 'POST', body: { what: 'Desentupir o ralo', due_date: '2026-12-01', who_user: uidB2 } });
+      assert.equal(plan.status, 201, JSON.stringify(plan.json));
+      assert.equal((await api(`/rafanutri/uan/non-conformities/${NC}/plans`, { token: a.token, method: 'POST', body: { what: 'X', due_date: '2026-12-01', who_user: randomUUID() } })).status, 400, 'responsável fora da equipe');
+      const out = await newUser('nc');
+      created.users.push((await api('/users/me?fields=id', { token: out.token })).json.data.id);
+      assert.equal((await api(`/rafanutri/uan/non-conformities/${NC}`, { token: out.token })).status, 404, 'lê NC');
+      assert.equal((await api(`/rafanutri/uan/action-plans/${plan.json.data.id}/done`, { token: out.token, method: 'POST', body: {} })).status, 404, 'conclui ação');
+      assert.equal((await api(`/rafanutri/uan/units/${U1}/non-conformities`, { token: out.token })).status, 404, 'quadro');
+      assert.equal((await api(`/rafanutri/uan/units/${U2}/non-conformities`, { token: b.token })).status, 404, 'quadro de outra unidade');
+      assert.equal((await api(`/rafanutri/uan/non-conformities/${NC}`, { token: b.token })).json.data.nc.status, 'in_progress');
+      assert.equal((await api(`/rafanutri/uan/action-plans/${plan.json.data.id}/done`, { token: b.token, method: 'POST', body: { note: 'Feito' } })).status, 200, 'responsável conclui');
+      assert.equal((await api(`/rafanutri/uan/non-conformities/${NC}/close`, { token: b.token, method: 'POST', body: { note: 'ok', image: PNG } })).status, 403, 'cozinheiro fecha');
+      assert.equal((await api(`/rafanutri/uan/non-conformities/${NC}/close`, { token: a.token, method: 'POST', body: { note: 'Verificado' } })).status, 400, 'sem foto');
+      const closed = await api(`/rafanutri/uan/non-conformities/${NC}/close`, { token: a.token, method: 'POST', body: { note: 'Sem retorno em 48 h', image: PNG } });
+      assert.equal(closed.status, 200, JSON.stringify(closed.json));
+      assert.equal(closed.json.data.status, 'closed');
+      assert.equal((await api(`/rafanutri/uan/non-conformities/${NC}/plans`, { token: a.token, method: 'POST', body: { what: 'Mais', due_date: '2026-12-01', who_text: 'RT' } })).status, 409, 'fechada não recebe plano');
+      assert.ok((await api('/items/non_conformities?limit=1', { token: b.token })).status >= 400, 'coleção direta recusada');
+    });
   } else {
     console.log('  (pulado) UAN entre unidades: defina ISOLATION_PSQL');
   }

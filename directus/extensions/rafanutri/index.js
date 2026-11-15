@@ -2392,6 +2392,227 @@ export default {
       }
     });
 
+    // ── Não conformidades e plano de ação 5W2H (RN-153, RN-154) ──────────────────────────────
+    // Ver: equipe da unidade. Abrir manualmente: quem executa. Planejar e apagar plano pendente: owner,
+    // gestor e RT. Concluir plano: o responsável ou quem supervisiona. Fechar (eficácia, com foto): owner ou RT.
+    const NC_FIELDS = ['id', 'unit_id', 'source', 'run_id', 'answer_position', 'equipment_id', 'title', 'description', 'severity', 'status', 'due_at', 'opened_at', 'closed_at', 'closing_note'];
+    const PLAN_FIELDS = ['id', 'non_conformity_id', 'what', 'why', 'where_', 'due_date', 'who_user', 'who_text', 'how', 'how_much_cents', 'status', 'done_note', 'done_at', 'created_at'];
+    const NC_SEVERITIES = new Set(['low', 'medium', 'high', 'critical']);
+    const ncNotFound = (res) => res.status(404).json({ errors: [{ message: 'Não conformidade não encontrada.', extensions: { code: 'NOT_FOUND' } }] });
+    const canClose = (a) => a.isOwner || a.roles.includes('technical_lead');
+    const dateOut = (d) => (d ? String(d instanceof Date ? d.toISOString() : d).slice(0, 10) : null);
+
+    async function ncAccess(user, id) {
+      if (!isUuid(id)) return null;
+      const nc = await database('non_conformities').where('id', id).first(...NC_FIELDS, 'photo', 'closing_photo', 'opened_by', 'closed_by');
+      if (!nc) return null;
+      const a = await unitAccess(user, nc.unit_id);
+      return a ? { nc, a } : null;
+    }
+    async function uploadEvidence(image, name) {
+      const img = parseImageDataUrl(image);
+      if (!img || img.type === 'image/webp') return null;
+      const files = new services.FilesService({ schema: await getSchema(), accountability: null });
+      return files.uploadOne(Readable.from(img.buffer), { filename_download: `${name}.${img.type === 'image/png' ? 'png' : 'jpg'}`, type: img.type, title: name });
+    }
+    async function dropFile(id) {
+      if (id) await new services.FilesService({ schema: await getSchema(), accountability: null }).deleteOne(id).catch(() => {});
+    }
+
+    router.get('/uan/units/:id/non-conformities', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const a = await unitAccess(user, req.params.id);
+      if (!a) return unitNotFound(res);
+      const rows = await database('non_conformities as n')
+        .where('n.unit_id', a.unit.id)
+        .where((q) => q.whereNot('n.status', 'closed').orWhere('n.closed_at', '>', database.raw("now() - interval '30 days'")))
+        .orderBy([{ column: 'n.due_at' }])
+        .limit(300)
+        .select(...NC_FIELDS.map((f) => `n.${f}`), database.raw('(n.photo is not null) as has_photo'),
+          database.raw("(select count(*)::int from action_plans p where p.non_conformity_id = n.id) as plan_count"),
+          database.raw("(select count(*)::int from action_plans p where p.non_conformity_id = n.id and p.status = 'done') as plans_done"));
+      res.json({ data: { unit: { id: a.unit.id, name: a.unit.name }, can_open: canRun(a) && a.unit.active, can_plan: canSupervise(a), can_close: canClose(a), items: rows } });
+    });
+
+    router.post('/uan/units/:id/non-conformities', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const a = await unitAccess(user, req.params.id);
+      if (!a) return unitNotFound(res);
+      if (!canRun(a)) return runForbidden(res);
+      const b = req.body ?? {};
+      const title = typeof b.title === 'string' ? b.title.trim() : '';
+      const description = typeof b.description === 'string' && b.description.trim() ? b.description.trim() : null;
+      const errors = {};
+      if (title.length < 3 || title.length > 500) errors.title = 'Descreva o problema (3 a 500 caracteres).';
+      if (description && description.length > 2000) errors.description = 'Até 2.000 caracteres.';
+      if (!NC_SEVERITIES.has(b.severity)) errors.severity = 'Escolha a gravidade.';
+      if (b.image !== undefined && b.image !== null && !parseImageDataUrl(b.image)) errors.image = 'Envie a foto em JPG ou PNG de até 600 KB.';
+      if (Object.keys(errors).length) return bad(res, errors);
+      let photo = null;
+      try {
+        if (b.image) photo = await uploadEvidence(b.image, `nc-${a.unit.id}-${Date.now()}`);
+        const [row] = await withActor(user, (trx) => trx('non_conformities')
+          .insert({ unit_id: a.unit.id, organization_id: a.unit.organization_id, source: 'manual', title, description, severity: b.severity, due_at: null, photo, opened_by: user })
+          .returning(NC_FIELDS));
+        res.status(201).json({ data: row });
+      } catch (error) {
+        await dropFile(photo);
+        p0001(res, error, 'abrir não conformidade');
+      }
+    });
+
+    router.get('/uan/non-conformities/:id', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const x = await ncAccess(user, req.params.id);
+      if (!x) return ncNotFound(res);
+      const plans = await database('action_plans as p').leftJoin('directus_users as u', 'u.id', 'p.who_user')
+        .where('p.non_conformity_id', x.nc.id).orderBy('p.created_at')
+        .select(...PLAN_FIELDS.map((f) => `p.${f}`), 'u.first_name', 'u.last_name');
+      const people = await database('directus_users').whereIn('id', [x.nc.opened_by, x.nc.closed_by].filter(Boolean)).select('id', 'first_name', 'last_name');
+      const nameOf = (id) => userName(people.find((p) => p.id === id));
+      const team = canSupervise(x.a)
+        ? await database('unit_members as m').join('directus_users as u', 'u.id', 'm.user_id').where('m.unit_id', x.a.unit.id)
+            .distinct('u.id', 'u.first_name', 'u.last_name', 'u.email').orderBy('u.first_name')
+        : [];
+      const equipment = x.nc.equipment_id ? await database('equipment').where('id', x.nc.equipment_id).first('id', 'name') : null;
+      res.json({
+        data: {
+          nc: {
+            ...x.nc, photo: undefined, closing_photo: undefined, opened_by: undefined, closed_by: undefined,
+            has_photo: Boolean(x.nc.photo), has_closing_photo: Boolean(x.nc.closing_photo),
+            opened_by_name: nameOf(x.nc.opened_by), closed_by_name: nameOf(x.nc.closed_by), equipment,
+          },
+          unit: { id: x.a.unit.id, name: x.a.unit.name },
+          can_plan: x.nc.status !== 'closed' && canSupervise(x.a),
+          can_close: x.nc.status === 'resolved' && canClose(x.a),
+          plans: plans.map((p) => ({
+            ...p, due_date: dateOut(p.due_date), who_name: userName(p) ?? p.who_text, first_name: undefined, last_name: undefined,
+            can_complete: p.status === 'planned' && x.nc.status !== 'closed' && canRun(x.a) && (p.who_user === user || canSupervise(x.a)),
+          })),
+          team: team.map((t) => ({ id: t.id, name: userName(t) ?? t.email })),
+        },
+      });
+    });
+
+    router.get('/uan/non-conformities/:id/photo/:which', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const x = await ncAccess(user, req.params.id);
+      const file = x ? (req.params.which === 'closing' ? x.nc.closing_photo : x.nc.photo) : null;
+      if (!file) return res.status(404).json({ errors: [{ message: 'Foto não encontrada.', extensions: { code: 'NOT_FOUND' } }] });
+      try {
+        const assets = new services.AssetsService({ schema: await getSchema(), accountability: null });
+        const { stream, file: meta } = await assets.getAsset(file);
+        res.setHeader('Content-Type', meta.type ?? 'application/octet-stream');
+        res.setHeader('Cache-Control', 'private, max-age=3600');
+        res.setHeader('X-Content-Type-Options', 'nosniff');
+        res.setHeader('Content-Security-Policy', "default-src 'none'; style-src 'unsafe-inline'; sandbox");
+        stream.pipe(res);
+      } catch (error) {
+        logger.error({ err: error }, 'rafanutri: falha ao ler foto da não conformidade');
+        res.status(404).json({ errors: [{ message: 'Foto não encontrada.', extensions: { code: 'NOT_FOUND' } }] });
+      }
+    });
+
+    router.post('/uan/non-conformities/:id/plans', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const x = await ncAccess(user, req.params.id);
+      if (!x) return ncNotFound(res);
+      if (!canSupervise(x.a)) return res.status(403).json({ errors: [{ message: 'Só o responsável, o gestor ou o RT planejam ações.', extensions: { code: 'FORBIDDEN' } }] });
+      const b = req.body ?? {};
+      const str = (v, max) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : null);
+      const errors = {};
+      const what = typeof b.what === 'string' ? b.what.trim() : '';
+      if (what.length < 3 || what.length > 500) errors.what = 'Descreva a ação (o quê).';
+      if (!isIsoDate(b.due_date)) errors.due_date = 'Informe o prazo (quando).';
+      let whoUser = null;
+      if (b.who_user) {
+        const member = isUuid(b.who_user) && (await database('unit_members').where({ unit_id: x.a.unit.id, user_id: b.who_user }).first('user_id'));
+        if (!member) errors.who_user = 'Escolha alguém da equipe da unidade.';
+        else whoUser = b.who_user;
+      }
+      const whoText = str(b.who_text, 120);
+      if (!whoUser && !whoText) errors.who_user = 'Informe o responsável (quem).';
+      let cents = null;
+      if (b.how_much !== undefined && b.how_much !== null && b.how_much !== '') {
+        const n = Number(String(b.how_much).replace(',', '.'));
+        if (!Number.isFinite(n) || n < 0 || n > 1_000_000) errors.how_much = 'Valor inválido.';
+        else cents = Math.round(n * 100);
+      }
+      if (Object.keys(errors).length) return bad(res, errors);
+      try {
+        const [row] = await withActor(user, (trx) => trx('action_plans').insert({
+          non_conformity_id: x.nc.id, organization_id: x.nc.organization_id ?? x.a.unit.organization_id, what, why: str(b.why, 1000), where_: str(b.where, 200),
+          due_date: b.due_date, who_user: whoUser, who_text: whoUser ? null : whoText, how: str(b.how, 1000), how_much_cents: cents, created_by: user,
+        }).returning(PLAN_FIELDS));
+        res.status(201).json({ data: { ...row, due_date: dateOut(row.due_date) } });
+      } catch (error) {
+        p0001(res, error, 'criar plano de ação');
+      }
+    });
+
+    async function planAccess(user, id) {
+      if (!isUuid(id)) return null;
+      const plan = await database('action_plans').where('id', id).first('id', 'non_conformity_id', 'who_user', 'status');
+      if (!plan) return null;
+      const x = await ncAccess(user, plan.non_conformity_id);
+      return x ? { plan, ...x } : null;
+    }
+
+    router.post('/uan/action-plans/:id/done', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const x = await planAccess(user, req.params.id);
+      if (!x) return res.status(404).json({ errors: [{ message: 'Plano não encontrado.', extensions: { code: 'NOT_FOUND' } }] });
+      if (!canRun(x.a) || (x.plan.who_user !== user && !canSupervise(x.a))) return res.status(403).json({ errors: [{ message: 'Só o responsável pela ação ou quem supervisiona marca como feita.', extensions: { code: 'FORBIDDEN' } }] });
+      const note = typeof req.body?.note === 'string' && req.body.note.trim() ? req.body.note.trim().slice(0, 1000) : null;
+      try {
+        await withActor(user, (trx) => trx('action_plans').where('id', x.plan.id).update({ status: 'done', done_by: user, done_note: note }));
+        res.json({ data: { ok: true } });
+      } catch (error) {
+        p0001(res, error, 'concluir plano de ação');
+      }
+    });
+
+    router.delete('/uan/action-plans/:id', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const x = await planAccess(user, req.params.id);
+      if (!x) return res.status(404).json({ errors: [{ message: 'Plano não encontrado.', extensions: { code: 'NOT_FOUND' } }] });
+      if (!canSupervise(x.a)) return res.status(403).json({ errors: [{ message: 'Só o responsável, o gestor ou o RT apagam ações.', extensions: { code: 'FORBIDDEN' } }] });
+      try {
+        await withActor(user, (trx) => trx('action_plans').where('id', x.plan.id).del());
+        res.json({ data: { ok: true } });
+      } catch (error) {
+        p0001(res, error, 'apagar plano de ação');
+      }
+    });
+
+    router.post('/uan/non-conformities/:id/close', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const x = await ncAccess(user, req.params.id);
+      if (!x) return ncNotFound(res);
+      if (!canClose(x.a)) return res.status(403).json({ errors: [{ message: 'Só o RT ou o responsável pela empresa fecham não conformidades.', extensions: { code: 'FORBIDDEN' } }] });
+      const note = typeof req.body?.note === 'string' ? req.body.note.trim() : '';
+      if (note.length < 3) return bad(res, { note: 'Descreva a verificação de eficácia.' });
+      if (!parseImageDataUrl(req.body?.image)) return bad(res, { image: 'Anexe a foto da evidência (JPG ou PNG de até 600 KB).' });
+      let photo = null;
+      try {
+        photo = await uploadEvidence(req.body.image, `nc-${x.nc.id}-fechamento`);
+        if (!photo) return bad(res, { image: 'Anexe a foto da evidência (JPG ou PNG de até 600 KB).' });
+        const row = await withActor(user, async (trx) => (await trx.raw('select * from nc_close(?, ?, ?, ?)', [x.nc.id, user, note, photo])).rows[0]);
+        res.json({ data: { id: row.id, status: row.status, closed_at: row.closed_at } });
+      } catch (error) {
+        await dropFile(photo);
+        p0001(res, error, 'fechar não conformidade');
+      }
+    });
+
     // ── Feedback do programa beta (RN-047) ──────────────────────────────────────────────────
     // Texto + tipo + caminho da página (sem query string). Lido só pelo admin da plataforma no Directus.
     const FEEDBACK_KINDS = new Set(['bug', 'idea', 'praise', 'other']);

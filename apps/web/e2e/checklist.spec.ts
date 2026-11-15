@@ -8,7 +8,7 @@ const password = process.env.E2E_USER_PASSWORD;
 // PNG 8×8 válido (o navegador reduz e envia como JPEG)
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAEUlEQVR4nGM4YWODFTEMLQkAZZlQAVIPr1MAAAAASUVORK5CYII=', 'base64');
 
-test('checklist de abertura da cozinha e temperaturas no celular', async ({ page }) => {
+test('checklist, temperaturas e não conformidade no celular', async ({ page }) => {
   test.skip(!email || !password, 'Defina E2E_USER_EMAIL e E2E_USER_PASSWORD (usuário de teste com consultório).');
   test.skip(test.info().project.name !== 'mobile', 'Checklist é feito no celular.');
 
@@ -114,6 +114,39 @@ test('checklist de abertura da cozinha e temperaturas no celular', async ({ page
     await food.getByLabel('Temperatura (°C)').fill('78');
     await food.getByRole('button', { name: 'Registrar' }).click();
     await expect(page.getByRole('list', { name: 'Temperaturas de alimentos' }).getByText('Frango assado')).toBeVisible({ timeout: 15_000 });
+
+    // RN-153/154: quadro, plano 5W2H, ação feita e fechamento com foto
+    await page.getByRole('link', { name: /Quadro de não conformidades/ }).click();
+    await expect(page.getByRole('heading', { level: 1, name: 'Não conformidades' })).toBeVisible({ timeout: 15_000 });
+    await page.getByRole('list', { name: 'Aberta' }).getByRole('link', { name: /Geladeira E2E: temperatura fora do limite/ }).click();
+    await expect(page.getByRole('heading', { level: 1, name: /Geladeira E2E: temperatura fora do limite/ })).toBeVisible({ timeout: 15_000 });
+    await page.getByRole('button', { name: 'Plano de ação (5W2H)' }).click();
+    const plan = page.getByRole('form', { name: 'Plano de ação' });
+    await plan.getByLabel('O quê (ação)').fill('Trocar a borracha da porta');
+    await plan.getByLabel('Por quê (causa)').fill('Vedação gasta');
+    await plan.getByLabel('Nome do responsável').fill('Manutenção');
+    await plan.getByLabel('Quando (prazo)').fill(new Date(Date.now() + 2 * 86400e3).toISOString().slice(0, 10));
+    await plan.getByLabel('Quanto (R$, opcional)').fill('120');
+    await plan.getByRole('button', { name: 'Salvar plano' }).click();
+    const actions = page.getByRole('list', { name: 'Ações' });
+    await expect(actions.getByText('Trocar a borracha da porta')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText('Em tratamento', { exact: true })).toBeVisible();
+    await actions.getByRole('button', { name: 'Marcar como feita' }).click();
+    await actions.getByLabel('O que foi feito (opcional)').fill('Borracha trocada');
+    await actions.getByRole('button', { name: 'Confirmar' }).click();
+    const close = page.getByRole('form', { name: 'Fechar não conformidade' });
+    await expect(close).toBeVisible({ timeout: 15_000 });
+    await close.getByLabel('Como foi verificado').fill('Geladeira estável a 4 °C por 24 h');
+    await close.getByRole('button', { name: 'Fechar não conformidade' }).click();
+    await expect(close.getByRole('alert')).toHaveText('Anexe a foto da evidência para fechar.');
+    await close.getByLabel('Foto da evidência (obrigatória)').setInputFiles({ name: 'evidencia.png', mimeType: 'image/png', buffer: PNG });
+    await expect(close.getByText('Foto pronta para enviar.')).toBeVisible();
+    await close.getByRole('button', { name: 'Fechar não conformidade' }).click();
+    await expect(page.getByRole('heading', { name: /^Fechada em/ })).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByRole('img', { name: 'Evidência do fechamento' })).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+    await page.getByRole('link', { name: /← Não conformidades de/ }).click();
+    await expect(page.getByRole('list', { name: 'Fechada' }).getByText(/Geladeira E2E/)).toBeVisible({ timeout: 15_000 });
   } finally {
     await page.goto(page.url().includes('/unidades/') ? page.url() : '/app/uan');
     if (!page.url().includes('/unidades/')) await page.getByRole('link', { name }).click();
