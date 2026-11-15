@@ -119,6 +119,15 @@ test('unidade produtora da UAN e convite da equipe', async ({ page, browser }) =
   const todayItem = page.getByRole('list', { name: 'Checklists de hoje' }).getByRole('listitem').filter({ hasText: 'Abertura da cozinha — personalizado' });
   await expect(todayItem.getByText('Atrasado', { exact: true })).toBeVisible();
   await expect(todayItem.getByRole('button', { name: 'Iniciar Abertura da cozinha — personalizado' })).toBeVisible();
+  // Remove da agenda e tira o modelo de uso (não acumula cópias na empresa de teste)
+  await page.getByRole('button', { name: 'Remover Abertura da cozinha — personalizado da agenda' }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Removido da agenda.' })).toBeVisible({ timeout: 15_000 });
+  await page.getByRole('list', { name: 'Modelos de checklist' }).getByRole('listitem').filter({ hasText: 'Abertura da cozinha — personalizado' }).getByRole('link', { name: 'Editar' }).click();
+  const editor2 = page.getByRole('form', { name: 'Editar modelo' });
+  await editor2.getByLabel('Modelo em uso (aparece para a equipe)').uncheck();
+  await editor2.getByRole('button', { name: 'Salvar modelo' }).click();
+  await expect(editor2.getByRole('status')).toContainText('Modelo salvo', { timeout: 15_000 });
+  await page.getByRole('link', { name: '← Voltar' }).click();
 
   const edit = page.getByRole('form', { name: 'Dados da unidade' });
   await expect(edit.getByLabel('UF')).toHaveValue('ES');

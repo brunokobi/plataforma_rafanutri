@@ -28,7 +28,7 @@ test('checklist, temperaturas e não conformidade no celular', async ({ page }) 
   const unitUrl = new URL(page.url()).pathname;
 
   try {
-    await page.getByRole('list', { name: 'Modelos de checklist' }).getByRole('button', { name: 'Iniciar Abertura da cozinha' }).click();
+    await page.getByRole('list', { name: 'Modelos de checklist' }).getByRole('button', { name: 'Iniciar Abertura da cozinha', exact: true }).click();
     await expect(page).toHaveURL(/\/app\/uan\/checklists\/[0-9a-f-]{36}$/, { timeout: 15_000 });
     await expect(page.getByRole('heading', { level: 1, name: 'Abertura da cozinha' })).toBeVisible();
 
