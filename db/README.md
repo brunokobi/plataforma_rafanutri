@@ -599,7 +599,14 @@ Migração `0046_stock.sql` (**aplicada na vpsrafa em 15/11/2026**, backup `ante
 | `POST /rafanutri/uan/units/:id/inventories`, `GET /rafanutri/uan/inventories/:id`, `PUT …/counts`, `POST …/cancel` | Idem (saldo do sistema só aparece para quem aprova) |
 | `POST /rafanutri/uan/inventories/:id/approve` | RT da unidade ou owner |
 
-Migração `0047_purchasing.sql` (pedido e recebimento) está escrita e testada no banco descartável; entra em produção com a U4b.
+### Pedido de compra e recebimento (U4b: RN-139 a RN-141)
+
+Migração `0047_purchasing.sql` (**aplicada na vpsrafa em 15/11/2026**, backup `antes-0047-2026-11-15.dump`; testes em `db/tests/0047_purchasing.test.sql`): `purchase_orders` (rascunho → enviado → recebido/cancelado; itens só no rascunho), `purchase_order_items` (unidade de compra, preço, recebido), `goods_receipts` e itens. `receive_order(pedido, usuário, nota, obs, itens)` só para pedido enviado: aceitos viram lote (`stock_receive`) e preço (`ingredient_prices`, origem recebimento); recusados exigem motivo e abrem não conformidade (`source = 'receiving'`).
+
+| Endpoint | Quem |
+|---|---|
+| `GET /rafanutri/uan/units/:id/purchase-needs?from=&to=` (até 31 dias) | Owner, gestor, RT, estoquista |
+| `GET`/`POST /rafanutri/uan/units/:id/purchase-orders` (`{ orders: [...] }`), `GET`/`PUT /rafanutri/uan/purchase-orders/:id`, `POST …/send`, `…/cancel`, `…/receive` | Idem |
 
 ## Feedback do beta (RN-047)
 

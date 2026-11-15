@@ -806,10 +806,10 @@ Referências: ANVISA RDC nº 429/2020 e IN nº 75/2020. Todos os valores abaixo 
 - **Depende de:** RN-138, RN-143
 - **Descrição:** Explodir cardápio × comensais × fichas em necessidade bruta por insumo, descontando estoque e pedidos em aberto.
 - **Tarefas técnicas:**
-  - [ ] `purchaseRequirements(period, menu, diners, recipes, stock, openOrders)` no `nutrition-core`
-  - [ ] Explosão recursiva de sub-receitas
-  - [ ] Estoque de segurança e margem por unidade
-  - [ ] Arredondamento para a unidade de compra
+  - [x] `purchaseRequirements(period, menu, diners, recipes, stock, openOrders)` no `nutrition-core`
+  - [x] Explosão recursiva de sub-receitas
+  - [x] Estoque de segurança e margem por unidade
+  - [x] Arredondamento para a unidade de compra
   - [ ] Tela com a lista por categoria e exportação CSV/PDF
 - **Arquivos/áreas:** `packages/nutrition-core/src/purchasing/`, `apps/web/app/(uan)/uan/[unitId]/purchasing/`
 - **Critérios de aceite:** Dado 1 dia com 100 comensais, per capita de arroz de 150 g cozido, ficha com IC 2,5 e FC 1,0, quando calcular, então a necessidade de arroz cru é 6 kg (antes de margem e estoque).
@@ -821,10 +821,10 @@ Referências: ANVISA RDC nº 429/2020 e IN nº 75/2020. Todos os valores abaixo 
 - **Depende de:** RN-139
 - **Descrição:** Gerar pedidos por fornecedor a partir da necessidade e enviá-los.
 - **Tarefas técnicas:**
-  - [ ] Migração `purchase_orders` e `purchase_order_items`
-  - [ ] Separação automática por fornecedor preferencial
+  - [x] Migração `purchase_orders` e `purchase_order_items`
+  - [x] Separação automática por fornecedor preferencial
   - [ ] PDF do pedido e envio por e-mail ou WhatsApp via n8n
-  - [ ] Status do pedido
+  - [x] Status do pedido
 - **Arquivos/áreas:** `supabase/migrations/`, `apps/web/app/(uan)/uan/[unitId]/purchasing/`, `n8n/workflows/purchase-order-send.json`
 - **Critérios de aceite:** Dada uma necessidade com 3 fornecedores, quando gerar pedidos, então são criados 3 pedidos em rascunho que podem ser enviados.
 - **Testes:** integração, e2e.
@@ -835,11 +835,11 @@ Referências: ANVISA RDC nº 429/2020 e IN nº 75/2020. Todos os valores abaixo 
 - **Depende de:** RN-140, RN-146
 - **Descrição:** Conferência no celular com checklist de recebimento (temperatura, embalagem, validade, rotulagem, veículo) e entrada em estoque por lote.
 - **Tarefas técnicas:**
-  - [ ] Migração `goods_receipts`
-  - [ ] Tela mobile: conferir quantidade, lote e validade item a item
+  - [x] Migração `goods_receipts`
+  - [x] Tela mobile: conferir quantidade, lote e validade item a item
   - [ ] Checklist de recebimento padrão com temperatura por tipo (refrigerado, congelado)
   - [ ] Rejeição parcial com foto e motivo, gerando não conformidade
-  - [ ] Criação dos lotes em `stock_lots` e movimento `in`
+  - [x] Criação dos lotes em `stock_lots` e movimento `in`
 - **Arquivos/áreas:** `apps/web/app/(uan)/uan/[unitId]/receiving/`
 - **Critérios de aceite:** Dado um pedido com carne, quando o estoquista registra 9 °C no recebimento, então o item é marcado como não conforme, exige foto e abre uma não conformidade.
 - **Testes:** e2e, integração.

@@ -194,9 +194,9 @@ Status: `todo`, `doing`, `done`, `adiado` (fora do MVP, ver [ADR 0004](adr/0004-
 | [RN-136](plano/fase-5-uan-qualidade.md#rn-136--editor-de-cardápio-cíclico) | Editor de cardápio cíclico | feature | 8 | RN-134, RN-135 | doing |
 | [RN-137](plano/fase-5-uan-qualidade.md#rn-137--comensais-e-per-capita) | Comensais e per capita | feature | 3 | RN-135 | doing |
 | [RN-138](plano/fase-5-uan-qualidade.md#rn-138--custo-e-análise-nutricional-do-cardápio) | Custo e análise nutricional do cardápio | feature | 5 | RN-132, RN-136, RN-137 | todo |
-| [RN-139](plano/fase-5-uan-qualidade.md#rn-139--cálculo-da-necessidade-de-compras) | Cálculo da necessidade de compras | feature | 8 | RN-138, RN-143 | todo |
-| [RN-140](plano/fase-5-uan-qualidade.md#rn-140--pedido-de-compra) | Pedido de compra | feature | 5 | RN-139 | todo |
-| [RN-141](plano/fase-5-uan-qualidade.md#rn-141--recebimento-de-mercadorias) | Recebimento de mercadorias | feature | 5 | RN-140, RN-146 | todo |
+| [RN-139](plano/fase-5-uan-qualidade.md#rn-139--cálculo-da-necessidade-de-compras) | Cálculo da necessidade de compras | feature | 8 | RN-138, RN-143 | done |
+| [RN-140](plano/fase-5-uan-qualidade.md#rn-140--pedido-de-compra) | Pedido de compra | feature | 5 | RN-139 | doing |
+| [RN-141](plano/fase-5-uan-qualidade.md#rn-141--recebimento-de-mercadorias) | Recebimento de mercadorias | feature | 5 | RN-140, RN-146 | doing |
 | [RN-142](plano/fase-5-uan-qualidade.md#rn-142--migração-de-estoque) | Migração de estoque | infra | 2 | RN-125 | done |
 | [RN-143](plano/fase-5-uan-qualidade.md#rn-143--estoque-com-fefo) | Estoque com FEFO | feature | 5 | RN-142 | done |
 | [RN-144](plano/fase-5-uan-qualidade.md#rn-144--inventário-e-ajustes) | Inventário e ajustes | feature | 3 | RN-143 | done |
