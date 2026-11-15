@@ -1237,13 +1237,14 @@ Acrescentados depois da comparação com o TecFood e o NutriUAN. A ordem e o agr
 - **Depende de:** RN-121, RN-122
 - **Descrição:** Owner, gestor ou RT convida pessoas para a unidade com um papel (RT, gestor, cozinheiro, estoquista, auditor) por link de uso único, como o convite do paciente (RN-203). Funciona sem e-mail.
 - **Tarefas técnicas:**
-  - [ ] Tabela `unit_invites` (token com hash, papel, validade de 7 dias, uso único, revogável)
-  - [ ] Página pública `/uan/convite/[token]`: cria a conta ou aceita logado; entra só em `unit_members`
-  - [ ] Login de quem só tem papel na UAN leva para `/app/uan` (não para o onboarding do consultório)
-  - [ ] Remover membro e trocar papel; um RT por unidade
-  - [ ] Cenários no teste de isolamento
+  - [x] Tabela `unit_invites` (token com hash, papel, validade de 7 dias, uso único, revogável)
+  - [x] Página pública `/uan/convite/[token]`: cria a conta ou aceita logado; entra só em `unit_members`
+  - [x] Login de quem só tem papel na UAN leva para `/app/uan` (não para o onboarding do consultório)
+  - [x] Remover membro e trocar papel; um RT por unidade
+  - [x] Cenários no teste de isolamento
 - **Critérios de aceite:** Dado um owner, quando gera o link de cozinheiro da unidade A e a pessoa aceita, então ela entra, vê só a unidade A e não acessa pacientes nem financeiro.
 - **Testes:** banco, isolamento, e2e.
+- **Status:** ✅ concluído em 15/11/2026 (migração 0034).
 
 ### RN-221 — Serviços, perfis de público e modelos de autonomia do cardápio
 - **Tipo:** feature

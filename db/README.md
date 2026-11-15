@@ -417,6 +417,25 @@ update organizations set modules = '{clinical,uan}' where id = '<org>';
 insert into organization_contracts (organization_id, plan, units_contracted) values ('<org>', 'uan_pilot', 2);
 ```
 
+### Convite da equipe por link (RN-220)
+
+Migração `0034_unit_invites.sql` (**aplicada na vpsrafa em 15/11/2026**, backup `antes-0034-2026-11-15.dump`; testes em `db/tests/0034_unit_invites.test.sql`):
+
+- `unit_invites`: unidade, papel, rótulo opcional ("para quem"), hash SHA-256 do token, validade de no máximo 7 dias, uso único, revogável; só unidades ativas. O gatilho `unit_invites_guard` confere quem convida: o owner convida para qualquer papel; gestor e RT da unidade, só cozinheiro, estoquista e auditor. Até 30 convites pendentes por unidade. O convite não muda depois de criado (só uso ou revogação, uma vez).
+- `unit_invite_accept(hash, usuário)`: trava o convite, grava o papel em `unit_members` e marca o uso na mesma transação. Devolve a unidade; `null` se vencido, usado, revogado ou unidade inativa. Se a unidade já tem RT, recusa sem consumir o convite.
+- Auditoria: `unit_invites` e `unit_members` (entrada, troca de papel e saída) entram na trilha da organização.
+
+| Endpoint | Quem |
+|---|---|
+| `POST /rafanutri/uan/units/:id/invites` (`{ role, label }`) | Owner (qualquer papel); gestor e RT (cozinheiro, estoquista, auditor). Devolve o token uma única vez |
+| `POST /rafanutri/uan/units/:id/invites/:inviteId/revoke` | Quem pode convidar para aquele papel |
+| `POST /rafanutri/uan/units/:id/members` (`{ user_id, role, new_role }`; sem `new_role`, remove) | Mesma regra de papéis; um RT por unidade (409) |
+| `POST /rafanutri/public/unit-invites/open` | Público: empresa, unidade, tipo, papel e validade (sem ids) |
+| `POST /rafanutri/public/unit-invites/accept` (`{ token, full_name, email, password }`) | Público: cria a conta (papel do cadastro público) e entra na unidade; e-mail já cadastrado → 409 `ACCOUNT_EXISTS` |
+| `POST /rafanutri/unit-invites/accept` | Conta logada (não aceita conta de paciente) |
+
+`GET /rafanutri/uan/units/:id` passa a trazer `can_manage_team`, `invitable_roles` e os convites pendentes (para owner, gestor e RT). Quem só está na equipe da UAN (sem consultório) entra direto em `/app/uan`.
+
 ## Feedback do beta (RN-047)
 
 Migração `0032_feedback.sql` (**aplicada na vpsrafa em 14/11/2026**; testes em `db/tests/0032_feedback.test.sql`): `product_feedback` (consultório, autor, tipo `bug`/`idea`/`praise`/`other`, mensagem de 3 a 2.000 caracteres, caminho da página sem query string, status `new`/`read`/`done`). Gravado só por `POST /rafanutri/feedback` (qualquer conta logada, até 20 por dia); nenhum papel lê a coleção: o admin da plataforma consulta no Directus ou por SQL. Sem print de tela, porque a tela costuma ter dados de pacientes. O e2e grava mensagens com o prefixo `[e2e]`:

@@ -135,7 +135,7 @@ Segmentos especiais (hospitalar, escolar) e APPCC/rotulagem entram por demanda.
 
 | Entrega | Nome | O que o cliente passa a fazer | Itens | IA da entrega | Status |
 |---|---|---|---|---|---|
-| **U0** | Empresa, unidades e equipe | Unidades com alvará e localização; equipe por papel, convidada por link | RN-120 a RN-123, **RN-220** | — | ✅ base em produção; falta o convite (RN-220) |
+| **U0** | Empresa, unidades e equipe | Unidades com alvará e localização; equipe por papel, convidada por link | RN-120 a RN-123, **RN-220** | — | ✅ em produção (convite da equipe por link em 15/11/2026) |
 | **U1** | **Qualidade BPF (MVP vendável)** | Checklists no celular (foto, assinatura, offline), temperaturas com alerta, não conformidades com 5W2H, painel de conformidade | RN-146 a RN-154, RN-165 | **RN-230** plano de ação sugerido para a não conformidade | Próxima |
 | **U2** | Ficha técnica e cardápio | Insumos, fornecedores e preços; fichas com FC, IC, rendimento, custo, nutrientes e alergênicos; cardápio cíclico por serviço e por público, com regras de contrato, aprovação e publicação para o comensal | RN-125 a RN-136, **RN-221 a RN-224** | **RN-231** cenários de cardápio; **RN-232** ingrediente → TACO e FC/IC de referência | |
 | **U3** | Produção, comensais e desperdício | Previsão e registro de comensais, lista de preparo do dia, pesagem de sobra limpa e resto-ingesta com motivo, adesão por prato, per capita ajustado | RN-137, **RN-225 a RN-227** | **RN-233** previsão de comensais; **RN-234** ajuste de per capita; **RN-235** causas do desperdício | |

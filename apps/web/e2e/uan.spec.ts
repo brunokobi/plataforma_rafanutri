@@ -65,6 +65,8 @@ test('unidade produtora da UAN e convite da equipe', async ({ page, browser }) =
     await expect(staff.getByRole('heading', { level: 1, name }).or(exists)).toBeVisible({ timeout: 20_000 });
     if (await exists.isVisible()) {
       await exists.getByRole('link', { name: 'Entrar' }).click();
+      await expect(staff).toHaveURL(/\/login\?next=%2Fuan%2Fconvite%2F/);
+      await expect(staff.getByRole('button', { name: 'Entrar' })).toBeVisible();
       await staff.getByLabel('E-mail').fill(staffEmail);
       await staff.getByLabel('Senha', { exact: true }).fill(staffPassword);
       await staff.getByRole('button', { name: 'Entrar' }).click();
