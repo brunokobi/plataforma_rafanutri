@@ -32,9 +32,9 @@ export function IndicatorsPanel({ data }: { data: Indicators }) {
         <h2 id="indicadores" className="font-display text-xl font-semibold">Indicadores de <span className="capitalize">{monthLong(ym)}</span></h2>
         {data.nutritionists.length > 0 && (
           <nav aria-label="Filtrar por nutricionista" className="ml-auto flex flex-wrap gap-1">
-            <Link href="/app" aria-current={data.nutritionist ? undefined : 'page'} className={cn('rounded-md px-3 py-1.5 text-sm', !data.nutritionist ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted')}>Todos</Link>
+            <Link href="/app/clinico" aria-current={data.nutritionist ? undefined : 'page'} className={cn('rounded-md px-3 py-1.5 text-sm', !data.nutritionist ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted')}>Todos</Link>
             {data.nutritionists.map((n) => (
-              <Link key={n.id} href={`/app?nutricionista=${n.id}`} aria-current={data.nutritionist === n.id ? 'page' : undefined}
+              <Link key={n.id} href={`/app/clinico?nutricionista=${n.id}`} aria-current={data.nutritionist === n.id ? 'page' : undefined}
                 className={cn('rounded-md px-3 py-1.5 text-sm', data.nutritionist === n.id ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted')}>{n.name}</Link>
             ))}
           </nav>

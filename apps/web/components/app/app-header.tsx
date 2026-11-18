@@ -20,6 +20,7 @@ export function AppHeader({ homeHref = '/app', patientsHref = '/app/pacientes', 
             className="hidden min-w-0 items-center gap-5 overflow-x-auto pr-6 text-sm font-medium whitespace-nowrap text-muted-foreground [mask-image:linear-gradient(to_right,black_calc(100%-2rem),transparent)] [scrollbar-width:none] sm:flex [&::-webkit-scrollbar]:hidden [&>a]:shrink-0"
           >
             <Link href={homeHref} className="hover:text-foreground">Módulos</Link>
+            <Link href="/app/clinico" className="hover:text-foreground">Painel</Link>
             <Link href={patientsHref} className="hover:text-foreground">Pacientes</Link>
             <Link href="/app/agenda" className="hover:text-foreground">Agenda</Link>
             <Link href="/app/crm" className="hover:text-foreground">CRM</Link>

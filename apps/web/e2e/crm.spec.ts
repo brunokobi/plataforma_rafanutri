@@ -50,8 +50,8 @@ test('funil do CRM', async ({ page }) => {
     await expect(page.getByRole('table').getByText('Instagram')).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
 
-    // RN-064: indicadores no painel inicial
-    await page.goto('/app');
+    // RN-064: indicadores no painel do módulo Clínico
+    await page.goto('/app/clinico');
     await expect(page.getByRole('heading', { name: /^Indicadores de / })).toBeVisible();
     for (const label of ['Faturamento do mês', 'A receber', 'Ticket médio', 'Consultas realizadas', 'Taxa de faltas', 'Novos pacientes', 'Retornos atrasados']) {
       await expect(page.getByRole('group', { name: label })).toBeVisible();

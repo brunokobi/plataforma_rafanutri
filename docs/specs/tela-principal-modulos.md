@@ -1,6 +1,6 @@
 # Spec — Tela principal com os módulos do usuário (`/app`)
 
-- **Status:** implementada em 10/11/2026 (`/app`). O card Clínico tem o botão "Ver demonstração" ([módulo clínico em demonstração](modulo-clinico-demo.md))
+- **Status:** implementada em 10/11/2026 (`/app`). **18/11/2026:** a tela depois do login virou a **escolha de módulo** ("Escolha um módulo", com os publicados primeiro e o botão "Abrir"); o painel do dia e os indicadores do consultório passaram para `/app/clinico`, a entrada do módulo Clínico. Clínico, Área do paciente, Gestão do consultório e UAN estão publicados; módulo habilitado na organização (`organizations.modules`, ex.: UAN por contrato) conta como incluso em qualquer plano
 - **Fontes:** [02-modulos.md](../02-modulos.md), [01-visao-produto.md](../01-visao-produto.md) (planos), [Fase 1B](../plano/fase-1b-freemium-area-paciente.md) (plano gratuito, `plans.features`), [Módulo UAN](../modulos/uan.md), [ADR 0008](../adr/0008-backend-directus.md)
 
 ## 1. Objetivo
@@ -54,7 +54,7 @@ O estado combina **acesso pelo plano** com **disponibilidade no produto**:
 | Não incluso | qualquer | **Disponível no plano X** (selo neutro, cadeado) | "Ver planos" (âncora para a comparação) |
 | Contrato | qualquer | **Sob contrato** | "Falar com a equipe" (provisório: âncora para planos) |
 
-Hoje nenhum módulo está publicado; todos aparecem como "em breve". Quando um módulo for liberado, muda-se só o campo `availability` no catálogo.
+Publicados (18/11/2026): Clínico (`/app/clinico`), Área do paciente (`/app/receitas`, a biblioteca que alimenta a área), Gestão do consultório (`/app/financeiro`) e UAN (`/app/uan`). IA, Materno-infantil e Saúde pública seguem "em breve". Para liberar outro, muda-se o campo `availability` e o `href` no catálogo.
 
 ## 5. Fonte dos dados
 

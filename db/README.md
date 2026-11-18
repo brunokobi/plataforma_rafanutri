@@ -804,3 +804,13 @@ Limpeza das contas de paciente criadas pelo e2e (usuário de teste):
 ```sql
 delete from directus_users where email like 'e2e.paciente.%@example.com' and role = '5d1c7a3e-0002-4b6e-9a01-7e2a0c9a0002';
 ```
+
+## Fichas técnicas de demonstração da UAN
+
+`apps/web/scripts/seed-uan-fichas.ts` cadastra, pela API e com o login do responsável pela empresa, um fornecedor fictício, ~70 insumos com preço de atacado aproximado e vínculo à TACO, e **73 fichas técnicas aprovadas** (desjejum, almoço, lanche e jantar: arroz e feijão, 18 pratos principais, guarnições, saladas, sopas, sobremesas, frutas e bebidas), com 50 porções, passos e pontos críticos de temperatura. O "Molho de tomate caseiro" é sub-receita de três pratos. A aprovação usa o mesmo cálculo do app (`lib/uan/techsheets` + `nutrition-core`). Idempotente: o que já existe com o mesmo nome não é recriado.
+
+```bash
+SEED_EMAIL=<responsável> SEED_PASSWORD=<senha> pnpm db:seed:uan
+```
+
+Os valores são de demonstração; revisar com a RT antes de usar numa unidade real. O leite integral da TACO não tem energia analisada, então as preparações com leite mostram o aviso de valor não analisado.

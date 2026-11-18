@@ -1,17 +1,11 @@
-import { ChefHat } from 'lucide-react';
-import Link from 'next/link';
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { AppHeader } from '@/components/app/app-header';
 import { ModuleCard } from '@/components/app/module-card';
 import { PlanSummary } from '@/components/app/plan-summary';
 import { PlansComparison } from '@/components/app/plans-comparison';
-import { TodayPanel } from '@/components/app/today-panel';
-import { IndicatorsPanel } from '@/components/app/indicators-panel';
-import { getIndicators } from '@/lib/indicators/actions';
 import { getMyOrganizations, landingRedirect } from '@/lib/auth/organizations';
 import { getCurrentUser } from '@/lib/auth/session';
-import { loadDashboard } from '@/lib/dashboard-data';
 import { isSignupOpen } from '@/lib/flags';
 import { buildModuleSections } from '@/lib/modules/access';
 import { getPlan } from '@/lib/modules/plans';
@@ -20,7 +14,8 @@ import { getUanContext } from '@/lib/uan/actions';
 
 export const metadata: Metadata = { title: 'Início', robots: { index: false } };
 
-export default async function AppHome({ searchParams }: { searchParams: Promise<{ nutricionista?: string }> }) {
+/** Tela depois do login: todos os módulos, para escolher por onde entrar. */
+export default async function AppHome() {
   const user = await getCurrentUser();
   if (!user) redirect('/login?next=/app');
 
@@ -33,11 +28,11 @@ export default async function AppHome({ searchParams }: { searchParams: Promise<
   const organization = organizations?.[0] ?? null;
   const planCode = getUserPlan(organizations);
   const plan = getPlan(planCode);
-  const { mine, others } = buildModuleSections(planCode);
+  const enabled = [...new Set((organizations ?? []).flatMap((o) => o.modules ?? []))];
+  const { mine, others } = buildModuleSections(planCode, undefined, enabled);
+  // Primeiro o que já abre, depois o incluso em construção
+  const ready = [...mine.filter((v) => v.status === 'available'), ...mine.filter((v) => v.status !== 'available')];
   const name = user.first_name || user.email;
-  const clinical = organizations?.find((o) => o.role === 'owner' || o.role === 'nutritionist') ?? null;
-  const { nutricionista } = await searchParams;
-  const [dashboard, indicators] = clinical ? await Promise.all([loadDashboard(clinical.id), getIndicators(undefined, nutricionista)]) : [null, null];
 
   return (
     <div className="min-h-dvh">
@@ -53,45 +48,29 @@ export default async function AppHome({ searchParams }: { searchParams: Promise<
           )}
         </div>
 
-        {dashboard && <TodayPanel data={dashboard} />}
+        <section aria-labelledby="escolha-modulo">
+          <h2 id="escolha-modulo" className="font-display text-2xl font-semibold tracking-tight">Escolha um módulo</h2>
+          <p className="mt-1 text-sm text-muted-foreground">Os módulos do seu plano {plan.name}. Clique em “Abrir” para entrar.</p>
+          <div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {ready.map((v) => (
+              <ModuleCard key={v.module.code} view={v} />
+            ))}
+          </div>
+        </section>
 
-        {indicators && <IndicatorsPanel data={indicators} />}
-
-        {organizations?.some((o) => o.modules?.includes('uan')) && (
-          <Link href="/app/uan" className="flex items-center gap-4 rounded-2xl border border-primary/40 bg-primary/5 p-5 hover:bg-primary/10">
-            <ChefHat className="size-8 shrink-0 text-primary" />
-            <span>
-              <span className="block font-display text-xl font-semibold">UAN e Qualidade</span>
-              <span className="block text-sm text-muted-foreground">Unidades produtoras, equipe e Boas Práticas.</span>
-            </span>
-          </Link>
+        {others.length > 0 && (
+          <section aria-labelledby="outros-modulos">
+            <h2 id="outros-modulos" className="font-display text-2xl font-semibold tracking-tight">Disponíveis em outros planos</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Módulos que você pode liberar quando precisar.</p>
+            <div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {others.map((v) => (
+                <ModuleCard key={v.module.code} view={v} />
+              ))}
+            </div>
+          </section>
         )}
 
-        <p className="text-muted-foreground">
-          Abaixo, os módulos da Rafanutri e o que o seu plano inclui. Cada módulo é liberado conforme o roadmap.
-        </p>
-
         <PlanSummary plan={plan} />
-
-        <section aria-labelledby="seus-modulos">
-          <h2 id="seus-modulos" className="font-display text-2xl font-semibold tracking-tight">Seus módulos</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Inclusos no plano {plan.name}.</p>
-          <div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {mine.map((v) => (
-              <ModuleCard key={v.module.code} view={v} />
-            ))}
-          </div>
-        </section>
-
-        <section aria-labelledby="outros-modulos">
-          <h2 id="outros-modulos" className="font-display text-2xl font-semibold tracking-tight">Disponíveis em outros planos</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Módulos que você pode liberar quando precisar.</p>
-          <div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {others.map((v) => (
-              <ModuleCard key={v.module.code} view={v} />
-            ))}
-          </div>
-        </section>
 
         <section id="planos" aria-labelledby="compare-planos" className="scroll-mt-24">
           <h2 id="compare-planos" className="font-display text-2xl font-semibold tracking-tight">Compare os planos</h2>

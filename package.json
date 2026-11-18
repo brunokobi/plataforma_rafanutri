@@ -12,7 +12,8 @@
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "test:e2e": "pnpm --filter @rafanutri/web test:e2e",
-    "db:seed:demo": "node db/seed/dev/seed-nutricionista.mjs && node db/seed/dev/seed-demo.mjs"
+    "db:seed:demo": "node db/seed/dev/seed-nutricionista.mjs && node db/seed/dev/seed-demo.mjs",
+    "db:seed:uan": "pnpm --filter @rafanutri/web exec jiti scripts/seed-uan-fichas.ts"
   },
   "devDependencies": {
     "turbo": "2.11.10",
