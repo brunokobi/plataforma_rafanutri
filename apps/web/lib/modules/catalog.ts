@@ -28,8 +28,8 @@ export const MODULES: readonly ModuleDefinition[] = [
     includes: ['Pacientes, agenda e prontuário', 'Anamnese por link', 'Avaliação e composição corporal', 'Plano alimentar com substituições'],
     icon: 'stethoscope',
     phase: 'Fase 1',
-    availability: 'building',
-    demoHref: '/app/pacientes',
+    availability: 'available',
+    href: '/app/clinico',
   },
   {
     code: 'patient_area',
@@ -38,7 +38,8 @@ export const MODULES: readonly ModuleDefinition[] = [
     includes: ['Plano alimentar publicado', 'Receitas com foto', 'Recomendações individuais', 'Documentos em PDF'],
     icon: 'smartphone',
     phase: 'Fase 1B',
-    availability: 'building',
+    availability: 'available',
+    href: '/app/receitas',
   },
   {
     code: 'practice',
@@ -47,7 +48,8 @@ export const MODULES: readonly ModuleDefinition[] = [
     includes: ['Lembretes por WhatsApp', 'Agendamento online', 'Financeiro e pacotes', 'Funil de pacientes'],
     icon: 'briefcase',
     phase: 'Fase 2',
-    availability: 'building',
+    availability: 'available',
+    href: '/app/financeiro',
   },
   {
     code: 'ai',
@@ -74,7 +76,8 @@ export const MODULES: readonly ModuleDefinition[] = [
     includes: ['Checklists de Boas Práticas', 'Registro de temperaturas', 'Ficha técnica e cardápio', 'Compras e estoque'],
     icon: 'chef-hat',
     phase: 'Fase 5',
-    availability: 'building',
+    availability: 'available',
+    href: '/app/uan',
   },
   {
     code: 'public_health',

@@ -16,9 +16,14 @@ export interface ModuleAccessView {
   unlockedBy: PlanDefinition[];
 }
 
-export function resolveModuleAccess(planCode: PlanCode, module: ModuleDefinition): ModuleAccessView {
+/**
+ * `enabled`: módulos habilitados na organização (`organizations.modules`). Um módulo habilitado por contrato
+ * (ex.: UAN) fica incluso mesmo que o plano não o traga.
+ */
+export function resolveModuleAccess(planCode: PlanCode, module: ModuleDefinition, enabled: readonly string[] = []): ModuleAccessView {
   const plan = getPlan(planCode);
-  const { grant, note } = plan.grants[module.code];
+  const base = plan.grants[module.code];
+  const { grant, note } = enabled.includes(module.code) && (base.grant === 'none' || base.grant === 'contract') ? { grant: 'included' as const, note: 'Habilitado por contrato' } : base;
   const unlockedBy = PLANS.filter((p) => p.code !== planCode && ['included', 'quota'].includes(p.grants[module.code].grant));
 
   let status: ModuleStatus;
@@ -30,8 +35,8 @@ export function resolveModuleAccess(planCode: PlanCode, module: ModuleDefinition
 }
 
 /** Separa os módulos em "seus" (inclusos) e "outros planos" para a tela principal. */
-export function buildModuleSections(planCode: PlanCode, modules: readonly ModuleDefinition[] = MODULES) {
-  const views = modules.map((m) => resolveModuleAccess(planCode, m));
+export function buildModuleSections(planCode: PlanCode, modules: readonly ModuleDefinition[] = MODULES, enabled: readonly string[] = []) {
+  const views = modules.map((m) => resolveModuleAccess(planCode, m, enabled));
   return {
     mine: views.filter((v) => v.status === 'available' || v.status === 'included_soon'),
     others: views.filter((v) => v.status === 'upgrade' || v.status === 'contract'),

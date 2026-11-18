@@ -36,8 +36,13 @@ describe('plano gratuito na tela principal', () => {
     expect(others.find((v) => v.module.code === 'maternal')?.unlockedBy[0]?.name).toBe('Profissional');
     expect(others.find((v) => v.module.code === 'uan')?.unlockedBy[0]?.name).toBe('Enterprise UAN');
   });
-  it('módulo incluso e ainda em construção fica "em breve"', () => {
-    expect(mine.every((v) => v.status === 'included_soon')).toBe(true);
+  it('módulos publicados abrem; IA, ainda em construção, fica "em breve"', () => {
+    expect(mine.map((v) => [v.module.code, v.status])).toEqual([
+      ['clinical', 'available'],
+      ['patient_area', 'available'],
+      ['ai', 'included_soon'],
+    ]);
+    expect(mine.find((v) => v.module.code === 'clinical')?.module.href).toBe('/app/clinico');
   });
 });
 
@@ -53,5 +58,20 @@ describe('resolveModuleAccess', () => {
   it('Profissional inclui IA sem cota e Materno-infantil', () => {
     expect(resolveModuleAccess('professional', byCode('ai')).grant).toBe('included');
     expect(resolveModuleAccess('professional', byCode('maternal')).status).toBe('included_soon');
+  });
+});
+
+describe('módulos habilitados na organização', () => {
+  it('UAN habilitada por contrato fica inclusa em qualquer plano', () => {
+    const view = resolveModuleAccess('free', byCode('uan'), ['clinical', 'uan']);
+    expect([view.grant, view.status, view.module.href]).toEqual(['included', 'available', '/app/uan']);
+  });
+  it('plano Clínica com UAN habilitada: só saúde pública fica de fora', () => {
+    const { mine, others } = buildModuleSections('clinic', undefined, ['clinical', 'uan']);
+    expect(mine.map((v) => v.module.code)).toEqual(['clinical', 'patient_area', 'practice', 'ai', 'maternal', 'uan']);
+    expect(others.map((v) => v.module.code)).toEqual(['public_health']);
+  });
+  it('sem habilitação, a UAN continua pedindo o plano Enterprise', () => {
+    expect(resolveModuleAccess('clinic', byCode('uan')).status).toBe('upgrade');
   });
 });

@@ -42,6 +42,8 @@ test('login, sessão httpOnly e logout', async ({ page, context }) => {
   await page.getByRole('button', { name: 'Entrar' }).click();
   await expect(page).toHaveURL(/\/app$/);
   await expect(page.getByRole('heading', { level: 1, name: /Olá/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Escolha um módulo' })).toBeVisible();
+  await expect(page.getByTestId('module-clinical').getByRole('link', { name: /Abrir/ })).toHaveAttribute('href', '/app/clinico');
 
   const visibleToJs = await page.evaluate(() => document.cookie);
   expect(visibleToJs).not.toContain('rn_at');
@@ -76,7 +78,7 @@ test('onboarding exige login', async ({ page }) => {
 });
 
 test('telas do módulo clínico exigem login', async ({ page }) => {
-  for (const path of ['/app/pacientes', '/app/pacientes/exemplo/plano', '/app/pacientes/3f6c1e2a-9b7d-4c1e-8a2b-1c2d3e4f5a6b', '/app/pacientes/3f6c1e2a-9b7d-4c1e-8a2b-1c2d3e4f5a6b/avaliacoes', '/app/pacientes/3f6c1e2a-9b7d-4c1e-8a2b-1c2d3e4f5a6b/planos', '/app/pacientes/3f6c1e2a-9b7d-4c1e-8a2b-1c2d3e4f5a6b/planos/4a7d2f3b-0c8e-4d2f-9b3c-2d3e4f5a6b7c']) {
+  for (const path of ['/app/clinico', '/app/pacientes', '/app/pacientes/exemplo/plano', '/app/pacientes/3f6c1e2a-9b7d-4c1e-8a2b-1c2d3e4f5a6b', '/app/pacientes/3f6c1e2a-9b7d-4c1e-8a2b-1c2d3e4f5a6b/avaliacoes', '/app/pacientes/3f6c1e2a-9b7d-4c1e-8a2b-1c2d3e4f5a6b/planos', '/app/pacientes/3f6c1e2a-9b7d-4c1e-8a2b-1c2d3e4f5a6b/planos/4a7d2f3b-0c8e-4d2f-9b3c-2d3e4f5a6b7c']) {
     await page.goto(path);
     await expect(page).toHaveURL(/\/login\?next=/);
   }
