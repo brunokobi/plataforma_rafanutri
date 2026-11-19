@@ -215,6 +215,32 @@ test('insumo com preço e fornecedor', async ({ page }) => {
     await expect(page.getByLabel('Custo por refeição planejado')).toHaveText(/R\$/);
     await expect(page.getByLabel('Custo por refeição realizado')).toHaveText(/R\$/);
     await expect(page.getByRole('region', { name: 'Curva ABC do consumo' })).toContainText(name);
+
+    // U7: cardápio público com alergênicos e pesquisa de satisfação por prato
+    await page.goto(`${unitUrl}/cardapio-publico`);
+    await page.getByRole('button', { name: 'Publicar cardápio' }).click();
+    const link = page.getByRole('link', { name: /\/cardapio\// });
+    await expect(link).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole('img', { name: 'QR Code do cardápio' })).toBeVisible();
+    await page.getByRole('form', { name: 'Pesquisa de satisfação' }).getByRole('button', { name: 'Abrir pesquisa' }).click();
+    await expect(page.getByRole('button', { name: 'Encerrar pesquisa' })).toBeVisible({ timeout: 15_000 });
+    const publicUrl = (await link.getAttribute('href'))!;
+    const guest = await page.context().browser()!.newPage();
+    await guest.goto(publicUrl);
+    const dishCard = guest.getByRole('listitem').filter({ hasText: sheetName });
+    await expect(dishCard).toBeVisible({ timeout: 15_000 });
+    await expect(dishCard.getByLabel('Alergênicos')).toContainText('Leite');
+    await dishCard.getByRole('button', { name: 'Avaliar prato' }).click();
+    const rate = guest.getByRole('form', { name: `Avaliar ${sheetName}` });
+    await rate.getByRole('radio', { name: '4 estrelas' }).click();
+    await rate.getByRole('button', { name: 'Sim' }).click();
+    await rate.getByRole('button', { name: 'Enviar' }).click();
+    await expect(guest.getByRole('status').filter({ hasText: 'Obrigado pela avaliação!' })).toBeVisible({ timeout: 15_000 });
+    await guest.goto(`${publicUrl}/tv`);
+    await expect(guest.getByText(sheetName).first()).toBeVisible();
+    await guest.close();
+    await page.reload();
+    await expect(page.getByRole('table', { name: 'Satisfação por prato' })).toContainText(sheetName);
   } finally {
     await page.goto(unitUrl);
     const ue = page.getByRole('form', { name: 'Dados da unidade' });
