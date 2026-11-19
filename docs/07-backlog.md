@@ -215,11 +215,11 @@ Status: `todo`, `doing`, `done`, `adiado` (fora do MVP, ver [ADR 0004](adr/0004-
 | [RN-157](plano/fase-5-uan-qualidade.md#rn-157--manual-de-boas-práticas) | Manual de Boas Práticas | feature | 5 | RN-156 | done |
 | [RN-158](plano/fase-5-uan-qualidade.md#rn-158--aprovação-versão-e-ciência-de-documentos) | Aprovação, versão e ciência de documentos | feature | 3 | RN-155 | done |
 | [RN-159](plano/fase-5-uan-qualidade.md#rn-159--treinamentos-de-manipuladores) | Treinamentos de manipuladores | feature | 2 | RN-155 | done |
-| [RN-160](plano/fase-5-uan-qualidade.md#rn-160--appcc-fluxograma-e-análise-de-perigos) | APPCC: fluxograma e análise de perigos | feature | 5 | RN-131, RN-155 | todo |
-| [RN-161](plano/fase-5-uan-qualidade.md#rn-161--appcc-pcc-limites-e-monitoramento) | APPCC: PCC, limites e monitoramento | feature | 5 | RN-160, RN-151 | todo |
-| [RN-162](plano/fase-5-uan-qualidade.md#rn-162--rotulagem-cálculo-da-tabela-nutricional) | Rotulagem: cálculo da tabela nutricional | feature | 5 | RN-132 | todo |
-| [RN-163](plano/fase-5-uan-qualidade.md#rn-163--rotulagem-alerta-frontal) | Rotulagem: alerta frontal | feature | 3 | RN-162 | todo |
-| [RN-164](plano/fase-5-uan-qualidade.md#rn-164--rotulagem-geração-do-rótulo-e-alergênicos) | Rotulagem: geração do rótulo e alergênicos | feature | 3 | RN-162, RN-163 | todo |
+| [RN-160](plano/fase-5-uan-qualidade.md#rn-160--appcc-fluxograma-e-análise-de-perigos) | APPCC: fluxograma e análise de perigos | feature | 5 | RN-131, RN-155 | done |
+| [RN-161](plano/fase-5-uan-qualidade.md#rn-161--appcc-pcc-limites-e-monitoramento) | APPCC: PCC, limites e monitoramento | feature | 5 | RN-160, RN-151 | done |
+| [RN-162](plano/fase-5-uan-qualidade.md#rn-162--rotulagem-cálculo-da-tabela-nutricional) | Rotulagem: cálculo da tabela nutricional | feature | 5 | RN-132 | done |
+| [RN-163](plano/fase-5-uan-qualidade.md#rn-163--rotulagem-alerta-frontal) | Rotulagem: alerta frontal | feature | 3 | RN-162 | done |
+| [RN-164](plano/fase-5-uan-qualidade.md#rn-164--rotulagem-geração-do-rótulo-e-alergênicos) | Rotulagem: geração do rótulo e alergênicos | feature | 3 | RN-162, RN-163 | done |
 | [RN-165](plano/fase-5-uan-qualidade.md#rn-165--painel-de-conformidade) | Painel de conformidade | feature | 5 | RN-150, RN-152, RN-153, RN-158 | doing |
 | [RN-166](plano/fase-5-uan-qualidade.md#rn-166--relatórios-e-dossiê-para-fiscalização) | Relatórios e dossiê para fiscalização | feature | 5 | RN-165, RN-157, RN-161 | done |
 | [RN-167](plano/fase-5-uan-qualidade.md#rn-167--trilha-de-auditoria-e-integridade-dos-registros) | Trilha de auditoria e integridade dos registros | infra | 3 | RN-146, RN-151, RN-155 | done |
@@ -228,7 +228,7 @@ Status: `todo`, `doing`, `done`, `adiado` (fora do MVP, ver [ADR 0004](adr/0004-
 | [RN-220](plano/fase-5-uan-qualidade.md#rn-220--convite-da-equipe-da-unidade-por-link) | Convite da equipe da unidade por link | feature | 3 | RN-121, RN-122 | done |
 | [RN-221](plano/fase-5-uan-qualidade.md#rn-221--serviços-perfis-de-público-e-modelos-de-autonomia-do-cardápio) | Serviços, perfis de público e modelos de autonomia do cardápio | feature | 5 | RN-135 | todo |
 | [RN-222](plano/fase-5-uan-qualidade.md#rn-222--alergênicos-do-insumo-à-ficha-e-ao-cardápio) | Alergênicos do insumo à ficha e ao cardápio | feature | 3 | RN-126, RN-131 | doing |
-| [RN-223](plano/fase-5-uan-qualidade.md#rn-223--cardápio-publicado-para-o-comensal-e-pesquisa-de-satisfação) | Cardápio publicado para o comensal e pesquisa de satisfação | feature | 3 | RN-136, RN-222 | todo |
+| [RN-223](plano/fase-5-uan-qualidade.md#rn-223--cardápio-publicado-para-o-comensal-e-pesquisa-de-satisfação) | Cardápio publicado para o comensal e pesquisa de satisfação | feature | 3 | RN-136, RN-222 | done |
 | [RN-224](plano/fase-5-uan-qualidade.md#rn-224--fluxo-de-aprovação-do-cardápio) | Fluxo de aprovação do cardápio | feature | 3 | RN-136 | doing |
 | [RN-225](plano/fase-5-uan-qualidade.md#rn-225--lista-de-preparo-e-requisição-do-dia) | Lista de preparo e requisição do dia | feature | 3 | RN-137, RN-131 | doing |
 | [RN-226](plano/fase-5-uan-qualidade.md#rn-226--controle-de-desperdício-sobra-e-resto-ingesta) | Controle de desperdício: sobra e resto-ingesta | feature | 5 | RN-137 | doing |

@@ -665,7 +665,7 @@ Migração `0054_dossier_contract.sql` (**aplicada em 18/11/2026**):
 - `compliance_exports`: Manual (edição numerada por unidade) e dossiê (período até 366 dias) emitidos, com versões incluídas, resumo de integridade, arquivo e hash; imutável e sem delete.
 - Contrato: `organization_contracts.billing_method`/`notes`, `contract_invoices` (período, valor, vencimento, situação, gateway; valor e período não mudam; paga ou cancelada é final) e `uan_contract_state(org)` = `active` | `read_only` (até 90 dias após o fim) | `ended` | `none`. O bloqueio de escrita no modo leitura e a cobrança no gateway ficam no endpoint (ainda não feitos).
 
-As telas e os endpoints de 0050 a 0054 ainda não existem; as tabelas não têm coleção no Directus (a API de itens recusa).
+Telas e endpoints publicados em 18/11/2026: APPCC (`/rafanutri/uan/units/:id/haccp`, `/rafanutri/uan/haccp/:id`, `…/from-sheet`, `…/approve`, `…/new-version`), rótulos (`/rafanutri/uan/tech-sheets/:id/labels`, `/rafanutri/uan/labels/:id`, `…/archive`), cardápio público (`/rafanutri/public/menus/:token`, `…/responses`, `/rafanutri/uan/units/:id/public-menu`, `/rafanutri/uan/units/:id/surveys`), licenças, integridade, dossiê, Manual e emissões (`/rafanutri/uan/units/:id/licenses|integrity|dossier|manual|exports`, `/rafanutri/uan/licenses/:id`). Ainda sem telas: perfis e regras do cardápio (0052) e faturas do contrato (0054). As tabelas não têm coleção no Directus (a API de itens recusa).
 
 ## Feedback do beta (RN-047)
 

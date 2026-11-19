@@ -1096,10 +1096,10 @@ Referências: ANVISA RDC nº 429/2020 e IN nº 75/2020. Todos os valores abaixo 
 - **Depende de:** RN-131, RN-155
 - **Descrição:** Montar o fluxograma do processo e registrar perigos biológicos, químicos, físicos e alergênicos por etapa.
 - **Tarefas técnicas:**
-  - [ ] Migração `haccp_plans` e `haccp_steps`
-  - [ ] Editor de etapas (lista ordenada com visualização em fluxograma)
-  - [ ] Importar etapas a partir dos passos da ficha técnica
-  - [ ] Matriz severidade × probabilidade
+  - [x] Migração `haccp_plans` e `haccp_steps`
+  - [x] Editor de etapas (lista ordenada com visualização em fluxograma)
+  - [x] Importar etapas a partir dos passos da ficha técnica
+  - [x] Matriz severidade × probabilidade
 - **Arquivos/áreas:** `apps/web/app/(uan)/uan/[unitId]/haccp/`, `supabase/migrations/`
 - **Critérios de aceite:** Dada a ficha "frango assado", quando o RT cria um plano APPCC a partir dela, então as etapas do preparo viram etapas do fluxograma.
 - **Testes:** e2e.
@@ -1110,10 +1110,10 @@ Referências: ANVISA RDC nº 429/2020 e IN nº 75/2020. Todos os valores abaixo 
 - **Depende de:** RN-160, RN-151
 - **Descrição:** Árvore decisória do Codex para PCC, limites críticos, monitoramento, ação corretiva, verificação e registros.
 - **Tarefas técnicas:**
-  - [ ] Árvore decisória guiada (4 perguntas do Codex) por perigo
-  - [ ] Cadastro de limite crítico e de monitoramento
-  - [ ] Geração automática de checklist ou leitura de temperatura para cada PCC
-  - [ ] PDF do plano APPCC
+  - [x] Árvore decisória guiada (4 perguntas do Codex) por perigo
+  - [x] Cadastro de limite crítico e de monitoramento
+  - [ ] Geração automática de checklist ou leitura de temperatura para cada PCC — PCC aponta para modelo de checklist ou equipamento; falta gerar a tarefa de registro automaticamente a partir do plano
+  - [x] PDF do plano APPCC
 - **Arquivos/áreas:** `apps/web/app/(uan)/uan/[unitId]/haccp/[planId]/`
 - **Critérios de aceite:** Dada a etapa "cocção" marcada como PCC com limite de 70 °C, quando salvar, então é criado um registro de temperatura obrigatório para essa preparação.
 - **Testes:** unidade (árvore decisória), e2e.
@@ -1124,10 +1124,10 @@ Referências: ANVISA RDC nº 429/2020 e IN nº 75/2020. Todos os valores abaixo 
 - **Depende de:** RN-132
 - **Descrição:** Calcular a tabela nutricional por 100 g/ml e por porção, com %VD e arredondamentos da IN 75/2020.
 - **Tarefas técnicas:**
-  - [ ] Migração `nutrition_labels`
-  - [ ] `nutrition-core`: valores de referência, arredondamento e valores não significativos (A validar)
-  - [ ] Cadastro de açúcares adicionados por insumo
-  - [ ] Seleção de porção e medida caseira
+  - [x] Migração `nutrition_labels`
+  - [x] `nutrition-core`: valores de referência, arredondamento e valores não significativos (A validar)
+  - [x] Cadastro de açúcares adicionados por insumo
+  - [x] Seleção de porção e medida caseira
 - **Arquivos/áreas:** `packages/nutrition-core/src/labeling/`, `apps/web/app/(uan)/uan/labels/`
 - **Critérios de aceite:** Dada uma preparação com 12 g de proteínas por porção, quando gerar a tabela, então o %VD de proteínas é 24%.
 - **Testes:** unidade (casos de referência da IN 75).
@@ -1138,8 +1138,8 @@ Referências: ANVISA RDC nº 429/2020 e IN nº 75/2020. Todos os valores abaixo 
 - **Depende de:** RN-162
 - **Descrição:** Determinar a lupa de "alto em" açúcares adicionados, gorduras saturadas e sódio.
 - **Tarefas técnicas:**
-  - [ ] `frontWarnings(per100, physicalState)` com os limites da IN 75
-  - [ ] Exceções previstas na norma (A validar)
+  - [x] `frontWarnings(per100, physicalState)` com os limites da IN 75
+  - [ ] Exceções previstas na norma (A validar) (sem exceções implementadas)
 - **Arquivos/áreas:** `packages/nutrition-core/src/labeling/front.ts`
 - **Critérios de aceite:** Dado um sólido com 700 mg de sódio por 100 g, quando avaliar, então retorna `sodium`.
 - **Testes:** unidade (valores no limite exato).
@@ -1150,10 +1150,10 @@ Referências: ANVISA RDC nº 429/2020 e IN nº 75/2020. Todos os valores abaixo 
 - **Depende de:** RN-162, RN-163
 - **Descrição:** Gerar imagem e PDF da tabela e da lupa no formato da norma, com declaração de alergênicos.
 - **Tarefas técnicas:**
-  - [ ] Templates SVG nos formatos vertical, horizontal e linear (A validar as dimensões)
-  - [ ] Declaração "ALÉRGICOS: CONTÉM ..." a partir dos insumos
-  - [ ] Download em PNG, SVG e PDF
-  - [ ] Aviso de responsabilidade técnica
+  - [ ] Templates SVG nos formatos vertical, horizontal e linear (A validar as dimensões) — feito o vertical; horizontal e linear pendentes
+  - [x] Declaração "ALÉRGICOS: CONTÉM ..." a partir dos insumos
+  - [x] Download em PNG, SVG e PDF
+  - [x] Aviso de responsabilidade técnica
 - **Arquivos/áreas:** `apps/web/lib/labels/`, `apps/web/app/(uan)/uan/labels/`
 - **Critérios de aceite:** Dada uma ficha com leite e trigo, quando gerar o rótulo, então a declaração lista leite e trigo.
 - **Testes:** integração (snapshot SVG).
@@ -1266,7 +1266,7 @@ Acrescentados depois da comparação com o TecFood e o NutriUAN. A ordem e o agr
 - **Tarefas técnicas:**
   - [ ] Lista de alergênicos com sigla e ícone
   - [x] Propagação calculada (não digitada) até a ficha e o cardápio
-  - [ ] Versão do cardápio do dia e da semana com destaque de alergênicos
+  - [x] Versão do cardápio do dia e da semana com destaque de alergênicos
 - **Critérios de aceite:** Dado um insumo com leite, quando ele entra numa ficha usada no almoço de terça, então o cardápio de terça mostra o alergênico leite naquele prato.
 - **Testes:** unidade, e2e.
 
@@ -1276,9 +1276,9 @@ Acrescentados depois da comparação com o TecFood e o NutriUAN. A ordem e o agr
 - **Depende de:** RN-136, RN-222
 - **Descrição:** Link público e QR Code do cardápio do dia e da semana (com alergênicos e nutrientes), modo TV para a unidade e pesquisa de satisfação curta por QR Code ligada à preparação.
 - **Tarefas técnicas:**
-  - [ ] Página pública por unidade com a marca, sem dados internos (custo, fornecedor)
-  - [ ] Modo TV com atualização automática
-  - [ ] Pesquisa de 1 a 3 perguntas, antispam por aparelho, resultado por preparação
+  - [x] Página pública por unidade com a marca, sem dados internos (custo, fornecedor)
+  - [x] Modo TV com atualização automática
+  - [x] Pesquisa de 1 a 3 perguntas, antispam por aparelho, resultado por preparação
 - **Critérios de aceite:** Dado um cardápio publicado, quando o comensal lê o QR Code, então vê o cardápio do dia com alergênicos e pode avaliar o prato.
 - **Testes:** e2e.
 
