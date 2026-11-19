@@ -2812,6 +2812,24 @@ export default {
     // ── Painel de conformidade (RN-165) ──────────────────────────────────────────────────────
     // Índice por unidade ativa (fórmula em uan_compliance, 0039). O owner vê todas as unidades da empresa;
     // a equipe, só as unidades em que tem papel.
+    // Pendências documentais da unidade (fora do índice): POPs obrigatórios sem versão aprovada, documentos
+    // com revisão vencida, licenças vencidas e pessoas da equipe sem treinamento há 12 meses.
+    async function legalPending(unitId) {
+      const r = (await database.raw(
+        `select
+           4 - (select count(distinct d.code) from quality_documents d join quality_document_current c on c.document_id = d.id
+                 where d.unit_id = :u and not d.archived and d.code in ('pop-higienizacao', 'pop-agua', 'pop-pragas', 'pop-manipuladores'))::int as pops_missing,
+           (select count(*) from quality_documents d join quality_document_current c on c.document_id = d.id
+             where d.unit_id = :u and not d.archived and c.next_review_on < (now() at time zone 'America/Sao_Paulo')::date)::int as docs_overdue,
+           ((select count(*) from unit_licenses l where l.unit_id = :u and not l.archived and l.valid_until < (now() at time zone 'America/Sao_Paulo')::date)
+             + (select count(*) from production_units pu where pu.id = :u and pu.sanitary_license_expires_at < (now() at time zone 'America/Sao_Paulo')::date))::int as licenses_expired,
+           (select count(distinct m.user_id) from unit_members m where m.unit_id = :u and not exists (
+              select 1 from training_attendees a join trainings t on t.id = a.training_id
+               where a.user_id = m.user_id and t.unit_id = :u and t.held_on > (now() at time zone 'America/Sao_Paulo')::date - interval '12 months'))::int as training_overdue`,
+        { u: unitId })).rows[0];
+      return r;
+    }
+
     router.get('/uan/compliance', async (req, res) => {
       const user = requireUser(req, res);
       if (!user) return;
@@ -2824,7 +2842,7 @@ export default {
         const rows = [];
         for (const u of units) {
           const c = (await database.raw('select uan_compliance(?, ?) as c', [u.id, days])).rows[0].c;
-          rows.push({ ...u, ...c, index: c.index === null ? null : Number(c.index) });
+          rows.push({ ...u, ...c, index: c.index === null ? null : Number(c.index), legal: await legalPending(u.id) });
         }
         out.push({ id: o.id, name: o.name, is_owner: o.is_owner, units: rows });
       }

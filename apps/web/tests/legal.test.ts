@@ -35,7 +35,7 @@ describe('Manual de Boas Práticas (RN-157)', () => {
     const docs = [doc('pop-higienizacao', 'POP 1 — Higienização', 1), doc('pop-agua', 'POP 2 — Água', 2)];
     const sec = manualSections(manual(docs), '2026-11-18');
     expect(sec).toHaveLength(13);
-    expect(sec[0]!.body).toContain('**Unidade:** Cozinha Central');
+    expect(sec[0]!.body).toContain('- **Unidade:** Cozinha Central');
     expect(sec[0]!.body).toContain('12.345.678/0001-90');
     expect(sec[0]!.body).toContain('Alvará sanitário nº AL-1, válido até 01/01/2027');
     expect(sec[1]!.body).toContain('- Geladeira 1 (geladeira, 0 a 5 °C)');

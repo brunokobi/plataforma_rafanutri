@@ -55,6 +55,31 @@ test('POP do modelo, aprovação, ciência e treinamento', async ({ page }) => {
     await f.getByRole('button', { name: 'Registrar treinamento' }).click();
     await expect(f.getByRole('status')).toHaveText('Treinamento registrado.', { timeout: 15_000 });
     await expect(page.getByRole('list', { name: 'Treinamentos' })).toContainText(`Pessoa ${stamp}`);
+
+    // U6b: licenças, Manual (prévia e emissão), dossiê e integridade
+    await page.goto(`${unitUrl}/fiscalizacao`);
+    await expect(page.getByRole('heading', { level: 1, name: 'Fiscalização' })).toBeVisible({ timeout: 15_000 });
+    await page.getByRole('button', { name: 'Registrar documento' }).click();
+    const lf = page.getByRole('form', { name: 'Registrar documento' });
+    await lf.getByLabel('Número').fill(`AL-${stamp}`);
+    await lf.getByLabel('Emissão').fill('2026-01-10');
+    await lf.getByLabel('Validade').fill('2030-01-10');
+    await lf.getByRole('button', { name: 'Salvar documento' }).click();
+    await expect(page.getByRole('list', { name: 'Licenças' })).toContainText(`nº AL-${stamp}`, { timeout: 15_000 });
+    await expect(page.getByRole('list', { name: 'Licenças' }).getByText('Válida')).toBeVisible();
+
+    const [preview] = await Promise.all([page.waitForEvent('download'), page.getByRole('link', { name: /Prévia \(PDF\)/ }).click()]);
+    expect(preview.suggestedFilename()).toMatch(/^manual-boas-praticas-documentos-e2e-.*-previa\.pdf$/);
+    const [manual] = await Promise.all([page.waitForEvent('download'), page.getByRole('link', { name: /Emitir edição 1/ }).click()]);
+    expect(manual.suggestedFilename()).toMatch(/edicao-1\.pdf$/);
+    await page.reload();
+    await expect(page.getByRole('list', { name: 'Edições do Manual' })).toContainText('Edição 1', { timeout: 15_000 });
+
+    const [dossier] = await Promise.all([page.waitForEvent('download'), page.getByRole('link', { name: /Gerar dossiê/ }).click()]);
+    expect(dossier.suggestedFilename()).toMatch(/^dossie-documentos-e2e-.*\.pdf$/);
+    await page.reload();
+    await expect(page.getByRole('list', { name: 'Dossiês emitidos' })).toContainText('íntegros', { timeout: 15_000 });
+    await expect(page.getByRole('status').filter({ hasText: 'nenhum conteúdo alterado' })).toBeVisible();
   } finally {
     await page.goto(unitUrl);
     const ue = page.getByRole('form', { name: 'Dados da unidade' });

@@ -1,6 +1,9 @@
-import { Document, Page, StyleSheet, Text, View } from '@react-pdf/renderer';
+import { Document, Font, Page, StyleSheet, Text, View } from '@react-pdf/renderer';
 import { parseMarkdown, type MdInline } from '@/lib/uan/documents';
 import { licenseName, licenseStatus, manualSections, type DossierData, type ManualData } from '@/lib/uan/legal';
+
+// Sem hifenização automática (as regras embutidas são do inglês e quebram mal o português).
+Font.registerHyphenationCallback((word) => [word]);
 
 const GREEN = '#2f7a3d';
 const s = StyleSheet.create({
@@ -19,7 +22,7 @@ const s = StyleSheet.create({
   bullet: { width: 14 },
   strong: { fontFamily: 'Helvetica-Bold' },
   muted: { color: '#5b6a60', fontSize: 8.5 },
-  tocRow: { flexDirection: 'row', justifyContent: 'space-between', borderBottomWidth: 0.5, borderBottomColor: '#dde3dc', paddingVertical: 3 },
+  tocRow: { flexDirection: 'row', justifyContent: 'space-between', borderBottomWidth: 0.5, borderBottomColor: '#dde3dc', paddingVertical: 3, fontSize: 10.5 },
   table: { borderTopWidth: 0.5, borderTopColor: '#c8d0c8', marginBottom: 8 },
   tr: { flexDirection: 'row', borderBottomWidth: 0.5, borderBottomColor: '#dde3dc', paddingVertical: 2.5 },
   th: { fontFamily: 'Helvetica-Bold', fontSize: 8.5, color: '#3d4b42' },

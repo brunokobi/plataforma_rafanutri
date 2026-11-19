@@ -102,6 +102,10 @@ export default async function CompliancePage({ searchParams }: { searchParams: P
                               {u.counts.nc_overdue > 0 && <li><Link href={`/app/uan/unidades/${u.id}/nao-conformidades?atrasadas=1`} className="text-destructive underline">{u.counts.nc_overdue} não conformidade(s) atrasada(s)</Link></li>}
                               {u.counts.checklists_overdue_today > 0 && <li><Link href={`/app/uan/unidades/${u.id}`} className="text-destructive underline">{u.counts.checklists_overdue_today} checklist(s) atrasado(s) hoje</Link></li>}
                               {u.counts.equipment_overdue > 0 && <li><Link href={`/app/uan/unidades/${u.id}`} className="text-amber-700 underline dark:text-amber-400">{u.counts.equipment_overdue} equipamento(s) sem leitura no prazo</Link></li>}
+                              {(u.legal?.licenses_expired ?? 0) > 0 && <li><Link href={`/app/uan/unidades/${u.id}/fiscalizacao`} className="text-destructive underline">{u.legal!.licenses_expired} licença(s) vencida(s)</Link></li>}
+                              {(u.legal?.pops_missing ?? 0) > 0 && <li><Link href={`/app/uan/unidades/${u.id}/documentos`} className="text-amber-700 underline dark:text-amber-400">{u.legal!.pops_missing} POP(s) obrigatório(s) sem versão aprovada</Link></li>}
+                              {(u.legal?.docs_overdue ?? 0) > 0 && <li><Link href={`/app/uan/unidades/${u.id}/documentos`} className="text-amber-700 underline dark:text-amber-400">{u.legal!.docs_overdue} documento(s) com revisão vencida</Link></li>}
+                              {(u.legal?.training_overdue ?? 0) > 0 && <li><Link href={`/app/uan/unidades/${u.id}/treinamentos`} className="text-amber-700 underline dark:text-amber-400">{u.legal!.training_overdue} pessoa(s) sem treinamento há 12 meses</Link></li>}
                             </ul>
                           ) : (
                             <p className="flex items-center gap-1 text-sm text-emerald-700 dark:text-emerald-400"><CheckCircle2 className="size-4" aria-hidden="true" /> Nada pendente agora</p>

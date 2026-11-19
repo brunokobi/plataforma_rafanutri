@@ -100,11 +100,11 @@ export function manualSections(m: ManualData, today: string): ManualSection[] {
     : '- (registre o alvará sanitário e os certificados na plataforma)';
   const t = (s: string) => renderTemplate(s, vars);
   return [
-    { title: '1. Identificação e responsabilidade técnica', body: t(`**Empresa:** {{empresa}}
-**Unidade:** {{unidade}}${u.cnpj ? `\n**CNPJ:** ${u.cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5')}` : ''}
-**Endereço:** {{endereco}}
-**Responsável técnico (RT):** {{rt}}
-**Equipe cadastrada:** ${m.team_size} pessoa(s)
+    { title: '1. Identificação e responsabilidade técnica', body: t(`- **Empresa:** {{empresa}}
+- **Unidade:** {{unidade}}${u.cnpj ? `\n- **CNPJ:** ${u.cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5')}` : ''}
+- **Endereço:** {{endereco}}
+- **Responsável técnico (RT):** {{rt}}
+- **Equipe cadastrada:** ${m.team_size} pessoa(s)
 
 Este Manual descreve as Boas Práticas adotadas na unidade, conforme a RDC Anvisa nº 216/2004, e deve ficar acessível aos manipuladores e à autoridade sanitária.
 

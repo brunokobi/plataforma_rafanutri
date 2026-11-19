@@ -30,6 +30,8 @@ export interface UnitCompliance {
     equipment_overdue: number;
     checklists_overdue_today: number;
   };
+  /** Pendências documentais (fora do índice). */
+  legal?: { pops_missing: number; docs_overdue: number; licenses_expired: number; training_overdue: number };
 }
 
 export interface ComplianceData {
@@ -53,7 +55,9 @@ export function rankUnits(units: UnitCompliance[]): UnitCompliance[] {
 
 /** Pendências que pedem ação agora (para os atalhos do painel). */
 export function pendingCount(u: UnitCompliance): number {
-  return u.counts.nc_overdue + u.counts.equipment_overdue + u.counts.checklists_overdue_today;
+  const l = u.legal;
+  return u.counts.nc_overdue + u.counts.equipment_overdue + u.counts.checklists_overdue_today
+    + (l ? l.pops_missing + l.docs_overdue + l.licenses_expired + l.training_overdue : 0);
 }
 
 export const pct = (n: number) => `${n.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`;
