@@ -74,6 +74,17 @@ A Rafanutri reúne as áreas da nutrição em um só lugar: atendimento clínico
 
 Detalhes e prioridades em [docs/02-modulos.md](docs/02-modulos.md).
 
+### O que já está em produção na UAN (19/11/2026)
+
+- **Qualidade BPF:** checklists no celular (foto, assinatura, offline), temperaturas com alerta, não conformidades com 5W2H, painel de conformidade com pendências documentais.
+- **Ficha técnica e cardápio:** insumos, fornecedores e preços; fichas com FC, IC, rendimento, custo, nutrientes, alergênicos e foto; cardápio cíclico com aprovação, perfis de público com metas (PAT/PNAE a validar), regras do contrato e ajuste local de per capita; cardápio público com QR Code, modo TV e pesquisa de satisfação.
+- **Produção, compras e estoque:** comensais, lista de preparo, requisição, desperdício; necessidade de compra, pedido, recebimento com recusa e foto; lotes FEFO e inventário cego; custos planejado × realizado e curva ABC.
+- **Documentação e fiscalização:** POPs com versão, aprovação e ciência; treinamentos com certificado; Manual de Boas Práticas e dossiê em PDF; licenças; planilhas CSV; integridade SHA-256 dos registros.
+- **APPCC e rotulagem:** plano com árvore do Codex, PCC e PDF; rótulo nutricional da IN 75/2020 (vertical, horizontal e linear) com lupa e alergênicos.
+- **Contrato:** situação, faturas e modo leitura quando o contrato termina.
+
+Depende de definição externa: avisos e envio por WhatsApp/e-mail (n8n), cobrança no gateway, IA e a revisão da RT dos textos-base e critérios marcados "a validar". Detalhes em [docs/plano/progresso.md](docs/plano/progresso.md) e [docs/modulos/uan.md](docs/modulos/uan.md).
+
 ## Estratégia de lançamento
 
 1. **Plano gratuito** com até 20 pacientes ativos por nutricionista para atrair usuários no MVP.
