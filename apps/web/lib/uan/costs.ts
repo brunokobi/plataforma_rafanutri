@@ -32,12 +32,13 @@ export interface CostPanel {
 export function costPanel(d: CostsData): CostPanel {
   const inputs = sheetInputs(d.graph);
   const adh = new Map(d.adhesion.map((a) => [a.sheet_root_id, a.rate]));
+  const factor = new Map((d.adjustments ?? []).map((x) => [x.sheet_root_id, x.portion_factor]));
   const priceKg = new Map(d.graph.ingredients.map((i) => [i.id, i.price_per_kg_cents]));
   const plannedByIng = new Map<string, { name: string; cents: number }>();
   const days: DayCost[] = d.days.map((day) => {
     const preps = day.items
       .filter((i) => i.sheet_id && inputs.has(i.sheet_id))
-      .map((i) => ({ sheetId: i.sheet_id!, label: i.name, portions: plannedPortions(d.diners.find((x) => x.day === day.day && x.service === i.service)?.planned ?? 0, adh.get(i.sheet_root_id) ?? 1) }))
+      .map((i) => ({ sheetId: i.sheet_id!, label: i.name, portions: plannedPortions(d.diners.find((x) => x.day === day.day && x.service === i.service)?.planned ?? 0, adh.get(i.sheet_root_id) ?? 1) * (factor.get(i.sheet_root_id) ?? 1) }))
       .filter((p) => p.portions > 0);
     let plannedCents = 0;
     for (const l of requisition(preps, inputs)) {

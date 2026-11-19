@@ -3632,6 +3632,47 @@ export default {
     // Ver: equipe da unidade. Comensais (previsto e realizado): owner, gestor, RT. Pesagem: quem executa.
     const WASTE_REASONS = new Set(['taste', 'temperature', 'portion', 'presentation', 'repeated', 'overproduction', 'other']);
 
+    /** Ajuste local de per capita (RN-221): fator sobre as quantidades da ficha da rede nesta unidade. */
+    async function unitAdjustments(unitId) {
+      const rows = await database('unit_sheet_adjustments').where('unit_id', unitId).select('sheet_root_id', 'portion_factor', 'notes');
+      return rows.map((r) => ({ sheet_root_id: r.sheet_root_id, portion_factor: Number(r.portion_factor), notes: r.notes }));
+    }
+
+    router.get('/uan/units/:id/sheet-adjustments', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const a = await unitAccess(user, req.params.id);
+      if (!a) return unitNotFound(res);
+      const rows = await database('unit_sheet_adjustments as x').join('tech_sheets as s', 's.id', 'x.sheet_root_id').where('x.unit_id', a.unit.id).orderBy('s.name')
+        .select('x.sheet_root_id', 's.name', 'x.portion_factor', 'x.notes', 'x.updated_at');
+      const sheets = canSupervise(a) ? await database('tech_sheets').where({ organization_id: a.unit.organization_id, status: 'approved' }).orderBy('name').select('root_id', 'name') : [];
+      res.json({ data: { can_edit: canSupervise(a), adjustments: rows.map((r) => ({ ...r, portion_factor: Number(r.portion_factor) })), sheets } });
+    });
+
+    router.put('/uan/units/:id/sheet-adjustments', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const a = await unitAccess(user, req.params.id);
+      if (!a) return unitNotFound(res);
+      if (!canSupervise(a)) return res.status(403).json({ errors: [{ message: 'Só o responsável, o gestor ou o RT ajustam o per capita.', extensions: { code: 'FORBIDDEN' } }] });
+      const b = req.body ?? {};
+      if (!isUuid(b.sheet_root_id)) return bad(res, { sheet_root_id: 'Escolha a ficha.' });
+      try {
+        if (b.portion_factor === null || b.portion_factor === '' || b.portion_factor === undefined) {
+          await withActor(user, (trx) => trx('unit_sheet_adjustments').where({ unit_id: a.unit.id, sheet_root_id: b.sheet_root_id }).del());
+          return res.json({ data: { ok: true } });
+        }
+        const f = Number(String(b.portion_factor).replace(',', '.'));
+        if (!Number.isFinite(f) || f < 0.1 || f > 5) return bad(res, { portion_factor: 'Fator entre 0,1 e 5 (1 = igual à ficha).' });
+        const notes = typeof b.notes === 'string' && b.notes.trim() ? b.notes.trim().slice(0, 500) : null;
+        await withActor(user, (trx) => trx('unit_sheet_adjustments').insert({ unit_id: a.unit.id, organization_id: a.unit.organization_id, sheet_root_id: b.sheet_root_id, portion_factor: f, notes, updated_by: user })
+          .onConflict(['unit_id', 'sheet_root_id']).merge({ portion_factor: f, notes, updated_by: user }));
+        res.json({ data: { ok: true } });
+      } catch (error) {
+        p0001(res, error, 'salvar ajuste');
+      }
+    });
+
     router.get('/uan/units/:id/production', async (req, res) => {
       const user = requireUser(req, res);
       if (!user) return;
@@ -3686,6 +3727,7 @@ export default {
           menu: menu.map((m) => ({ ...m, sheet_id: current.get(m.sheet_root_id)?.id ?? null, name: current.get(m.sheet_root_id)?.name ?? '—' })),
           graph,
           adhesion: adhesion.map((r) => ({ sheet_root_id: r.sheet_root_id, rate: r.diners > 0 ? Math.round((r.served / r.diners) * 1000) / 1000 : null })),
+          adjustments: await unitAdjustments(a.unit.id),
           waste,
           history: history.map((h) => ({ ...h, day: dateOut(h.day) })),
         },
@@ -4023,6 +4065,7 @@ export default {
           diners: diners.map((d) => ({ ...d, day: dateOut(d.day) })),
           graph,
           adhesion: adhesion.map((r) => ({ sheet_root_id: r.sheet_root_id, rate: r.diners > 0 ? Math.round((r.served / r.diners) * 1000) / 1000 : null })),
+          adjustments: await unitAdjustments(a.unit.id),
           stock: stock.map((s2) => ({ ingredient_id: s2.ingredient_id, quantity_g: Number(s2.quantity_g) })),
           open_orders: Object.entries(openG).map(([ingredient_id, g]) => ({ ingredient_id, quantity_g: g })),
           preferred: prefs,

@@ -20,6 +20,8 @@ export interface ProductionDay {
   menu: Array<{ service: MenuService; slot: MenuSlot; sheet_root_id: string; sheet_id: string | null; name: string; cycle_name: string }>;
   graph: { sheets: SheetGraph['sheets']; ingredients: ProductionIngredient[] };
   adhesion: Array<{ sheet_root_id: string; rate: number | null }>;
+  /** Ajuste local de per capita por ficha (RN-221). */
+  adjustments?: Array<{ sheet_root_id: string; portion_factor: number }>;
   waste: WasteRow[];
   history: Array<{ day: string; service: MenuService; diners: number | null; produced_g: number; leftover_g: number; plate_waste_g: number }>;
 }
@@ -39,11 +41,12 @@ export function sheetInputs(graph: ProductionDay['graph']): Map<string, SheetInp
   }]));
 }
 
-export interface PrepLine { service: MenuService; slot: MenuSlot; rootId: string; sheetId: string; name: string; portions: number; adhesion: number | null; yieldG: number | null; costPerKgCents: number | null }
+export interface PrepLine { service: MenuService; slot: MenuSlot; rootId: string; sheetId: string; name: string; portions: number; adhesion: number | null; yieldG: number | null; costPerKgCents: number | null; factor?: number }
 
 /** Lista de preparo: porções = comensais previstos × adesão média (100% sem histórico). */
 export function prepList(d: ProductionDay, inputs: Map<string, SheetInput>): PrepLine[] {
   const adh = new Map(d.adhesion.map((a) => [a.sheet_root_id, a.rate]));
+  const factors = new Map((d.adjustments ?? []).map((x) => [x.sheet_root_id, x.portion_factor]));
   const out: PrepLine[] = [];
   for (const m of d.menu) {
     if (!m.sheet_id || !inputs.has(m.sheet_id)) continue;
@@ -54,12 +57,12 @@ export function prepList(d: ProductionDay, inputs: Map<string, SheetInput>): Pre
     let cpk: number | null = null;
     try {
       const r = computeSheet(m.sheet_id, inputs);
-      yieldG = Math.round((r.yieldG * portions) / inputs.get(m.sheet_id)!.servings);
+      yieldG = Math.round((r.yieldG * portions * (factors.get(m.sheet_root_id) ?? 1)) / inputs.get(m.sheet_id)!.servings);
       cpk = r.yieldG > 0 && r.missingPrices.length === 0 ? Math.round((r.costCents / r.yieldG) * 1000) : null;
     } catch {
       /* ficha incompleta: segue sem rendimento */
     }
-    out.push({ service: m.service, slot: m.slot, rootId: m.sheet_root_id, sheetId: m.sheet_id, name: m.name, portions, adhesion: rate, yieldG, costPerKgCents: cpk });
+    out.push({ service: m.service, slot: m.slot, rootId: m.sheet_root_id, sheetId: m.sheet_id, name: m.name, portions, adhesion: rate, yieldG, costPerKgCents: cpk, factor: factors.get(m.sheet_root_id) ?? 1 });
   }
   return out;
 }
@@ -69,7 +72,7 @@ export interface ReqLine { id: string; name: string; grossG: number; from: strin
 /** Requisição consolidada do dia (todas as preparações), com a quantidade na unidade de compra. */
 export function dayRequisition(prep: PrepLine[], inputs: Map<string, SheetInput>, ingredients: ProductionIngredient[], marginPct = 0): ReqLine[] {
   const byId = new Map(ingredients.map((i) => [i.id, i]));
-  return requisition(prep.map((p) => ({ sheetId: p.sheetId, portions: p.portions, label: p.name })), inputs, marginPct).map((l) => {
+  return requisition(prep.map((p) => ({ sheetId: p.sheetId, portions: p.portions * (p.factor ?? 1), label: p.name })), inputs, marginPct).map((l) => {
     const i = byId.get(l.key);
     const gpu = i?.grams_per_unit ?? null;
     return { id: l.key, name: l.name, grossG: l.grossG, from: l.from, purchaseQty: gpu ? Math.ceil((l.grossG / gpu) * 100) / 100 : null, purchaseUnit: i?.purchase_unit ?? 'kg' };

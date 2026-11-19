@@ -1258,6 +1258,19 @@ try {
       assert.equal((await api(`/rafanutri/uan/diner-profiles/${cp.json.data.id}`, { token: out.token, method: 'PUT', body: { name: 'x', segment: 'pat', services: ['lunch'] } })).status, 404, 'de fora edita');
       assert.ok((await api('/items/menu_rules?limit=1', { token: a.token })).status >= 400, 'coleção direta recusada');
     });
+    await check('UAN: ajuste local de per capita — cozinheiro não ajusta; fator vai para a produção; de fora não vê', async () => {
+      const adj = await api(`/rafanutri/uan/units/${U1}/sheet-adjustments`, { token: a.token });
+      assert.equal(adj.status, 200);
+      const sheet = adj.json.data.sheets[0];
+      assert.ok(sheet, 'ficha aprovada para ajustar');
+      assert.equal((await api(`/rafanutri/uan/units/${U1}/sheet-adjustments`, { token: b.token, method: 'PUT', body: { sheet_root_id: sheet.root_id, portion_factor: '1,2' } })).status, 403, 'cozinheiro ajusta');
+      assert.equal((await api(`/rafanutri/uan/units/${U1}/sheet-adjustments`, { token: a.token, method: 'PUT', body: { sheet_root_id: sheet.root_id, portion_factor: '9' } })).status, 400, 'fator fora da faixa');
+      assert.equal((await api(`/rafanutri/uan/units/${U1}/sheet-adjustments`, { token: a.token, method: 'PUT', body: { sheet_root_id: sheet.root_id, portion_factor: '1,2' } })).status, 200);
+      const prod = await api(`/rafanutri/uan/units/${U1}/production`, { token: a.token });
+      assert.equal(prod.json.data.adjustments.find((x) => x.sheet_root_id === sheet.root_id)?.portion_factor, 1.2, 'fator na produção');
+      const out = await outsider();
+      assert.equal((await api(`/rafanutri/uan/units/${U1}/sheet-adjustments`, { token: out.token })).status, 404, 'de fora lê');
+    });
   } else {
     console.log('  (pulado) UAN entre unidades: defina ISOLATION_PSQL');
   }

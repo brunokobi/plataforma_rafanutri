@@ -11,6 +11,8 @@ export interface NeedsData {
   diners: Array<{ day: string; service: MenuService; planned: number | null }>;
   graph: ProductionDay['graph'];
   adhesion: Array<{ sheet_root_id: string; rate: number | null }>;
+  /** Ajuste local de per capita por ficha (RN-221). */
+  adjustments?: Array<{ sheet_root_id: string; portion_factor: number }>;
   stock: Array<{ ingredient_id: string; quantity_g: number }>;
   open_orders: Array<{ ingredient_id: string; quantity_g: number }>;
   preferred: Array<{ ingredient_id: string; supplier_id: string | null; supplier_name: string | null; price_cents: number }>;
@@ -23,12 +25,13 @@ export interface NeedLine extends PurchaseLine { purchaseUnit: string; supplierI
 export function computeNeeds(d: NeedsData, marginPct: number): NeedLine[] {
   const inputs = sheetInputs(d.graph);
   const adh = new Map(d.adhesion.map((a) => [a.sheet_root_id, a.rate]));
+  const factor = new Map((d.adjustments ?? []).map((x) => [x.sheet_root_id, x.portion_factor]));
   const perDay = d.days.map((day) =>
     day.items
       .filter((i) => i.sheet_id && inputs.has(i.sheet_id))
       .map((i) => {
         const diners = d.diners.find((x) => x.day === day.day && x.service === i.service)?.planned ?? 0;
-        return { sheetId: i.sheet_id!, portions: plannedPortions(diners, adh.get(i.sheet_root_id) ?? 1), label: i.name };
+        return { sheetId: i.sheet_id!, portions: plannedPortions(diners, adh.get(i.sheet_root_id) ?? 1) * (factor.get(i.sheet_root_id) ?? 1), label: i.name };
       })
       .filter((p) => p.portions > 0),
   );

@@ -4,10 +4,12 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { AppHeader } from '@/components/app/app-header';
 import { NewCycle } from '@/components/uan/menu-editor';
+import { SheetAdjustmentsView } from '@/components/uan/sheet-adjustments';
 import { TodayMenu } from '@/components/uan/today-menu';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { getCurrentUser } from '@/lib/auth/session';
+import { getSheetAdjustments } from '@/lib/uan/adjustment-actions';
 import { getUnitMenus } from '@/lib/uan/menu-actions';
 import { cycleDate, MENU_STATUS_LABEL, SERVICE_LABEL } from '@/lib/uan/menus';
 
@@ -17,7 +19,7 @@ export default async function UnitMenusPage({ params }: { params: Promise<{ id: 
   const { id } = await params;
   const user = await getCurrentUser();
   if (!user) redirect(`/login?next=/app/uan/unidades/${id}/cardapios`);
-  const data = await getUnitMenus(id);
+  const [data, adjustments] = await Promise.all([getUnitMenus(id), getSheetAdjustments(id)]);
   if (data === undefined) notFound();
   return (
     <div className="min-h-dvh">
@@ -49,6 +51,7 @@ export default async function UnitMenusPage({ params }: { params: Promise<{ id: 
                 ))}
               </ul>
             )}
+            {adjustments && <SheetAdjustmentsView unitId={id} data={adjustments} />}
           </>
         )}
       </main>

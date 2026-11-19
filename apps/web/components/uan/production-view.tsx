@@ -154,7 +154,7 @@ export function ProductionView({ data }: { data: ProductionDay }) {
                     <td className="p-2">{p.name}<span className="block text-xs text-muted-foreground">{SLOT_LABEL[p.slot]}</span></td>
                     <td className="p-2">{SERVICE_LABEL[p.service]}</td>
                     <td className="p-2 text-right">{p.adhesion === null ? '100% (sem histórico)' : pct(Math.round(p.adhesion * 1000) / 10)}</td>
-                    <td className="p-2 text-right" aria-label={`Porções de ${p.name}`}>{p.portions}</td>
+                    <td className="p-2 text-right" aria-label={`Porções de ${p.name}`}>{p.portions}{p.factor && p.factor !== 1 ? <span className="block text-xs text-muted-foreground">per capita × {p.factor.toLocaleString('pt-BR')}</span> : null}</td>
                     <td className="p-2 text-right">{p.yieldG === null ? '—' : kg(p.yieldG)}</td>
                   </tr>
                 ))}
