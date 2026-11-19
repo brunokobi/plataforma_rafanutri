@@ -47,7 +47,8 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
       <main className="mx-auto max-w-7xl px-5 py-10">
         <h1 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">Agenda</h1>
         {organization && <p className="mt-1 text-sm text-muted-foreground">{organization.name} · horário de Brasília</p>}
-        {requests && requests.length > 0 && <div className="mt-6"><BookingRequests list={requests} /></div>}
+        {/* Sempre montado: depois de decidir o último pedido, a mensagem continua visível (o componente some sozinho sem pedidos nem mensagem) */}
+        {requests && <BookingRequests list={requests} />}
         <div className="mt-6">
           <AgendaWeek start={start} todayDate={todayDate} appointments={appointments} patients={options} defaultPatientId={defaultPatientId} packages={packages} schedule={scheduleOf(organization)} />
         </div>
