@@ -622,6 +622,51 @@ Migração `0048_quality_docs.sql` (**aplicada na vpsrafa em 18/11/2026**, backu
 
 Endpoints (publicados em 18/11/2026): `GET/POST /rafanutri/uan/units/:id/documents` (criar: owner, gestor ou RT), `GET /rafanutri/uan/documents/:id` (qualquer membro da unidade; rascunho e lista de ciência só para quem edita), `PUT …/draft`, `POST …/approve` (RT ou owner), `POST …/acknowledge` (qualquer membro, só versão aprovada), `GET/POST /rafanutri/uan/units/:id/trainings`. Coleções sem acesso direto pela API de itens; cenário no teste de isolamento.
 
+## Integridade dos registros (U6b: RN-167)
+
+Migração `0049_integrity.sql` (**aplicada na vpsrafa em 18/11/2026**, backup `antes-0049-0054-2026-11-18.dump`; testes em `db/tests/0049_integrity.test.sql`):
+
+- `checklist_runs.content_hash`: SHA-256 de um texto canônico da execução e das respostas (`checklist_run_canonical`/`checklist_run_digest`; datas em epoch, sem ids de usuário). Gravado por `checklist_complete`; os 26 checklists já concluídos em produção receberam o hash na migração (0 divergências).
+- `uan_integrity_check(unidade, de, até)`: recalcula os hashes de checklists concluídos e versões aprovadas de documento e devolve `ok` por registro (o dossiê usa). Adulteração direta no banco aparece como divergência.
+- `uan_no_delete()`: registros de qualidade (checklists e respostas, temperaturas, não conformidades, treinamentos e participantes, ciência, recebimentos, movimentos de estoque, sobras, comensais e emissões) não se apagam; só somem em cascata com a unidade ou a empresa.
+- Auditoria em `organization_contracts`, `stock_lots` e `stock_movements`.
+- Correção: apagar a conta de quem respondeu ou concluiu um checklist fechado falhava (o guarda recusava o `set null` da FK). Agora a FK pode zerar a referência (só pela ação da FK, nunca por UPDATE direto).
+
+## APPCC (U7: RN-160, RN-161)
+
+Migração `0050_haccp.sql` (**aplicada em 18/11/2026**; testes em `db/tests/0050_haccp.test.sql`):
+
+- `haccp_plans` (por unidade, opcionalmente de uma ficha; versões com `root_id`; rascunho editável, aprovado imutável, anterior arquivado), `haccp_steps` (fluxograma ordenado) e `haccp_hazards` (biológico, químico, físico, alergênico; severidade × probabilidade de 1 a 3, `risk` gerado; significativo a partir de 4 — matriz a validar).
+- `haccp_decision(q1, q1b, q2, q3, q4)`: árvore decisória do Codex (`ccp`, `not_ccp`, `modify` ou null se incompleta), calculada no gatilho.
+- `haccp_steps_from_sheet(plano)`: etapas a partir dos passos da ficha (com a temperatura-alvo). `haccp_plan_approve(plano, usuário)`: RT ou owner; exige árvore respondida nos perigos significativos e limite crítico, monitoramento e ação corretiva em cada PCC; numera os PCC. `haccp_plan_new_version`.
+- O PCC pode apontar para um modelo de checklist ou um equipamento da mesma unidade (monitoramento).
+
+## Rotulagem (U7: RN-162 a RN-164)
+
+Migração `0051_labels.sql` (**aplicada em 18/11/2026**): `ingredients.added_sugar_g_100g` e `nutrition_labels` (retrato imutável do rótulo emitido de uma ficha aprovada: porção, medida caseira, valores em jsonb, lupa `added_sugar`/`saturated_fat`/`sodium`, alergênicos e declaração, formato; só arquiva). O cálculo (IN 75/2020) fica no nutrition-core.
+
+## Perfis de público e regras do cardápio (U7: RN-221)
+
+Migração `0052_menu_planning.sql` (**aplicada em 18/11/2026**):
+
+- `diner_profiles`: perfil (PAT, PNAE, hospitalar, hotelaria, transportada, outro) com metas `{nutriente: {min, max, target}}`. Cinco perfis da plataforma, só leitura e **não validados**: PAT grande e pequena refeição (Portaria Interministerial 66/2006) e PNAE/hospitalar sem metas (a RT preenche na cópia). `diner_profile_copy`.
+- `menu_rules`: insumo ou categoria vetados, prato obrigatório por dia, frequência máxima por semana, teto de custo; da empresa ou de um perfil.
+- `menu_cycles.profile_id` e `autonomy` (`standardized`, `decentralized`, `free`); `unit_sheet_adjustments` (fator de per capita local da ficha da rede).
+
+## Cardápio público e pesquisa de satisfação (U7: RN-223)
+
+Migração `0053_public_menu.sql` (**aplicada em 18/11/2026**): `production_units.public_menu_token`/`public_menu_enabled` e `unit_public_menu_set(unidade, ligar, trocar)`; `satisfaction_surveys` (1 a 3 perguntas estrelas ou sim/não; uma ativa por unidade; perguntas não mudam depois de respostas) e `satisfaction_responses` (uma por aparelho, dia e prato; nota calculada; imutável).
+
+## Licenças, Manual, dossiê e contrato (U6b/U7: RN-157, RN-166, RN-124)
+
+Migração `0054_dossier_contract.sql` (**aplicada em 18/11/2026**):
+
+- `unit_licenses`: alvará sanitário, certificado do RT, controle de pragas, limpeza do reservatório, bombeiros, outro — com validade e arquivo.
+- `compliance_exports`: Manual (edição numerada por unidade) e dossiê (período até 366 dias) emitidos, com versões incluídas, resumo de integridade, arquivo e hash; imutável e sem delete.
+- Contrato: `organization_contracts.billing_method`/`notes`, `contract_invoices` (período, valor, vencimento, situação, gateway; valor e período não mudam; paga ou cancelada é final) e `uan_contract_state(org)` = `active` | `read_only` (até 90 dias após o fim) | `ended` | `none`. O bloqueio de escrita no modo leitura e a cobrança no gateway ficam no endpoint (ainda não feitos).
+
+As telas e os endpoints de 0050 a 0054 ainda não existem; as tabelas não têm coleção no Directus (a API de itens recusa).
+
 ## Feedback do beta (RN-047)
 
 Migração `0032_feedback.sql` (**aplicada na vpsrafa em 14/11/2026**; testes em `db/tests/0032_feedback.test.sql`): `product_feedback` (consultório, autor, tipo `bug`/`idea`/`praise`/`other`, mensagem de 3 a 2.000 caracteres, caminho da página sem query string, status `new`/`read`/`done`). Gravado só por `POST /rafanutri/feedback` (qualquer conta logada, até 20 por dia); nenhum papel lê a coleção: o admin da plataforma consulta no Directus ou por SQL. Sem print de tela, porque a tela costuma ter dados de pacientes. O e2e grava mensagens com o prefixo `[e2e]`:

@@ -16,7 +16,7 @@ test('unidade produtora da UAN e convite da equipe', async ({ page, browser }) =
   await page.getByRole('button', { name: 'Entrar' }).click();
   await expect(page).toHaveURL(/^[^?]*\/app$/);
 
-  await page.getByRole('link', { name: /UAN e Qualidade/ }).click();
+  await page.getByTestId('module-uan').getByRole('link', { name: /Abrir/ }).click();
   await expect(page.getByRole('heading', { level: 1, name: 'UAN e Qualidade' })).toBeVisible();
   await page.getByRole('button', { name: 'Nova unidade' }).click();
   const form = page.getByRole('form', { name: 'Nova unidade' });
