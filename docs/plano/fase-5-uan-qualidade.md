@@ -1031,9 +1031,9 @@ Referências: ANVISA RDC nº 429/2020 e IN nº 75/2020. Todos os valores abaixo 
 - **Depende de:** RN-122
 - **Descrição:** Criar `quality_documents`, `quality_document_versions`, `document_acknowledgements`, `trainings` e `training_attendees`.
 - **Tarefas técnicas:**
-  - [ ] Migração e RLS
-  - [ ] Gatilho de imutabilidade de versão aprovada
-  - [ ] Bucket `uan-documents`
+  - [x] Migração e RLS
+  - [x] Gatilho de imutabilidade de versão aprovada
+  - [ ] Bucket `uan-documents` (adiado: documentos em texto no banco; anexos ficam para o Manual em PDF)
 - **Arquivos/áreas:** `supabase/migrations/`
 - **Critérios de aceite:** Dada uma versão aprovada, quando alguém tenta alterar o texto, então o banco recusa.
 - **Testes:** RLS, integração.
@@ -1044,8 +1044,8 @@ Referências: ANVISA RDC nº 429/2020 e IN nº 75/2020. Todos os valores abaixo 
 - **Depende de:** RN-155
 - **Descrição:** Modelos editáveis dos POPs exigidos pela RDC 216/2004, preenchidos com os dados da unidade.
 - **Tarefas técnicas:**
-  - [ ] Modelos em Markdown com variáveis (`{{unit.name}}`, `{{technical_lead.name}}`, equipamentos, produtos de limpeza)
-  - [ ] Editor com pré-visualização
+  - [x] Modelos em Markdown com variáveis (`{{unit.name}}`, `{{technical_lead.name}}`, equipamentos, produtos de limpeza) — usa `{{unidade}}`, `{{endereco}}`, `{{rt}}`, `{{data}}`, `{{equipamentos}}`
+  - [x] Editor com pré-visualização
   - [ ] Revisão dos modelos pela nutricionista RT parceira
   - [ ] Vínculo POP → checklists de monitoramento
 - **Arquivos/áreas:** `supabase/seed/quality-docs/`, `apps/web/app/(uan)/uan/[unitId]/documents/`
@@ -1071,9 +1071,9 @@ Referências: ANVISA RDC nº 429/2020 e IN nº 75/2020. Todos os valores abaixo 
 - **Depende de:** RN-155
 - **Descrição:** Fluxo rascunho → revisão → aprovado, com data de revisão periódica e ciência dos colaboradores.
 - **Tarefas técnicas:**
-  - [ ] Ações por papel e histórico de versões com resumo da mudança
-  - [ ] Ciência obrigatória ao publicar nova versão, com lista de pendentes
-  - [ ] Alerta de revisão vencida
+  - [x] Ações por papel e histórico de versões com resumo da mudança
+  - [x] Ciência obrigatória ao publicar nova versão, com lista de pendentes
+  - [x] Alerta de revisão vencida — na tela (vencida em destaque); lembrete por n8n pendente
 - **Arquivos/áreas:** `apps/web/app/(uan)/uan/[unitId]/documents/`
 - **Critérios de aceite:** Dada a versão 3 aprovada de um POP, quando um cozinheiro entra no app, então é solicitado a dar ciência antes de seguir.
 - **Testes:** e2e.
@@ -1084,8 +1084,8 @@ Referências: ANVISA RDC nº 429/2020 e IN nº 75/2020. Todos os valores abaixo 
 - **Depende de:** RN-155
 - **Descrição:** Registrar capacitações com tema, carga horária, instrutor e participantes.
 - **Tarefas técnicas:**
-  - [ ] CRUD de treinamentos e lista de presença (upload)
-  - [ ] Visão por colaborador e alerta de reciclagem (periodicidade configurável)
+  - [ ] CRUD de treinamentos e lista de presença (upload) — feito o registro com participantes; falta o upload da lista assinada
+  - [x] Visão por colaborador e alerta de reciclagem (periodicidade configurável) — reciclagem fixa em 12 meses
 - **Arquivos/áreas:** `apps/web/app/(uan)/uan/[unitId]/trainings/`
 - **Critérios de aceite:** Dado um colaborador sem treinamento há 12 meses, quando o RT abre a tela, então o colaborador aparece em "reciclagem pendente".
 - **Testes:** e2e.

@@ -620,7 +620,7 @@ Migração `0048_quality_docs.sql` (**aplicada na vpsrafa em 18/11/2026**, backu
 - `document_acknowledgements (versão, usuário)`: ciência da equipe.
 - `trainings` e `training_attendees` (usuário da equipe ou nome livre).
 
-Os endpoints (`/rafanutri/uan/units/:id/documents`, `/rafanutri/uan/documents/:id`, `…/draft`, `…/approve`, `…/acknowledge`, `/rafanutri/uan/units/:id/trainings`) estão no código da extensão e ainda não foram publicados; as telas estão em construção.
+Endpoints (publicados em 18/11/2026): `GET/POST /rafanutri/uan/units/:id/documents` (criar: owner, gestor ou RT), `GET /rafanutri/uan/documents/:id` (qualquer membro da unidade; rascunho e lista de ciência só para quem edita), `PUT …/draft`, `POST …/approve` (RT ou owner), `POST …/acknowledge` (qualquer membro, só versão aprovada), `GET/POST /rafanutri/uan/units/:id/trainings`. Coleções sem acesso direto pela API de itens; cenário no teste de isolamento.
 
 ## Feedback do beta (RN-047)
 

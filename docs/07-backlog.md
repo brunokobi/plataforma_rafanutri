@@ -210,11 +210,11 @@ Status: `todo`, `doing`, `done`, `adiado` (fora do MVP, ver [ADR 0004](adr/0004-
 | [RN-152](plano/fase-5-uan-qualidade.md#rn-152--alertas-de-temperatura) | Alertas de temperatura | feature | 3 | RN-151, RN-050 | todo |
 | [RN-153](plano/fase-5-uan-qualidade.md#rn-153--não-conformidades) | Não conformidades | feature | 5 | RN-148, RN-151 | done |
 | [RN-154](plano/fase-5-uan-qualidade.md#rn-154--plano-de-ação-5w2h) | Plano de ação 5W2H | feature | 3 | RN-153 | doing |
-| [RN-155](plano/fase-5-uan-qualidade.md#rn-155--migração-de-documentos-e-treinamentos) | Migração de documentos e treinamentos | infra | 2 | RN-122 | todo |
-| [RN-156](plano/fase-5-uan-qualidade.md#rn-156--modelos-dos-4-pops-obrigatórios) | Modelos dos 4 POPs obrigatórios | feature | 5 | RN-155 | todo |
+| [RN-155](plano/fase-5-uan-qualidade.md#rn-155--migração-de-documentos-e-treinamentos) | Migração de documentos e treinamentos | infra | 2 | RN-122 | done |
+| [RN-156](plano/fase-5-uan-qualidade.md#rn-156--modelos-dos-4-pops-obrigatórios) | Modelos dos 4 POPs obrigatórios | feature | 5 | RN-155 | done |
 | [RN-157](plano/fase-5-uan-qualidade.md#rn-157--manual-de-boas-práticas) | Manual de Boas Práticas | feature | 5 | RN-156 | todo |
-| [RN-158](plano/fase-5-uan-qualidade.md#rn-158--aprovação-versão-e-ciência-de-documentos) | Aprovação, versão e ciência de documentos | feature | 3 | RN-155 | todo |
-| [RN-159](plano/fase-5-uan-qualidade.md#rn-159--treinamentos-de-manipuladores) | Treinamentos de manipuladores | feature | 2 | RN-155 | todo |
+| [RN-158](plano/fase-5-uan-qualidade.md#rn-158--aprovação-versão-e-ciência-de-documentos) | Aprovação, versão e ciência de documentos | feature | 3 | RN-155 | done |
+| [RN-159](plano/fase-5-uan-qualidade.md#rn-159--treinamentos-de-manipuladores) | Treinamentos de manipuladores | feature | 2 | RN-155 | done |
 | [RN-160](plano/fase-5-uan-qualidade.md#rn-160--appcc-fluxograma-e-análise-de-perigos) | APPCC: fluxograma e análise de perigos | feature | 5 | RN-131, RN-155 | todo |
 | [RN-161](plano/fase-5-uan-qualidade.md#rn-161--appcc-pcc-limites-e-monitoramento) | APPCC: PCC, limites e monitoramento | feature | 5 | RN-160, RN-151 | todo |
 | [RN-162](plano/fase-5-uan-qualidade.md#rn-162--rotulagem-cálculo-da-tabela-nutricional) | Rotulagem: cálculo da tabela nutricional | feature | 5 | RN-132 | todo |
