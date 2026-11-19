@@ -612,6 +612,16 @@ Migração `0047_purchasing.sql` (**aplicada na vpsrafa em 15/11/2026**, backup 
 
 Sem migração: `GET /rafanutri/uan/units/:id/costs?from=&to=` (até 31 dias; owner, gestor, RT, estoquista) devolve o plano do período (o mesmo da necessidade de compra: cardápios aprovados, comensais previstos e realizados, fichas, adesão) e `consumption`: retiradas `out_production` por dia e insumo, valorizadas pelo custo do lote (`cost_per_kg_cents`); sem custo no lote, pelo preço vigente do insumo (`estimated`). O campo `criterion` registra esse critério. Os indicadores (custo por refeição, diferença, desvio por produto, curva ABC) são calculados no app com `nutrition-core/costs.ts`.
 
+## Documentos de BPF, ciência e treinamentos (U6a: RN-155, RN-156, RN-158, RN-159)
+
+Migração `0048_quality_docs.sql` (**aplicada na vpsrafa em 18/11/2026**, backup `antes-0048-2026-11-18.dump`; testes em `db/tests/0048_quality_docs.test.sql`):
+
+- `quality_documents` (por unidade: POP, manual ou outro; revisão a cada N meses) e `quality_document_versions` (Markdown; um rascunho por documento; aprovada é imutável e guarda `content_hash` = SHA-256 do texto, com `sha256()` nativo, e `next_review_on`). `doc_version_approve(versão, usuário)`: RT da unidade ou owner. Visão `quality_document_current` (vigente = aprovada de maior número).
+- `document_acknowledgements (versão, usuário)`: ciência da equipe.
+- `trainings` e `training_attendees` (usuário da equipe ou nome livre).
+
+Os endpoints (`/rafanutri/uan/units/:id/documents`, `/rafanutri/uan/documents/:id`, `…/draft`, `…/approve`, `…/acknowledge`, `/rafanutri/uan/units/:id/trainings`) estão no código da extensão e ainda não foram publicados; as telas estão em construção.
+
 ## Feedback do beta (RN-047)
 
 Migração `0032_feedback.sql` (**aplicada na vpsrafa em 14/11/2026**; testes em `db/tests/0032_feedback.test.sql`): `product_feedback` (consultório, autor, tipo `bug`/`idea`/`praise`/`other`, mensagem de 3 a 2.000 caracteres, caminho da página sem query string, status `new`/`read`/`done`). Gravado só por `POST /rafanutri/feedback` (qualquer conta logada, até 20 por dia); nenhum papel lê a coleção: o admin da plataforma consulta no Directus ou por SQL. Sem print de tela, porque a tela costuma ter dados de pacientes. O e2e grava mensagens com o prefixo `[e2e]`:
