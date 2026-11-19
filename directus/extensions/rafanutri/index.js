@@ -4193,6 +4193,222 @@ export default {
       }
     });
 
+    // ── Documentos de BPF, ciência e treinamentos (U6a: RN-155, RN-156, RN-158, RN-159) ─────────
+    // Ver e dar ciência: equipe da unidade. Criar e editar rascunho, registrar treinamento: owner, gestor, RT.
+    // Aprovar versão: RT da unidade ou owner (doc_version_approve confere de novo).
+    const canApproveDoc = (a) => a.isOwner || a.roles.includes('technical_lead');
+    const DOC_KINDS = new Set(['pop', 'manual', 'other']);
+
+    router.get('/uan/units/:id/documents', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const a = await unitAccess(user, req.params.id);
+      if (!a) return unitNotFound(res);
+      const docs = await database('quality_documents as d').leftJoin('quality_document_current as c', 'c.document_id', 'd.id')
+        .where({ 'd.unit_id': a.unit.id, 'd.archived': false }).orderBy([{ column: 'd.kind' }, { column: 'd.title' }])
+        .select('d.id', 'd.kind', 'd.code', 'd.title', 'd.review_every_months', 'c.version_id', 'c.version', 'c.approved_at', 'c.next_review_on',
+          database.raw("exists (select 1 from quality_document_versions v where v.document_id = d.id and v.status = 'draft') as has_draft"),
+          database.raw('exists (select 1 from document_acknowledgements k where k.version_id = c.version_id and k.user_id = ?) as acknowledged', [user]));
+      const team = await database('unit_members').where('unit_id', a.unit.id).distinct('user_id');
+      const ackCounts = docs.some((d) => d.version_id) ? await database('document_acknowledgements').whereIn('version_id', docs.map((d) => d.version_id).filter(Boolean))
+        .whereIn('user_id', team.map((t) => t.user_id)).groupBy('version_id').select('version_id').count({ n: '*' }) : [];
+      const rt = await database('unit_members as m').join('directus_users as u', 'u.id', 'm.user_id').where({ 'm.unit_id': a.unit.id, 'm.role': 'technical_lead' }).first('u.first_name', 'u.last_name');
+      const equipment = await database('equipment').where({ unit_id: a.unit.id, active: true }).orderBy('name').select('name', 'kind');
+      const today = localToday();
+      res.json({
+        data: {
+          unit: { id: a.unit.id, name: a.unit.name, address: a.unit.address, city: a.unit.city, state: a.unit.state, cnpj: a.unit.cnpj },
+          technical_lead: userName(rt),
+          equipment,
+          can_edit: canSupervise(a),
+          can_approve: canApproveDoc(a),
+          team_size: team.length,
+          documents: docs.map((d) => ({
+            ...d, next_review_on: dateOut(d.next_review_on), review_overdue: Boolean(d.next_review_on && dateOut(d.next_review_on) < today),
+            ack_count: Number(ackCounts.find((c) => c.version_id === d.version_id)?.n ?? 0),
+          })),
+        },
+      });
+    });
+
+    router.post('/uan/units/:id/documents', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const a = await unitAccess(user, req.params.id);
+      if (!a) return unitNotFound(res);
+      if (!canSupervise(a)) return res.status(403).json({ errors: [{ message: 'Só o responsável, o gestor ou o RT criam documentos.', extensions: { code: 'FORBIDDEN' } }] });
+      const b = req.body ?? {};
+      const title = typeof b.title === 'string' ? b.title.trim() : '';
+      const body = typeof b.body_md === 'string' ? b.body_md : '';
+      const errors = {};
+      if (title.length < 3 || title.length > 160) errors.title = 'Informe o título (3 a 160 caracteres).';
+      if (!DOC_KINDS.has(b.kind ?? 'pop')) errors.kind = 'Tipo inválido.';
+      if (b.code && !/^[a-z0-9-]{2,60}$/.test(b.code)) errors.code = 'Código inválido.';
+      if (!body.trim() || body.length > 100000) errors.body_md = 'Escreva o conteúdo (até 100.000 caracteres).';
+      const months = b.review_every_months === undefined ? 12 : Number(b.review_every_months);
+      if (!Number.isInteger(months) || months < 1 || months > 60) errors.review_every_months = 'Revisão entre 1 e 60 meses.';
+      if (Object.keys(errors).length) return bad(res, errors);
+      try {
+        const id = await withActor(user, async (trx) => {
+          const [d] = await trx('quality_documents').insert({ unit_id: a.unit.id, organization_id: a.unit.organization_id, kind: b.kind ?? 'pop', code: b.code || null, title, review_every_months: months, created_by: user }).returning(['id']);
+          await trx('quality_document_versions').insert({ document_id: d.id, version: 1, body_md: body, change_summary: 'Primeira versão', created_by: user });
+          return d.id;
+        });
+        res.status(201).json({ data: { id } });
+      } catch (error) {
+        p0001(res, error, 'criar documento');
+      }
+    });
+
+    async function docAccess(user, id) {
+      if (!isUuid(id)) return null;
+      const doc = await database('quality_documents').where('id', id).first('id', 'unit_id', 'kind', 'code', 'title', 'review_every_months', 'archived');
+      if (!doc) return null;
+      const a = await unitAccess(user, doc.unit_id);
+      return a ? { doc, a } : null;
+    }
+
+    router.get('/uan/documents/:id', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const x = await docAccess(user, req.params.id);
+      if (!x) return notFoundMsg(res, 'Documento');
+      const versions = await database('quality_document_versions as v').leftJoin('directus_users as u', 'u.id', 'v.approved_by').where('v.document_id', x.doc.id).orderBy('v.version', 'desc')
+        .select('v.id', 'v.version', 'v.status', 'v.change_summary', 'v.approved_at', 'v.next_review_on', 'v.content_hash', 'v.body_md', 'u.first_name', 'u.last_name');
+      const current = versions.find((v) => v.status === 'approved') ?? null;
+      const draft = versions.find((v) => v.status === 'draft') ?? null;
+      let acks = [];
+      if (current && (canSupervise(x.a))) {
+        acks = await database('unit_members as m').join('directus_users as u', 'u.id', 'm.user_id').where('m.unit_id', x.a.unit.id)
+          .leftJoin('document_acknowledgements as k', function () { this.on('k.user_id', 'm.user_id').andOn('k.version_id', database.raw('?', [current.id])); })
+          .distinct('m.user_id', 'u.first_name', 'u.last_name', 'u.email', 'k.acknowledged_at').orderBy('u.first_name');
+      }
+      const mine = current ? Boolean(await database('document_acknowledgements').where({ version_id: current.id, user_id: user }).first('user_id')) : false;
+      const strip = (v) => v && ({ id: v.id, version: v.version, status: v.status, change_summary: v.change_summary, approved_at: v.approved_at, next_review_on: dateOut(v.next_review_on), content_hash: v.content_hash, approved_by_name: userName(v) });
+      res.json({
+        data: {
+          document: x.doc,
+          unit: { id: x.a.unit.id, name: x.a.unit.name },
+          current: current ? { ...strip(current), body_md: current.body_md } : null,
+          // o rascunho só para quem edita ou aprova
+          draft: draft && (canSupervise(x.a) || canApproveDoc(x.a)) ? { ...strip(draft), body_md: draft.body_md } : null,
+          versions: versions.map(strip),
+          acknowledged: mine,
+          acks: acks.map((k) => ({ user_id: k.user_id, name: userName(k) ?? k.email, acknowledged_at: k.acknowledged_at })),
+          can_edit: canSupervise(x.a),
+          can_approve: canApproveDoc(x.a),
+        },
+      });
+    });
+
+    router.put('/uan/documents/:id/draft', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const x = await docAccess(user, req.params.id);
+      if (!x) return notFoundMsg(res, 'Documento');
+      if (!canSupervise(x.a)) return res.status(403).json({ errors: [{ message: 'Só o responsável, o gestor ou o RT editam documentos.', extensions: { code: 'FORBIDDEN' } }] });
+      const body = typeof req.body?.body_md === 'string' ? req.body.body_md : '';
+      if (!body.trim() || body.length > 100000) return bad(res, { body_md: 'Escreva o conteúdo (até 100.000 caracteres).' });
+      const summary = typeof req.body?.change_summary === 'string' && req.body.change_summary.trim() ? req.body.change_summary.trim().slice(0, 500) : null;
+      try {
+        await withActor(user, async (trx) => {
+          const draft = await trx('quality_document_versions').where({ document_id: x.doc.id, status: 'draft' }).first('id');
+          if (draft) await trx('quality_document_versions').where('id', draft.id).update({ body_md: body, change_summary: summary });
+          else {
+            const max = await trx('quality_document_versions').where('document_id', x.doc.id).max('version as v').first();
+            await trx('quality_document_versions').insert({ document_id: x.doc.id, version: Number(max?.v ?? 0) + 1, body_md: body, change_summary: summary, created_by: user });
+          }
+        });
+        res.json({ data: { ok: true } });
+      } catch (error) {
+        p0001(res, error, 'salvar rascunho');
+      }
+    });
+
+    router.post('/uan/documents/:id/approve', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const x = await docAccess(user, req.params.id);
+      if (!x) return notFoundMsg(res, 'Documento');
+      if (!canApproveDoc(x.a)) return res.status(403).json({ errors: [{ message: 'Só o RT da unidade ou o responsável pela empresa aprovam documentos.', extensions: { code: 'FORBIDDEN' } }] });
+      const draft = await database('quality_document_versions').where({ document_id: x.doc.id, status: 'draft' }).first('id');
+      if (!draft) return conflict(res, 'Não há rascunho para aprovar.');
+      try {
+        await withActor(user, (trx) => trx.raw('select * from doc_version_approve(?, ?)', [draft.id, user]));
+        res.json({ data: { ok: true } });
+      } catch (error) {
+        p0001(res, error, 'aprovar documento');
+      }
+    });
+
+    router.post('/uan/documents/:id/acknowledge', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const x = await docAccess(user, req.params.id);
+      if (!x) return notFoundMsg(res, 'Documento');
+      const current = await database('quality_document_current').where('document_id', x.doc.id).first('version_id');
+      if (!current) return conflict(res, 'O documento ainda não tem versão aprovada.');
+      await database('document_acknowledgements').insert({ version_id: current.version_id, user_id: user }).onConflict(['version_id', 'user_id']).ignore();
+      res.json({ data: { ok: true } });
+    });
+
+    router.get('/uan/units/:id/trainings', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const a = await unitAccess(user, req.params.id);
+      if (!a) return unitNotFound(res);
+      const list = await database('trainings').where('unit_id', a.unit.id).orderBy('held_on', 'desc').limit(200).select('id', 'topic', 'held_on', 'hours', 'instructor', 'notes');
+      const att = list.length ? await database('training_attendees as t').leftJoin('directus_users as u', 'u.id', 't.user_id').whereIn('t.training_id', list.map((t) => t.id))
+        .select('t.training_id', 't.user_id', 't.name', 'u.first_name', 'u.last_name') : [];
+      const team = await database('unit_members as m').join('directus_users as u', 'u.id', 'm.user_id').where('m.unit_id', a.unit.id)
+        .distinct('m.user_id', 'u.first_name', 'u.last_name', 'u.email').orderBy('u.first_name');
+      const last = (await database.raw(
+        `select a.user_id, max(t.held_on) as last_on from training_attendees a join trainings t on t.id = a.training_id
+          where t.unit_id = ? and a.user_id is not null group by a.user_id`, [a.unit.id])).rows;
+      res.json({
+        data: {
+          unit: { id: a.unit.id, name: a.unit.name },
+          can_edit: canSupervise(a),
+          trainings: list.map((t) => ({ ...t, held_on: dateOut(t.held_on), hours: Number(t.hours), attendees: att.filter((x) => x.training_id === t.id).map((x) => userName(x) ?? x.name) })),
+          team: team.map((m) => ({ user_id: m.user_id, name: userName(m) ?? m.email, last_training_on: dateOut(last.find((l) => l.user_id === m.user_id)?.last_on ?? null) })),
+        },
+      });
+    });
+
+    router.post('/uan/units/:id/trainings', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const a = await unitAccess(user, req.params.id);
+      if (!a) return unitNotFound(res);
+      if (!canSupervise(a)) return res.status(403).json({ errors: [{ message: 'Só o responsável, o gestor ou o RT registram treinamentos.', extensions: { code: 'FORBIDDEN' } }] });
+      const b = req.body ?? {};
+      const topic = typeof b.topic === 'string' ? b.topic.trim() : '';
+      const hours = Number(String(b.hours ?? '').replace(',', '.'));
+      const errors = {};
+      if (topic.length < 3 || topic.length > 200) errors.topic = 'Informe o tema.';
+      if (!isIsoDate(b.held_on)) errors.held_on = 'Informe a data.';
+      if (!Number.isFinite(hours) || hours <= 0 || hours > 200) errors.hours = 'Carga horária entre 0,5 e 200 h.';
+      const ids = Array.isArray(b.attendee_ids) ? [...new Set(b.attendee_ids.filter(isUuid))] : [];
+      const others = Array.isArray(b.other_names) ? b.other_names.map((n) => String(n).trim()).filter((n) => n.length >= 2).map((n) => n.slice(0, 120)) : [];
+      if (!ids.length && !others.length) errors.attendee_ids = 'Marque quem participou.';
+      if (ids.length) {
+        const members = await database('unit_members').where('unit_id', a.unit.id).whereIn('user_id', ids).distinct('user_id');
+        if (members.length !== ids.length) errors.attendee_ids = 'Participante fora da equipe da unidade.';
+      }
+      if (Object.keys(errors).length) return bad(res, errors);
+      try {
+        const id = await withActor(user, async (trx) => {
+          const [t] = await trx('trainings').insert({ unit_id: a.unit.id, organization_id: a.unit.organization_id, topic, held_on: b.held_on, hours: Math.round(hours * 10) / 10, instructor: typeof b.instructor === 'string' && b.instructor.trim() ? b.instructor.trim().slice(0, 120) : null, notes: typeof b.notes === 'string' && b.notes.trim() ? b.notes.trim().slice(0, 1000) : null, created_by: user }).returning(['id']);
+          const rows = [...ids.map((user_id) => ({ training_id: t.id, user_id })), ...others.map((name) => ({ training_id: t.id, name }))];
+          await trx('training_attendees').insert(rows);
+          return t.id;
+        });
+        res.status(201).json({ data: { id } });
+      } catch (error) {
+        p0001(res, error, 'registrar treinamento');
+      }
+    });
+
     // ── Feedback do programa beta (RN-047) ──────────────────────────────────────────────────
     // Texto + tipo + caminho da página (sem query string). Lido só pelo admin da plataforma no Directus.
     const FEEDBACK_KINDS = new Set(['bug', 'idea', 'praise', 'other']);
