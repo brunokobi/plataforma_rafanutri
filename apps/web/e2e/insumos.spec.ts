@@ -89,6 +89,18 @@ test('insumo com preço e fornecedor', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Nova versão' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Salvar rascunho' })).toHaveCount(0);
 
+  // U7: rótulo nutricional da ficha aprovada
+  const lf = page.getByRole('form', { name: 'Dados do rótulo' });
+  await lf.getByLabel('Medida caseira').fill('1 copo');
+  await lf.getByLabel(/Açúcares totais/).fill('9');
+  await expect(page.getByRole('img', { name: 'Pré-visualização do rótulo nutricional' })).toBeVisible();
+  await lf.getByRole('button', { name: 'Emitir rótulo' }).click();
+  await expect(lf.getByRole('status')).toHaveText('Rótulo emitido.', { timeout: 15_000 });
+  const issued = page.getByRole('list', { name: 'Rótulos emitidos' });
+  await expect(issued).toContainText('(1 copo)');
+  const [labelPdf] = await Promise.all([page.waitForEvent('download'), issued.getByRole('link', { name: 'PDF' }).first().click()]);
+  expect(labelPdf.suggestedFilename()).toMatch(/^rotulo-.*\.pdf$/);
+
   // U2c: cardápio com a ficha aprovada, teto de custo, envio com justificativa e aprovação
   await page.goto('/app/uan');
   await page.getByRole('button', { name: 'Nova unidade' }).click();

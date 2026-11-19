@@ -84,7 +84,7 @@ export function labelSvg(l: Pick<LabelRecord, 'product_name' | 'physical_state' 
 
   // lupa frontal acima da tabela
   if (l.front_warnings.length) {
-    const h = 30 + l.front_warnings.length * 16;
+    const h = 38 + l.front_warnings.length * 16;
     out.push(`<rect x="4" y="4" width="150" height="${h}" fill="#000"/>`);
     out.push(`<circle cx="24" cy="22" r="8" fill="none" stroke="#fff" stroke-width="2.5"/><line x1="30" y1="28" x2="36" y2="34" stroke="#fff" stroke-width="3"/>`);
     text(44, 26, 'ALTO EM', { bold: true, size: 13, fill: '#fff' });
