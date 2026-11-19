@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { archiveLabel, issueLabel } from '@/lib/uan/label-actions';
-import { buildLabel, labelPer100, labelSvg, type LabelRecord, type SheetLabels } from '@/lib/uan/labels';
+import { buildLabel, labelPer100, labelSvg, type LabelLayout, type LabelRecord, type SheetLabels } from '@/lib/uan/labels';
 import { buildInputs, calculate, sheetAllergens, type SheetDetail } from '@/lib/uan/techsheets';
 
 const SELECT = 'h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs';
@@ -51,7 +51,7 @@ export function LabelBuilder({ detail, labels }: { detail: SheetDetail; labels: 
   const [v, setV] = useState({
     product_name: s.name, state: (s.category === 'beverage' ? 'liquid' : 'solid') as PhysicalState,
     portion: result ? String(Math.round(result.portionG)) : '', measure: '', per_pack: '', total_sugar: '', trans: '0',
-    statement: allergenStatement(allergens),
+    statement: allergenStatement(allergens), layout: 'vertical' as LabelLayout,
   });
   const [message, setMessage] = useState<{ text: string; error?: boolean } | null>(null);
   const [pending, startTransition] = useTransition();
@@ -60,7 +60,7 @@ export function LabelBuilder({ detail, labels }: { detail: SheetDetail; labels: 
   const built = per100 && portion > 0 ? buildLabel(per100, portion, v.state) : null;
   const missingFood = result?.missingNutrients ?? [];
   const preview = built
-    ? labelSvg({ product_name: v.product_name, physical_state: v.state, portion_g: portion, household_measure: v.measure || '—', servings_per_pack: parse(v.per_pack), values: built.values, front_warnings: built.warnings, allergen_statement: v.statement.trim() || null })
+    ? labelSvg({ product_name: v.product_name, physical_state: v.state, portion_g: portion, household_measure: v.measure || '—', servings_per_pack: parse(v.per_pack), values: built.values, front_warnings: built.warnings, allergen_statement: v.statement.trim() || null, layout: v.layout })
     : null;
 
   return (
@@ -79,7 +79,7 @@ export function LabelBuilder({ detail, labels }: { detail: SheetDetail; labels: 
                     setMessage(null);
                     const r = await issueLabel(s.id, {
                       product_name: v.product_name, physical_state: v.state, portion_g: portion, household_measure: v.measure, servings_per_pack: parse(v.per_pack),
-                      values: built.values, front_warnings: built.warnings, allergens, allergen_statement: v.statement.trim() || null, layout: 'vertical',
+                      values: built.values, front_warnings: built.warnings, allergens, allergen_statement: v.statement.trim() || null, layout: v.layout,
                     });
                     if (!r.ok) return setMessage({ text: r.message, error: true });
                     setMessage({ text: 'Rótulo emitido.' });
@@ -92,6 +92,9 @@ export function LabelBuilder({ detail, labels }: { detail: SheetDetail; labels: 
                 </div>
                 <div className="space-y-1.5"><Label htmlFor="lb-portion">Porção ({v.state === 'liquid' ? 'mL' : 'g'})</Label><Input id="lb-portion" inputMode="decimal" value={v.portion} onChange={(e) => setV({ ...v, portion: e.target.value })} /></div>
                 <div className="space-y-1.5"><Label htmlFor="lb-measure">Medida caseira</Label><Input id="lb-measure" maxLength={60} placeholder="1 fatia, 1 xícara…" value={v.measure} onChange={(e) => setV({ ...v, measure: e.target.value })} /></div>
+                <div className="space-y-1.5"><Label htmlFor="lb-layout">Formato</Label>
+                  <select id="lb-layout" className={SELECT} value={v.layout} onChange={(e) => setV({ ...v, layout: e.target.value as LabelLayout })}><option value="vertical">Vertical</option><option value="horizontal">Horizontal</option><option value="linear">Linear</option></select>
+                </div>
                 <div className="space-y-1.5"><Label htmlFor="lb-pack">Porções por embalagem (opcional)</Label><Input id="lb-pack" inputMode="decimal" value={v.per_pack} onChange={(e) => setV({ ...v, per_pack: e.target.value })} /></div>
                 <div className="space-y-1.5"><Label htmlFor="lb-sugar">Açúcares totais (g por 100 {v.state === 'liquid' ? 'mL' : 'g'})</Label><Input id="lb-sugar" inputMode="decimal" value={v.total_sugar} onChange={(e) => setV({ ...v, total_sugar: e.target.value })} /></div>
                 <div className="space-y-1.5"><Label htmlFor="lb-trans">Gorduras trans (g por 100 {v.state === 'liquid' ? 'mL' : 'g'})</Label><Input id="lb-trans" inputMode="decimal" value={v.trans} onChange={(e) => setV({ ...v, trans: e.target.value })} /></div>

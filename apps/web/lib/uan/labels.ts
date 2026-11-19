@@ -71,7 +71,21 @@ export function wrapText(text: string, max: number): string[] {
 }
 
 /** SVG do rótulo: tabela vertical (IN 75/2020), lupa "ALTO EM" e declaração de alergênicos. */
-export function labelSvg(l: Pick<LabelRecord, 'product_name' | 'physical_state' | 'portion_g' | 'household_measure' | 'servings_per_pack' | 'values' | 'front_warnings' | 'allergen_statement'>): string {
+type LabelView = Pick<LabelRecord, 'product_name' | 'physical_state' | 'portion_g' | 'household_measure' | 'servings_per_pack' | 'values' | 'front_warnings' | 'allergen_statement'> & { layout?: LabelLayout };
+
+/** Texto do formato linear: "INFORMAÇÃO NUTRICIONAL: Porção 60 g (1 fatia). Valor energético 210 kcal (11% VD)…". */
+export function linearText(l: LabelView): string {
+  const unit = l.physical_state === 'liquid' ? 'mL' : 'g';
+  const parts = LABEL_ROWS.map((r) => {
+    const v = l.values.perPortion[r.key];
+    const vd = l.values.vd[r.key];
+    return `${r.label} ${fmt(v ?? null, r.unit)}${vd === null || vd === undefined ? '' : ` (${vd}% VD)`}`;
+  });
+  return `INFORMAÇÃO NUTRICIONAL: ${l.servings_per_pack ? `Porções por embalagem: ${l.servings_per_pack.toLocaleString('pt-BR')}. ` : ''}Porção ${l.portion_g.toLocaleString('pt-BR')} ${unit} (${l.household_measure}). ${parts.join('; ')}. *Percentual de valores diários fornecidos pela porção.`;
+}
+
+export function labelSvg(l: LabelView): string {
+  if (l.layout === 'linear' || l.layout === 'horizontal') return labelSvgWide(l);
   const W = 320;
   const unit = l.physical_state === 'liquid' ? 'mL' : 'g';
   const portion = `${l.portion_g.toLocaleString('pt-BR')} ${unit}`;
@@ -125,6 +139,58 @@ export function labelSvg(l: Pick<LabelRecord, 'product_name' | 'physical_state' 
     y += 8;
     for (const ln of wrapText(l.allergen_statement, 52)) { y += 12; text(4, y, ln, { bold: true, size: 9.5 }); }
   }
+  y += 8;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${y}" viewBox="0 0 ${W} ${y}"><rect width="${W}" height="${y}" fill="#fff"/>${out.join('')}</svg>`;
+}
+
+/** Formatos horizontal (colunas por nutriente) e linear (texto corrido), para embalagens baixas. A VALIDAR. */
+function labelSvgWide(l: LabelView): string {
+  const out: string[] = [];
+  const text = (x: number, yy: number, s: string, o: { bold?: boolean; size?: number; anchor?: 'start' | 'end' | 'middle'; fill?: string } = {}) =>
+    out.push(`<text x="${x}" y="${yy}" font-family="Helvetica, Arial, sans-serif" font-size="${o.size ?? 9}"${o.bold ? ' font-weight="bold"' : ''}${o.anchor ? ` text-anchor="${o.anchor}"` : ''} fill="${o.fill ?? '#000'}">${esc(s)}</text>`);
+  const unit = l.physical_state === 'liquid' ? 'mL' : 'g';
+  let y = 4;
+  let W = 640;
+  if (l.front_warnings.length) {
+    out.push(`<rect x="4" y="4" width="${70 + l.front_warnings.length * 130}" height="28" fill="#000"/>`);
+    out.push(`<circle cx="18" cy="18" r="7" fill="none" stroke="#fff" stroke-width="2.2"/><line x1="23" y1="23" x2="28" y2="28" stroke="#fff" stroke-width="2.6"/>`);
+    text(34, 22, 'ALTO EM', { bold: true, size: 11, fill: '#fff' });
+    l.front_warnings.forEach((w, i) => { out.push(`<rect x="${92 + i * 130}" y="9" width="124" height="18" fill="#fff"/>`); text(154 + i * 130, 22, FRONT_LABEL[w], { bold: true, size: 9, anchor: 'middle' }); });
+    y = 42;
+  }
+  const top = y;
+  if (l.layout === 'linear') {
+    const lines = wrapText(linearText(l), 118);
+    lines.forEach((ln, i) => text(10, top + 16 + i * 13, ln, { bold: i === 0 && ln.startsWith('INFORMAÇÃO') }));
+    y = top + 16 + lines.length * 13;
+  } else {
+    const colW = 58;
+    const x0 = 150;
+    W = x0 + LABEL_ROWS.length * colW + 8;
+    text(10, top + 16, 'INFORMAÇÃO', { bold: true, size: 11 });
+    text(10, top + 29, 'NUTRICIONAL', { bold: true, size: 11 });
+    text(10, top + 44, `Porção: ${l.portion_g.toLocaleString('pt-BR')} ${unit}`, { size: 8 });
+    text(10, top + 55, `(${l.household_measure})`, { size: 8 });
+    if (l.servings_per_pack) text(10, top + 66, `Porções/embalagem: ${l.servings_per_pack.toLocaleString('pt-BR')}`, { size: 8 });
+    text(x0 - 6, top + 46, `100 ${unit}`, { bold: true, size: 8, anchor: 'end' });
+    text(x0 - 6, top + 60, 'Porção', { bold: true, size: 8, anchor: 'end' });
+    text(x0 - 6, top + 74, '%VD*', { bold: true, size: 8, anchor: 'end' });
+    LABEL_ROWS.forEach((r, i) => {
+      const cx = x0 + i * colW + colW / 2;
+      wrapText(r.label, 12).slice(0, 2).forEach((ln, j) => text(cx, top + 14 + j * 10, ln, { bold: !r.indent, size: 7.5, anchor: 'middle' }));
+      text(cx, top + 46, fmt(l.values.per100[r.key] ?? null, r.unit), { size: 8, anchor: 'middle' });
+      text(cx, top + 60, fmt(l.values.perPortion[r.key] ?? null, r.unit), { size: 8, anchor: 'middle' });
+      const vd = l.values.vd[r.key];
+      text(cx, top + 74, vd === null || vd === undefined ? '' : String(vd), { size: 8, anchor: 'middle' });
+      out.push(`<line x1="${x0 + i * colW}" y1="${top + 4}" x2="${x0 + i * colW}" y2="${top + 78}" stroke="#000" stroke-width="0.5"/>`);
+    });
+    out.push(`<line x1="${x0}" y1="${top + 34}" x2="${W - 4}" y2="${top + 34}" stroke="#000" stroke-width="1.5"/>`);
+    text(10, top + 90, '*Percentual de valores diários fornecidos pela porção.', { size: 7 });
+    y = top + 96;
+  }
+  out.unshift(`<rect x="4" y="${top}" width="${W - 8}" height="${y - top + 4}" fill="#fff" stroke="#000" stroke-width="1.5"/>`);
+  y += 6;
+  if (l.allergen_statement) for (const ln of wrapText(l.allergen_statement, 100)) { y += 12; text(4, y, ln, { bold: true, size: 9 }); }
   y += 8;
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${y}" viewBox="0 0 ${W} ${y}"><rect width="${W}" height="${y}" fill="#fff"/>${out.join('')}</svg>`;
 }

@@ -1,6 +1,6 @@
 import { Circle, Document, Line, Page, StyleSheet, Svg, Text, View } from '@react-pdf/renderer';
 import { FRONT_LABEL, LABEL_ROWS } from '@rafanutri/nutrition-core';
-import type { LabelRecord } from '@/lib/uan/labels';
+import { linearText, type LabelRecord } from '@/lib/uan/labels';
 
 const s = StyleSheet.create({
   page: { padding: 36, fontFamily: 'Helvetica', fontSize: 9, color: '#000' },
@@ -39,6 +39,9 @@ export function LabelPdf({ label }: { label: LabelRecord }) {
             {label.front_warnings.map((w) => <Text key={w} style={s.lupaItem}>{FRONT_LABEL[w]}</Text>)}
           </View>
         )}
+        {label.layout === 'linear' ? (
+          <View style={[s.box, { width: 480 }]}><Text style={{ lineHeight: 1.4 }}>{linearText(label)}</Text></View>
+        ) : (
         <View style={s.box}>
           <Text style={s.title}>INFORMAÇÃO NUTRICIONAL</Text>
           {label.servings_per_pack ? <Text style={{ paddingTop: 2 }}>Porções por embalagem: {label.servings_per_pack.toLocaleString('pt-BR')}</Text> : null}
@@ -59,6 +62,7 @@ export function LabelPdf({ label }: { label: LabelRecord }) {
           ))}
           <Text style={s.small}>*Percentual de valores diários fornecidos pela porção.</Text>
         </View>
+        )}
         {label.allergen_statement && <Text style={s.allergen}>{label.allergen_statement}</Text>}
         <Text style={s.meta}>Gerado pela plataforma Rafanutri a partir da ficha técnica versão {label.sheet_version}, em {new Date(label.created_at).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })}. Cálculo pela IN 75/2020; a responsabilidade pelo rótulo é do responsável técnico.</Text>
       </Page>

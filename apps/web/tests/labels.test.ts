@@ -37,3 +37,22 @@ describe('rótulo nutricional no app', () => {
     expect(buf.subarray(0, 4).toString()).toBe('%PDF');
   }, 30_000);
 });
+
+import { linearText } from '@/lib/uan/labels';
+describe('formatos horizontal e linear', () => {
+  const per100 = labelPer100({ energy_kcal: 350, carbohydrate_g: 50, added_sugar_g: 20, protein_g: 20, lipid_g: 8, saturated_fat_g: 3, fiber_g: 1.2, sodium_mg: 700 }, { total_sugar_g: 25, trans_fat_g: 0 });
+  const b = buildLabel(per100, 60, 'solid');
+  const base = { product_name: 'Bolo', physical_state: 'solid' as const, portion_g: 60, household_measure: '1 fatia', servings_per_pack: null, values: b.values, front_warnings: b.warnings, allergen_statement: 'ALÉRGICOS: CONTÉM LEITE.' };
+  it('linear: texto corrido com %VD', () => {
+    const t = linearText(base);
+    expect(t).toMatch(/^INFORMAÇÃO NUTRICIONAL: Porção 60 g \(1 fatia\)\. Valor energético 210 kcal \(11% VD\); /);
+    expect(t).toContain('Proteínas 12 g (24% VD)');
+    expect(labelSvg({ ...base, layout: 'linear' })).toContain('ALTO EM');
+  });
+  it('horizontal: colunas por nutriente', () => {
+    const svg = labelSvg({ ...base, layout: 'horizontal' });
+    expect(svg).toContain('NUTRICIONAL');
+    expect(svg).toContain('>Sódio<');
+    expect(svg).toContain('>420 mg<');
+  });
+});

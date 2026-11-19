@@ -43,7 +43,7 @@ export async function getLabel(id: string) {
 }
 export interface IssueLabelInput {
   product_name: string; physical_state: 'solid' | 'liquid'; portion_g: number; household_measure: string; servings_per_pack: number | null;
-  values: LabelValues; front_warnings: string[]; allergens: string[]; allergen_statement: string | null; layout: 'vertical';
+  values: LabelValues; front_warnings: string[]; allergens: string[]; allergen_statement: string | null; layout: 'vertical' | 'horizontal' | 'linear';
 }
 export async function issueLabel(sheetId: string, v: IssueLabelInput): Promise<Result> {
   if (!isUuid(sheetId)) return { ok: false, message: 'Ficha inválida.' };
