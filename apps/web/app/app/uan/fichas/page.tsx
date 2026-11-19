@@ -8,6 +8,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { getCurrentUser } from '@/lib/auth/session';
+import { getUanContext } from '@/lib/uan/actions';
 import { brl } from '@/lib/uan/catalog';
 import { getSheets } from '@/lib/uan/sheet-actions';
 import { SHEET_CATEGORY_LABEL, SHEET_STATUS_LABEL } from '@/lib/uan/techsheets';
@@ -18,6 +19,11 @@ export default async function SheetsPage({ searchParams }: { searchParams: Promi
   const sp = await searchParams;
   const user = await getCurrentUser();
   if (!user) redirect('/login?next=/app/uan');
+  // Vindo do menu (sem empresa): abre na primeira empresa com UAN da pessoa.
+  if (!sp.empresa) {
+    const orgs = await getUanContext();
+    redirect(orgs?.[0] ? `/app/uan/fichas?empresa=${orgs[0].id}` : '/app/uan');
+  }
   const data = await getSheets(sp.empresa ?? '', sp.q ?? '');
   if (data === undefined) notFound();
 

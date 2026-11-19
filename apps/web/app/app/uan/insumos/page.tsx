@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { getCurrentUser } from '@/lib/auth/session';
+import { getUanContext } from '@/lib/uan/actions';
 import { getIngredients } from '@/lib/uan/catalog-actions';
 import { brl, CATEGORY_LABEL, perKg, UNIT_LABEL, type IngredientCategory } from '@/lib/uan/catalog';
 
@@ -19,6 +20,11 @@ export default async function IngredientsPage({ searchParams }: { searchParams: 
   const user = await getCurrentUser();
   if (!user) redirect('/login?next=/app/uan');
   const category = (Object.keys(CATEGORY_LABEL) as IngredientCategory[]).find((c) => c === sp.categoria) ?? '';
+  // Vindo do menu (sem empresa): abre na primeira empresa com UAN da pessoa.
+  if (!sp.empresa) {
+    const orgs = await getUanContext();
+    redirect(orgs?.[0] ? `/app/uan/insumos?empresa=${orgs[0].id}` : '/app/uan');
+  }
   const data = await getIngredients(sp.empresa ?? '', sp.q ?? '', category);
   if (data === undefined) notFound();
   const href = (cat: string) => {

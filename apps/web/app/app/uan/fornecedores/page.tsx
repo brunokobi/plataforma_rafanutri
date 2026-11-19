@@ -7,6 +7,7 @@ import { EditSupplier, NewSupplier } from '@/components/uan/catalog-forms';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { getCurrentUser } from '@/lib/auth/session';
+import { getUanContext } from '@/lib/uan/actions';
 import { getSuppliers } from '@/lib/uan/catalog-actions';
 import { formatCnpj } from '@/lib/uan/types';
 
@@ -16,6 +17,11 @@ export default async function SuppliersPage({ searchParams }: { searchParams: Pr
   const { empresa } = await searchParams;
   const user = await getCurrentUser();
   if (!user) redirect('/login?next=/app/uan');
+  // Vindo do menu (sem empresa): abre na primeira empresa com UAN da pessoa.
+  if (!empresa) {
+    const orgs = await getUanContext();
+    redirect(orgs?.[0] ? `/app/uan/fornecedores?empresa=${orgs[0].id}` : '/app/uan');
+  }
   const data = await getSuppliers(empresa ?? '');
   if (data === undefined) notFound();
 
