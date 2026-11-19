@@ -1,5 +1,5 @@
 import { LogOut } from 'lucide-react';
-import Link from 'next/link';
+import { AppNav } from '@/components/app/app-nav';
 import { FeedbackButton } from '@/components/app/feedback-button';
 import { Logo } from '@/components/brand/logo';
 import { ThemeToggle } from '@/components/theme-toggle';
@@ -10,37 +10,20 @@ import { signOut } from '@/lib/auth/actions';
 export function AppHeader({ homeHref = '/app', patientsHref = '/app/pacientes', withSignOut = true }: { homeHref?: string; patientsHref?: string; withSignOut?: boolean }) {
   return (
     <header className="sticky top-0 z-30 border-b border-border/60 bg-background/80 backdrop-blur-lg">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-5">
-        <div className="flex min-w-0 flex-1 items-center gap-6">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:px-5">
+        {/* Atalhos principais + "Mais" no computador; menu lateral abaixo de 1024 px. Nada fica escondido
+            atrás dos botões da direita. */}
+        <div className="flex min-w-0 items-center gap-2 lg:gap-5">
           <Logo href={homeHref} className="shrink-0" />
-          {/* Os links não cabem todos em telas médias: a lista rola na horizontal dentro do espaço livre
-              (sem barra), com esmaecimento na borda, e nunca passa por cima dos botões da direita. */}
-          <nav
-            aria-label="Área logada"
-            className="hidden min-w-0 items-center gap-5 overflow-x-auto pr-6 text-sm font-medium whitespace-nowrap text-muted-foreground [mask-image:linear-gradient(to_right,black_calc(100%-2rem),transparent)] [scrollbar-width:none] sm:flex [&::-webkit-scrollbar]:hidden [&>a]:shrink-0"
-          >
-            <Link href={homeHref} className="hover:text-foreground">Módulos</Link>
-            <Link href="/app/clinico" className="hover:text-foreground">Painel</Link>
-            <Link href={patientsHref} className="hover:text-foreground">Pacientes</Link>
-            <Link href="/app/agenda" className="hover:text-foreground">Agenda</Link>
-            <Link href="/app/crm" className="hover:text-foreground">CRM</Link>
-            <Link href="/app/financeiro" className="hover:text-foreground">Financeiro</Link>
-            <Link href="/app/questionarios" className="hover:text-foreground">Questionários</Link>
-            <Link href="/app/modelos-de-plano" className="hover:text-foreground">Modelos de plano</Link>
-            <Link href="/app/alimentos" className="hover:text-foreground">Alimentos</Link>
-            <Link href="/app/receitas" className="hover:text-foreground">Receitas</Link>
-            <Link href="/app/orientacoes" className="hover:text-foreground">Orientações</Link>
-            <Link href="/app/configuracoes/consultorio" className="hover:text-foreground">Consultório</Link>
-            <Link href="/app/configuracoes/plano" className="hover:text-foreground">Meu plano</Link>
-          </nav>
+          <AppNav homeHref={homeHref} patientsHref={patientsHref} />
         </div>
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex shrink-0 items-center gap-1 sm:gap-2">
           {withSignOut && <FeedbackButton />}
           <ThemeToggle />
           {withSignOut && (
             <form action={signOut}>
-              <Button type="submit" variant="outline">
-                <LogOut className="size-4" /> Sair
+              <Button type="submit" variant="outline" aria-label="Sair" title="Sair">
+                <LogOut className="size-4" /> <span className="hidden xl:inline">Sair</span>
               </Button>
             </form>
           )}
