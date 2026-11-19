@@ -25,15 +25,25 @@ export interface Cycle {
   services: MenuService[];
   slots: MenuSlot[];
   cost_target_cents: number | null;
+  profile_id?: string | null;
+  autonomy?: 'standardized' | 'decentralized' | 'free';
   status: MenuStatus;
   justification: string | null;
   submitted_at: string | null;
   approved_at: string | null;
 }
-export interface MenuItem { day_index: number; service: MenuService; slot: MenuSlot; sheet_root_id: string; sheet_id: string | null; name: string; category: SheetCategory | null; cost_cents: number | null }
-export interface MenuOption { root_id: string; name: string; category: SheetCategory; cost_cents: number | null }
+export interface MenuItem { day_index: number; service: MenuService; slot: MenuSlot; sheet_root_id: string; sheet_id: string | null; name: string; category: SheetCategory | null; cost_cents: number | null; nutrients?: Record<string, number> | null; ingredient_ids?: string[] }
+export interface MenuOption { root_id: string; name: string; category: SheetCategory; cost_cents: number | null; nutrients?: Record<string, number> | null }
+export interface MenuPlanning {
+  profile: { id: string; name: string; segment: string; stage: string | null; targets: Record<string, { min?: number; max?: number; target?: number }>; validated: boolean; reference: string | null } | null;
+  autonomy: 'standardized' | 'decentralized' | 'free';
+  rules: Array<{ id: string; kind: 'vetoed_ingredient' | 'vetoed_category' | 'required_daily' | 'max_per_week' | 'cost_ceiling'; ingredient_id: string | null; ingredient_name: string | null; sheet_category: string | null; slot: string | null; service: string | null; max_count: number | null; cost_cents: number | null; note: string | null }>;
+  ingredients: Record<string, string[]>;
+  profiles: Array<{ id: string; name: string; platform: boolean; validated: boolean }>;
+}
 export interface MenuDetail {
   cycle: Cycle;
+  planning?: MenuPlanning;
   unit: { id: string; name: string };
   items: MenuItem[];
   options: MenuOption[];

@@ -1237,6 +1237,27 @@ try {
       assert.equal((await api(`/rafanutri/public/menus/${tok}`)).status, 404, 'despublicado some');
       assert.ok((await api('/items/satisfaction_responses?limit=1', { token: a.token })).status >= 400, 'coleção direta recusada');
     });
+    await check('UAN: perfis e regras do cardápio — cozinheiro só lê; perfil da plataforma só se copia; de fora não vê', async () => {
+      const pl = await api(`/rafanutri/uan/organizations/${A}/menu-planning`, { token: b.token });
+      assert.equal(pl.status, 200);
+      assert.equal(pl.json.data.can_manage, false, 'cozinheiro não edita');
+      const pat = pl.json.data.profiles.find((p) => p.platform && p.code === 'pat-grande-refeicao');
+      assert.ok(pat && !pat.validated, 'modelo PAT a validar');
+      assert.equal((await api(`/rafanutri/uan/organizations/${A}/diner-profiles`, { token: b.token, method: 'POST', body: { copy_from: pat.id } })).status, 403, 'cozinheiro copia');
+      assert.equal((await api(`/rafanutri/uan/diner-profiles/${pat.id}`, { token: a.token, method: 'PUT', body: { name: 'x', segment: 'pat', services: ['lunch'] } })).status, 404, 'perfil da plataforma não se edita');
+      const cp = await api(`/rafanutri/uan/organizations/${A}/diner-profiles`, { token: a.token, method: 'POST', body: { copy_from: pat.id } });
+      assert.equal(cp.status, 201, JSON.stringify(cp.json));
+      assert.equal((await api(`/rafanutri/uan/diner-profiles/${cp.json.data.id}`, { token: a.token, method: 'PUT', body: { name: 'PAT teste', segment: 'pat', services: ['lunch'], targets: { energy_kcal: { min: 900, max: 800 } } } })).status, 400, 'mínimo maior que máximo');
+      assert.equal((await api(`/rafanutri/uan/diner-profiles/${cp.json.data.id}`, { token: a.token, method: 'PUT', body: { name: 'PAT teste', segment: 'pat', services: ['lunch'], targets: { energy_kcal: { min: 600, max: 800 } }, validated: true } })).status, 200);
+      assert.equal((await api(`/rafanutri/uan/organizations/${A}/menu-rules`, { token: a.token, method: 'POST', body: { kind: 'vetoed_ingredient' } })).status, 400, 'regra incompleta');
+      const r = await api(`/rafanutri/uan/organizations/${A}/menu-rules`, { token: a.token, method: 'POST', body: { kind: 'cost_ceiling', cost: '12,50', profile_id: cp.json.data.id } });
+      assert.equal(r.status, 201, JSON.stringify(r.json));
+      assert.equal((await api(`/rafanutri/uan/menu-rules/${r.json.data.id}/deactivate`, { token: b.token, method: 'POST', body: {} })).status, 403, 'cozinheiro remove regra');
+      const out = await outsider();
+      assert.equal((await api(`/rafanutri/uan/organizations/${A}/menu-planning`, { token: out.token })).status, 404, 'de fora lê');
+      assert.equal((await api(`/rafanutri/uan/diner-profiles/${cp.json.data.id}`, { token: out.token, method: 'PUT', body: { name: 'x', segment: 'pat', services: ['lunch'] } })).status, 404, 'de fora edita');
+      assert.ok((await api('/items/menu_rules?limit=1', { token: a.token })).status >= 400, 'coleção direta recusada');
+    });
   } else {
     console.log('  (pulado) UAN entre unidades: defina ISOLATION_PSQL');
   }

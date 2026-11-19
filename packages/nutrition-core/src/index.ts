@@ -16,3 +16,4 @@ export * from './production';
 export * from './stock';
 export * from './costs';
 export * from './labeling';
+export * from './menurules';

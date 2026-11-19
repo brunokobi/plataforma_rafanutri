@@ -3381,7 +3381,7 @@ export default {
     // Aprovar e devolver: owner ou gestor. O custo vem do cálculo gravado na aprovação de cada ficha.
     const MENU_SERVICES = ['breakfast', 'morning_snack', 'lunch', 'afternoon_snack', 'dinner', 'supper'];
     const MENU_SLOTS = ['main', 'side', 'garnish', 'salad', 'soup', 'dessert', 'bread', 'beverage', 'sauce', 'other'];
-    const CYCLE_FIELDS = ['id', 'unit_id', 'name', 'starts_on', 'length_days', 'services', 'slots', 'cost_target_cents', 'status', 'justification', 'submitted_at', 'approved_at', 'created_at', 'updated_at'];
+    const CYCLE_FIELDS = ['id', 'unit_id', 'name', 'starts_on', 'length_days', 'services', 'slots', 'cost_target_cents', 'profile_id', 'autonomy', 'status', 'justification', 'submitted_at', 'approved_at', 'created_at', 'updated_at'];
     const cycleOut = (c) => ({ ...c, starts_on: dateOut(c.starts_on) });
     const menuNotFound = (res) => notFoundMsg(res, 'Cardápio');
     const canApproveMenu = (a) => a.isOwner || a.roles.includes('manager');
@@ -3454,7 +3454,11 @@ export default {
         if (!Number.isFinite(n) || n <= 0 || n > 10000) errors.cost_target = 'Teto de custo inválido.';
         else target = Math.round(n * 100);
       }
-      return Object.keys(errors).length ? { errors } : { data: { name, starts_on: b.starts_on, length_days: len, services, slots, cost_target_cents: target } };
+      const profile = b.profile_id ? String(b.profile_id) : null;
+      if (profile !== null && !isUuid(profile)) errors.profile_id = 'Perfil inválido.';
+      const autonomy = b.autonomy ?? 'free';
+      if (!['standardized', 'decentralized', 'free'].includes(autonomy)) errors.autonomy = 'Modelo inválido.';
+      return Object.keys(errors).length ? { errors } : { data: { name, starts_on: b.starts_on, length_days: len, services, slots, cost_target_cents: target, profile_id: profile, autonomy } };
     }
 
     router.post('/uan/units/:id/menus', async (req, res) => {
@@ -3473,6 +3477,34 @@ export default {
       }
     });
 
+    /** Perfil do ciclo (metas), regras do contrato aplicáveis e insumos de cada ficha (com sub-receitas). */
+    async function menuPlanning(x, sheetRows) {
+      const org = x.a.unit.organization_id;
+      const profile = x.cycle.profile_id ? await database('diner_profiles').where('id', x.cycle.profile_id).first('id', 'name', 'segment', 'stage', 'targets', 'validated', 'reference') : null;
+      const rules = await database('menu_rules').where({ organization_id: org, active: true }).where((q) => q.whereNull('profile_id').orWhere('profile_id', x.cycle.profile_id ?? null))
+        .select('id', 'kind', 'ingredient_id', 'sheet_category', 'slot', 'service', 'max_count', 'cost_cents', 'note');
+      const ids = sheetRows.map((r) => r.id);
+      const ingredients = {};
+      if (ids.length) {
+        const rows = (await database.raw(
+          `with recursive t(origin, sheet_id) as (
+             select s.id, s.id from unnest(?::uuid[]) s(id)
+             union select t.origin, i.sub_sheet_id from tech_sheet_items i join t on i.sheet_id = t.sheet_id where i.sub_sheet_id is not null)
+           select t.origin, array_agg(distinct i.ingredient_id) as ids from t join tech_sheet_items i on i.sheet_id = t.sheet_id
+            where i.ingredient_id is not null group by t.origin`, [ids])).rows;
+        for (const r of rows) ingredients[r.origin] = r.ids;
+      }
+      const names = rules.some((r) => r.ingredient_id) ? await database('ingredients').whereIn('id', rules.map((r) => r.ingredient_id).filter(Boolean)).select('id', 'name') : [];
+      const profiles = canSupervise(x.a) ? await database('diner_profiles').where('active', true).where((q) => q.whereNull('organization_id').orWhere('organization_id', org)).orderBy([{ column: 'organization_id', nulls: 'first' }, { column: 'name' }]).select('id', 'name', 'organization_id', 'validated') : [];
+      return {
+        profile: profile ? { ...profile } : null,
+        autonomy: x.cycle.autonomy ?? 'free',
+        rules: rules.map((r) => ({ ...r, ingredient_name: names.find((n) => n.id === r.ingredient_id)?.name ?? null })),
+        ingredients,
+        profiles: profiles.map((p) => ({ id: p.id, name: p.name, platform: p.organization_id === null, validated: p.validated })),
+      };
+    }
+
     router.get('/uan/menus/:id', async (req, res) => {
       const user = requireUser(req, res);
       if (!user) return;
@@ -3488,15 +3520,17 @@ export default {
       const history = await database('menu_approvals as h').leftJoin('directus_users as u', 'u.id', 'h.user_id').where('h.cycle_id', x.cycle.id)
         .orderBy('h.created_at', 'desc').limit(50).select('h.action', 'h.note', 'h.cost_check', 'h.created_at', 'u.first_name', 'u.last_name');
       const cost = menuCost(x.cycle, items, sheets);
+      const planning = await menuPlanning(x, [...sheets.values()]);
       res.json({
         data: {
           cycle: x.cycle,
+          planning,
           unit: { id: x.a.unit.id, name: x.a.unit.name },
           items: items.map((i) => {
             const sh = sheets.get(i.sheet_root_id);
-            return { ...i, sheet_id: sh?.id ?? null, name: sh?.name ?? '—', category: sh?.category ?? null, cost_cents: seeCost ? (sh?.computed?.costPerServingCents ?? null) : null };
+            return { ...i, sheet_id: sh?.id ?? null, name: sh?.name ?? '—', category: sh?.category ?? null, cost_cents: seeCost ? (sh?.computed?.costPerServingCents ?? null) : null, nutrients: sh?.computed?.perServing ?? null, ingredient_ids: planning.ingredients[sh?.id] ?? [] };
           }),
-          options: options.map((o) => ({ root_id: o.root_id, name: o.name, category: o.category, cost_cents: seeCost ? (o.computed?.costPerServingCents ?? null) : null })),
+          options: options.map((o) => ({ root_id: o.root_id, name: o.name, category: o.category, cost_cents: seeCost ? (o.computed?.costPerServingCents ?? null) : null, nutrients: o.computed?.perServing ?? null })),
           cost: seeCost ? cost : null,
           history: history.map((h) => ({ ...h, user_name: userName(h), first_name: undefined, last_name: undefined })),
           can_edit: editor,
@@ -5106,6 +5140,140 @@ export default {
         res.status(201).json({ data: { id } });
       } catch (error) {
         p0001(res, error, 'criar pesquisa');
+      }
+    });
+
+    // ── U7: perfis de público e regras do contrato (RN-221) ───────────────────────────────────
+    // Da empresa. Veem: quem atua nela no módulo UAN. Editam: owner, gestor, RT e estoquista (mesmo acesso do
+    // catálogo). Perfis da plataforma só se copiam (nascem não validados).
+    const PROFILE_SEGMENTS = new Set(['pat', 'pnae', 'hospital', 'hotel', 'transported', 'other']);
+    const RULE_KINDS = new Set(['vetoed_ingredient', 'vetoed_category', 'required_daily', 'max_per_week', 'cost_ceiling']);
+    const DINER_PROFILE_FIELDS = ['id', 'organization_id', 'code', 'name', 'segment', 'stage', 'diet', 'services', 'targets', 'reference', 'validated', 'copied_from', 'active', 'created_at', 'updated_at'];
+
+    router.get('/uan/organizations/:id/menu-planning', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const acc = await catalogAccess(user, req.params.id);
+      if (!acc) return notFoundMsg(res, 'Empresa');
+      const [org, profiles, rules, ingredients] = await Promise.all([
+        database('organizations').where('id', acc.orgId).first('id', 'name'),
+        database('diner_profiles').where((q) => q.where({ organization_id: acc.orgId }).orWhere((w) => w.whereNull('organization_id').where('active', true)))
+          .orderBy([{ column: 'organization_id', nulls: 'first' }, { column: 'name' }]).select(DINER_PROFILE_FIELDS),
+        database('menu_rules as r').leftJoin('ingredients as i', 'i.id', 'r.ingredient_id').leftJoin('diner_profiles as p', 'p.id', 'r.profile_id').where({ 'r.organization_id': acc.orgId, 'r.active': true })
+          .orderBy('r.created_at').select('r.id', 'r.kind', 'r.profile_id', 'p.name as profile_name', 'r.ingredient_id', 'i.name as ingredient_name', 'r.sheet_category', 'r.slot', 'r.service', 'r.max_count', 'r.cost_cents', 'r.note'),
+        acc.canManage ? database('ingredients').where({ organization_id: acc.orgId, active: true }).orderBy('name').select('id', 'name') : [],
+      ]);
+      res.json({ data: { organization: org, can_manage: acc.canManage, profiles: profiles.map((p) => ({ ...p, platform: p.organization_id === null })), rules, ingredients } });
+    });
+
+    router.post('/uan/organizations/:id/diner-profiles', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const acc = await catalogAccess(user, req.params.id);
+      if (!acc) return notFoundMsg(res, 'Empresa');
+      if (!acc.canManage) return catalogForbidden(res);
+      try {
+        let id;
+        if (req.body?.copy_from) {
+          if (!isUuid(req.body.copy_from)) return bad(res, { copy_from: 'Perfil inválido.' });
+          id = await withActor(user, async (trx) => (await trx.raw('select diner_profile_copy(?, ?, ?) as id', [req.body.copy_from, acc.orgId, user])).rows[0].id);
+        } else {
+          const name = typeof req.body?.name === 'string' ? req.body.name.trim() : '';
+          if (name.length < 2 || name.length > 120) return bad(res, { name: 'Informe o nome do perfil.' });
+          if (!PROFILE_SEGMENTS.has(req.body?.segment)) return bad(res, { segment: 'Escolha o público.' });
+          [{ id }] = await withActor(user, (trx) => trx('diner_profiles').insert({ organization_id: acc.orgId, name, segment: req.body.segment, created_by: user }).returning(['id']));
+        }
+        res.status(201).json({ data: { id } });
+      } catch (error) {
+        p0001(res, error, 'criar perfil');
+      }
+    });
+
+    router.put('/uan/diner-profiles/:id', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const p = isUuid(req.params.id) ? await database('diner_profiles').where('id', req.params.id).first('id', 'organization_id') : null;
+      const acc = p?.organization_id ? await catalogAccess(user, p.organization_id) : null;
+      if (!acc) return notFoundMsg(res, 'Perfil');
+      if (!acc.canManage) return catalogForbidden(res);
+      const b = req.body ?? {};
+      const errors = {};
+      const str = (v, max) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : null);
+      const name = str(b.name, 120);
+      if (!name || name.length < 2) errors.name = 'Informe o nome do perfil.';
+      if (!PROFILE_SEGMENTS.has(b.segment)) errors.segment = 'Escolha o público.';
+      const services = Array.isArray(b.services) ? MENU_SERVICES.filter((x) => b.services.includes(x)) : [];
+      if (!services.length) errors.services = 'Escolha ao menos um serviço.';
+      const targets = {};
+      if (b.targets && typeof b.targets === 'object' && !Array.isArray(b.targets)) {
+        for (const [k, r] of Object.entries(b.targets)) {
+          if (!/^[a-z_]{2,40}$/.test(k) || !r || typeof r !== 'object') { errors.targets = 'Metas inválidas.'; break; }
+          const t = {};
+          for (const f of ['min', 'max', 'target']) {
+            if (r[f] === null || r[f] === undefined || r[f] === '') continue;
+            const n = Number(String(r[f]).replace(',', '.'));
+            if (!Number.isFinite(n) || n < 0 || n > 100000) { errors.targets = `Valor inválido em ${k}.`; break; }
+            t[f] = n;
+          }
+          if (t.min !== undefined && t.max !== undefined && t.min > t.max) errors.targets = `Mínimo maior que o máximo em ${k}.`;
+          if (Object.keys(t).length) targets[k] = t;
+        }
+      }
+      if (Object.keys(errors).length) return bad(res, errors);
+      try {
+        await withActor(user, (trx) => trx('diner_profiles').where('id', p.id).update({
+          name, segment: b.segment, stage: str(b.stage, 120), diet: str(b.diet, 120), services, targets: JSON.stringify(targets), reference: str(b.reference, 300),
+          validated: b.validated === true, active: b.active !== false,
+        }));
+        res.json({ data: { ok: true } });
+      } catch (error) {
+        p0001(res, error, 'salvar perfil');
+      }
+    });
+
+    router.post('/uan/organizations/:id/menu-rules', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const acc = await catalogAccess(user, req.params.id);
+      if (!acc) return notFoundMsg(res, 'Empresa');
+      if (!acc.canManage) return catalogForbidden(res);
+      const b = req.body ?? {};
+      if (!RULE_KINDS.has(b.kind)) return bad(res, { kind: 'Escolha o tipo de regra.' });
+      const n = (v) => (v === null || v === undefined || v === '' ? null : Number(String(v).replace(',', '.')));
+      const row = {
+        organization_id: acc.orgId, kind: b.kind, created_by: user,
+        profile_id: isUuid(b.profile_id) ? b.profile_id : null,
+        ingredient_id: isUuid(b.ingredient_id) ? b.ingredient_id : null,
+        sheet_category: typeof b.sheet_category === 'string' && b.sheet_category ? b.sheet_category : null,
+        slot: typeof b.slot === 'string' && b.slot ? b.slot : null,
+        service: typeof b.service === 'string' && b.service ? b.service : null,
+        max_count: n(b.max_count),
+        cost_cents: n(b.cost) === null ? null : Math.round(n(b.cost) * 100),
+        note: typeof b.note === 'string' && b.note.trim() ? b.note.trim().slice(0, 500) : null,
+      };
+      if (row.max_count !== null && (!Number.isInteger(row.max_count) || row.max_count < 0 || row.max_count > 50)) return bad(res, { max_count: 'Máximo de 0 a 50 por semana.' });
+      if (row.cost_cents !== null && (!Number.isFinite(row.cost_cents) || row.cost_cents < 1)) return bad(res, { cost: 'Teto inválido.' });
+      try {
+        const [r] = await withActor(user, (trx) => trx('menu_rules').insert(row).returning(['id']));
+        res.status(201).json({ data: { id: r.id } });
+      } catch (error) {
+        if (error?.code === '23514') return bad(res, { kind: 'Complete a regra (insumo, categoria, posição, máximo ou teto).' });
+        p0001(res, error, 'criar regra');
+      }
+    });
+
+    router.post('/uan/menu-rules/:id/deactivate', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const r = isUuid(req.params.id) ? await database('menu_rules').where('id', req.params.id).first('id', 'organization_id') : null;
+      const acc = r ? await catalogAccess(user, r.organization_id) : null;
+      if (!acc) return notFoundMsg(res, 'Regra');
+      if (!acc.canManage) return catalogForbidden(res);
+      try {
+        await withActor(user, (trx) => trx('menu_rules').where('id', r.id).update({ active: false }));
+        res.json({ data: { ok: true } });
+      } catch (error) {
+        p0001(res, error, 'desativar regra');
       }
     });
 

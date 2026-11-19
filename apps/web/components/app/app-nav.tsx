@@ -23,7 +23,7 @@ export function navModel(pathname: string, homeHref = '/app', patientsHref = '/a
         { href: '/app/uan/conformidade', label: 'Conformidade' },
       ],
       more: [
-        { title: 'Cadastros', links: [{ href: '/app/uan/insumos', label: 'Insumos' }, { href: '/app/uan/fornecedores', label: 'Fornecedores' }] },
+        { title: 'Cadastros', links: [{ href: '/app/uan/insumos', label: 'Insumos' }, { href: '/app/uan/fornecedores', label: 'Fornecedores' }, { href: '/app/uan/perfis', label: 'Perfis e regras' }] },
         { title: 'Conta', links: [{ href: '/app/configuracoes/consultorio', label: 'Consultório' }, { href: '/app/configuracoes/plano', label: 'Meu plano' }] },
       ],
     };

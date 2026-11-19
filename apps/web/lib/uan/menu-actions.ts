@@ -52,7 +52,7 @@ export async function getMenu(id: string): Promise<MenuDetail | null | undefined
   return isUuid(id) ? get<MenuDetail>(`/uan/menus/${id}`) : undefined;
 }
 
-export interface CycleInput { name: string; starts_on: string; length_days: number; services: string[]; slots: string[]; cost_target: string }
+export interface CycleInput { name: string; starts_on: string; length_days: number; services: string[]; slots: string[]; cost_target: string; profile_id?: string | null; autonomy?: string }
 
 export async function createMenu(unitId: string, input: CycleInput): Promise<Result> {
   if (!isUuid(unitId)) return { ok: false, message: 'Unidade inválida.' };

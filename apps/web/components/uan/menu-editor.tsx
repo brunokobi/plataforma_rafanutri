@@ -21,21 +21,24 @@ import {
   SLOTS,
   type Cycle,
   type MenuDetail,
+  type MenuPlanning,
   type MenuService,
   type MenuSlot,
 } from '@/lib/uan/menus';
+import { AUTONOMY_LABEL, cycleWarnings, dayAdequacy, fmtTarget, TARGET_LABEL } from '@/lib/uan/menu-planning';
 
 const SELECT = 'h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50';
 const TEXTAREA = 'min-h-16 w-full rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 md:text-sm';
 const ACTION_LABEL = { submitted: 'Enviado', approved: 'Aprovado', returned: 'Devolvido', reopened: 'Reaberto' } as const;
 
 /** Dados do ciclo (novo ou edição). */
-export function CycleForm({ unitId, cycle, onDone }: { unitId: string; cycle?: Cycle; onDone?: () => void }) {
+export function CycleForm({ unitId, cycle, onDone, profiles }: { unitId: string; cycle?: Cycle; onDone?: () => void; profiles?: MenuPlanning['profiles'] }) {
   const router = useRouter();
   const [v, setV] = useState<CycleInput>({
     name: cycle?.name ?? '', starts_on: cycle?.starts_on ?? '', length_days: cycle?.length_days ?? 28,
     services: cycle?.services ?? ['lunch'], slots: cycle?.slots ?? ['main', 'side', 'garnish', 'salad', 'dessert', 'beverage'],
     cost_target: cycle?.cost_target_cents ? String(cycle.cost_target_cents / 100).replace('.', ',') : '',
+    profile_id: cycle?.profile_id ?? null, autonomy: cycle?.autonomy ?? 'free',
   });
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -73,6 +76,21 @@ export function CycleForm({ unitId, cycle, onDone }: { unitId: string; cycle?: C
         <div className="flex flex-wrap gap-2">{SLOTS.map((x) => <label key={x} className="flex items-center gap-1 rounded-md border border-border px-2 py-1 text-sm"><input type="checkbox" className="size-4" checked={v.slots.includes(x)} onChange={() => toggle('slots', x)} /> {SLOT_LABEL[x]}</label>)}</div>
       </fieldset>
       <div className="space-y-1.5"><Label htmlFor="cy-cost">Teto de custo por refeição (R$, opcional)</Label><Input id="cy-cost" inputMode="decimal" value={v.cost_target} onChange={(e) => setV({ ...v, cost_target: e.target.value })} /></div>
+      {profiles && (
+        <>
+          <div className="space-y-1.5"><Label htmlFor="cy-profile">Perfil de público</Label>
+            <select id="cy-profile" className={SELECT} value={v.profile_id ?? ''} onChange={(e) => setV({ ...v, profile_id: e.target.value || null })}>
+              <option value="">Sem perfil</option>
+              {profiles.filter((p) => !p.platform).map((p) => <option key={p.id} value={p.id}>{p.name}{p.validated ? '' : ' (a validar)'}</option>)}
+            </select>
+          </div>
+          <div className="space-y-1.5"><Label htmlFor="cy-autonomy">Modelo de cardápio</Label>
+            <select id="cy-autonomy" className={SELECT} value={v.autonomy} onChange={(e) => setV({ ...v, autonomy: e.target.value })}>
+              {Object.entries(AUTONOMY_LABEL).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+            </select>
+          </div>
+        </>
+      )}
       {error && <p role="alert" className="text-sm text-destructive sm:col-span-2">{error}</p>}
       <div className="flex gap-2 sm:col-span-2">
         <Button type="submit" disabled={pending}>{pending && <Loader2 className="size-4 animate-spin" />} {cycle ? 'Salvar dados' : 'Criar cardápio'}</Button>
@@ -102,6 +120,9 @@ export function MenuEditor({ detail }: { detail: MenuDetail }) {
   const itemAt = (day: number, slot: MenuSlot) => items.find((i) => i.day_index === day && i.service === service && i.slot === slot);
   const days = Array.from({ length: c.length_days }, (_, i) => i + 1);
   const over = new Map((detail.cost?.over ?? []).filter((o) => o.service === service).map((o) => [o.day, o]));
+  const planning = detail.planning;
+  const targets = planning?.profile && Object.keys(planning.profile.targets).length ? planning.profile.targets : null;
+  const warnings = planning && planning.rules.length ? cycleWarnings(items, planning, c) : [];
 
   const setCell = (day: number, slot: MenuSlot, rootId: string) => {
     const opt = detail.options.find((o) => o.root_id === rootId);
@@ -133,10 +154,12 @@ export function MenuEditor({ detail }: { detail: MenuDetail }) {
         <span className="text-sm text-muted-foreground">
           {c.length_days} dias desde {cycleDate(c.starts_on, 1).label}{c.cost_target_cents ? ` · teto ${brl(c.cost_target_cents)} por refeição` : ''}
         </span>
+        {planning?.profile && <Badge variant="outline">Perfil: {planning.profile.name}{planning.profile.validated ? '' : ' (a validar)'}</Badge>}
+        {planning && <Badge variant="outline">{AUTONOMY_LABEL[planning.autonomy]}</Badge>}
         {detail.can_edit && !editing && <Button type="button" size="sm" variant="ghost" onClick={() => setEditing(true)}>Editar dados</Button>}
         {detail.can_edit && <Button type="button" size="sm" variant="ghost" disabled={pending} onClick={() => startTransition(async () => { const r = await duplicateMenu(c.id); if (r.ok && r.id) router.push(`/app/uan/cardapios/${r.id}`); else if (!r.ok) setMessage({ text: r.message, error: true }); })}><Copy className="size-4" /> Duplicar</Button>}
       </div>
-      {editing && <CycleForm unitId={detail.unit.id} cycle={c} onDone={() => setEditing(false)} />}
+      {editing && <CycleForm unitId={detail.unit.id} cycle={c} profiles={detail.planning?.profiles ?? []} onDone={() => setEditing(false)} />}
 
       {c.services.length > 1 && (
         <nav aria-label="Serviços" className="flex flex-wrap gap-2">
@@ -156,6 +179,7 @@ export function MenuEditor({ detail }: { detail: MenuDetail }) {
             <tr className="text-muted-foreground">
               <th className="w-28 p-2 font-medium">Dia</th>
               {c.slots.map((sl) => <th key={sl} className="p-2 font-medium">{SLOT_LABEL[sl]}</th>)}
+              {targets && <th className="w-28 p-2 font-medium">Metas</th>}
               {detail.cost && <th className="w-24 p-2 text-right font-medium">Custo</th>}
             </tr>
           </thead>
@@ -186,6 +210,17 @@ export function MenuEditor({ detail }: { detail: MenuDetail }) {
                       </td>
                     );
                   })}
+                  {targets && (() => {
+                    const rows = dayAdequacy(items, service, d, targets);
+                    const bad = rows.filter((r) => r.status === 'low' || r.status === 'high');
+                    return (
+                      <td className="p-2 text-xs" title={rows.map((r) => `${TARGET_LABEL[r.key] ?? r.key}: ${r.value ?? '—'} (meta ${fmtTarget(r.range)})`).join('\n')}>
+                        {rows.length === 0 ? '—' : bad.length === 0 ? <span className="text-emerald-700 dark:text-emerald-400">Dentro das metas</span> : (
+                          <span className="text-amber-800 dark:text-amber-300">{bad.map((r) => `${TARGET_LABEL[r.key]?.split(' (')[0] ?? r.key} ${r.status === 'low' ? 'baixo' : 'alto'}`).join(', ')}</span>
+                        )}
+                      </td>
+                    );
+                  })()}
                   {detail.cost && (
                     <td className={cn('p-2 text-right tabular-nums', o && 'font-semibold text-destructive')}>
                       {total ? brl(total) : '—'}
@@ -199,6 +234,13 @@ export function MenuEditor({ detail }: { detail: MenuDetail }) {
         </table>
       </div>
       {detail.options.length === 0 && detail.can_edit && <p className="text-sm text-muted-foreground">Nenhuma ficha técnica aprovada ainda: aprove fichas para montar o cardápio.</p>}
+      {warnings.length > 0 && (
+        <section aria-labelledby="regras-contrato" className="space-y-2 rounded-2xl border border-amber-500/50 bg-amber-50 p-4 text-sm dark:bg-amber-950/30">
+          <h2 id="regras-contrato" className="flex items-center gap-2 font-semibold"><AlertTriangle className="size-4" aria-hidden="true" /> Regras do contrato ({warnings.length})</h2>
+          <ul className="list-disc space-y-0.5 pl-5">{warnings.slice(0, 30).map((w, i) => <li key={i}>{w.day ? `Dia ${w.day}${w.service ? ` (${SERVICE_LABEL[w.service as MenuService]})` : ''}: ` : ''}{w.message}</li>)}</ul>
+        </section>
+      )}
+      {planning && !planning.profile && detail.can_edit && <p className="text-xs text-muted-foreground">Escolha um perfil de público em “Editar dados” para ver a adequação às metas (perfis em UAN › Perfis e regras).</p>}
 
       {(detail.can_submit || detail.can_approve) && (
         <section aria-labelledby="fluxo" className="space-y-3 rounded-2xl border border-border bg-card p-4">
