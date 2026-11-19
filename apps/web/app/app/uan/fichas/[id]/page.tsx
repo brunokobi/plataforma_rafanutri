@@ -5,6 +5,7 @@ import { notFound, redirect } from 'next/navigation';
 import { AppHeader } from '@/components/app/app-header';
 import { LabelBuilder } from '@/components/uan/label-builder';
 import { SheetEditor } from '@/components/uan/sheet-editor';
+import { SheetPhoto } from '@/components/uan/sheet-photo';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { getCurrentUser } from '@/lib/auth/session';
 import { getSheetLabels } from '@/lib/uan/label-actions';
@@ -30,6 +31,7 @@ export default async function SheetPage({ params }: { params: Promise<{ id: stri
               <Link href={`/app/uan/fichas?empresa=${d.sheet.organization_id}`} className="text-sm text-muted-foreground hover:underline">← Fichas técnicas</Link>
               <h1 className="mt-1 font-display text-3xl font-semibold tracking-tight">{d.sheet.name}</h1>
             </div>
+            <SheetPhoto sheetId={d.sheet.id} name={d.sheet.name} hasPhoto={Boolean(d.sheet.photo)} canEdit={Boolean(d.can_photo)} version={d.sheet.photo ?? ''} />
             <SheetEditor key={`${d.sheet.id}-${d.sheet.status}`} detail={d} />
             {d.sheet.status === 'approved' && labels && <LabelBuilder key={`label-${d.sheet.id}`} detail={d} labels={labels} />}
           </>

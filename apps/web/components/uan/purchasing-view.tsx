@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { brl, UNIT_LABEL } from '@/lib/uan/catalog';
+import { resizeImage } from '@/lib/recipes/resize-image';
 import { createOrders, orderAction, receiveOrder, saveOrder } from '@/lib/uan/purchasing-actions';
 import { computeNeeds, draftOrders, PO_STATUS_LABEL, receivingLimit, temperatureRejects, type NeedsData, type PoDetail, type PoListItem } from '@/lib/uan/purchasing';
 
@@ -106,7 +107,7 @@ export function OrderView({ detail }: { detail: PoDetail }) {
   const o = detail.order;
   const [meta, setMeta] = useState({ supplier_id: o.supplier_id ?? '', expected_on: o.expected_on ?? '', notes: o.notes ?? '' });
   const [items, setItems] = useState(detail.items.map((i) => ({ ingredient_id: i.ingredient_id, quantity_units: String(i.quantity_units).replace('.', ','), unit_price: i.unit_price_cents === null ? '' : String(i.unit_price_cents / 100).replace('.', ',') })));
-  const [rec, setRec] = useState(detail.items.map((i) => ({ ingredient_id: i.ingredient_id, quantity_units: String(i.quantity_units - i.received_units).replace('.', ','), accepted: true, lot_code: '', expires_on: '', temperature: '', unit_price: i.unit_price_cents === null ? '' : String(i.unit_price_cents / 100).replace('.', ','), reject_reason: '' })));
+  const [rec, setRec] = useState(detail.items.map((i) => ({ ingredient_id: i.ingredient_id, quantity_units: String(i.quantity_units - i.received_units).replace('.', ','), accepted: true, lot_code: '', expires_on: '', temperature: '', unit_price: i.unit_price_cents === null ? '' : String(i.unit_price_cents / 100).replace('.', ','), reject_reason: '', image: '' })));
   const [invoice, setInvoice] = useState('');
   const [message, setMessage] = useState<Msg>(null);
   const [pending, startTransition] = useTransition();
@@ -204,6 +205,10 @@ export function OrderView({ detail }: { detail: PoDetail }) {
                   <div className="space-y-1 sm:col-span-6">
                     <Label htmlFor={`rc-r-${i}`} className="text-xs">Motivo da recusa (abre não conformidade)</Label>
                     <Input id={`rc-r-${i}`} maxLength={500} value={r.reject_reason} onChange={(e) => set({ reject_reason: e.target.value })} />
+                    <Label htmlFor={`rc-f-${i}`} className="text-xs">Foto da recusa (opcional)</Label>
+                    <Input id={`rc-f-${i}`} type="file" accept="image/*" capture="environment"
+                      onChange={async (e) => { const f = e.target.files?.[0]; if (!f) return set({ image: '' }); try { set({ image: await resizeImage(f, 1200) }); } catch { set({ image: '' }); } }} />
+                    {r.image && <p className="text-xs text-muted-foreground">Foto pronta para enviar.</p>}
                     {temperatureRejects(item.storage, temp) && <p className="text-xs text-destructive">Temperatura acima do limite de {limit} °C.</p>}
                   </div>
                 )}

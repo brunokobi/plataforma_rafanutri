@@ -99,3 +99,9 @@ export async function deleteSheet(id: string): Promise<Result> {
   if (!isUuid(id)) return { ok: false, message: 'Ficha inválida.' };
   return send(`/uan/tech-sheets/${id}`, 'DELETE', undefined, 'Não foi possível apagar.', ['/app/uan/fichas']);
 }
+
+/** RN-129 — Foto da preparação (data URL JPEG/PNG já reduzida no aparelho; null remove). */
+export async function setSheetPhoto(id: string, image: string | null): Promise<Result> {
+  if (!/^[0-9a-f-]{36}$/i.test(id)) return { ok: false, message: 'Ficha inválida.' };
+  return send(`/uan/tech-sheets/${id}/photo`, 'POST', { image }, 'Não foi possível salvar a foto.', [`/app/uan/fichas/${id}`]);
+}

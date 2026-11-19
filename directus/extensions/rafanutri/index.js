@@ -3120,7 +3120,7 @@ export default {
     // Ver: owner e equipe (custos só para owner, gestor, RT e estoquista). Editar: owner, gestor, RT.
     // Aprovar: owner ou RT (tech_sheet_approve confere de novo). Os cálculos são do nutrition-core no app.
     const SHEET_CATEGORIES = new Set(['main', 'side', 'garnish', 'salad', 'soup', 'dessert', 'bread', 'beverage', 'sauce', 'base', 'other']);
-    const SHEET_FIELDS = ['id', 'organization_id', 'root_id', 'parent_id', 'version', 'name', 'category', 'servings', 'cooked_weight_g', 'cooking_index', 'prep_minutes', 'equipment', 'notes', 'status', 'computed', 'approved_at', 'created_at', 'updated_at'];
+    const SHEET_FIELDS = ['id', 'organization_id', 'root_id', 'parent_id', 'version', 'name', 'category', 'servings', 'cooked_weight_g', 'cooking_index', 'prep_minutes', 'equipment', 'notes', 'status', 'computed', 'photo', 'approved_at', 'created_at', 'updated_at'];
     const SHEET_NUTRIENTS = ['energy_kcal', 'protein_g', 'carbohydrate_g', 'lipid_g', 'saturated_fat_g', 'fiber_g', 'sodium_mg', 'calcium_mg', 'iron_mg', 'vitamin_c_mg'];
     const sheetOut = (r) => ({ ...r, cooked_weight_g: numOrNull(r.cooked_weight_g), cooking_index: numOrNull(r.cooking_index) });
     const sheetNotFound = (res) => notFoundMsg(res, 'Ficha');
@@ -3266,6 +3266,7 @@ export default {
           can_approve: x.roles.approve && x.sheet.status === 'draft',
           can_new_version: x.roles.edit && x.sheet.status !== 'draft' && !versions.some((v) => v.status === 'draft'),
           can_see_cost: x.roles.cost,
+          can_photo: x.roles.edit,
           catalog: catalog.sort((a, b) => a.name.localeCompare(b.name, 'pt-BR')),
           sub_sheets: subs,
         },
@@ -4337,14 +4338,69 @@ export default {
           ingredient_id: it.ingredient_id, quantity_units: qty, accepted: it.accepted === true, lot_code: typeof it.lot_code === 'string' ? it.lot_code.slice(0, 60) : null,
           expires_on: it.expires_on || null, temperature: temp, unit_price_cents: price === null ? null : Math.round(price * 100),
           reject_reason: typeof it.reject_reason === 'string' ? it.reject_reason.slice(0, 500) : null,
+          image: it.accepted !== true && typeof it.image === 'string' ? it.image : null,
         });
+      }
+      // RN-141: foto da recusa (vai para o item e para a não conformidade)
+      const uploaded = [];
+      for (const it of items) {
+        if (it.image) {
+          const photo = await uploadEvidence(it.image, `recusa-${x.order.id}`);
+          if (!photo) { for (const f of uploaded) await dropFile(f); return bad(res, { items: 'Foto da recusa inválida (JPG ou PNG de até 600 KB).' }); }
+          uploaded.push(photo);
+          it.photo = photo;
+        }
+        delete it.image;
       }
       try {
         const id = await withActor(user, async (trx) => (await trx.raw('select receive_order(?, ?, ?, ?, ?::jsonb) as id',
           [x.order.id, user, typeof b.invoice_number === 'string' ? b.invoice_number.slice(0, 60) : null, typeof b.notes === 'string' ? b.notes.slice(0, 1000) : null, JSON.stringify(items)])).rows[0].id);
         res.json({ data: { id } });
       } catch (error) {
+        for (const f of uploaded) await dropFile(f);
         p0001(res, error, 'receber pedido');
+      }
+    });
+
+    // RN-129: foto da preparação (muda em qualquer situação da ficha; cada versão tem a sua)
+    router.post('/uan/tech-sheets/:id/photo', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const x = await sheetAccess(user, req.params.id);
+      if (!x) return sheetNotFound(res);
+      if (!x.roles.edit) return res.status(403).json({ errors: [{ message: 'Só o responsável, o gestor ou o RT mudam a foto.', extensions: { code: 'FORBIDDEN' } }] });
+      const old = x.sheet.photo;
+      let photo = null;
+      if (req.body?.image !== null) {
+        photo = await uploadEvidence(req.body?.image, `ficha-${x.sheet.id}`);
+        if (!photo) return bad(res, { image: 'Use uma foto JPG ou PNG de até 600 KB.' });
+      }
+      try {
+        await withActor(user, (trx) => trx('tech_sheets').where('id', x.sheet.id).update({ photo }));
+        if (old) await dropFile(old);
+        res.json({ data: { ok: true } });
+      } catch (error) {
+        await dropFile(photo);
+        p0001(res, error, 'salvar foto da ficha');
+      }
+    });
+
+    router.get('/uan/tech-sheets/:id/photo', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const x = await sheetAccess(user, req.params.id);
+      if (!x?.sheet.photo) return res.status(404).json({ errors: [{ message: 'Foto não encontrada.', extensions: { code: 'NOT_FOUND' } }] });
+      try {
+        const assets = new services.AssetsService({ schema: await getSchema(), accountability: null });
+        const { stream, file } = await assets.getAsset(x.sheet.photo);
+        res.setHeader('Content-Type', file.type ?? 'application/octet-stream');
+        res.setHeader('Cache-Control', 'private, max-age=3600');
+        res.setHeader('X-Content-Type-Options', 'nosniff');
+        res.setHeader('Content-Security-Policy', "default-src 'none'; style-src 'unsafe-inline'; sandbox");
+        stream.pipe(res);
+      } catch (error) {
+        logger.error({ err: error }, 'rafanutri: falha ao ler foto da ficha');
+        res.status(404).json({ errors: [{ message: 'Foto não encontrada.', extensions: { code: 'NOT_FOUND' } }] });
       }
     });
 

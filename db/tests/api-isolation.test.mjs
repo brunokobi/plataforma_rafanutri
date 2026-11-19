@@ -1292,6 +1292,20 @@ try {
       }
       assert.equal((await api(`/rafanutri/uan/organizations/${A}/contract`, { token: a.token })).json.data.state, 'active', 'contrato restaurado');
     });
+    await check('UAN: foto da preparação — cozinheiro não troca; ficha aprovada aceita foto; de fora não vê', async () => {
+      const list = (await api(`/rafanutri/uan/organizations/${A}/tech-sheets`, { token: a.token })).json.data.items;
+      const approved = list.find((x) => x.status === 'approved');
+      const png = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+      assert.equal((await api(`/rafanutri/uan/tech-sheets/${approved.id}/photo`, { token: b.token, method: 'POST', body: { image: png } })).status, 403, 'cozinheiro troca foto');
+      const up = await api(`/rafanutri/uan/tech-sheets/${approved.id}/photo`, { token: a.token, method: 'POST', body: { image: png } });
+      assert.equal(up.status, 200, JSON.stringify(up.json));
+      const raw = await fetch(`${URL_}/rafanutri/uan/tech-sheets/${approved.id}/photo`, { headers: { Authorization: `Bearer ${b.token}` } });
+      assert.equal(raw.status, 200, 'cozinheiro vê a foto');
+      assert.equal(raw.headers.get('content-type'), 'image/png');
+      const out = await outsider();
+      assert.equal((await fetch(`${URL_}/rafanutri/uan/tech-sheets/${approved.id}/photo`, { headers: { Authorization: `Bearer ${out.token}` } })).status, 404, 'de fora vê a foto');
+      assert.equal((await api(`/rafanutri/uan/tech-sheets/${approved.id}/photo`, { token: a.token, method: 'POST', body: { image: null } })).status, 200, 'remove a foto');
+    });
   } else {
     console.log('  (pulado) UAN entre unidades: defina ISOLATION_PSQL');
   }

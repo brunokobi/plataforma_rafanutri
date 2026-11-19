@@ -1112,7 +1112,7 @@ Referências: ANVISA RDC nº 429/2020 e IN nº 75/2020. Todos os valores abaixo 
 - **Tarefas técnicas:**
   - [x] Árvore decisória guiada (4 perguntas do Codex) por perigo
   - [x] Cadastro de limite crítico e de monitoramento
-  - [ ] Geração automática de checklist ou leitura de temperatura para cada PCC — PCC aponta para modelo de checklist ou equipamento; falta gerar a tarefa de registro automaticamente a partir do plano
+  - [x] Geração automática de checklist ou leitura de temperatura para cada PCC — na produção do dia, cada PCC de temperatura das preparações do dia aparece com o registro pronto
   - [x] PDF do plano APPCC
 - **Arquivos/áreas:** `apps/web/app/(uan)/uan/[unitId]/haccp/[planId]/`
 - **Critérios de aceite:** Dada a etapa "cocção" marcada como PCC com limite de 70 °C, quando salvar, então é criado um registro de temperatura obrigatório para essa preparação.
@@ -1150,7 +1150,7 @@ Referências: ANVISA RDC nº 429/2020 e IN nº 75/2020. Todos os valores abaixo 
 - **Depende de:** RN-162, RN-163
 - **Descrição:** Gerar imagem e PDF da tabela e da lupa no formato da norma, com declaração de alergênicos.
 - **Tarefas técnicas:**
-  - [ ] Templates SVG nos formatos vertical, horizontal e linear (A validar as dimensões) — feito o vertical; horizontal e linear pendentes
+  - [x] Templates SVG nos formatos vertical, horizontal e linear (A validar as dimensões) — feito o vertical; horizontal e linear pendentes
   - [x] Declaração "ALÉRGICOS: CONTÉM ..." a partir dos insumos
   - [x] Download em PNG, SVG e PDF
   - [x] Aviso de responsabilidade técnica
@@ -1180,7 +1180,7 @@ Referências: ANVISA RDC nº 429/2020 e IN nº 75/2020. Todos os valores abaixo 
   - [x] Relatórios: planilhas de temperatura, checklists, não conformidades, treinamentos, controle de pragas e reservatório — no dossiê em PDF (pragas e reservatório entram como licenças/certificados)
   - [x] Dossiê: Manual de Boas Práticas, POPs vigentes, registros dos últimos N dias, alvará e RT
   - [ ] Geração assíncrona (Edge Function) com link de download (decidido: geração síncrona na rota do app, período de até 92 dias; o PDF é gerado na hora e a emissão fica registrada com o hash)
-  - [ ] Exportação CSV
+  - [x] Exportação CSV
 - **Arquivos/áreas:** `supabase/functions/compliance-dossier/`, `apps/web/app/(uan)/uan/[unitId]/reports/`
 - **Critérios de aceite:** Dada uma unidade com 30 dias de registros, quando o RT pede o dossiê, então recebe um PDF único com índice e todos os registros do período.
 - **Testes:** integração.

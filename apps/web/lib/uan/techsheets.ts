@@ -52,6 +52,7 @@ export interface SheetData {
   notes: string | null;
   status: SheetStatus;
   computed: Record<string, unknown> | null;
+  photo?: string | null;
   approved_at: string | null;
   updated_at: string | null;
   items: SheetItemRow[];
@@ -68,6 +69,7 @@ export interface SheetDetail {
   can_approve: boolean;
   can_new_version: boolean;
   can_see_cost: boolean;
+  can_photo?: boolean;
   catalog: IngredientInfo[];
   sub_sheets: Array<{ id: string; name: string; version: number; status: SheetStatus }>;
 }
