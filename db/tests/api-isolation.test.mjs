@@ -1192,6 +1192,25 @@ try {
       assert.equal((await api(`/rafanutri/uan/units/${U1}/haccp`, { token: out.token })).status, 404, 'de fora lista');
       assert.ok((await api('/items/haccp_plans?limit=1', { token: a.token })).status >= 400, 'coleção direta recusada');
     });
+    await check('UAN: rótulos — cozinheiro não emite; só de ficha aprovada e com a tabela completa; de fora não vê', async () => {
+      const list = (await api(`/rafanutri/uan/organizations/${A}/tech-sheets`, { token: a.token })).json.data.items;
+      const approved = list.find((x) => x.status === 'approved');
+      const draft = list.find((x) => x.status === 'draft');
+      assert.ok(approved, 'ficha aprovada do teste');
+      const keys = ['energy_kcal', 'carbohydrate_g', 'total_sugar_g', 'added_sugar_g', 'protein_g', 'lipid_g', 'saturated_fat_g', 'trans_fat_g', 'fiber_g', 'sodium_mg'];
+      const full = Object.fromEntries(keys.map((k) => [k, 1]));
+      const body = { product_name: 'Arroz', physical_state: 'solid', portion_g: 100, household_measure: '1 escumadeira', values: { per100: full, perPortion: full, vd: full }, front_warnings: [], allergens: ['milk'], allergen_statement: 'ALÉRGICOS: CONTÉM LEITE.' };
+      assert.equal((await api(`/rafanutri/uan/tech-sheets/${approved.id}/labels`, { token: b.token, method: 'POST', body })).status, 403, 'cozinheiro emite');
+      assert.equal((await api(`/rafanutri/uan/tech-sheets/${approved.id}/labels`, { token: a.token, method: 'POST', body: { ...body, values: { per100: { ...full, trans_fat_g: null }, perPortion: full, vd: full } } })).status, 400, 'tabela incompleta');
+      if (draft) assert.equal((await api(`/rafanutri/uan/tech-sheets/${draft.id}/labels`, { token: a.token, method: 'POST', body })).status, 409, 'ficha em rascunho');
+      const l = await api(`/rafanutri/uan/tech-sheets/${approved.id}/labels`, { token: a.token, method: 'POST', body });
+      assert.equal(l.status, 201, JSON.stringify(l.json));
+      assert.equal((await api(`/rafanutri/uan/labels/${l.json.data.id}`, { token: b.token })).json.data.product_name, 'Arroz', 'cozinheiro lê');
+      const out = await outsider();
+      assert.equal((await api(`/rafanutri/uan/labels/${l.json.data.id}`, { token: out.token })).status, 404, 'de fora lê rótulo');
+      assert.equal((await api(`/rafanutri/uan/tech-sheets/${approved.id}/labels`, { token: out.token })).status, 404, 'de fora lista');
+      assert.ok((await api('/items/nutrition_labels?limit=1', { token: a.token })).status >= 400, 'coleção direta recusada');
+    });
   } else {
     console.log('  (pulado) UAN entre unidades: defina ISOLATION_PSQL');
   }

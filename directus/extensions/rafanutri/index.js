@@ -2856,10 +2856,10 @@ export default {
     const PURCHASE_UNITS = new Set(['kg', 'g', 'l', 'ml', 'un', 'dz', 'cx', 'pct']);
     const STORAGES = new Set(['ambient', 'chilled', 'frozen']);
     const ALLERGENS = new Set(['gluten', 'crustaceans', 'eggs', 'fish', 'peanut', 'soy', 'milk', 'lactose', 'almond', 'hazelnut', 'cashew', 'brazil_nut', 'macadamia', 'walnut', 'pecan', 'pistachio', 'pine_nut', 'chestnut', 'latex']);
-    const ING_FIELDS = ['id', 'organization_id', 'name', 'category', 'food_id', 'default_fc', 'purchase_unit', 'density_g_ml', 'unit_weight_g', 'pack_grams', 'storage', 'min_stock', 'allergens', 'active', 'created_at'];
+    const ING_FIELDS = ['id', 'organization_id', 'name', 'category', 'food_id', 'default_fc', 'purchase_unit', 'density_g_ml', 'unit_weight_g', 'pack_grams', 'storage', 'min_stock', 'allergens', 'added_sugar_g_100g', 'active', 'created_at'];
     const SUP_FIELDS = ['id', 'organization_id', 'name', 'cnpj', 'contact_name', 'phone', 'email', 'notes', 'active', 'created_at'];
     const CATALOG_ROLES = new Set(['manager', 'technical_lead', 'stock_keeper']);
-    const ingOut = (r) => ({ ...r, default_fc: numOrNull(r.default_fc), density_g_ml: numOrNull(r.density_g_ml), unit_weight_g: numOrNull(r.unit_weight_g), pack_grams: numOrNull(r.pack_grams), min_stock: numOrNull(r.min_stock) });
+    const ingOut = (r) => ({ ...r, added_sugar_g_100g: numOrNull(r.added_sugar_g_100g), default_fc: numOrNull(r.default_fc), density_g_ml: numOrNull(r.density_g_ml), unit_weight_g: numOrNull(r.unit_weight_g), pack_grams: numOrNull(r.pack_grams), min_stock: numOrNull(r.min_stock) });
     const notFoundMsg = (res, what) => res.status(404).json({ errors: [{ message: `${what} não encontrado.`, extensions: { code: 'NOT_FOUND' } }] });
 
     /** Acesso à empresa no módulo UAN: null se não atua nela; senão, se pode mexer no catálogo. */
@@ -2898,8 +2898,10 @@ export default {
       const foodId = b.food_id === null || b.food_id === undefined || b.food_id === '' ? null : Number(b.food_id);
       if (foodId !== null && !Number.isInteger(foodId)) errors.food_id = 'Alimento inválido.';
       if (b.active !== undefined && typeof b.active !== 'boolean') errors.active = 'Valor inválido.';
+      const addedSugar = num(b.added_sugar_g_100g);
+      if (addedSugar !== null && (!Number.isFinite(addedSugar) || addedSugar < 0 || addedSugar > 100)) errors.added_sugar_g_100g = 'Açúcares adicionados de 0 a 100 g por 100 g.';
       if (Object.keys(errors).length) return { errors };
-      return { data: { name, category: b.category, purchase_unit: b.purchase_unit, storage: b.storage, default_fc: fc, density_g_ml: density, unit_weight_g: unitW, pack_grams: pack, min_stock: minStock, allergens, food_id: foodId, ...(b.active === undefined ? {} : { active: b.active }) } };
+      return { data: { name, category: b.category, purchase_unit: b.purchase_unit, storage: b.storage, default_fc: fc, density_g_ml: density, unit_weight_g: unitW, pack_grams: pack, min_stock: minStock, allergens, food_id: foodId, ...(b.added_sugar_g_100g === undefined ? {} : { added_sugar_g_100g: addedSugar }), ...(b.active === undefined ? {} : { active: b.active }) } };
     }
     async function publicFood(id) {
       return id === null ? true : Boolean(await database('foods').where({ id }).whereNull('organization_id').first('id'));
@@ -3122,7 +3124,7 @@ export default {
     /** Insumos com FC padrão, alergênicos, nutrientes por 100 g e (se pode ver custo) preço por kg vigente. */
     async function ingredientInfos(ingIds, withCost) {
       const ings = ingIds.length ? await database('ingredients as i').leftJoin('foods as f', 'f.id', 'i.food_id').whereIn('i.id', ingIds)
-        .select('i.id', 'i.name', 'i.default_fc', 'i.purchase_unit', 'i.density_g_ml', 'i.unit_weight_g', 'i.pack_grams', 'i.allergens', 'i.food_id', 'f.name as food_name',
+        .select('i.id', 'i.name', 'i.default_fc', 'i.purchase_unit', 'i.density_g_ml', 'i.unit_weight_g', 'i.pack_grams', 'i.allergens', 'i.added_sugar_g_100g', 'i.food_id', 'f.name as food_name',
           database.raw('(select p.price_cents from ingredient_price_at(i.id) p) as price_cents')) : [];
       const foodIds = [...new Set(ings.map((i) => i.food_id).filter((x) => x !== null))];
       const nutr = foodIds.length ? await database('food_nutrients as fn').join('nutrients as n', 'n.id', 'fn.nutrient_id')
@@ -3133,6 +3135,8 @@ export default {
           const row = nutr.find((n) => n.food_id === i.food_id && n.code === c);
           return [c, row && row.amount_per_100g !== null ? Number(row.amount_per_100g) : null];
         }));
+        // Açúcares adicionados não vêm da TACO: do cadastro do insumo (sem valor = 0)
+        if (per100g) per100g.added_sugar_g = i.added_sugar_g_100g === null ? 0 : Number(i.added_sugar_g_100g);
         return {
           id: i.id, name: i.name, default_fc: Number(i.default_fc), allergens: i.allergens, food_name: i.food_name, per100g,
           price_per_kg_cents: withCost && i.price_cents !== null && grams ? Math.round((i.price_cents * 1000) / grams) : null,
@@ -4848,6 +4852,90 @@ export default {
         res.status(201).json({ data: { id } });
       } catch (error) {
         p0001(res, error, 'criar nova versão');
+      }
+    });
+
+    // ── U7: rótulos nutricionais (RN-162 a RN-164) ───────────────────────────────────────────
+    // O app calcula a tabela (nutrition-core/labeling) a partir da ficha aprovada; aqui fica o retrato emitido.
+    const LABEL_KEYS = ['energy_kcal', 'carbohydrate_g', 'total_sugar_g', 'added_sugar_g', 'protein_g', 'lipid_g', 'saturated_fat_g', 'trans_fat_g', 'fiber_g', 'sodium_mg'];
+    const LABEL_FIELDS = ['id', 'sheet_id', 'sheet_root_id', 'sheet_version', 'product_name', 'physical_state', 'portion_g', 'household_measure', 'servings_per_pack', 'values', 'front_warnings', 'allergens', 'allergen_statement', 'layout', 'archived', 'created_at'];
+    const labelOut = (l) => ({ ...l, portion_g: Number(l.portion_g), servings_per_pack: numOrNull(l.servings_per_pack) });
+
+    router.get('/uan/tech-sheets/:id/labels', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const x = await sheetAccess(user, req.params.id);
+      if (!x) return sheetNotFound(res);
+      const list = await database('nutrition_labels as l').leftJoin('directus_users as u', 'u.id', 'l.created_by').where('l.sheet_root_id', x.sheet.root_id).where('l.archived', false)
+        .orderBy('l.created_at', 'desc').limit(50).select(...LABEL_FIELDS.map((f) => `l.${f}`), 'u.first_name', 'u.last_name');
+      res.json({ data: { can_issue: x.roles.edit, labels: list.map((l) => ({ ...labelOut(l), created_by_name: userName(l), first_name: undefined, last_name: undefined })) } });
+    });
+
+    router.get('/uan/labels/:id', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const l = isUuid(req.params.id) ? await database('nutrition_labels').where('id', req.params.id).first([...LABEL_FIELDS, 'organization_id']) : null;
+      const roles = l ? await sheetRoles(user, l.organization_id) : null;
+      if (!l || !roles) return notFoundMsg(res, 'Rótulo');
+      res.json({ data: { ...labelOut(l), organization_id: undefined } });
+    });
+
+    router.post('/uan/tech-sheets/:id/labels', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const x = await sheetAccess(user, req.params.id);
+      if (!x) return sheetNotFound(res);
+      if (!x.roles.edit) return res.status(403).json({ errors: [{ message: 'Só o responsável, o gestor ou o RT emitem rótulos.', extensions: { code: 'FORBIDDEN' } }] });
+      if (x.sheet.status !== 'approved') return conflict(res, 'Rótulo só de ficha aprovada.');
+      const b = req.body ?? {};
+      const errors = {};
+      const str = (v, max) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : null);
+      const name = str(b.product_name, 120);
+      if (!name || name.length < 2) errors.product_name = 'Informe o nome do produto.';
+      if (!['solid', 'liquid'].includes(b.physical_state)) errors.physical_state = 'Sólido ou líquido.';
+      const portion = Number(String(b.portion_g ?? '').replace(',', '.'));
+      if (!Number.isFinite(portion) || portion <= 0 || portion > 5000) errors.portion_g = 'Porção entre 1 e 5.000 g.';
+      const measure = str(b.household_measure, 60);
+      if (!measure || measure.length < 2) errors.household_measure = 'Informe a medida caseira.';
+      const v = b.values;
+      const okNum = (n) => n === null || (typeof n === 'number' && Number.isFinite(n) && n >= 0 && n < 1e6);
+      const validValues = v && typeof v === 'object' && v.per100 && v.perPortion && v.vd
+        && LABEL_KEYS.every((k) => okNum(v.per100[k]) && okNum(v.perPortion[k]) && (v.vd[k] === undefined || okNum(v.vd[k])))
+        && LABEL_KEYS.every((k) => v.per100[k] !== null && v.per100[k] !== undefined);
+      if (!validValues) errors.values = 'Tabela nutricional incompleta: informe açúcares totais e gorduras trans.';
+      const warnings = Array.isArray(b.front_warnings) ? [...new Set(b.front_warnings)] : [];
+      if (warnings.some((w) => !['added_sugar', 'saturated_fat', 'sodium'].includes(w))) errors.front_warnings = 'Lupa inválida.';
+      const allergens = Array.isArray(b.allergens) ? [...new Set(b.allergens)] : [];
+      if (allergens.some((a) => !ALLERGENS.has(a))) errors.allergens = 'Alergênico inválido.';
+      if (!['vertical', 'horizontal', 'linear'].includes(b.layout ?? 'vertical')) errors.layout = 'Formato inválido.';
+      const perPack = b.servings_per_pack === null || b.servings_per_pack === undefined || b.servings_per_pack === '' ? null : Number(String(b.servings_per_pack).replace(',', '.'));
+      if (perPack !== null && (!Number.isFinite(perPack) || perPack <= 0 || perPack > 9999)) errors.servings_per_pack = 'Porções por embalagem inválidas.';
+      if (Object.keys(errors).length) return bad(res, errors);
+      const values = { per100: Object.fromEntries(LABEL_KEYS.map((k) => [k, v.per100[k]])), perPortion: Object.fromEntries(LABEL_KEYS.map((k) => [k, v.perPortion[k]])), vd: Object.fromEntries(LABEL_KEYS.map((k) => [k, v.vd[k] ?? null])) };
+      try {
+        const [row] = await withActor(user, (trx) => trx('nutrition_labels').insert({
+          organization_id: x.sheet.organization_id, sheet_id: x.sheet.id, sheet_root_id: x.sheet.root_id, sheet_version: x.sheet.version,
+          product_name: name, physical_state: b.physical_state, portion_g: portion, household_measure: measure, servings_per_pack: perPack,
+          values, front_warnings: warnings, allergens, allergen_statement: str(b.allergen_statement, 1000), layout: b.layout ?? 'vertical', created_by: user,
+        }).returning(['id']));
+        res.status(201).json({ data: { id: row.id } });
+      } catch (error) {
+        p0001(res, error, 'emitir rótulo');
+      }
+    });
+
+    router.post('/uan/labels/:id/archive', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const l = isUuid(req.params.id) ? await database('nutrition_labels').where('id', req.params.id).first('id', 'organization_id') : null;
+      const roles = l ? await sheetRoles(user, l.organization_id) : null;
+      if (!l || !roles) return notFoundMsg(res, 'Rótulo');
+      if (!roles.edit) return res.status(403).json({ errors: [{ message: 'Só o responsável, o gestor ou o RT arquivam rótulos.', extensions: { code: 'FORBIDDEN' } }] });
+      try {
+        await withActor(user, (trx) => trx('nutrition_labels').where('id', l.id).update({ archived: true }));
+        res.json({ data: { ok: true } });
+      } catch (error) {
+        p0001(res, error, 'arquivar rótulo');
       }
     });
 

@@ -71,6 +71,7 @@ export function IngredientForm({ orgId, ingredient, food, onDone }: { orgId: str
     unit_weight_g: txt(ingredient?.unit_weight_g),
     pack_grams: txt(ingredient?.pack_grams),
     min_stock: txt(ingredient?.min_stock),
+    added_sugar_g_100g: txt(ingredient?.added_sugar_g_100g),
     allergens: ingredient?.allergens ?? [],
     food_id: ingredient?.food_id ?? null,
     ...(ingredient ? { active: ingredient.active } : {}),
@@ -147,6 +148,11 @@ export function IngredientForm({ orgId, ingredient, food, onDone }: { orgId: str
       <div className="space-y-1.5">
         <Label htmlFor="ing-min">Estoque mínimo ({UNIT_LABEL[u as keyof typeof UNIT_LABEL]})</Label>
         <Input id="ing-min" inputMode="decimal" value={v.min_stock} onChange={set('min_stock')} />
+      </div>
+      <div className="space-y-1.5">
+        <Label htmlFor="ing-sugar">Açúcares adicionados (g por 100 g)</Label>
+        <Input id="ing-sugar" inputMode="decimal" value={v.added_sugar_g_100g ?? ''} onChange={set('added_sugar_g_100g')} aria-invalid={Boolean(error?.fields?.added_sugar_g_100g)} />
+        <p className="text-xs text-muted-foreground">Para o rótulo nutricional. Açúcar refinado = 100; deixe vazio se não tiver.</p>
       </div>
       <div className="space-y-1.5 sm:col-span-2">
         <Label>Base de alimentos (nutrientes da ficha técnica)</Label>

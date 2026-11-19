@@ -76,6 +76,7 @@ export interface IngredientInput {
   unit_weight_g: string;
   pack_grams: string;
   min_stock: string;
+  added_sugar_g_100g?: string;
   allergens: string[];
   food_id: number | null;
   active?: boolean;

@@ -3,9 +3,11 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { AppHeader } from '@/components/app/app-header';
+import { LabelBuilder } from '@/components/uan/label-builder';
 import { SheetEditor } from '@/components/uan/sheet-editor';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { getCurrentUser } from '@/lib/auth/session';
+import { getSheetLabels } from '@/lib/uan/label-actions';
 import { getSheet } from '@/lib/uan/sheet-actions';
 
 export const metadata: Metadata = { title: 'Ficha técnica', robots: { index: false } };
@@ -14,7 +16,7 @@ export default async function SheetPage({ params }: { params: Promise<{ id: stri
   const { id } = await params;
   const user = await getCurrentUser();
   if (!user) redirect(`/login?next=/app/uan/fichas/${id}`);
-  const d = await getSheet(id);
+  const [d, labels] = await Promise.all([getSheet(id), getSheetLabels(id)]);
   if (d === undefined) notFound();
   return (
     <div className="min-h-dvh">
@@ -29,6 +31,7 @@ export default async function SheetPage({ params }: { params: Promise<{ id: stri
               <h1 className="mt-1 font-display text-3xl font-semibold tracking-tight">{d.sheet.name}</h1>
             </div>
             <SheetEditor key={`${d.sheet.id}-${d.sheet.status}`} detail={d} />
+            {d.sheet.status === 'approved' && labels && <LabelBuilder key={`label-${d.sheet.id}`} detail={d} labels={labels} />}
           </>
         )}
       </main>

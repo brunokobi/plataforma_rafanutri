@@ -35,6 +35,7 @@ export interface Ingredient {
   pack_grams: number | null;
   storage: Storage;
   min_stock: number | null;
+  added_sugar_g_100g?: number | null;
   allergens: Allergen[];
   active: boolean;
   price_cents?: number | null;
