@@ -4409,6 +4409,242 @@ export default {
       }
     });
 
+    // ── U6b: licenças, integridade, dossiê e Manual de Boas Práticas (RN-157, RN-166, RN-167) ─────────
+    const LICENSE_KINDS = new Set(['sanitary_permit', 'rt_certificate', 'pest_control', 'water_tank_cleaning', 'fire_permit', 'other']);
+    const canAudit = (a) => canSupervise(a) || a.roles.includes('auditor');
+    const auditForbidden = (res) => res.status(403).json({ errors: [{ message: 'Só o responsável, o gestor, o RT ou o auditor veem os registros consolidados.', extensions: { code: 'FORBIDDEN' } }] });
+    const LICENSE_FIELDS = ['id', 'kind', 'title', 'number', 'issued_on', 'valid_until', 'provider', 'notes', 'archived', 'created_at'];
+    const licenseOut = (l) => ({ ...l, issued_on: dateOut(l.issued_on), valid_until: dateOut(l.valid_until) });
+
+    function licenseBody(b) {
+      const errors = {};
+      const str = (v, max) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : null);
+      if (!LICENSE_KINDS.has(b.kind)) errors.kind = 'Escolha o tipo.';
+      const issued = b.issued_on ? b.issued_on : null;
+      const until = b.valid_until ? b.valid_until : null;
+      if (issued !== null && !isIsoDate(issued)) errors.issued_on = 'Data inválida.';
+      if (until !== null && !isIsoDate(until)) errors.valid_until = 'Data inválida.';
+      if (issued && until && isIsoDate(issued) && isIsoDate(until) && until < issued) errors.valid_until = 'A validade vem depois da emissão.';
+      if (b.kind === 'other' && !str(b.title, 160)) errors.title = 'Dê um nome ao documento.';
+      return { errors, data: { kind: b.kind, title: str(b.title, 160), number: str(b.number, 80), issued_on: issued, valid_until: until, provider: str(b.provider, 160), notes: str(b.notes, 1000) } };
+    }
+
+    router.get('/uan/units/:id/licenses', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const a = await unitAccess(user, req.params.id);
+      if (!a) return unitNotFound(res);
+      const list = await database('unit_licenses').where('unit_id', a.unit.id).orderBy([{ column: 'archived' }, { column: 'valid_until', nulls: 'last' }]).select(LICENSE_FIELDS);
+      res.json({ data: { unit: { id: a.unit.id, name: a.unit.name }, can_edit: canSupervise(a), today: localToday(), licenses: list.map(licenseOut) } });
+    });
+
+    router.post('/uan/units/:id/licenses', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const a = await unitAccess(user, req.params.id);
+      if (!a) return unitNotFound(res);
+      if (!canSupervise(a)) return res.status(403).json({ errors: [{ message: 'Só o responsável, o gestor ou o RT registram licenças.', extensions: { code: 'FORBIDDEN' } }] });
+      const { errors, data } = licenseBody(req.body ?? {});
+      if (Object.keys(errors).length) return bad(res, errors);
+      try {
+        const [row] = await withActor(user, (trx) => trx('unit_licenses').insert({ ...data, unit_id: a.unit.id, organization_id: a.unit.organization_id, created_by: user }).returning(['id']));
+        res.status(201).json({ data: { id: row.id } });
+      } catch (error) {
+        p0001(res, error, 'registrar licença');
+      }
+    });
+
+    router.patch('/uan/licenses/:id', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const lic = isUuid(req.params.id) ? await database('unit_licenses').where('id', req.params.id).first('id', 'unit_id', 'kind') : null;
+      const a = lic ? await unitAccess(user, lic.unit_id) : null;
+      if (!a) return notFoundMsg(res, 'Licença');
+      if (!canSupervise(a)) return res.status(403).json({ errors: [{ message: 'Só o responsável, o gestor ou o RT editam licenças.', extensions: { code: 'FORBIDDEN' } }] });
+      const b = req.body ?? {};
+      let patch;
+      if (typeof b.archived === 'boolean' && Object.keys(b).length === 1) patch = { archived: b.archived };
+      else {
+        const { errors, data } = licenseBody({ kind: lic.kind, ...b });
+        if (Object.keys(errors).length) return bad(res, errors);
+        patch = data;
+      }
+      try {
+        await withActor(user, (trx) => trx('unit_licenses').where('id', lic.id).update(patch));
+        res.json({ data: { ok: true } });
+      } catch (error) {
+        p0001(res, error, 'salvar licença');
+      }
+    });
+
+    function periodOf(req, res, maxDays = 366) {
+      const today = localToday();
+      const to = isIsoDate(req.query.to) ? req.query.to : today;
+      const from = isIsoDate(req.query.from) ? req.query.from : new Date(Date.parse(`${to}T12:00:00Z`) - 29 * 86400e3).toISOString().slice(0, 10);
+      const days = Math.round((Date.parse(`${to}T12:00:00Z`) - Date.parse(`${from}T12:00:00Z`)) / 86400e3);
+      if (days < 0 || days > maxDays) {
+        bad(res, { from: `Período de até ${maxDays + 1} dias.` });
+        return null;
+      }
+      return { from, to };
+    }
+
+    async function integrityRows(unitId, from, to) {
+      const rows = (await database.raw('select * from uan_integrity_check(?, ?, ?)', [unitId, from, to])).rows;
+      return rows.map((r) => ({ kind: r.kind, record_id: r.record_id, label: r.label, recorded_at: r.recorded_at, stored_hash: r.stored_hash, computed_hash: r.computed_hash, ok: r.ok }));
+    }
+
+    router.get('/uan/units/:id/integrity', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const a = await unitAccess(user, req.params.id);
+      if (!a) return unitNotFound(res);
+      if (!canAudit(a)) return auditForbidden(res);
+      const p = periodOf(req, res);
+      if (!p) return;
+      const rows = await integrityRows(a.unit.id, p.from, p.to);
+      res.json({ data: { unit: { id: a.unit.id, name: a.unit.name }, ...p, total: rows.length, divergent: rows.filter((r) => !r.ok).length, rows } });
+    });
+
+    async function unitRt(unitId) {
+      const rt = await database('unit_members as m').join('directus_users as u', 'u.id', 'm.user_id').where({ 'm.unit_id': unitId, 'm.role': 'technical_lead' }).first('u.first_name', 'u.last_name', 'u.email');
+      return rt ? userName(rt) ?? rt.email : null;
+    }
+
+    async function currentDocs(unitId, withBody) {
+      const rows = await database('quality_documents as d').join('quality_document_current as c', 'c.document_id', 'd.id')
+        .join('quality_document_versions as v', 'v.id', 'c.version_id').leftJoin('directus_users as u', 'u.id', 'v.approved_by')
+        .where({ 'd.unit_id': unitId, 'd.archived': false }).orderBy([{ column: 'd.kind' }, { column: 'd.code' }, { column: 'd.title' }])
+        .select('d.id', 'd.kind', 'd.code', 'd.title', 'v.id as version_id', 'v.version', 'v.approved_at', 'v.next_review_on', 'v.content_hash', 'v.body_md', 'u.first_name', 'u.last_name');
+      return rows.map((r) => ({ id: r.id, kind: r.kind, code: r.code, title: r.title, version_id: r.version_id, version: r.version, approved_at: r.approved_at,
+        next_review_on: dateOut(r.next_review_on), content_hash: r.content_hash, approved_by_name: userName(r), ...(withBody ? { body_md: r.body_md } : {}) }));
+    }
+
+    router.get('/uan/units/:id/dossier', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const a = await unitAccess(user, req.params.id);
+      if (!a) return unitNotFound(res);
+      if (!canAudit(a)) return auditForbidden(res);
+      const p = periodOf(req, res, 91);
+      if (!p) return;
+      const tz = 'America/Sao_Paulo';
+      const inPeriod = (col) => database.raw(`${col} >= ?::timestamp at time zone '${tz}' and ${col} < (?::date + 1)::timestamp at time zone '${tz}'`, [p.from, p.to]);
+      const [rt, licenses, docs, manual, trainings, runs, ncItems, readings, ncs, integrity, org] = await Promise.all([
+        unitRt(a.unit.id),
+        database('unit_licenses').where({ unit_id: a.unit.id, archived: false }).orderBy('valid_until').select(LICENSE_FIELDS),
+        currentDocs(a.unit.id, true),
+        database('compliance_exports').where({ unit_id: a.unit.id, kind: 'manual' }).orderBy('edition', 'desc').first('edition', 'created_at', 'signed_name', 'file_hash'),
+        database('trainings').where('unit_id', a.unit.id).whereBetween('held_on', [p.from, p.to]).orderBy('held_on').select('id', 'topic', 'held_on', 'hours', 'instructor'),
+        database('checklist_runs as r').leftJoin('directus_users as u', 'u.id', 'r.completed_by').where({ 'r.unit_id': a.unit.id, 'r.status': 'completed' }).where(inPeriod('r.completed_at'))
+          .orderBy('r.completed_at').limit(2000).select('r.id', 'r.template_name', 'r.completed_at', 'r.score', 'r.conform_count', 'r.non_conform_count', 'r.na_count', 'r.content_hash', 'u.first_name', 'u.last_name'),
+        database('checklist_answers as x').join('checklist_runs as r', 'r.id', 'x.run_id').where({ 'r.unit_id': a.unit.id, 'r.status': 'completed', 'x.value': 'non_conform' }).where(inPeriod('r.completed_at'))
+          .orderBy([{ column: 'r.completed_at' }, { column: 'x.position' }]).limit(2000).select('x.run_id', 'x.prompt', 'x.critical', 'x.comment', 'x.number_value', 'x.unit'),
+        database('temperature_readings as t').leftJoin('equipment as e', 'e.id', 't.equipment_id').leftJoin('directus_users as u', 'u.id', 't.recorded_by')
+          .where('t.unit_id', a.unit.id).where(inPeriod('t.recorded_at')).orderBy([{ column: 't.recorded_at' }, { column: 't.seq' }]).limit(5000)
+          .select('t.recorded_at', 'e.name as equipment', 't.food_stage', 't.food_name', 't.value', 't.min_temp', 't.max_temp', 't.out_of_range', 't.corrective_action', 'u.first_name', 'u.last_name'),
+        database('non_conformities').where('unit_id', a.unit.id).where(inPeriod('opened_at')).orderBy('opened_at').limit(1000)
+          .select('id', 'source', 'title', 'severity', 'status', 'opened_at', 'due_at', 'closed_at', 'closing_note',
+            database.raw('(select count(*) from action_plans ap where ap.non_conformity_id = non_conformities.id)::int as plans')),
+        integrityRows(a.unit.id, p.from, p.to),
+        database('organizations').where('id', a.unit.organization_id).first('name'),
+      ]);
+      const att = trainings.length ? await database('training_attendees as t').leftJoin('directus_users as u', 'u.id', 't.user_id').whereIn('t.training_id', trainings.map((t) => t.id)).select('t.training_id', 't.name', 'u.first_name', 'u.last_name') : [];
+      const u = a.unit;
+      res.json({
+        data: {
+          period: p,
+          generated_at: new Date().toISOString(),
+          organization: org?.name ?? null,
+          unit: { id: u.id, name: u.name, cnpj: u.cnpj, address: u.address, city: u.city, state: u.state, sanitary_license: u.sanitary_license, sanitary_license_expires_at: dateOut(u.sanitary_license_expires_at) },
+          technical_lead: rt,
+          licenses: licenses.map(licenseOut),
+          documents: docs,
+          manual: manual ? { ...manual } : null,
+          trainings: trainings.map((t) => ({ ...t, held_on: dateOut(t.held_on), hours: Number(t.hours), attendees: att.filter((x) => x.training_id === t.id).map((x) => userName(x) ?? x.name) })),
+          checklists: runs.map((r) => ({ id: r.id, template_name: r.template_name, completed_at: r.completed_at, score: numOrNull(r.score), conform: r.conform_count, non_conform: r.non_conform_count, na: r.na_count,
+            completed_by: userName(r), content_hash: r.content_hash, failures: ncItems.filter((x) => x.run_id === r.id).map((x) => ({ prompt: x.prompt, critical: x.critical, comment: x.comment, value: numOrNull(x.number_value), unit: x.unit })) })),
+          temperatures: readings.map((t) => ({ recorded_at: t.recorded_at, target: t.equipment ?? `${t.food_name} (${t.food_stage})`, value: Number(t.value), min: numOrNull(t.min_temp), max: numOrNull(t.max_temp), out_of_range: t.out_of_range, corrective_action: t.corrective_action, by: userName(t) })),
+          non_conformities: ncs.map((n) => ({ ...n, plans: Number(n.plans) })),
+          integrity: { total: integrity.length, divergent: integrity.filter((r) => !r.ok).length, rows: integrity.filter((r) => !r.ok) },
+          truncated: runs.length >= 2000 || readings.length >= 5000 || ncs.length >= 1000,
+        },
+      });
+    });
+
+    router.get('/uan/units/:id/manual', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const a = await unitAccess(user, req.params.id);
+      if (!a) return unitNotFound(res);
+      const [rt, docs, equipment, licenses, editions, org, team, lastTraining] = await Promise.all([
+        unitRt(a.unit.id),
+        currentDocs(a.unit.id, true),
+        database('equipment').where({ unit_id: a.unit.id, active: true }).orderBy('name').select('name', 'kind', 'min_temp', 'max_temp'),
+        database('unit_licenses').where({ unit_id: a.unit.id, archived: false }).orderBy('valid_until').select(LICENSE_FIELDS),
+        database('compliance_exports as e').leftJoin('directus_users as u', 'u.id', 'e.created_by').where({ 'e.unit_id': a.unit.id, 'e.kind': 'manual' }).orderBy('e.edition', 'desc').limit(20)
+          .select('e.id', 'e.edition', 'e.created_at', 'e.signed_name', 'e.file_hash', 'e.includes', 'u.first_name', 'u.last_name'),
+        database('organizations').where('id', a.unit.organization_id).first('name'),
+        database('unit_members').where('unit_id', a.unit.id).countDistinct({ n: 'user_id' }).first(),
+        database('trainings').where('unit_id', a.unit.id).max('held_on as d').first(),
+      ]);
+      const u = a.unit;
+      res.json({
+        data: {
+          organization: org?.name ?? null,
+          unit: { id: u.id, name: u.name, kind: u.kind, cnpj: u.cnpj, address: u.address, city: u.city, state: u.state, sanitary_license: u.sanitary_license, sanitary_license_expires_at: dateOut(u.sanitary_license_expires_at) },
+          technical_lead: rt,
+          team_size: Number(team?.n ?? 0),
+          last_training_on: dateOut(lastTraining?.d ?? null),
+          equipment: equipment.map((e) => ({ ...e, min_temp: numOrNull(e.min_temp), max_temp: numOrNull(e.max_temp) })),
+          licenses: licenses.map(licenseOut),
+          documents: docs,
+          editions: editions.map((e) => ({ id: e.id, edition: e.edition, created_at: e.created_at, signed_name: e.signed_name, file_hash: e.file_hash, created_by_name: userName(e), documents: (e.includes?.documents ?? []).length })),
+          can_issue: canApproveDoc(a),
+          can_audit: canAudit(a),
+        },
+      });
+    });
+
+    router.get('/uan/units/:id/exports', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const a = await unitAccess(user, req.params.id);
+      if (!a) return unitNotFound(res);
+      if (!canAudit(a)) return auditForbidden(res);
+      const list = await database('compliance_exports as e').leftJoin('directus_users as u', 'u.id', 'e.created_by').where('e.unit_id', a.unit.id).orderBy('e.created_at', 'desc').limit(50)
+        .select('e.id', 'e.kind', 'e.edition', 'e.period_from', 'e.period_to', 'e.integrity', 'e.file_hash', 'e.signed_name', 'e.created_at', 'u.first_name', 'u.last_name');
+      res.json({ data: list.map((e) => ({ ...e, period_from: dateOut(e.period_from), period_to: dateOut(e.period_to), created_by_name: userName(e), first_name: undefined, last_name: undefined })) });
+    });
+
+    // Registra a emissão (o PDF é gerado no app; aqui fica o hash do arquivo e o que entrou nele).
+    router.post('/uan/units/:id/exports', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const a = await unitAccess(user, req.params.id);
+      if (!a) return unitNotFound(res);
+      const b = req.body ?? {};
+      if (b.kind === 'manual' && !canApproveDoc(a)) return res.status(403).json({ errors: [{ message: 'Só o RT da unidade ou o responsável pela empresa emitem o Manual.', extensions: { code: 'FORBIDDEN' } }] });
+      if (b.kind === 'dossier' && !canAudit(a)) return auditForbidden(res);
+      if (b.kind !== 'manual' && b.kind !== 'dossier') return bad(res, { kind: 'Tipo inválido.' });
+      if (typeof b.file_hash !== 'string' || !/^[0-9a-f]{64}$/.test(b.file_hash)) return bad(res, { file_hash: 'Hash do arquivo inválido.' });
+      if (b.kind === 'dossier' && (!isIsoDate(b.period_from) || !isIsoDate(b.period_to))) return bad(res, { period_from: 'Informe o período.' });
+      const includes = b.includes && typeof b.includes === 'object' && !Array.isArray(b.includes) ? b.includes : {};
+      if (JSON.stringify(includes).length > 20000) return bad(res, { includes: 'Conteúdo grande demais.' });
+      const integrity = b.integrity && typeof b.integrity === 'object' && !Array.isArray(b.integrity) ? { total: Number(b.integrity.total) || 0, divergent: Number(b.integrity.divergent) || 0 } : null;
+      const me = await database('directus_users').where('id', user).first('first_name', 'last_name', 'email');
+      try {
+        const [row] = await withActor(user, (trx) => trx('compliance_exports').insert({
+          unit_id: a.unit.id, organization_id: a.unit.organization_id, kind: b.kind,
+          period_from: b.kind === 'dossier' ? b.period_from : null, period_to: b.kind === 'dossier' ? b.period_to : null,
+          includes, integrity, file_hash: b.file_hash, signed_by: b.kind === 'manual' ? user : null, signed_name: b.kind === 'manual' ? (userName(me) ?? me?.email ?? null) : null, created_by: user,
+        }).returning(['id', 'edition']));
+        res.status(201).json({ data: { id: row.id, edition: row.edition } });
+      } catch (error) {
+        p0001(res, error, 'registrar emissão');
+      }
+    });
+
     // ── Feedback do programa beta (RN-047) ──────────────────────────────────────────────────
     // Texto + tipo + caminho da página (sem query string). Lido só pelo admin da plataforma no Directus.
     const FEEDBACK_KINDS = new Set(['bug', 'idea', 'praise', 'other']);

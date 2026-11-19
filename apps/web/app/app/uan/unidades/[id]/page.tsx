@@ -81,6 +81,7 @@ export default async function UnitPage({ params }: { params: Promise<{ id: strin
                   <Link href={`/app/uan/unidades/${detail.unit.id}/custos`} className="font-medium text-primary underline">Custos</Link>
                   <Link href={`/app/uan/unidades/${detail.unit.id}/documentos`} className="font-medium text-primary underline">Documentos</Link>
                   <Link href={`/app/uan/unidades/${detail.unit.id}/treinamentos`} className="font-medium text-primary underline">Treinamentos</Link>
+                  <Link href={`/app/uan/unidades/${detail.unit.id}/fiscalizacao`} className="font-medium text-primary underline">Fiscalização</Link>
                 </nav>
               </div>
             )}

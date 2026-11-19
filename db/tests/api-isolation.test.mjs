@@ -1141,6 +1141,32 @@ try {
       assert.equal((await api(`/rafanutri/uan/units/${U1}/trainings`, { token: out.token })).status, 404, 'de fora lista treinamentos');
       assert.ok((await api('/items/quality_document_versions?limit=1', { token: a.token })).status >= 400, 'coleção direta recusada');
     });
+    await check('UAN: licenças, integridade, dossiê e Manual — cozinheiro não registra nem vê o dossiê; emissão registrada; de fora não vê', async () => {
+      assert.equal((await api(`/rafanutri/uan/units/${U1}/licenses`, { token: b.token, method: 'POST', body: { kind: 'sanitary_permit', number: '1' } })).status, 403, 'cozinheiro registra licença');
+      const l = await api(`/rafanutri/uan/units/${U1}/licenses`, { token: a.token, method: 'POST', body: { kind: 'sanitary_permit', number: 'AL-1', issued_on: '2026-01-01', valid_until: '2027-01-01' } });
+      assert.equal(l.status, 201, JSON.stringify(l.json));
+      assert.equal((await api(`/rafanutri/uan/units/${U1}/licenses`, { token: a.token, method: 'POST', body: { kind: 'pest_control', issued_on: '2026-02-01', valid_until: '2026-01-01' } })).status, 400, 'validade antes da emissão');
+      assert.equal((await api(`/rafanutri/uan/units/${U1}/licenses`, { token: b.token })).json.data.licenses.length, 1, 'cozinheiro lê licenças');
+      assert.equal((await api(`/rafanutri/uan/units/${U1}/dossier`, { token: b.token })).status, 403, 'cozinheiro vê dossiê');
+      assert.equal((await api(`/rafanutri/uan/units/${U1}/integrity`, { token: b.token })).status, 403, 'cozinheiro vê integridade');
+      const d = await api(`/rafanutri/uan/units/${U1}/dossier`, { token: a.token });
+      assert.equal(d.status, 200, JSON.stringify(d.json));
+      assert.equal(d.json.data.integrity.divergent, 0, 'sem divergência');
+      assert.ok(d.json.data.documents.some((x) => x.title === 'POP teste'), 'documento vigente no dossiê');
+      assert.equal((await api(`/rafanutri/uan/units/${U1}/dossier?from=2026-01-01&to=2026-11-18`, { token: a.token })).status, 400, 'período longo');
+      const hash = 'c'.repeat(64);
+      assert.equal((await api(`/rafanutri/uan/units/${U1}/exports`, { token: b.token, method: 'POST', body: { kind: 'manual', file_hash: hash } })).status, 403, 'cozinheiro emite Manual');
+      const e1 = await api(`/rafanutri/uan/units/${U1}/exports`, { token: a.token, method: 'POST', body: { kind: 'manual', file_hash: hash, includes: { documents: [] } } });
+      assert.equal(e1.status, 201, JSON.stringify(e1.json));
+      assert.equal(e1.json.data.edition, 1, 'edição 1');
+      assert.equal((await api(`/rafanutri/uan/units/${U1}/exports`, { token: a.token, method: 'POST', body: { kind: 'manual', file_hash: hash } })).json.data.edition, 2, 'edição 2');
+      assert.equal((await api(`/rafanutri/uan/units/${U1}/manual`, { token: b.token })).json.data.can_issue, false, 'cozinheiro não emite');
+      const out = await outsider();
+      assert.equal((await api(`/rafanutri/uan/units/${U1}/licenses`, { token: out.token })).status, 404, 'de fora lê licenças');
+      assert.equal((await api(`/rafanutri/uan/units/${U1}/dossier`, { token: out.token })).status, 404, 'de fora lê dossiê');
+      assert.equal((await api(`/rafanutri/uan/licenses/${l.json.data.id}`, { token: out.token, method: 'PATCH', body: { archived: true } })).status, 404, 'de fora arquiva');
+      assert.ok((await api('/items/compliance_exports?limit=1', { token: a.token })).status >= 400, 'coleção direta recusada');
+    });
   } else {
     console.log('  (pulado) UAN entre unidades: defina ISOLATION_PSQL');
   }
