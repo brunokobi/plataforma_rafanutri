@@ -68,6 +68,18 @@ test('perfil PAT e regra do contrato no cardápio', async ({ page }) => {
     await expect(page.getByRole('row').filter({ hasText: 'Dia 1' }).getByText(/Dentro das metas|baixo|alto/)).toBeVisible({ timeout: 15_000 });
     await expect(page.getByRole('heading', { name: /Regras do contrato \(/ })).toBeVisible();
     await expect(page.getByText(/acima do teto do contrato/).first()).toBeVisible();
+
+    // ajuste local de per capita
+    await page.goto(`${unitUrl}/cardapios`);
+    const af = page.getByRole('form', { name: 'Novo ajuste de per capita' });
+    await af.getByLabel('Ficha').selectOption({ index: 1 });
+    await af.getByLabel('Fator').fill('1,2');
+    await af.getByLabel('Motivo (opcional)').fill('Público com maior gasto energético');
+    await af.getByRole('button', { name: 'Salvar' }).click();
+    const adj = page.getByRole('list', { name: 'Ajustes de per capita' });
+    await expect(adj).toContainText('× 1,2', { timeout: 15_000 });
+    await adj.getByRole('button', { name: /^Remover ajuste de / }).first().click();
+    await expect(page.getByRole('status').filter({ hasText: 'Ajuste removido.' })).toBeVisible({ timeout: 15_000 });
   } finally {
     await page.goto(unitUrl);
     const ue = page.getByRole('form', { name: 'Dados da unidade' });

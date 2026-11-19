@@ -226,7 +226,7 @@ Status: `todo`, `doing`, `done`, `adiado` (fora do MVP, ver [ADR 0004](adr/0004-
 | [RN-168](plano/fase-5-uan-qualidade.md#rn-168--testes-e2e-e-piloto) | Testes e2e e piloto | doc | 5 | RN-121 a RN-167 | todo |
 | [RN-169](plano/fase-5-uan-qualidade.md#rn-169--onboarding-enterprise-e-importação-de-dados) | Onboarding Enterprise e importação de dados | feature | 5 | RN-126, RN-131 | todo |
 | [RN-220](plano/fase-5-uan-qualidade.md#rn-220--convite-da-equipe-da-unidade-por-link) | Convite da equipe da unidade por link | feature | 3 | RN-121, RN-122 | done |
-| [RN-221](plano/fase-5-uan-qualidade.md#rn-221--serviços-perfis-de-público-e-modelos-de-autonomia-do-cardápio) | Serviços, perfis de público e modelos de autonomia do cardápio | feature | 5 | RN-135 | doing |
+| [RN-221](plano/fase-5-uan-qualidade.md#rn-221--serviços-perfis-de-público-e-modelos-de-autonomia-do-cardápio) | Serviços, perfis de público e modelos de autonomia do cardápio | feature | 5 | RN-135 | done |
 | [RN-222](plano/fase-5-uan-qualidade.md#rn-222--alergênicos-do-insumo-à-ficha-e-ao-cardápio) | Alergênicos do insumo à ficha e ao cardápio | feature | 3 | RN-126, RN-131 | doing |
 | [RN-223](plano/fase-5-uan-qualidade.md#rn-223--cardápio-publicado-para-o-comensal-e-pesquisa-de-satisfação) | Cardápio publicado para o comensal e pesquisa de satisfação | feature | 3 | RN-136, RN-222 | done |
 | [RN-224](plano/fase-5-uan-qualidade.md#rn-224--fluxo-de-aprovação-do-cardápio) | Fluxo de aprovação do cardápio | feature | 3 | RN-136 | doing |
