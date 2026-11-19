@@ -1733,6 +1733,33 @@ export default {
       return res.status(500).json({ errors: [{ message: 'Não foi possível salvar agora.', extensions: { code: 'INTERNAL_SERVER_ERROR' } }] });
     }
 
+    // RN-124 — Modo leitura: contrato UAN encerrado (até 90 dias: read_only; depois: ended) bloqueia toda
+    // escrita na UAN. A empresa vem da unidade ou da empresa no caminho; nos demais caminhos, das empresas
+    // em que a pessoa atua (bloqueia se todas estiverem sem contrato vigente). Sem contrato algum: piloto, liberado.
+    const READ_ONLY_STATES = new Set(['read_only', 'ended']);
+    router.use(async (req, res, next) => {
+      if (req.method === 'GET' || req.method === 'HEAD' || !req.path.startsWith('/uan/')) return next();
+      const user = req.accountability?.user;
+      if (!user) return next();
+      try {
+        let orgIds;
+        const unit = req.path.match(/^\/uan\/units\/([0-9a-f-]{36})/i);
+        const org = req.path.match(/^\/uan\/organizations\/([0-9a-f-]{36})/i);
+        if (unit) orgIds = (await database('production_units').where('id', unit[1]).pluck('organization_id'));
+        else if (org) orgIds = [org[1]];
+        else orgIds = (await uanOrgs(user)).map((o) => o.id);
+        if (orgIds.length) {
+          const states = (await database.raw('select uan_contract_state(id) as s from unnest(?::uuid[]) id', [orgIds])).rows.map((r) => r.s);
+          if (states.every((st) => READ_ONLY_STATES.has(st))) {
+            return res.status(403).json({ errors: [{ message: 'O contrato da UAN terminou: os dados ficam só para consulta. Fale com a Rafanutri para renovar.', extensions: { code: 'READ_ONLY' } }] });
+          }
+        }
+      } catch (error) {
+        logger.warn({ err: error?.message }, 'rafanutri: falha ao conferir o contrato UAN');
+      }
+      next();
+    });
+
     router.get('/uan/context', async (req, res) => {
       const user = requireUser(req, res);
       if (!user) return;
@@ -1744,11 +1771,13 @@ export default {
         const units = (await q.select(...UNIT_FIELDS.map((f) => `u.${f}`))).map(unitOut);
         const roles = await database('unit_members').where('user_id', user).whereIn('unit_id', units.map((u) => u.id)).select('unit_id', 'role');
         const limit = o.is_owner ? (await database.raw('select uan_unit_limit(?) as n', [o.id])).rows[0].n : null;
+        const contract = (await database.raw('select uan_contract_state(?) as s', [o.id])).rows[0].s;
         out.push({
           id: o.id,
           name: o.name,
           is_owner: o.is_owner,
           unit_limit: limit,
+          contract_state: contract,
           units: units.map((u) => ({ ...u, roles: roles.filter((r) => r.unit_id === u.id).map((r) => r.role) })),
         });
       }
@@ -5318,6 +5347,34 @@ export default {
       } catch (error) {
         p0001(res, error, 'desativar regra');
       }
+    });
+
+    // ── RN-124: contrato Enterprise da UAN (só o owner vê) ────────────────────────────────────
+    router.get('/uan/organizations/:id/contract', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const org = isUuid(req.params.id) ? (await uanOrgs(user)).find((o) => o.id === req.params.id) : null;
+      if (!org) return notFoundMsg(res, 'Empresa');
+      if (!org.is_owner) return res.status(403).json({ errors: [{ message: 'Só o responsável pela empresa vê o contrato.', extensions: { code: 'FORBIDDEN' } }] });
+      const [contracts, invoices, state, limit, active] = await Promise.all([
+        database('organization_contracts').where('organization_id', org.id).orderBy('starts_at', 'desc').select('id', 'plan', 'units_contracted', 'monthly_price_cents', 'starts_at', 'ends_at', 'billing_method', 'features'),
+        database('contract_invoices').where('organization_id', org.id).orderBy('due_on', 'desc').limit(36).select('id', 'contract_id', 'period_start', 'period_end', 'amount_cents', 'due_on', 'status', 'paid_at', 'payment_url'),
+        database.raw('select uan_contract_state(?) as s', [org.id]).then((r) => r.rows[0].s),
+        database.raw('select uan_unit_limit(?) as n', [org.id]).then((r) => r.rows[0].n),
+        database('production_units').where({ organization_id: org.id, active: true }).count({ n: '*' }).first(),
+      ]);
+      const lastEnd = contracts.filter((c) => c.ends_at).map((c) => dateOut(c.ends_at)).sort().pop() ?? null;
+      res.json({
+        data: {
+          organization: { id: org.id, name: org.name },
+          state,
+          read_only_until: state === 'read_only' && lastEnd ? new Date(Date.parse(`${lastEnd}T12:00:00Z`) + 90 * 86400e3).toISOString().slice(0, 10) : null,
+          unit_limit: Number(limit),
+          active_units: Number(active?.n ?? 0),
+          contracts: contracts.map((c) => ({ ...c, starts_at: dateOut(c.starts_at), ends_at: dateOut(c.ends_at) })),
+          invoices: invoices.map((i) => ({ ...i, period_start: dateOut(i.period_start), period_end: dateOut(i.period_end), due_on: dateOut(i.due_on) })),
+        },
+      });
     });
 
     // ── Feedback do programa beta (RN-047) ──────────────────────────────────────────────────

@@ -63,9 +63,14 @@ export default async function UanPage() {
                     </nav>
                   </div>
                   {o.is_owner && o.unit_limit !== null && (
-                    <p className="text-sm text-muted-foreground">{active} de {o.unit_limit} unidade(s) ativa(s) no contrato</p>
+                    <p className="text-sm text-muted-foreground">{active} de {o.unit_limit} unidade(s) ativa(s) no <Link href={`/app/uan/contrato?empresa=${o.id}`} className="underline">contrato</Link></p>
                   )}
                 </div>
+                {(o.contract_state === 'read_only' || o.contract_state === 'ended') && (
+                  <p role="alert" className="rounded-2xl border border-destructive/50 bg-destructive/5 p-3 text-sm text-destructive">
+                    O contrato da UAN terminou: os dados ficam só para consulta{o.contract_state === 'read_only' ? ' por até 90 dias' : ''}. Para voltar a registrar, renove o contrato.
+                  </p>
+                )}
                 {o.is_owner && (
                   <NewUnit organizationId={o.id} disabled={full} reason={full ? 'Limite do contrato atingido: desative uma unidade ou amplie o contrato.' : undefined} />
                 )}

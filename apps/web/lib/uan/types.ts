@@ -46,6 +46,8 @@ export interface UanOrganization {
   is_owner: boolean;
   /** Unidades ativas permitidas pelo contrato (só para o owner). */
   unit_limit: number | null;
+  /** RN-124: active | read_only (até 90 dias após o fim) | ended | none (piloto sem contrato). */
+  contract_state?: 'active' | 'read_only' | 'ended' | 'none';
   units: Array<ProductionUnit & { roles: UnitRole[] }>;
 }
 

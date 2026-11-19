@@ -1271,6 +1271,27 @@ try {
       const out = await outsider();
       assert.equal((await api(`/rafanutri/uan/units/${U1}/sheet-adjustments`, { token: out.token })).status, 404, 'de fora lê');
     });
+    await check('UAN: contrato — só o owner vê; contrato encerrado deixa a UAN em modo leitura (lê, não grava)', async () => {
+      const ct = await api(`/rafanutri/uan/organizations/${A}/contract`, { token: a.token });
+      assert.equal(ct.status, 200, JSON.stringify(ct.json));
+      assert.equal(ct.json.data.state, 'active');
+      assert.equal((await api(`/rafanutri/uan/organizations/${A}/contract`, { token: b.token })).status, 403, 'cozinheiro vê contrato');
+      const sql = (q) => String(execSync(process.env.ISOLATION_PSQL, { input: q, stdio: ['pipe', 'pipe', 'inherit'] }));
+      const guard = `organization_id = '${A}' and exists (select 1 from organization_members m join directus_users u on u.id = m.user_id where m.organization_id = '${A}' and m.role = 'owner' and u.email like '%@example.com')`;
+      sql(`update organization_contracts set starts_at = current_date - 400, ends_at = current_date - 10 where ${guard};`);
+      try {
+        assert.equal((await api(`/rafanutri/uan/organizations/${A}/contract`, { token: a.token })).json.data.state, 'read_only');
+        assert.equal((await api('/rafanutri/uan/context', { token: a.token })).json.data.find((o) => o.id === A).contract_state, 'read_only');
+        assert.equal((await api(`/rafanutri/uan/units/${U1}/licenses`, { token: a.token })).status, 200, 'lê no modo leitura');
+        const w = await api(`/rafanutri/uan/units/${U1}/licenses`, { token: a.token, method: 'POST', body: { kind: 'other', title: 'Bloqueado' } });
+        assert.equal(w.status, 403, 'grava no modo leitura');
+        assert.equal(w.json.errors[0].extensions.code, 'READ_ONLY');
+        assert.equal((await api(`/rafanutri/uan/organizations/${A}/menu-rules`, { token: a.token, method: 'POST', body: { kind: 'cost_ceiling', cost: '10' } })).status, 403, 'regra no modo leitura');
+      } finally {
+        sql(`update organization_contracts set ends_at = null where ${guard};`);
+      }
+      assert.equal((await api(`/rafanutri/uan/organizations/${A}/contract`, { token: a.token })).json.data.state, 'active', 'contrato restaurado');
+    });
   } else {
     console.log('  (pulado) UAN entre unidades: defina ISOLATION_PSQL');
   }
