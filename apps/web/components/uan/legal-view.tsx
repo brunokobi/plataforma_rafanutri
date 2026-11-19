@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { CSV_KINDS } from '@/lib/uan/csv';
 import { archiveLicense, createLicense } from '@/lib/uan/legal-actions';
 import {
   defaultPeriod,
@@ -164,6 +165,12 @@ export function DossierSection({ unitId, today, exports }: { unitId: string; tod
         )}
       </div>
       {invalid && <p className="text-xs text-destructive">Escolha um período de até 92 dias.</p>}
+      {!invalid && (
+        <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+          <span className="text-muted-foreground">Planilhas (CSV):</span>
+          {CSV_KINDS.map((k) => <a key={k.kind} className="font-medium text-primary underline" href={`/app/uan/unidades/${unitId}/fiscalizacao/csv?tipo=${k.kind}&de=${p.from}&ate=${p.to}`}>{k.label}</a>)}
+        </p>
+      )}
       {dossiers.length > 0 && (
         <ul aria-label="Dossiês emitidos" className="divide-y divide-border rounded-2xl border border-border bg-card text-sm">
           {dossiers.map((e) => (

@@ -3702,6 +3702,32 @@ export default {
       }
     });
 
+    /** RN-161 — PCC de temperatura do APPCC aprovado das preparações do dia, com as medições já feitas. */
+    async function dayCcps(unitId, day, roots, current) {
+      if (!roots.length) return [];
+      const rows = (await database.raw(
+        `select p.sheet_root_id, p.title as plan, st.name as step, h.id, h.ccp_number, h.description, h.critical_limit, h.limit_min, h.limit_max,
+                h.monitoring_what, h.monitoring_frequency, h.corrective_action
+           from haccp_plans p join haccp_steps st on st.plan_id = p.id join haccp_hazards h on h.step_id = st.id
+          where p.unit_id = ? and p.status = 'approved' and h.decision = 'ccp' and h.monitoring_kind = 'temperature'
+            and h.equipment_id is null and p.sheet_root_id = any(?::uuid[])
+          order by st.position, h.ccp_number`, [unitId, roots])).rows;
+      if (!rows.length) return [];
+      const names = [...new Set(rows.map((r) => current.get(r.sheet_root_id)?.name).filter(Boolean))];
+      const readings = names.length ? await database('temperature_readings').where('unit_id', unitId).whereNotNull('food_name').whereIn('food_name', names)
+        .where(database.raw(`recorded_at >= ?::timestamp at time zone 'America/Sao_Paulo' and recorded_at < (?::date + 1)::timestamp at time zone 'America/Sao_Paulo'`, [day, day]))
+        .orderBy('recorded_at', 'desc').select('food_name', 'value', 'recorded_at') : [];
+      return rows.map((r) => {
+        const dish = current.get(r.sheet_root_id)?.name ?? '—';
+        const mine = readings.filter((x) => x.food_name === dish);
+        return {
+          id: r.id, sheet_root_id: r.sheet_root_id, dish, plan: r.plan, step: r.step, ccp_number: r.ccp_number, description: r.description, critical_limit: r.critical_limit,
+          limit_min: numOrNull(r.limit_min), limit_max: numOrNull(r.limit_max), monitoring_what: r.monitoring_what, monitoring_frequency: r.monitoring_frequency, corrective_action: r.corrective_action,
+          readings: mine.slice(0, 5).map((x) => ({ value: Number(x.value), recorded_at: x.recorded_at })),
+        };
+      });
+    }
+
     router.get('/uan/units/:id/production', async (req, res) => {
       const user = requireUser(req, res);
       if (!user) return;
@@ -3757,6 +3783,7 @@ export default {
           graph,
           adhesion: adhesion.map((r) => ({ sheet_root_id: r.sheet_root_id, rate: r.diners > 0 ? Math.round((r.served / r.diners) * 1000) / 1000 : null })),
           adjustments: await unitAdjustments(a.unit.id),
+          ccps: await dayCcps(a.unit.id, day, roots, current),
           waste,
           history: history.map((h) => ({ ...h, day: dateOut(h.day) })),
         },

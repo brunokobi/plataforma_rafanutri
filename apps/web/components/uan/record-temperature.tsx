@@ -18,10 +18,10 @@ const hhmm = (iso: string) => new Date(iso).toLocaleTimeString('pt-BR', { hour: 
  * Registro rápido de temperatura: de um equipamento (limites dele) ou de um alimento (limites da etapa).
  * Fora do limite, a ação corretiva é obrigatória (o banco também exige).
  */
-export function RecordTemperature({ unitId, equipment, idPrefix = 'temp' }: { unitId: string; equipment?: { id: string; name: string } & Limits; idPrefix?: string }) {
+export function RecordTemperature({ unitId, equipment, idPrefix = 'temp', initialFood = '', initialStage = 'cooking' }: { unitId: string; equipment?: { id: string; name: string } & Limits; idPrefix?: string; initialFood?: string; initialStage?: FoodStage }) {
   const router = useRouter();
-  const [stage, setStage] = useState<FoodStage>('cooking');
-  const [food, setFood] = useState('');
+  const [stage, setStage] = useState<FoodStage>(initialStage);
+  const [food, setFood] = useState(initialFood);
   const [text, setText] = useState('');
   const [action, setAction] = useState('');
   const [clientId, setClientId] = useState(() => crypto.randomUUID());
@@ -52,7 +52,7 @@ export function RecordTemperature({ unitId, equipment, idPrefix = 'temp' }: { un
       setDone(`Registrado: ${formatTemp(r.reading.value)} às ${hhmm(r.reading.recorded_at)}${r.reading.out_of_range ? ' (fora do limite, com ação corretiva)' : ' (dentro do limite)'}.`);
       setText('');
       setAction('');
-      if (!equipment) setFood('');
+      if (!equipment) setFood(initialFood);
       setClientId(crypto.randomUUID());
       router.refresh();
     });

@@ -10,6 +10,22 @@ export const WASTE_REASON_LABEL: Record<WasteReason, string> = {
 
 export interface ProductionIngredient extends IngredientInfo { purchase_unit: string; grams_per_unit: number | null }
 export interface WasteRow { service: MenuService; sheet_root_id: string | null; produced_g: number | null; leftover_g: number | null; plate_waste_g: number | null; prep_waste_g: number | null; portions_served: number | null; reason: WasteReason | null; notes: string | null; recorded_at: string }
+export interface DayCcp {
+  id: string; sheet_root_id: string; dish: string; plan: string; step: string; ccp_number: number | null; description: string; critical_limit: string | null;
+  limit_min: number | null; limit_max: number | null; monitoring_what: string | null; monitoring_frequency: string | null; corrective_action: string | null;
+  readings: Array<{ value: number; recorded_at: string }>;
+}
+/** Etapa do registro de temperatura do alimento a partir do limite do PCC. */
+export function ccpStage(c: Pick<DayCcp, 'limit_min' | 'limit_max'>): 'cooking' | 'holding_hot' | 'holding_cold' | 'cooling' {
+  if (c.limit_min !== null && c.limit_min >= 70) return 'cooking';
+  if (c.limit_min !== null && c.limit_min >= 60) return 'holding_hot';
+  if (c.limit_max !== null && c.limit_max <= 5) return 'holding_cold';
+  if (c.limit_max !== null && c.limit_max <= 10) return 'cooling';
+  return 'cooking';
+}
+/** A medição atende ao limite crítico do PCC? */
+export const meetsCcp = (v: number, c: Pick<DayCcp, 'limit_min' | 'limit_max'>) => (c.limit_min === null || v >= c.limit_min) && (c.limit_max === null || v <= c.limit_max);
+
 export interface ProductionDay {
   unit: { id: string; name: string };
   day: string;
@@ -22,6 +38,8 @@ export interface ProductionDay {
   adhesion: Array<{ sheet_root_id: string; rate: number | null }>;
   /** Ajuste local de per capita por ficha (RN-221). */
   adjustments?: Array<{ sheet_root_id: string; portion_factor: number }>;
+  /** RN-161: PCC de temperatura do APPCC aprovado das preparações do dia. */
+  ccps?: DayCcp[];
   waste: WasteRow[];
   history: Array<{ day: string; service: MenuService; diners: number | null; produced_g: number; leftover_g: number; plate_waste_g: number }>;
 }

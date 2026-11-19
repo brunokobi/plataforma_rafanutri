@@ -65,3 +65,12 @@ describe('Manual de Boas Práticas (RN-157)', () => {
     expect(b.length).toBeGreaterThan(5000);
   }, 30_000);
 });
+
+import { TrainingCertificatePdf } from '@/components/pdf/uan-certificate';
+describe('certificado de treinamento (RN-159)', () => {
+  it('uma página por participante', async () => {
+    const b = await renderToBuffer(createElement(TrainingCertificatePdf, { unit: 'Cozinha', organization: 'Empresa', training: { topic: 'BPF', held_on: '2026-11-18', hours: 2.5, instructor: 'Ana', attendees: ['João', 'Maria'] } }) as Parameters<typeof renderToBuffer>[0]);
+    expect(b.subarray(0, 4).toString()).toBe('%PDF');
+    expect((b.toString('latin1').match(/\/Type \/Page\b/g) ?? []).length).toBe(2);
+  }, 30_000);
+});

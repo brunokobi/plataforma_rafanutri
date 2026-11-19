@@ -10,8 +10,9 @@ import { wasteIndicators } from '@rafanutri/nutrition-core';
 import { brl, UNIT_LABEL } from '@/lib/uan/catalog';
 import { SERVICE_LABEL, SERVICES, SLOT_LABEL, WEEKDAY_SHORT_FULL, type MenuService } from '@/lib/uan/menus';
 import { applyPattern, saveDiners, saveWaste } from '@/lib/uan/production-actions';
+import { RecordTemperature } from '@/components/uan/record-temperature';
 import { stockOut } from '@/lib/uan/stock-actions';
-import { dayRequisition, kg, prepList, serviceIndicators, sheetInputs, WASTE_REASON_LABEL, type ProductionDay, type WasteReason } from '@/lib/uan/production';
+import { ccpStage, dayRequisition, kg, meetsCcp, prepList, serviceIndicators, sheetInputs, WASTE_REASON_LABEL, type ProductionDay, type WasteReason } from '@/lib/uan/production';
 
 const SELECT = 'h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50';
 const toKg = (g: number | null | undefined) => (g === null || g === undefined ? '' : String(g / 1000).replace('.', ','));
@@ -166,6 +167,31 @@ export function ProductionView({ data }: { data: ProductionDay }) {
           <p className="flex items-center gap-1 text-sm text-amber-700 dark:text-amber-400"><AlertTriangle className="size-4" aria-hidden="true" /> Informe os comensais previstos para calcular as porções.</p>
         )}
       </section>
+
+      {(data.ccps?.length ?? 0) > 0 && (
+        <section aria-labelledby="pcc-dia" className="space-y-3">
+          <h2 id="pcc-dia" className="font-display text-xl font-semibold">Pontos críticos de controle do dia</h2>
+          <p className="text-sm text-muted-foreground">Do APPCC aprovado das preparações de hoje: registre a temperatura de cada PCC.</p>
+          <ul aria-label="PCC do dia" className="space-y-3">
+            {data.ccps!.map((c) => {
+              const last = c.readings[0];
+              const ok = last ? meetsCcp(last.value, c) : null;
+              return (
+                <li key={c.id} className="space-y-2 rounded-2xl border border-border bg-card p-4 text-sm">
+                  <p className="font-medium">{c.ccp_number ? `PCC ${c.ccp_number} · ` : ''}{c.dish} — {c.step}</p>
+                  <p className="text-muted-foreground">{c.description} · limite: {c.critical_limit ?? '—'}{c.monitoring_frequency ? ` · ${c.monitoring_frequency}` : ''}</p>
+                  {last ? (
+                    <p className={ok ? 'text-emerald-700 dark:text-emerald-400' : 'font-semibold text-destructive'}>
+                      Última medição: {last.value.toLocaleString('pt-BR')} °C às {new Date(last.recorded_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })}{ok ? ' — dentro do limite crítico' : ` — fora do limite crítico. ${c.corrective_action ?? ''}`}
+                    </p>
+                  ) : <p className="font-medium text-amber-700 dark:text-amber-400">Pendente: nenhuma medição hoje.</p>}
+                  {data.can_record && <RecordTemperature unitId={data.unit.id} idPrefix={`pcc-${c.id}`} initialFood={c.dish} initialStage={ccpStage(c)} />}
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
 
       {req.length > 0 && (
         <section aria-labelledby="requisicao" className="space-y-3">

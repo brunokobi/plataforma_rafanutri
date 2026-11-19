@@ -47,3 +47,14 @@ describe('APPCC (RN-160, RN-161)', () => {
     expect(b.subarray(0, 4).toString()).toBe('%PDF');
   }, 30_000);
 });
+
+import { ccpStage, meetsCcp } from '@/lib/uan/production';
+describe('PCC do dia (RN-161)', () => {
+  it('etapa do registro pelo limite e conferência do limite crítico', () => {
+    expect(ccpStage({ limit_min: 74, limit_max: null })).toBe('cooking');
+    expect(ccpStage({ limit_min: 60, limit_max: null })).toBe('holding_hot');
+    expect(ccpStage({ limit_min: null, limit_max: 5 })).toBe('holding_cold');
+    expect(meetsCcp(73.9, { limit_min: 74, limit_max: null })).toBe(false);
+    expect(meetsCcp(74, { limit_min: 74, limit_max: null })).toBe(true);
+  });
+});

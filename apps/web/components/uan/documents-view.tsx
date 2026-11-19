@@ -292,6 +292,7 @@ export function TrainingsView({ data }: { data: UnitTrainings }) {
               <li key={t.id} className="p-3">
                 <p className="font-medium">{t.topic}</p>
                 <p className="text-xs text-muted-foreground">{day(t.held_on)} · {t.hours.toLocaleString('pt-BR')} h{t.instructor ? ` · ${t.instructor}` : ''} · {t.attendees.length} participante(s): {t.attendees.join(', ')}</p>
+                {t.attendees.length > 0 && <a href={`/app/uan/unidades/${data.unit.id}/treinamentos/${t.id}/certificado`} className="text-xs font-medium text-primary underline">Certificados (PDF)</a>}
               </li>
             ))}
           </ul>
