@@ -179,7 +179,7 @@ Status: `todo`, `doing`, `done`, `adiado` (fora do MVP, ver [ADR 0004](adr/0004-
 | [RN-121](plano/fase-5-uan-qualidade.md#rn-121--migração-de-unidades-e-papéis-enterprise) | Migração de unidades e papéis Enterprise | infra | 3 | RN-008 | doing |
 | [RN-122](plano/fase-5-uan-qualidade.md#rn-122--rls-por-unidade-e-feature-flag-enterprise) | RLS por unidade e feature flag Enterprise | infra | 5 | RN-121 | doing |
 | [RN-123](plano/fase-5-uan-qualidade.md#rn-123--tela-de-unidades-e-membros) | Tela de unidades e membros | feature | 3 | RN-122 | doing |
-| [RN-124](plano/fase-5-uan-qualidade.md#rn-124--contrato-e-planos-enterprise-por-unidade) | Contrato e planos Enterprise por unidade | feature | 5 | RN-057, RN-121 | todo |
+| [RN-124](plano/fase-5-uan-qualidade.md#rn-124--contrato-e-planos-enterprise-por-unidade) | Contrato e planos Enterprise por unidade | feature | 5 | RN-057, RN-121 | doing |
 | [RN-125](plano/fase-5-uan-qualidade.md#rn-125--migração-de-insumos-unidades-e-fornecedores) | Migração de insumos, unidades e fornecedores | infra | 3 | RN-122 | done |
 | [RN-126](plano/fase-5-uan-qualidade.md#rn-126--cadastro-de-insumos) | Cadastro de insumos | feature | 5 | RN-125 | doing |
 | [RN-127](plano/fase-5-uan-qualidade.md#rn-127--cadastro-de-fornecedores) | Cadastro de fornecedores | feature | 2 | RN-125 | doing |

@@ -602,11 +602,11 @@ Referências: ANVISA RDC nº 429/2020 e IN nº 75/2020. Todos os valores abaixo 
 - **Depende de:** RN-057, RN-121
 - **Descrição:** Planos Enterprise cobrados por unidade, com limite de unidades ativas e recursos por plano.
 - **Tarefas técnicas:**
-  - [ ] Cadastro de contrato (unidades, preço, vigência, recursos)
-  - [ ] Bloqueio ao exceder o nº de unidades contratadas
-  - [ ] Cobrança recorrente por fatura (boleto/Pix) no gateway
-  - [ ] Tela de faturamento Enterprise
-  - [ ] Modo leitura por 90 dias após o fim do contrato
+  - [x] Cadastro de contrato (unidades, preço, vigência, recursos) (pelo admin no banco; o owner vê em `/app/uan/contrato`)
+  - [x] Bloqueio ao exceder o nº de unidades contratadas
+  - [ ] Cobrança recorrente por fatura (boleto/Pix) no gateway — tabela de faturas pronta (0054); falta integrar o gateway
+  - [x] Tela de faturamento Enterprise
+  - [x] Modo leitura por 90 dias após o fim do contrato (bloqueio de escrita na API; depois de 90 dias continua bloqueado)
 - **Arquivos/áreas:** `apps/web/app/(app)/settings/billing/enterprise/`, `supabase/functions/billing-webhook/`
 - **Critérios de aceite:** Dado um contrato de 2 unidades, quando o owner tenta ativar a terceira, então o sistema pede upgrade.
 - **Testes:** integração (webhook), e2e.
