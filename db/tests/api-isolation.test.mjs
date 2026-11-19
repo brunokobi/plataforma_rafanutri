@@ -1167,6 +1167,31 @@ try {
       assert.equal((await api(`/rafanutri/uan/licenses/${l.json.data.id}`, { token: out.token, method: 'PATCH', body: { archived: true } })).status, 404, 'de fora arquiva');
       assert.ok((await api('/items/compliance_exports?limit=1', { token: a.token })).status >= 400, 'coleção direta recusada');
     });
+    await check('UAN: APPCC — cozinheiro lê e não edita; aprovação exige PCC completo; aprovado imutável; de fora não vê', async () => {
+      assert.equal((await api(`/rafanutri/uan/units/${U1}/haccp`, { token: b.token, method: 'POST', body: { title: 'APPCC teste' } })).status, 403, 'cozinheiro cria');
+      const p = await api(`/rafanutri/uan/units/${U1}/haccp`, { token: a.token, method: 'POST', body: { title: 'APPCC teste' } });
+      assert.equal(p.status, 201, JSON.stringify(p.json));
+      const P = p.json.data.id;
+      const hz = { kind: 'biological', description: 'Sobrevivência de patógenos', severity: 3, probability: 2, q1: true, q2: true };
+      assert.equal((await api(`/rafanutri/uan/haccp/${P}`, { token: a.token, method: 'PUT', body: { title: 'APPCC teste', steps: [{ name: 'Cocção', target_temp: 74, hazards: [hz] }] } })).status, 200);
+      assert.equal((await api(`/rafanutri/uan/haccp/${P}/approve`, { token: a.token, method: 'POST', body: {} })).status, 409, 'PCC sem limite');
+      assert.equal((await api(`/rafanutri/uan/haccp/${P}`, { token: b.token, method: 'PUT', body: { title: 'x', steps: [] } })).status, 403, 'cozinheiro edita');
+      const full = { ...hz, critical_limit: 'mínimo 74 °C', monitoring_what: 'Temperatura no centro', corrective_action: 'Continuar a cocção' };
+      assert.equal((await api(`/rafanutri/uan/haccp/${P}`, { token: a.token, method: 'PUT', body: { title: 'APPCC teste', steps: [{ name: 'Cocção', target_temp: 74, hazards: [full] }] } })).status, 200);
+      assert.equal((await api(`/rafanutri/uan/haccp/${P}/approve`, { token: b.token, method: 'POST', body: {} })).status, 403, 'cozinheiro aprova');
+      assert.equal((await api(`/rafanutri/uan/haccp/${P}/approve`, { token: a.token, method: 'POST', body: {} })).status, 200);
+      const g = await api(`/rafanutri/uan/haccp/${P}`, { token: b.token });
+      assert.equal(g.status, 200);
+      assert.equal(g.json.data.steps[0].hazards[0].decision, 'ccp', 'decisão do banco');
+      assert.equal(g.json.data.steps[0].hazards[0].ccp_number, 1, 'PCC 1');
+      assert.equal((await api(`/rafanutri/uan/haccp/${P}`, { token: a.token, method: 'PUT', body: { title: 'x', steps: [] } })).status, 409, 'aprovado não muda');
+      const nv = await api(`/rafanutri/uan/haccp/${P}/new-version`, { token: a.token, method: 'POST', body: {} });
+      assert.equal(nv.status, 201);
+      const out = await outsider();
+      assert.equal((await api(`/rafanutri/uan/haccp/${P}`, { token: out.token })).status, 404, 'de fora lê');
+      assert.equal((await api(`/rafanutri/uan/units/${U1}/haccp`, { token: out.token })).status, 404, 'de fora lista');
+      assert.ok((await api('/items/haccp_plans?limit=1', { token: a.token })).status >= 400, 'coleção direta recusada');
+    });
   } else {
     console.log('  (pulado) UAN entre unidades: defina ISOLATION_PSQL');
   }

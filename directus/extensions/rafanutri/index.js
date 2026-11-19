@@ -4663,6 +4663,194 @@ export default {
       }
     });
 
+    // ── U7: APPCC (RN-160, RN-161) ─────────────────────────────────────────────────────────────
+    // Plano por unidade; rascunho editado de uma vez (etapas e perigos substituídos); aprovação e nova versão
+    // pelas funções do banco (0050). Leem: equipe da unidade. Editam: owner, gestor, RT. Aprovam: RT ou owner.
+    const HAZARD_KINDS = new Set(['biological', 'chemical', 'physical', 'allergen']);
+    const MONITORING_KINDS = new Set(['temperature', 'checklist', 'visual', 'other']);
+    const HACCP_FIELDS = ['id', 'unit_id', 'root_id', 'version', 'title', 'scope', 'sheet_root_id', 'status', 'approved_at', 'created_at', 'updated_at'];
+    const HZ_TEXT = { description: 500, cause: 500, control_measure: 1000, critical_limit: 300, limit_unit: 20, monitoring_what: 300, monitoring_how: 500, monitoring_frequency: 120, corrective_action: 1000, verification: 500, records: 300 };
+
+    async function haccpAccess(user, id) {
+      if (!isUuid(id)) return null;
+      const plan = await database('haccp_plans').where('id', id).first(HACCP_FIELDS);
+      if (!plan) return null;
+      const a = await unitAccess(user, plan.unit_id);
+      return a ? { plan, a } : null;
+    }
+    const haccpForbidden = (res) => res.status(403).json({ errors: [{ message: 'Só o responsável, o gestor ou o RT editam o APPCC.', extensions: { code: 'FORBIDDEN' } }] });
+
+    router.get('/uan/units/:id/haccp', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const a = await unitAccess(user, req.params.id);
+      if (!a) return unitNotFound(res);
+      const plans = await database('haccp_plans as p').where('p.unit_id', a.unit.id).whereNot('p.status', 'archived')
+        .leftJoin('tech_sheets as s', 's.id', 'p.sheet_root_id').orderBy([{ column: 'p.title' }, { column: 'p.version', order: 'desc' }])
+        .select('p.id', 'p.root_id', 'p.version', 'p.title', 'p.status', 'p.approved_at', 'p.updated_at', 's.name as sheet_name',
+          database.raw("(select count(*) from haccp_steps st where st.plan_id = p.id)::int as steps"),
+          database.raw("(select count(*) from haccp_hazards h join haccp_steps st on st.id = h.step_id where st.plan_id = p.id and h.decision = 'ccp')::int as ccps"));
+      const sheets = canSupervise(a) ? await database('tech_sheets').where({ organization_id: a.unit.organization_id }).whereRaw('id = root_id').whereNot('status', 'archived').orderBy('name').limit(500).select('id', 'name') : [];
+      res.json({ data: { unit: { id: a.unit.id, name: a.unit.name }, can_edit: canSupervise(a), plans, sheets } });
+    });
+
+    router.post('/uan/units/:id/haccp', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const a = await unitAccess(user, req.params.id);
+      if (!a) return unitNotFound(res);
+      if (!canSupervise(a)) return haccpForbidden(res);
+      const b = req.body ?? {};
+      const title = typeof b.title === 'string' ? b.title.trim() : '';
+      if (title.length < 3 || title.length > 160) return bad(res, { title: 'Informe o título (3 a 160 caracteres).' });
+      const sheet = b.sheet_root_id ? String(b.sheet_root_id) : null;
+      if (sheet !== null && !isUuid(sheet)) return bad(res, { sheet_root_id: 'Ficha inválida.' });
+      try {
+        const id = await withActor(user, async (trx) => {
+          const [p] = await trx('haccp_plans').insert({ unit_id: a.unit.id, organization_id: a.unit.organization_id, title, scope: typeof b.scope === 'string' && b.scope.trim() ? b.scope.trim().slice(0, 2000) : null, sheet_root_id: sheet, created_by: user }).returning(['id']);
+          if (sheet) await trx.raw('select haccp_steps_from_sheet(?)', [p.id]);
+          return p.id;
+        });
+        res.status(201).json({ data: { id } });
+      } catch (error) {
+        p0001(res, error, 'criar plano APPCC');
+      }
+    });
+
+    router.get('/uan/haccp/:id', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const x = await haccpAccess(user, req.params.id);
+      if (!x) return notFoundMsg(res, 'Plano');
+      const steps = await database('haccp_steps').where('plan_id', x.plan.id).orderBy('position').select('id', 'position', 'name', 'description', 'target_temp');
+      const hazards = steps.length ? await database('haccp_hazards').whereIn('step_id', steps.map((s) => s.id)).orderBy([{ column: 'kind' }, { column: 'description' }]).select('*') : [];
+      const versions = await database('haccp_plans as p').leftJoin('directus_users as u', 'u.id', 'p.approved_by').where('p.root_id', x.plan.root_id).orderBy('p.version', 'desc')
+        .select('p.id', 'p.version', 'p.status', 'p.approved_at', 'u.first_name', 'u.last_name');
+      const sheet = x.plan.sheet_root_id ? await database('tech_sheets').where('id', x.plan.sheet_root_id).first('id', 'name') : null;
+      const editable = canSupervise(x.a);
+      const [templates, equipment] = editable ? await Promise.all([
+        database('checklist_templates').where('active', true).where((q) => q.whereNull('organization_id').orWhere('organization_id', x.a.unit.organization_id)).orderBy('name').select('id', 'name'),
+        database('equipment').where({ unit_id: x.a.unit.id, active: true }).orderBy('name').select('id', 'name'),
+      ]) : [[], []];
+      res.json({
+        data: {
+          plan: { ...x.plan },
+          unit: { id: x.a.unit.id, name: x.a.unit.name },
+          sheet,
+          steps: steps.map((s) => ({ ...s, target_temp: numOrNull(s.target_temp), hazards: hazards.filter((h) => h.step_id === s.id).map((h) => ({ ...h, limit_min: numOrNull(h.limit_min), limit_max: numOrNull(h.limit_max) })) })),
+          versions: versions.map((v) => ({ id: v.id, version: v.version, status: v.status, approved_at: v.approved_at, approved_by_name: userName(v) })),
+          can_edit: editable && x.plan.status === 'draft',
+          can_approve: canApproveDoc(x.a) && x.plan.status === 'draft',
+          can_new_version: editable && x.plan.status === 'approved' && !versions.some((v) => v.status === 'draft'),
+          options: { templates, equipment },
+        },
+      });
+    });
+
+    function hazardRow(h, stepId, errors, prefix) {
+      const str = (v, max) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : null);
+      const bool = (v) => (v === true || v === false ? v : null);
+      const num = (v) => (v === null || v === undefined || v === '' ? null : Number(String(v).replace(',', '.')));
+      if (!HAZARD_KINDS.has(h.kind)) errors[`${prefix}.kind`] = 'Tipo de perigo inválido.';
+      const description = str(h.description, 500);
+      if (!description || description.length < 3) errors[`${prefix}.description`] = 'Descreva o perigo.';
+      const sev = Number(h.severity), prob = Number(h.probability);
+      if (![1, 2, 3].includes(sev) || ![1, 2, 3].includes(prob)) errors[`${prefix}.severity`] = 'Severidade e probabilidade de 1 a 3.';
+      const lmin = num(h.limit_min), lmax = num(h.limit_max);
+      if ((lmin !== null && !Number.isFinite(lmin)) || (lmax !== null && !Number.isFinite(lmax)) || (lmin !== null && lmax !== null && lmin > lmax)) errors[`${prefix}.limit_min`] = 'Faixa do limite inválida.';
+      if (h.monitoring_kind && !MONITORING_KINDS.has(h.monitoring_kind)) errors[`${prefix}.monitoring_kind`] = 'Tipo de monitoramento inválido.';
+      const row = { step_id: stepId, kind: h.kind, description, severity: sev, probability: prob, q1: bool(h.q1), q1b: bool(h.q1b), q2: bool(h.q2), q3: bool(h.q3), q4: bool(h.q4),
+        limit_min: lmin, limit_max: lmax, monitoring_kind: h.monitoring_kind || null,
+        checklist_template_id: isUuid(h.checklist_template_id) ? h.checklist_template_id : null, equipment_id: isUuid(h.equipment_id) ? h.equipment_id : null };
+      for (const [k, max] of Object.entries(HZ_TEXT)) if (k !== 'description') row[k] = str(h[k], max);
+      return row;
+    }
+
+    // Salva o rascunho inteiro: título, escopo, etapas na ordem e perigos de cada etapa.
+    router.put('/uan/haccp/:id', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const x = await haccpAccess(user, req.params.id);
+      if (!x) return notFoundMsg(res, 'Plano');
+      if (!canSupervise(x.a)) return haccpForbidden(res);
+      if (x.plan.status !== 'draft') return conflict(res, 'Plano aprovado não se altera; crie uma nova versão.');
+      const b = req.body ?? {};
+      const title = typeof b.title === 'string' ? b.title.trim() : '';
+      const steps = Array.isArray(b.steps) ? b.steps : [];
+      const errors = {};
+      if (title.length < 3 || title.length > 160) errors.title = 'Informe o título (3 a 160 caracteres).';
+      if (steps.length > 200) errors.steps = 'No máximo 200 etapas.';
+      steps.forEach((s, i) => {
+        const name = typeof s?.name === 'string' ? s.name.trim() : '';
+        if (name.length < 2 || name.length > 160) errors[`steps.${i}.name`] = `Dê nome à etapa ${i + 1}.`;
+        const t = s?.target_temp === null || s?.target_temp === undefined || s?.target_temp === '' ? null : Number(String(s.target_temp).replace(',', '.'));
+        if (t !== null && (!Number.isFinite(t) || t < -60 || t > 300)) errors[`steps.${i}.target_temp`] = 'Temperatura inválida.';
+        if (Array.isArray(s?.hazards) && s.hazards.length > 30) errors[`steps.${i}.hazards`] = 'No máximo 30 perigos por etapa.';
+      });
+      if (Object.keys(errors).length) return bad(res, errors);
+      try {
+        await withActor(user, async (trx) => {
+          await trx('haccp_plans').where('id', x.plan.id).update({ title, scope: typeof b.scope === 'string' && b.scope.trim() ? b.scope.trim().slice(0, 2000) : null });
+          await trx('haccp_steps').where('plan_id', x.plan.id).del();
+          for (const [i, s] of steps.entries()) {
+            const t = s.target_temp === null || s.target_temp === undefined || s.target_temp === '' ? null : Number(String(s.target_temp).replace(',', '.'));
+            const [st] = await trx('haccp_steps').insert({ plan_id: x.plan.id, position: i + 1, name: s.name.trim(), description: typeof s.description === 'string' && s.description.trim() ? s.description.trim().slice(0, 1000) : null, target_temp: t }).returning(['id']);
+            const hz = Array.isArray(s.hazards) ? s.hazards : [];
+            const errs = {};
+            const rows = hz.map((h, j) => hazardRow(h ?? {}, st.id, errs, `steps.${i}.hazards.${j}`));
+            if (Object.keys(errs).length) { const e = new Error('validation'); e.fields = errs; throw e; }
+            if (rows.length) await trx('haccp_hazards').insert(rows);
+          }
+        });
+        res.json({ data: { ok: true } });
+      } catch (error) {
+        if (error?.fields) return bad(res, error.fields);
+        p0001(res, error, 'salvar plano APPCC');
+      }
+    });
+
+    router.post('/uan/haccp/:id/from-sheet', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const x = await haccpAccess(user, req.params.id);
+      if (!x) return notFoundMsg(res, 'Plano');
+      if (!canSupervise(x.a)) return haccpForbidden(res);
+      try {
+        const n = await withActor(user, async (trx) => (await trx.raw('select haccp_steps_from_sheet(?) as n', [x.plan.id])).rows[0].n);
+        res.json({ data: { steps: n } });
+      } catch (error) {
+        p0001(res, error, 'importar etapas');
+      }
+    });
+
+    router.post('/uan/haccp/:id/approve', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const x = await haccpAccess(user, req.params.id);
+      if (!x) return notFoundMsg(res, 'Plano');
+      if (!canApproveDoc(x.a)) return res.status(403).json({ errors: [{ message: 'Só o RT da unidade ou o responsável pela empresa aprovam o APPCC.', extensions: { code: 'FORBIDDEN' } }] });
+      try {
+        await withActor(user, (trx) => trx.raw('select * from haccp_plan_approve(?, ?)', [x.plan.id, user]));
+        res.json({ data: { ok: true } });
+      } catch (error) {
+        p0001(res, error, 'aprovar plano APPCC');
+      }
+    });
+
+    router.post('/uan/haccp/:id/new-version', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const x = await haccpAccess(user, req.params.id);
+      if (!x) return notFoundMsg(res, 'Plano');
+      if (!canSupervise(x.a)) return haccpForbidden(res);
+      try {
+        const id = await withActor(user, async (trx) => (await trx.raw('select haccp_plan_new_version(?, ?) as id', [x.plan.id, user])).rows[0].id);
+        res.status(201).json({ data: { id } });
+      } catch (error) {
+        p0001(res, error, 'criar nova versão');
+      }
+    });
+
     // ── Feedback do programa beta (RN-047) ──────────────────────────────────────────────────
     // Texto + tipo + caminho da página (sem query string). Lido só pelo admin da plataforma no Directus.
     const FEEDBACK_KINDS = new Set(['bug', 'idea', 'praise', 'other']);
