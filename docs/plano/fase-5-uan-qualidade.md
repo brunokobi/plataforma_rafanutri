@@ -1252,9 +1252,9 @@ Acrescentados depois da comparação com o TecFood e o NutriUAN. A ordem e o agr
 - **Depende de:** RN-135
 - **Descrição:** Cadastro de serviços (desjejum, colação, almoço, lanche, jantar, ceia, outros) com tipos de prato; perfis de público (corporativo/PAT, escolar/PNAE por modalidade e faixa etária, hospitalar por dieta, hotelaria e eventos, refeição transportada) com metas nutricionais; regras de contrato (vetados, obrigatórios por dia, frequência máxima, teto de custo); modelo padronizado, descentralizado ou livre.
 - **Tarefas técnicas:**
-  - [ ] Tabelas `menu_services`, `diner_profiles` (metas por nutriente), `menu_rules`
-  - [ ] Modelos iniciais de metas PAT e PNAE marcados **a validar**
-  - [ ] Receita padrão da rede com ajuste local por unidade (per capita e composição), sem alterar a ficha da rede
+  - [x] Tabelas `menu_services`, `diner_profiles` (metas por nutriente), `menu_rules` (serviços e posições ficam no ciclo; `diner_profiles`, `menu_rules`, `unit_sheet_adjustments`)
+  - [x] Modelos iniciais de metas PAT e PNAE marcados **a validar** — PAT com metas; PNAE e hospitalar sem metas (a RT preenche)
+  - [ ] Receita padrão da rede com ajuste local por unidade (per capita e composição), sem alterar a ficha da rede — tabela criada (0052); falta a tela e o uso na produção
 - **Critérios de aceite:** Dado um perfil escolar de ensino fundamental com metas PNAE, quando o RT monta o almoço, então vê a adequação contra as metas do perfil e os avisos das regras do contrato.
 - **Testes:** unidade (motor de regras), e2e.
 
