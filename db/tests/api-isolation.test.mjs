@@ -1111,6 +1111,36 @@ try {
       const out = await outsider();
       assert.equal((await api(`/rafanutri/uan/units/${U1}/costs`, { token: out.token })).status, 404, 'de fora');
     });
+    await check('UAN: documentos e treinamentos — cozinheiro lê e dá ciência, não cria nem aprova; aprovada é imutável; de fora não vê', async () => {
+      assert.equal((await api(`/rafanutri/uan/units/${U1}/documents`, { token: b.token, method: 'POST', body: { title: 'POP teste', body_md: '# x' } })).status, 403, 'cozinheiro cria');
+      const d = await api(`/rafanutri/uan/units/${U1}/documents`, { token: a.token, method: 'POST', body: { title: 'POP teste', kind: 'pop', code: 'pop-teste', body_md: '# POP\n\nTexto' } });
+      assert.equal(d.status, 201, JSON.stringify(d.json));
+      const D = d.json.data.id;
+      assert.equal((await api(`/rafanutri/uan/documents/${D}/acknowledge`, { token: b.token, method: 'POST', body: {} })).status, 409, 'ciência sem versão aprovada');
+      assert.equal((await api(`/rafanutri/uan/documents/${D}/approve`, { token: b.token, method: 'POST', body: {} })).status, 403, 'cozinheiro aprova');
+      assert.equal((await api(`/rafanutri/uan/documents/${D}/approve`, { token: a.token, method: 'POST', body: {} })).status, 200);
+      const g = await api(`/rafanutri/uan/documents/${D}`, { token: b.token });
+      assert.equal(g.status, 200);
+      assert.equal(g.json.data.current.content_hash.length, 64, 'hash SHA-256');
+      assert.equal(g.json.data.can_edit, false);
+      assert.equal((await api(`/rafanutri/uan/documents/${D}/acknowledge`, { token: b.token, method: 'POST', body: {} })).status, 200);
+      assert.equal((await api(`/rafanutri/uan/documents/${D}`, { token: b.token })).json.data.acknowledged, true);
+      assert.equal((await api(`/rafanutri/uan/documents/${D}/draft`, { token: b.token, method: 'PUT', body: { body_md: 'y' } })).status, 403, 'cozinheiro edita');
+      assert.equal((await api(`/rafanutri/uan/documents/${D}/draft`, { token: a.token, method: 'PUT', body: { body_md: '# POP v2' } })).status, 200);
+      const g2 = (await api(`/rafanutri/uan/documents/${D}`, { token: a.token })).json.data;
+      assert.equal(g2.draft.version, 2, 'nova versão a partir da aprovada');
+      assert.equal(g2.current.body_md, '# POP\n\nTexto', 'aprovada intacta');
+      assert.equal((await api(`/rafanutri/uan/units/${U1}/trainings`, { token: b.token, method: 'POST', body: { topic: 'BPF', held_on: '2026-11-01', hours: 2, other_names: ['Fulano'] } })).status, 403, 'cozinheiro registra treinamento');
+      assert.equal((await api(`/rafanutri/uan/units/${U1}/trainings`, { token: a.token, method: 'POST', body: { topic: 'BPF', held_on: '2026-11-01', hours: 2, attendee_ids: [uidB] } })).status, 201);
+      const t = await api(`/rafanutri/uan/units/${U1}/trainings`, { token: b.token });
+      assert.equal(t.status, 200);
+      assert.equal(t.json.data.team.find((m) => m.user_id === uidB)?.last_training_on, '2026-11-01', 'último treinamento do cozinheiro');
+      const out = await outsider();
+      assert.equal((await api(`/rafanutri/uan/documents/${D}`, { token: out.token })).status, 404, 'de fora lê documento');
+      assert.equal((await api(`/rafanutri/uan/documents/${D}/acknowledge`, { token: out.token, method: 'POST', body: {} })).status, 404, 'de fora dá ciência');
+      assert.equal((await api(`/rafanutri/uan/units/${U1}/trainings`, { token: out.token })).status, 404, 'de fora lista treinamentos');
+      assert.ok((await api('/items/quality_document_versions?limit=1', { token: a.token })).status >= 400, 'coleção direta recusada');
+    });
   } else {
     console.log('  (pulado) UAN entre unidades: defina ISOLATION_PSQL');
   }

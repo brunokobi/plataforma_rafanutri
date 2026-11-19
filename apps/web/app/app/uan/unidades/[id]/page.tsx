@@ -15,6 +15,8 @@ import { getCurrentUser } from '@/lib/auth/session';
 import { getUnit } from '@/lib/uan/actions';
 import { getUnitChecklists } from '@/lib/uan/checklist-actions';
 import { getUnitMenus } from '@/lib/uan/menu-actions';
+import { getUnitDocuments } from '@/lib/uan/document-actions';
+import { pendingAcks } from '@/lib/uan/documents';
 import { getUnitTemperatures } from '@/lib/uan/temperature-actions';
 import { formatCnpj, UNIT_KIND_LABEL, UNIT_ROLE_LABEL } from '@/lib/uan/types';
 
@@ -24,7 +26,8 @@ export default async function UnitPage({ params }: { params: Promise<{ id: strin
   const { id } = await params;
   const user = await getCurrentUser();
   if (!user) redirect(`/login?next=/app/uan/unidades/${id}`);
-  const [detail, checklists, temperatures, menus] = await Promise.all([getUnit(id), getUnitChecklists(id), getUnitTemperatures(id), getUnitMenus(id)]);
+  const [detail, checklists, temperatures, menus, docs] = await Promise.all([getUnit(id), getUnitChecklists(id), getUnitTemperatures(id), getUnitMenus(id), getUnitDocuments(id)]);
+  const toAck = docs ? pendingAcks(docs.documents) : [];
   if (detail === undefined) notFound();
   const todayDate = today();
 
@@ -60,6 +63,13 @@ export default async function UnitPage({ params }: { params: Promise<{ id: strin
               </dl>
             )}
 
+            {toAck.length > 0 && (
+              <div role="note" aria-label="Ciência pendente" className="rounded-2xl border border-amber-500/50 bg-amber-50 p-4 text-sm text-amber-950 dark:bg-amber-950/30 dark:text-amber-100">
+                <p className="font-semibold">Antes de seguir, leia e dê ciência:</p>
+                <ul className="mt-1 list-disc pl-5">{toAck.map((d) => <li key={d.id}><Link href={`/app/uan/documentos/${d.id}`} className="underline">{d.title} (versão {d.version})</Link></li>)}</ul>
+              </div>
+            )}
+
             {menus && (
               <div className="space-y-2">
                 <TodayMenu data={menus} />
@@ -69,6 +79,8 @@ export default async function UnitPage({ params }: { params: Promise<{ id: strin
                   <Link href={`/app/uan/unidades/${detail.unit.id}/estoque`} className="font-medium text-primary underline">Estoque</Link>
                   <Link href={`/app/uan/unidades/${detail.unit.id}/compras`} className="font-medium text-primary underline">Compras</Link>
                   <Link href={`/app/uan/unidades/${detail.unit.id}/custos`} className="font-medium text-primary underline">Custos</Link>
+                  <Link href={`/app/uan/unidades/${detail.unit.id}/documentos`} className="font-medium text-primary underline">Documentos</Link>
+                  <Link href={`/app/uan/unidades/${detail.unit.id}/treinamentos`} className="font-medium text-primary underline">Treinamentos</Link>
                 </nav>
               </div>
             )}
