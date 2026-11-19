@@ -1058,9 +1058,9 @@ Referências: ANVISA RDC nº 429/2020 e IN nº 75/2020. Todos os valores abaixo 
 - **Depende de:** RN-156
 - **Descrição:** Gerar o Manual de Boas Práticas a partir de um modelo e dos dados da unidade, em PDF.
 - **Tarefas técnicas:**
-  - [ ] Estrutura do manual pelos itens da RDC 216 (edificação, higienização, pragas, água, resíduos, manipuladores, matérias-primas, preparo, armazenamento, transporte, exposição, documentação, responsabilidade)
-  - [ ] Anexação dos POPs aprovados
-  - [ ] PDF com capa, sumário, versão e assinatura do responsável
+  - [x] Estrutura do manual pelos itens da RDC 216 (edificação, higienização, pragas, água, resíduos, manipuladores, matérias-primas, preparo, armazenamento, transporte, exposição, documentação, responsabilidade)
+  - [x] Anexação dos POPs aprovados
+  - [x] PDF com capa, sumário, versão e assinatura do responsável
 - **Arquivos/áreas:** `apps/web/lib/pdf/good-practices-manual.tsx`
 - **Critérios de aceite:** Dados os 4 POPs aprovados, quando gerar o manual, então o PDF inclui os POPs como anexos e a versão atual.
 - **Testes:** integração (snapshot).
@@ -1177,9 +1177,9 @@ Referências: ANVISA RDC nº 429/2020 e IN nº 75/2020. Todos os valores abaixo 
 - **Depende de:** RN-165, RN-157, RN-161
 - **Descrição:** Relatórios por período e um dossiê em PDF com o que a vigilância sanitária costuma pedir.
 - **Tarefas técnicas:**
-  - [ ] Relatórios: planilhas de temperatura, checklists, não conformidades, treinamentos, controle de pragas e reservatório
-  - [ ] Dossiê: Manual de Boas Práticas, POPs vigentes, registros dos últimos N dias, alvará e RT
-  - [ ] Geração assíncrona (Edge Function) com link de download
+  - [x] Relatórios: planilhas de temperatura, checklists, não conformidades, treinamentos, controle de pragas e reservatório — no dossiê em PDF (pragas e reservatório entram como licenças/certificados)
+  - [x] Dossiê: Manual de Boas Práticas, POPs vigentes, registros dos últimos N dias, alvará e RT
+  - [ ] Geração assíncrona (Edge Function) com link de download (decidido: geração síncrona na rota do app, período de até 92 dias; o PDF é gerado na hora e a emissão fica registrada com o hash)
   - [ ] Exportação CSV
 - **Arquivos/áreas:** `supabase/functions/compliance-dossier/`, `apps/web/app/(uan)/uan/[unitId]/reports/`
 - **Critérios de aceite:** Dada uma unidade com 30 dias de registros, quando o RT pede o dossiê, então recebe um PDF único com índice e todos os registros do período.
@@ -1191,10 +1191,10 @@ Referências: ANVISA RDC nº 429/2020 e IN nº 75/2020. Todos os valores abaixo 
 - **Depende de:** RN-146, RN-151, RN-155
 - **Descrição:** Garantir que registros de qualidade não sejam apagados nem alterados sem rastro.
 - **Tarefas técnicas:**
-  - [ ] Auditoria (RN-009) em todas as tabelas UAN
-  - [ ] Hash SHA-256 de cada checklist concluído e de cada versão de documento, guardado no registro
-  - [ ] Verificação de integridade no dossiê
-  - [ ] Bloqueio de delete físico (somente arquivamento)
+  - [x] Auditoria (RN-009) em todas as tabelas UAN
+  - [x] Hash SHA-256 de cada checklist concluído e de cada versão de documento, guardado no registro
+  - [x] Verificação de integridade no dossiê
+  - [x] Bloqueio de delete físico (somente arquivamento)
 - **Arquivos/áreas:** `supabase/migrations/`
 - **Critérios de aceite:** Dado um checklist concluído, quando o hash for recalculado, então confere com o gravado; se diferir, o dossiê aponta a divergência.
 - **Testes:** integração.

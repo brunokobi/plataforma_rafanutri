@@ -212,7 +212,7 @@ Status: `todo`, `doing`, `done`, `adiado` (fora do MVP, ver [ADR 0004](adr/0004-
 | [RN-154](plano/fase-5-uan-qualidade.md#rn-154--plano-de-ação-5w2h) | Plano de ação 5W2H | feature | 3 | RN-153 | doing |
 | [RN-155](plano/fase-5-uan-qualidade.md#rn-155--migração-de-documentos-e-treinamentos) | Migração de documentos e treinamentos | infra | 2 | RN-122 | done |
 | [RN-156](plano/fase-5-uan-qualidade.md#rn-156--modelos-dos-4-pops-obrigatórios) | Modelos dos 4 POPs obrigatórios | feature | 5 | RN-155 | done |
-| [RN-157](plano/fase-5-uan-qualidade.md#rn-157--manual-de-boas-práticas) | Manual de Boas Práticas | feature | 5 | RN-156 | todo |
+| [RN-157](plano/fase-5-uan-qualidade.md#rn-157--manual-de-boas-práticas) | Manual de Boas Práticas | feature | 5 | RN-156 | done |
 | [RN-158](plano/fase-5-uan-qualidade.md#rn-158--aprovação-versão-e-ciência-de-documentos) | Aprovação, versão e ciência de documentos | feature | 3 | RN-155 | done |
 | [RN-159](plano/fase-5-uan-qualidade.md#rn-159--treinamentos-de-manipuladores) | Treinamentos de manipuladores | feature | 2 | RN-155 | done |
 | [RN-160](plano/fase-5-uan-qualidade.md#rn-160--appcc-fluxograma-e-análise-de-perigos) | APPCC: fluxograma e análise de perigos | feature | 5 | RN-131, RN-155 | todo |
@@ -221,8 +221,8 @@ Status: `todo`, `doing`, `done`, `adiado` (fora do MVP, ver [ADR 0004](adr/0004-
 | [RN-163](plano/fase-5-uan-qualidade.md#rn-163--rotulagem-alerta-frontal) | Rotulagem: alerta frontal | feature | 3 | RN-162 | todo |
 | [RN-164](plano/fase-5-uan-qualidade.md#rn-164--rotulagem-geração-do-rótulo-e-alergênicos) | Rotulagem: geração do rótulo e alergênicos | feature | 3 | RN-162, RN-163 | todo |
 | [RN-165](plano/fase-5-uan-qualidade.md#rn-165--painel-de-conformidade) | Painel de conformidade | feature | 5 | RN-150, RN-152, RN-153, RN-158 | doing |
-| [RN-166](plano/fase-5-uan-qualidade.md#rn-166--relatórios-e-dossiê-para-fiscalização) | Relatórios e dossiê para fiscalização | feature | 5 | RN-165, RN-157, RN-161 | todo |
-| [RN-167](plano/fase-5-uan-qualidade.md#rn-167--trilha-de-auditoria-e-integridade-dos-registros) | Trilha de auditoria e integridade dos registros | infra | 3 | RN-146, RN-151, RN-155 | todo |
+| [RN-166](plano/fase-5-uan-qualidade.md#rn-166--relatórios-e-dossiê-para-fiscalização) | Relatórios e dossiê para fiscalização | feature | 5 | RN-165, RN-157, RN-161 | done |
+| [RN-167](plano/fase-5-uan-qualidade.md#rn-167--trilha-de-auditoria-e-integridade-dos-registros) | Trilha de auditoria e integridade dos registros | infra | 3 | RN-146, RN-151, RN-155 | done |
 | [RN-168](plano/fase-5-uan-qualidade.md#rn-168--testes-e2e-e-piloto) | Testes e2e e piloto | doc | 5 | RN-121 a RN-167 | todo |
 | [RN-169](plano/fase-5-uan-qualidade.md#rn-169--onboarding-enterprise-e-importação-de-dados) | Onboarding Enterprise e importação de dados | feature | 5 | RN-126, RN-131 | todo |
 | [RN-220](plano/fase-5-uan-qualidade.md#rn-220--convite-da-equipe-da-unidade-por-link) | Convite da equipe da unidade por link | feature | 3 | RN-121, RN-122 | done |
