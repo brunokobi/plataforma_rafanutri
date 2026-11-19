@@ -4939,6 +4939,176 @@ export default {
       }
     });
 
+    // ── U7: cardápio publicado e pesquisa de satisfação (RN-223) ──────────────────────────────
+    // Link público por token (sem custo, fornecedor ou dados internos). Pesquisa por QR Code: uma resposta
+    // por aparelho, dia e prato (hash do id do aparelho com o token), e limite por IP em memória.
+    const PUBLIC_NUTRIENTS = ['energy_kcal', 'protein_g', 'carbohydrate_g', 'lipid_g', 'fiber_g', 'sodium_mg'];
+    const SERVICE_ORDER = ['breakfast', 'morning_snack', 'lunch', 'afternoon_snack', 'dinner', 'supper'];
+    const SLOT_ORDER = ['main', 'side', 'garnish', 'salad', 'soup', 'bread', 'sauce', 'dessert', 'beverage', 'other'];
+    const surveyHits = new Map();
+    const surveyLimited = (ip) => {
+      const now = Date.now();
+      const h = (surveyHits.get(ip) ?? []).filter((t) => now - t < 10 * 60_000);
+      h.push(now);
+      surveyHits.set(ip, h);
+      if (surveyHits.size > 5000) surveyHits.clear();
+      return h.length > 40;
+    };
+
+    /** Cardápio publicado de uma unidade num dia: pratos dos ciclos aprovados, com alergênicos e nutrientes por porção. */
+    async function publishedDay(unitId, day) {
+      const cycles = await database('menu_cycles').where({ unit_id: unitId, status: 'approved' }).where('starts_on', '<=', day).select('id');
+      const items = [];
+      for (const c of cycles) {
+        const idx = (await database.raw('select menu_day_index(?, ?::date) as d', [c.id, day])).rows[0].d;
+        if (!idx) continue;
+        items.push(...(await database('menu_items').where({ cycle_id: c.id, day_index: idx }).select('service', 'slot', 'sheet_root_id')));
+      }
+      const sheets = await currentSheets([...new Set(items.map((i) => i.sheet_root_id))]);
+      return items
+        .filter((i) => sheets.has(i.sheet_root_id))
+        .sort((x, y) => SERVICE_ORDER.indexOf(x.service) - SERVICE_ORDER.indexOf(y.service) || SLOT_ORDER.indexOf(x.slot) - SLOT_ORDER.indexOf(y.slot))
+        .map((i) => {
+          const s = sheets.get(i.sheet_root_id);
+          const per = s.computed?.perServing ?? {};
+          return {
+            service: i.service, slot: i.slot, sheet_root_id: i.sheet_root_id, name: s.name,
+            allergens: Array.isArray(s.computed?.allergens) ? s.computed.allergens : [],
+            nutrients: Object.fromEntries(PUBLIC_NUTRIENTS.map((k) => [k, Number.isFinite(per[k]) ? Math.round(per[k] * 10) / 10 : null])),
+          };
+        });
+    }
+
+    async function publicMenuUnit(token) {
+      if (typeof token !== 'string' || !/^[A-Za-z0-9_-]{22,64}$/.test(token)) return null;
+      return database('production_units as u').join('organizations as o', 'o.id', 'u.organization_id')
+        .where({ 'u.public_menu_token': token, 'u.public_menu_enabled': true, 'u.active': true }).whereRaw("'uan' = any (o.modules)")
+        .first('u.id', 'u.name', 'u.organization_id', 'o.name as org_name', 'o.brand_color');
+    }
+
+    router.get('/public/menus/:token', async (req, res) => {
+      const u = await publicMenuUnit(req.params.token);
+      if (!u) return pubNotFound(res);
+      const today = localToday();
+      const day = isIsoDate(req.query.date) ? req.query.date : today;
+      const span = Math.abs(Date.parse(`${day}T12:00:00Z`) - Date.parse(`${today}T12:00:00Z`)) / 86400e3;
+      if (span > 31) return bad(res, { date: 'Data fora do período publicado.' });
+      const week = req.query.week === '1';
+      const days = [];
+      const start = week ? new Date(Date.parse(`${day}T12:00:00Z`) - ((new Date(`${day}T12:00:00Z`).getUTCDay() + 6) % 7) * 86400e3) : new Date(`${day}T12:00:00Z`);
+      for (let i = 0; i < (week ? 7 : 1); i++) {
+        const d = new Date(start.getTime() + i * 86400e3).toISOString().slice(0, 10);
+        days.push({ date: d, items: await publishedDay(u.id, d) });
+      }
+      const survey = await database('satisfaction_surveys').where({ unit_id: u.id, active: true }).first('id', 'title', 'questions', 'per_dish');
+      res.set('Cache-Control', 'public, max-age=60');
+      res.json({ data: { unit: { name: u.name, organization: u.org_name, brand_color: u.brand_color }, today, days, survey } });
+    });
+
+    router.post('/public/menus/:token/responses', async (req, res) => {
+      const u = await publicMenuUnit(req.params.token);
+      if (!u) return pubNotFound(res);
+      // O app repassa o IP de quem responde (X-Client-IP); chamada direta conta pelo IP da conexão.
+      const clientIp = `${req.ip ?? 'x'}|${String(req.headers['x-client-ip'] ?? '').slice(0, 64)}`;
+      if (surveyLimited(clientIp)) return res.status(429).json({ errors: [{ message: 'Muitas respostas seguidas. Tente mais tarde.', extensions: { code: 'TOO_MANY' } }] });
+      const b = req.body ?? {};
+      if (b.website) return res.status(201).json({ data: { ok: true } }); // campo-isca
+      const survey = await database('satisfaction_surveys').where({ unit_id: u.id, active: true }).first('id', 'questions', 'per_dish');
+      if (!survey) return conflict(res, 'Não há pesquisa aberta.');
+      const today = localToday();
+      const day = isIsoDate(b.served_on) ? b.served_on : today;
+      if (day > today || Date.parse(`${today}T12:00:00Z`) - Date.parse(`${day}T12:00:00Z`) > 2 * 86400e3) return bad(res, { served_on: 'Avalie a refeição de hoje ou de até dois dias atrás.' });
+      if (typeof b.device_id !== 'string' || !/^[0-9a-f-]{36}$/i.test(b.device_id)) return bad(res, { device_id: 'Aparelho inválido.' });
+      let sheet = null;
+      if (b.sheet_root_id) {
+        if (!isUuid(b.sheet_root_id)) return bad(res, { sheet_root_id: 'Prato inválido.' });
+        const served = await publishedDay(u.id, day);
+        if (!served.some((i) => i.sheet_root_id === b.sheet_root_id)) return bad(res, { sheet_root_id: 'Esse prato não estava no cardápio do dia.' });
+        sheet = b.sheet_root_id;
+      }
+      const comment = typeof b.comment === 'string' && b.comment.trim() ? b.comment.trim().slice(0, 500) : null;
+      const daily = await database('satisfaction_responses').where({ unit_id: u.id, served_on: day }).count({ n: '*' }).first();
+      if (Number(daily?.n ?? 0) >= 5000) return res.status(429).json({ errors: [{ message: 'Limite de respostas do dia atingido.', extensions: { code: 'TOO_MANY' } }] });
+      const deviceHash = createHash('sha256').update(`${req.params.token}:${b.device_id}`).digest('hex');
+      try {
+        await database('satisfaction_responses').insert({ survey_id: survey.id, unit_id: u.id, organization_id: u.organization_id, served_on: day, sheet_root_id: sheet, device_hash: deviceHash, answers: JSON.stringify(Array.isArray(b.answers) ? b.answers : []), comment });
+        res.status(201).json({ data: { ok: true } });
+      } catch (error) {
+        if (error?.code === '23505') return conflict(res, 'Você já avaliou esse prato hoje. Obrigado!');
+        if (error?.code === 'P0001') return bad(res, { answers: error.message.split('\n')[0].replace(/^.* - /, '') });
+        logger.error({ err: error }, 'rafanutri: falha na pesquisa de satisfação');
+        res.status(500).json({ errors: [{ message: 'Não foi possível enviar agora.', extensions: { code: 'INTERNAL_SERVER_ERROR' } }] });
+      }
+    });
+
+    // Configuração (equipe): link, pesquisa e resultados por prato.
+    router.get('/uan/units/:id/public-menu', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const a = await unitAccess(user, req.params.id);
+      if (!a) return unitNotFound(res);
+      if (!canSupervise(a)) return res.status(403).json({ errors: [{ message: 'Só o responsável, o gestor ou o RT publicam o cardápio.', extensions: { code: 'FORBIDDEN' } }] });
+      const u = await database('production_units').where('id', a.unit.id).first('public_menu_token', 'public_menu_enabled');
+      const survey = await database('satisfaction_surveys').where({ unit_id: a.unit.id, active: true }).first('id', 'title', 'questions', 'per_dish', 'created_at');
+      const results = (await database.raw(
+        `select r.sheet_root_id, s.name, count(*)::int as n, round(avg(r.rating), 2) as avg_rating,
+                count(*) filter (where r.comment is not null)::int as comments
+           from satisfaction_responses r left join tech_sheets s on s.id = r.sheet_root_id
+          where r.unit_id = ? and r.served_on >= (now() at time zone 'America/Sao_Paulo')::date - 30
+          group by r.sheet_root_id, s.name order by avg(r.rating) nulls last, count(*) desc limit 100`, [a.unit.id])).rows;
+      const comments = await database('satisfaction_responses as r').leftJoin('tech_sheets as s', 's.id', 'r.sheet_root_id').where('r.unit_id', a.unit.id).whereNotNull('r.comment')
+        .orderBy('r.created_at', 'desc').limit(30).select('r.served_on', 'r.rating', 'r.comment', 's.name');
+      res.json({
+        data: {
+          unit: { id: a.unit.id, name: a.unit.name, active: a.unit.active },
+          enabled: u.public_menu_enabled, token: u.public_menu_enabled ? u.public_menu_token : null, survey,
+          results: results.map((r) => ({ sheet_root_id: r.sheet_root_id, name: r.name ?? 'Refeição em geral', responses: r.n, avg_rating: numOrNull(r.avg_rating), comments: r.comments })),
+          comments: comments.map((c) => ({ served_on: dateOut(c.served_on), rating: c.rating, comment: c.comment, dish: c.name })),
+        },
+      });
+    });
+
+    router.post('/uan/units/:id/public-menu', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const a = await unitAccess(user, req.params.id);
+      if (!a) return unitNotFound(res);
+      if (!canSupervise(a)) return res.status(403).json({ errors: [{ message: 'Só o responsável, o gestor ou o RT publicam o cardápio.', extensions: { code: 'FORBIDDEN' } }] });
+      if (typeof req.body?.enabled !== 'boolean') return bad(res, { enabled: 'Informe se o cardápio fica público.' });
+      try {
+        const token = await withActor(user, async (trx) => (await trx.raw('select unit_public_menu_set(?, ?, ?) as t', [a.unit.id, req.body.enabled, req.body.rotate === true])).rows[0].t);
+        res.json({ data: { enabled: req.body.enabled, token: req.body.enabled ? token : null } });
+      } catch (error) {
+        p0001(res, error, 'publicar cardápio');
+      }
+    });
+
+    router.post('/uan/units/:id/surveys', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const a = await unitAccess(user, req.params.id);
+      if (!a) return unitNotFound(res);
+      if (!canSupervise(a)) return res.status(403).json({ errors: [{ message: 'Só o responsável, o gestor ou o RT criam a pesquisa.', extensions: { code: 'FORBIDDEN' } }] });
+      const b = req.body ?? {};
+      if (b.close === true) {
+        await withActor(user, (trx) => trx('satisfaction_surveys').where({ unit_id: a.unit.id, active: true }).update({ active: false }));
+        return res.json({ data: { ok: true } });
+      }
+      const qs = Array.isArray(b.questions) ? b.questions.map((q) => ({ text: typeof q?.text === 'string' ? q.text.trim().slice(0, 160) : '', kind: q?.kind === 'yes_no' ? 'yes_no' : 'stars' })) : [];
+      if (qs.length < 1 || qs.length > 3 || qs.some((q) => q.text.length < 3)) return bad(res, { questions: 'De 1 a 3 perguntas, com texto.' });
+      const title = typeof b.title === 'string' && b.title.trim().length >= 3 ? b.title.trim().slice(0, 120) : 'Como foi a sua refeição?';
+      try {
+        const id = await withActor(user, async (trx) => {
+          await trx('satisfaction_surveys').where({ unit_id: a.unit.id, active: true }).update({ active: false });
+          const [s] = await trx('satisfaction_surveys').insert({ unit_id: a.unit.id, organization_id: a.unit.organization_id, title, questions: JSON.stringify(qs), per_dish: b.per_dish !== false, created_by: user }).returning(['id']);
+          return s.id;
+        });
+        res.status(201).json({ data: { id } });
+      } catch (error) {
+        p0001(res, error, 'criar pesquisa');
+      }
+    });
+
     // ── Feedback do programa beta (RN-047) ──────────────────────────────────────────────────
     // Texto + tipo + caminho da página (sem query string). Lido só pelo admin da plataforma no Directus.
     const FEEDBACK_KINDS = new Set(['bug', 'idea', 'praise', 'other']);

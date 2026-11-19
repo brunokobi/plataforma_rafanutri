@@ -1211,6 +1211,32 @@ try {
       assert.equal((await api(`/rafanutri/uan/tech-sheets/${approved.id}/labels`, { token: out.token })).status, 404, 'de fora lista');
       assert.ok((await api('/items/nutrition_labels?limit=1', { token: a.token })).status >= 400, 'coleção direta recusada');
     });
+    await check('UAN: cardápio público — só com link publicado, sem dados internos; pesquisa uma vez por aparelho; cozinheiro não configura', async () => {
+      assert.equal((await api(`/rafanutri/uan/units/${U1}/public-menu`, { token: b.token, method: 'POST', body: { enabled: true } })).status, 403, 'cozinheiro publica');
+      const on = await api(`/rafanutri/uan/units/${U1}/public-menu`, { token: a.token, method: 'POST', body: { enabled: true } });
+      assert.equal(on.status, 200, JSON.stringify(on.json));
+      const tok = on.json.data.token;
+      assert.match(tok, /^[A-Za-z0-9_-]{32}$/);
+      const pub = await api(`/rafanutri/public/menus/${tok}?week=1`);
+      assert.equal(pub.status, 200, JSON.stringify(pub.json));
+      assert.equal(pub.json.data.days.length, 7, 'semana');
+      const raw = JSON.stringify(pub.json);
+      assert.ok(!/cost|price|supplier|organization_id|unit_id/.test(raw), 'sem custo, fornecedor nem ids internos');
+      assert.equal((await api(`/rafanutri/uan/units/${U1}/surveys`, { token: b.token, method: 'POST', body: { questions: [{ text: 'Nota?', kind: 'stars' }] } })).status, 403, 'cozinheiro cria pesquisa');
+      assert.equal((await api(`/rafanutri/uan/units/${U1}/surveys`, { token: a.token, method: 'POST', body: { per_dish: false, questions: [{ text: 'Nota da refeição?', kind: 'stars' }] } })).status, 201);
+      const dev = randomUUID();
+      const r1 = await api(`/rafanutri/public/menus/${tok}/responses`, { method: 'POST', body: { device_id: dev, answers: [5], comment: 'Ótimo' } });
+      assert.equal(r1.status, 201, JSON.stringify(r1.json));
+      assert.equal((await api(`/rafanutri/public/menus/${tok}/responses`, { method: 'POST', body: { device_id: dev, answers: [4] } })).status, 409, 'uma vez por aparelho e dia');
+      assert.equal((await api(`/rafanutri/public/menus/${tok}/responses`, { method: 'POST', body: { device_id: randomUUID(), answers: [9] } })).status, 400, 'nota inválida');
+      const st = await api(`/rafanutri/uan/units/${U1}/public-menu`, { token: a.token });
+      assert.equal(st.json.data.results[0].responses, 1, 'resultado da pesquisa');
+      const out = await outsider();
+      assert.equal((await api(`/rafanutri/uan/units/${U1}/public-menu`, { token: out.token })).status, 404, 'de fora vê configuração');
+      assert.equal((await api(`/rafanutri/uan/units/${U1}/public-menu`, { token: a.token, method: 'POST', body: { enabled: false } })).status, 200);
+      assert.equal((await api(`/rafanutri/public/menus/${tok}`)).status, 404, 'despublicado some');
+      assert.ok((await api('/items/satisfaction_responses?limit=1', { token: a.token })).status >= 400, 'coleção direta recusada');
+    });
   } else {
     console.log('  (pulado) UAN entre unidades: defina ISOLATION_PSQL');
   }
