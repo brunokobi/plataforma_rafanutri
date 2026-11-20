@@ -55,11 +55,12 @@ export default async function UanPage() {
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <div>
                     <h2 id={`org-${o.id}`} className="font-display text-2xl font-semibold tracking-tight">{o.name}</h2>
-                    <nav aria-label={`Cadastros de ${o.name}`} className="flex gap-3 text-sm">
+                    <nav aria-label={`Cadastros de ${o.name}`} className="flex flex-wrap gap-x-3 gap-y-1 text-sm">
                       <Link href={`/app/uan/insumos?empresa=${o.id}`} className="font-medium text-primary underline">Insumos</Link>
                       <Link href={`/app/uan/fornecedores?empresa=${o.id}`} className="font-medium text-primary underline">Fornecedores</Link>
                       <Link href={`/app/uan/fichas?empresa=${o.id}`} className="font-medium text-primary underline">Fichas técnicas</Link>
                       <Link href={`/app/uan/perfis?empresa=${o.id}`} className="font-medium text-primary underline">Perfis e regras</Link>
+                      <Link href={`/app/uan/importar?empresa=${o.id}`} className="font-medium text-primary underline">Importar planilhas</Link>
                     </nav>
                   </div>
                   {o.is_owner && o.unit_limit !== null && (

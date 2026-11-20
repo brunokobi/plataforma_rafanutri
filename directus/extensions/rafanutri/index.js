@@ -5460,6 +5460,131 @@ export default {
       });
     });
 
+    // ── RN-169: importação de planilhas na implantação ──────────────────────────────────────
+    // O app lê e valida a planilha; aqui cada linha entra numa transação própria e volta com o resultado
+    // (criado, ignorado por já existir, ou erro com o motivo). Vínculo com a TACO por semelhança de nome.
+    const IMPORT_MAX = 1000;
+    const sameName = (col, name) => database.raw(`lower(f_unaccent(btrim(${col}))) = lower(f_unaccent(btrim(?)))`, [name]);
+
+    /** Melhor alimento público (TACO/TBCA) para um nome; null abaixo do limiar. */
+    async function bestFood(name, minScore) {
+      const r = (await database.raw('select id, name, score from search_foods(?, null, 1)', [String(name).slice(0, 80)])).rows[0];
+      return r && Number(r.score) >= minScore ? { id: r.id, name: r.name, score: Number(r.score) } : null;
+    }
+
+    router.post('/uan/organizations/:id/import/foods-match', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const acc = await catalogAccess(user, req.params.id);
+      if (!acc) return notFoundMsg(res, 'Empresa');
+      const names = Array.isArray(req.body?.names) ? req.body.names.filter((n) => typeof n === 'string' && n.trim().length >= 2).slice(0, IMPORT_MAX) : [];
+      const out = [];
+      for (const n of names) out.push({ name: n, food: await bestFood(n, 0.6) });
+      res.json({ data: out });
+    });
+
+    router.post('/uan/organizations/:id/import/suppliers', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const acc = await catalogAccess(user, req.params.id);
+      if (!acc) return notFoundMsg(res, 'Empresa');
+      if (!acc.canManage) return catalogForbidden(res);
+      const rows = Array.isArray(req.body?.rows) ? req.body.rows.slice(0, IMPORT_MAX) : [];
+      const results = [];
+      for (const r of rows) {
+        const line = Number(r?.line) || null;
+        const name = typeof r?.name === 'string' ? r.name.trim() : '';
+        if (name.length < 2) { results.push({ line, status: 'error', message: 'Nome inválido.' }); continue; }
+        if (await database('suppliers').where('organization_id', acc.orgId).where(sameName('name', name)).first('id')) { results.push({ line, status: 'skipped', message: 'Já cadastrado.' }); continue; }
+        try {
+          await withActor(user, (trx) => trx('suppliers').insert({ organization_id: acc.orgId, name: name.slice(0, 120), cnpj: /^\d{14}$/.test(r.cnpj ?? '') ? r.cnpj : null, contact_name: r.contact_name || null, phone: r.phone || null, email: r.email || null }));
+          results.push({ line, status: 'created' });
+        } catch (error) {
+          results.push({ line, status: 'error', message: error?.code === '23514' ? 'Dados inválidos (CNPJ, e-mail ou tamanho).' : 'Não foi possível gravar.' });
+        }
+      }
+      res.json({ data: { results } });
+    });
+
+    router.post('/uan/organizations/:id/import/ingredients', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const acc = await catalogAccess(user, req.params.id);
+      if (!acc) return notFoundMsg(res, 'Empresa');
+      if (!acc.canManage) return catalogForbidden(res);
+      const rows = Array.isArray(req.body?.rows) ? req.body.rows.slice(0, IMPORT_MAX) : [];
+      const suggest = req.body?.use_suggestions !== false;
+      const suppliers = new Map();
+      const results = [];
+      for (const r of rows) {
+        const line = Number(r?.line) || null;
+        const parsed = ingredientBody({ ...r, food_id: null, active: true });
+        if (parsed.errors) { results.push({ line, status: 'error', message: Object.values(parsed.errors)[0] }); continue; }
+        if (await database('ingredients').where('organization_id', acc.orgId).where(sameName('name', parsed.data.name)).first('id')) { results.push({ line, status: 'skipped', message: 'Já cadastrado.' }); continue; }
+        const price = r.price === null || r.price === undefined || r.price === '' ? null : Number(String(r.price).replace(',', '.'));
+        if (price !== null && (!Number.isFinite(price) || price <= 0 || price > 1_000_000)) { results.push({ line, status: 'error', message: 'Preço inválido.' }); continue; }
+        let food = null;
+        if (typeof r.taco === 'string' && r.taco.trim()) food = await bestFood(r.taco, 0.4);
+        else if (suggest) food = await bestFood(parsed.data.name, 0.6);
+        try {
+          await withActor(user, async (trx) => {
+            const [ing] = await trx('ingredients').insert({ ...parsed.data, food_id: food?.id ?? null, organization_id: acc.orgId }).returning(['id']);
+            if (price !== null) {
+              let sup = null;
+              const sname = typeof r.supplier === 'string' ? r.supplier.trim() : '';
+              if (sname.length >= 2) {
+                sup = suppliers.get(sname.toLowerCase()) ?? (await trx('suppliers').where('organization_id', acc.orgId).where(sameName('name', sname)).first('id'))?.id ?? null;
+                if (!sup) [{ id: sup }] = await trx('suppliers').insert({ organization_id: acc.orgId, name: sname.slice(0, 120) }).returning(['id']);
+                suppliers.set(sname.toLowerCase(), sup);
+              }
+              await trx('ingredient_prices').insert({ ingredient_id: ing.id, organization_id: acc.orgId, supplier_id: sup, price_cents: Math.round(price * 100), source: 'import', created_by: user });
+            }
+          });
+          results.push({ line, status: 'created', food: food?.name ?? null });
+        } catch (error) {
+          results.push({ line, status: 'error', message: error?.code === '23505' ? 'Já cadastrado.' : error?.code === 'P0001' ? error.message.split('\n')[0].replace(/^.* - /, '') : 'Não foi possível gravar.' });
+        }
+      }
+      res.json({ data: { results } });
+    });
+
+    router.post('/uan/organizations/:id/import/sheets', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const roles = isUuid(req.params.id) ? await sheetRoles(user, req.params.id) : null;
+      if (!roles) return notFoundMsg(res, 'Empresa');
+      if (!roles.edit) return res.status(403).json({ errors: [{ message: 'Só o responsável, o gestor ou o RT importam fichas.', extensions: { code: 'FORBIDDEN' } }] });
+      const orgId = req.params.id;
+      const sheets = Array.isArray(req.body?.sheets) ? req.body.sheets.slice(0, 300) : [];
+      const results = [];
+      for (const s of sheets) {
+        const line = Number(s?.lines?.[0]) || null;
+        const name = typeof s?.name === 'string' ? s.name.trim() : '';
+        const items = Array.isArray(s?.items) ? s.items.slice(0, 200) : [];
+        const servings = Number(s?.servings);
+        if (name.length < 2 || !items.length || !Number.isInteger(servings) || servings < 1 || servings > 10000) { results.push({ line, status: 'error', message: 'Ficha inválida.' }); continue; }
+        if (await database('tech_sheets').where('organization_id', orgId).whereNot('status', 'archived').where(sameName('name', name)).first('id')) { results.push({ line, status: 'skipped', message: 'Já existe ficha com esse nome.' }); continue; }
+        const missing = [];
+        const resolved = [];
+        for (const it of items) {
+          const ing = await database('ingredients').where({ organization_id: orgId, active: true }).where(sameName('name', String(it.ingredient ?? ''))).first('id', 'default_fc');
+          if (!ing) missing.push(it.ingredient);
+          else resolved.push({ ingredient_id: ing.id, gross_g: Number(it.gross_g), fc: it.fc === null || it.fc === undefined ? null : Number(it.fc) });
+        }
+        if (missing.length) { results.push({ line, status: 'error', message: `Insumo não cadastrado: ${[...new Set(missing)].slice(0, 5).join(', ')}.` }); continue; }
+        try {
+          await withActor(user, async (trx) => {
+            const [sh] = await trx('tech_sheets').insert({ organization_id: orgId, name: name.slice(0, 120), category: s.category ?? 'main', servings, cooked_weight_g: Number(s.cooked_weight_g) > 0 ? Number(s.cooked_weight_g) : null, created_by: user }).returning(['id']);
+            await trx('tech_sheet_items').insert(resolved.map((it, i) => ({ sheet_id: sh.id, position: i + 1, ingredient_id: it.ingredient_id, gross_g: it.gross_g, fc: it.fc })));
+          });
+          results.push({ line, status: 'created' });
+        } catch (error) {
+          results.push({ line, status: 'error', message: error?.code === 'P0001' ? error.message.split('\n')[0].replace(/^.* - /, '') : error?.code === '23514' ? 'Valores fora da faixa (categoria, peso ou fator de correção).' : 'Não foi possível gravar.' });
+        }
+      }
+      res.json({ data: { results } });
+    });
+
     // ── Feedback do programa beta (RN-047) ──────────────────────────────────────────────────
     // Texto + tipo + caminho da página (sem query string). Lido só pelo admin da plataforma no Directus.
     const FEEDBACK_KINDS = new Set(['bug', 'idea', 'praise', 'other']);

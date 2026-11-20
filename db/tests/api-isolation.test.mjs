@@ -1306,6 +1306,27 @@ try {
       assert.equal((await fetch(`${URL_}/rafanutri/uan/tech-sheets/${approved.id}/photo`, { headers: { Authorization: `Bearer ${out.token}` } })).status, 404, 'de fora vê a foto');
       assert.equal((await api(`/rafanutri/uan/tech-sheets/${approved.id}/photo`, { token: a.token, method: 'POST', body: { image: null } })).status, 200, 'remove a foto');
     });
+    await check('UAN: importação de planilhas — cozinheiro não importa; linha a linha com motivo; repetido ignorado; de fora não importa', async () => {
+      const ing = (name, extra = {}) => ({ line: 2, name, category: 'grains', purchase_unit: 'kg', storage: 'ambient', default_fc: 1, allergens: [], ...extra });
+      assert.equal((await api(`/rafanutri/uan/organizations/${A}/import/ingredients`, { token: b.token, method: 'POST', body: { rows: [ing('Lentilha teste')] } })).status, 403, 'cozinheiro importa');
+      const r = await api(`/rafanutri/uan/organizations/${A}/import/ingredients`, { token: a.token, method: 'POST', body: { rows: [
+        { ...ing('Lentilha importada', { price: 9.9, supplier: 'Fornecedor importado' }), line: 2 },
+        { ...ing('Arroz teste'), line: 3 },
+        { ...ing('Ovo importado', { purchase_unit: 'un' }), line: 4 },
+      ] } });
+      assert.equal(r.status, 200, JSON.stringify(r.json));
+      assert.deepEqual(r.json.data.results.map((x) => [x.line, x.status]), [[2, 'created'], [3, 'skipped'], [4, 'error']]);
+      assert.ok(r.json.data.results[2].message.includes('peso da unidade'), 'motivo do erro');
+      const list = (await api(`/rafanutri/uan/organizations/${A}/suppliers`, { token: a.token })).json.data;
+      assert.ok(JSON.stringify(list).includes('Fornecedor importado'), 'fornecedor criado pelo nome');
+      const sh = await api(`/rafanutri/uan/organizations/${A}/import/sheets`, { token: a.token, method: 'POST', body: { sheets: [
+        { lines: [2], name: 'Lentilha refogada', category: 'side', servings: 10, cooked_weight_g: 2000, items: [{ line: 2, ingredient: 'lentilha IMPORTADA', gross_g: 1000, fc: null }] },
+        { lines: [3], name: 'Sopa inexistente', category: 'soup', servings: 10, items: [{ line: 3, ingredient: 'Nada disso', gross_g: 100 }] },
+      ] } });
+      assert.deepEqual(sh.json.data.results.map((x) => x.status), ['created', 'error'], JSON.stringify(sh.json));
+      const out = await outsider();
+      assert.equal((await api(`/rafanutri/uan/organizations/${A}/import/suppliers`, { token: out.token, method: 'POST', body: { rows: [{ line: 2, name: 'X fornecedor' }] } })).status, 404, 'de fora importa');
+    });
   } else {
     console.log('  (pulado) UAN entre unidades: defina ISOLATION_PSQL');
   }
