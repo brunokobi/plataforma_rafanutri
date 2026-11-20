@@ -60,6 +60,7 @@ export default async function UanPage() {
                       <Link href={`/app/uan/fornecedores?empresa=${o.id}`} className="font-medium text-primary underline">Fornecedores</Link>
                       <Link href={`/app/uan/fichas?empresa=${o.id}`} className="font-medium text-primary underline">Fichas técnicas</Link>
                       <Link href={`/app/uan/perfis?empresa=${o.id}`} className="font-medium text-primary underline">Perfis e regras</Link>
+                      <Link href={`/app/uan/rede?empresa=${o.id}`} className="font-medium text-primary underline">Painel da rede</Link>
                       <Link href={`/app/uan/importar?empresa=${o.id}`} className="font-medium text-primary underline">Importar planilhas</Link>
                     </nav>
                   </div>

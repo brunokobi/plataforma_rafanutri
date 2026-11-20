@@ -5585,6 +5585,120 @@ export default {
       res.json({ data: { results } });
     });
 
+    // ── U5: painel da rede e relatório mensal (RN-229) ────────────────────────────────────────
+    // Indicadores do mês por unidade: custo realizado (retiradas para produção pelo custo do lote ou pelo
+    // preço vigente), refeições previstas e servidas, sobra e resto-ingesta, satisfação, conformidade e NCs.
+    function monthRange(q) {
+      const today = localToday();
+      const m = typeof q === 'string' && /^\d{4}-(0[1-9]|1[0-2])$/.test(q) ? q : today.slice(0, 7);
+      const from = `${m}-01`;
+      const next = new Date(Date.UTC(Number(m.slice(0, 4)), Number(m.slice(5, 7)), 1)).toISOString().slice(0, 10);
+      const last = new Date(Date.parse(`${next}T12:00:00Z`) - 86400e3).toISOString().slice(0, 10);
+      return { month: m, from, to: last < today ? last : today, last };
+    }
+
+    const GPU_SQL = `case g.purchase_unit when 'kg' then 1000 when 'g' then 1 when 'l' then 1000 * coalesce(g.density_g_ml, 1) when 'ml' then coalesce(g.density_g_ml, 1)
+                       when 'un' then g.unit_weight_g when 'dz' then 12 * g.unit_weight_g else g.pack_grams end`;
+
+    async function unitMonthStats(unitId, from, to) {
+      const [cost, diners, waste, sat, nc, top, compliance, target] = await Promise.all([
+        database.raw(
+          `select coalesce(sum(-m.quantity_g * coalesce(l.cost_per_kg_cents::numeric, p.price_cents * 1000.0 / nullif(${GPU_SQL}, 0)) / 1000.0), 0) as cents,
+                  coalesce(sum(-m.quantity_g) filter (where l.cost_per_kg_cents is null and p.price_cents is null), 0) as grams_no_cost
+             from stock_movements m join stock_lots l on l.id = m.lot_id join ingredients g on g.id = m.ingredient_id
+             left join lateral ingredient_price_at(g.id) p on true
+            where m.unit_id = ? and m.kind = 'out_production' and (m.created_at at time zone 'America/Sao_Paulo')::date between ?::date and ?::date`, [unitId, from, to]),
+        database('diner_counts').where('unit_id', unitId).whereBetween('day', [from, to]).sum({ planned: 'planned', actual: 'actual' }).first(),
+        database('waste_records').where('unit_id', unitId).whereBetween('day', [from, to])
+          .sum({ produced: 'produced_g', leftover: 'leftover_g', plate: 'plate_waste_g', prep: 'prep_waste_g' }).first(),
+        database('satisfaction_responses').where('unit_id', unitId).whereBetween('served_on', [from, to]).whereNotNull('rating').avg({ avg: 'rating' }).count({ n: '*' }).first(),
+        database('non_conformities').where('unit_id', unitId).whereNot('status', 'closed')
+          .select(database.raw('count(*)::int as open'), database.raw('count(*) filter (where due_at < now())::int as overdue')).first(),
+        database.raw(
+          `select g.name, sum(-m.quantity_g * coalesce(l.cost_per_kg_cents::numeric, p.price_cents * 1000.0 / nullif(${GPU_SQL}, 0)) / 1000.0) as cents
+             from stock_movements m join stock_lots l on l.id = m.lot_id join ingredients g on g.id = m.ingredient_id
+             left join lateral ingredient_price_at(g.id) p on true
+            where m.unit_id = ? and m.kind = 'out_production' and (m.created_at at time zone 'America/Sao_Paulo')::date between ?::date and ?::date
+            group by g.name order by 2 desc nulls last limit 10`, [unitId, from, to]),
+        database.raw('select uan_compliance(?, ?) as c', [unitId, Math.max(7, Math.min(90, Math.round((Date.parse(to) - Date.parse(from)) / 86400e3) + 1))]),
+        database('menu_cycles').where({ unit_id: unitId, status: 'approved' }).where('starts_on', '<=', to).whereNotNull('cost_target_cents').max({ t: 'cost_target_cents' }).first(),
+      ]);
+      const cents = Math.round(Number(cost.rows[0].cents));
+      const served = Number(diners?.actual ?? 0);
+      const produced = Number(waste?.produced ?? 0);
+      const leftover = Number(waste?.leftover ?? 0);
+      const plate = Number(waste?.plate ?? 0);
+      const c = compliance.rows[0].c;
+      return {
+        cost_cents: cents,
+        cost_estimated_missing: Number(cost.rows[0].grams_no_cost) > 0,
+        meals_planned: Number(diners?.planned ?? 0),
+        meals_served: served,
+        cost_per_meal_cents: served > 0 ? Math.round(cents / served) : null,
+        cost_target_cents: target?.t === null || target?.t === undefined ? null : Number(target.t),
+        waste: { produced_g: produced, leftover_g: leftover, plate_g: plate, prep_g: Number(waste?.prep ?? 0),
+          leftover_pct: produced > 0 ? Math.round((leftover / produced) * 1000) / 10 : null,
+          plate_pct: produced - leftover > 0 ? Math.round((plate / (produced - leftover)) * 1000) / 10 : null,
+          plate_g_per_meal: served > 0 ? Math.round(plate / served) : null },
+        satisfaction: { avg: sat?.avg === null || sat?.avg === undefined ? null : Math.round(Number(sat.avg) * 10) / 10, responses: Number(sat?.n ?? 0) },
+        compliance_index: c.index === null ? null : Number(c.index),
+        nc_open: nc?.open ?? 0,
+        nc_overdue: nc?.overdue ?? 0,
+        top_items: top.rows.map((r) => ({ name: r.name, cost_cents: Math.round(Number(r.cents ?? 0)) })),
+      };
+    }
+
+    router.get('/uan/organizations/:id/network', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const org = isUuid(req.params.id) ? (await uanOrgs(user)).find((o) => o.id === req.params.id) : null;
+      if (!org) return notFoundMsg(res, 'Empresa');
+      let q = database('production_units').where({ organization_id: org.id, active: true }).orderBy('name');
+      if (!org.is_owner) q = q.whereIn('id', database('unit_members').where('user_id', user).whereIn('role', ['manager', 'technical_lead']).select('unit_id'));
+      const units = await q.select('id', 'name', 'kind');
+      if (!units.length) return res.status(403).json({ errors: [{ message: 'Só o responsável, o gestor ou o RT veem o painel da rede.', extensions: { code: 'FORBIDDEN' } }] });
+      const p = monthRange(req.query.month);
+      const rows = [];
+      for (const u of units) rows.push({ ...u, ...(await unitMonthStats(u.id, p.from, p.to)) });
+      const sum = (k) => rows.reduce((s2, r) => s2 + (r[k] ?? 0), 0);
+      const served = sum('meals_served');
+      res.json({
+        data: {
+          organization: { id: org.id, name: org.name }, ...p,
+          totals: { cost_cents: sum('cost_cents'), meals_served: served, meals_planned: sum('meals_planned'), cost_per_meal_cents: served > 0 ? Math.round(sum('cost_cents') / served) : null },
+          units: rows,
+        },
+      });
+    });
+
+    router.get('/uan/units/:id/monthly', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const a = await unitAccess(user, req.params.id);
+      if (!a) return unitNotFound(res);
+      if (!canSupervise(a) && !a.roles.includes('auditor')) return res.status(403).json({ errors: [{ message: 'Só o responsável, o gestor, o RT ou o auditor veem o relatório.', extensions: { code: 'FORBIDDEN' } }] });
+      const p = monthRange(req.query.month);
+      const [stats, org, rt, trainings, ncs, comments] = await Promise.all([
+        unitMonthStats(a.unit.id, p.from, p.to),
+        database('organizations').where('id', a.unit.organization_id).first('name'),
+        unitRt(a.unit.id),
+        database('trainings').where('unit_id', a.unit.id).whereBetween('held_on', [p.from, p.to]).count({ n: '*' }).first(),
+        database('non_conformities').where('unit_id', a.unit.id).where(database.raw(`(opened_at at time zone 'America/Sao_Paulo')::date between ?::date and ?::date`, [p.from, p.to]))
+          .select(database.raw('count(*)::int as opened'), database.raw("count(*) filter (where status = 'closed')::int as closed")).first(),
+        database('satisfaction_responses as r').leftJoin('tech_sheets as s', 's.id', 'r.sheet_root_id').where('r.unit_id', a.unit.id).whereBetween('r.served_on', [p.from, p.to]).whereNotNull('r.comment')
+          .orderBy('r.created_at', 'desc').limit(5).select('r.comment', 'r.rating', 's.name'),
+      ]);
+      const prev = monthRange(new Date(Date.parse(`${p.from}T12:00:00Z`) - 5 * 86400e3).toISOString().slice(0, 7));
+      const before = await unitMonthStats(a.unit.id, prev.from, prev.last);
+      res.json({
+        data: {
+          organization: org?.name ?? null, unit: { id: a.unit.id, name: a.unit.name }, technical_lead: rt, ...p,
+          stats, previous: { month: prev.month, cost_per_meal_cents: before.cost_per_meal_cents, meals_served: before.meals_served, compliance_index: before.compliance_index, plate_pct: before.waste.plate_pct },
+          trainings: Number(trainings?.n ?? 0), non_conformities: ncs, comments: comments.map((c) => ({ comment: c.comment, rating: c.rating, dish: c.name })),
+        },
+      });
+    });
+
     // ── Feedback do programa beta (RN-047) ──────────────────────────────────────────────────
     // Texto + tipo + caminho da página (sem query string). Lido só pelo admin da plataforma no Directus.
     const FEEDBACK_KINDS = new Set(['bug', 'idea', 'praise', 'other']);

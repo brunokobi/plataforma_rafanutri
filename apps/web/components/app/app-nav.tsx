@@ -21,6 +21,7 @@ export function navModel(pathname: string, homeHref = '/app', patientsHref = '/a
         { href: '/app/uan', label: 'Unidades' },
         { href: '/app/uan/fichas', label: 'Fichas técnicas' },
         { href: '/app/uan/conformidade', label: 'Conformidade' },
+        { href: '/app/uan/rede', label: 'Rede' },
       ],
       more: [
         { title: 'Cadastros', links: [{ href: '/app/uan/insumos', label: 'Insumos' }, { href: '/app/uan/fornecedores', label: 'Fornecedores' }, { href: '/app/uan/perfis', label: 'Perfis e regras' }, { href: '/app/uan/importar', label: 'Importar planilhas' }] },

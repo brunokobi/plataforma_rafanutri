@@ -1327,6 +1327,21 @@ try {
       const out = await outsider();
       assert.equal((await api(`/rafanutri/uan/organizations/${A}/import/suppliers`, { token: out.token, method: 'POST', body: { rows: [{ line: 2, name: 'X fornecedor' }] } })).status, 404, 'de fora importa');
     });
+    await check('UAN: painel da rede e relatório mensal — cozinheiro não vê; custo pelas retiradas; de fora não vê', async () => {
+      const n = await api(`/rafanutri/uan/organizations/${A}/network`, { token: a.token });
+      assert.equal(n.status, 200, JSON.stringify(n.json));
+      const u1 = n.json.data.units.find((x) => x.id === U1);
+      assert.ok(u1 && u1.cost_cents > 0, 'custo realizado pelas retiradas para produção');
+      assert.equal((await api(`/rafanutri/uan/organizations/${A}/network`, { token: b.token })).status, 403, 'cozinheiro vê a rede');
+      assert.equal((await api(`/rafanutri/uan/units/${U1}/monthly`, { token: b.token })).status, 403, 'cozinheiro vê relatório');
+      const m = await api(`/rafanutri/uan/units/${U1}/monthly?month=2026-10`, { token: a.token });
+      assert.equal(m.status, 200);
+      assert.equal(m.json.data.month, '2026-10');
+      assert.equal(m.json.data.to, '2026-10-31', 'mês fechado');
+      const out = await outsider();
+      assert.equal((await api(`/rafanutri/uan/organizations/${A}/network`, { token: out.token })).status, 404, 'de fora vê a rede');
+      assert.equal((await api(`/rafanutri/uan/units/${U1}/monthly`, { token: out.token })).status, 404, 'de fora vê relatório');
+    });
   } else {
     console.log('  (pulado) UAN entre unidades: defina ISOLATION_PSQL');
   }
