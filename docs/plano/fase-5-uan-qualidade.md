@@ -1219,10 +1219,10 @@ Referências: ANVISA RDC nº 429/2020 e IN nº 75/2020. Todos os valores abaixo 
 - **Depende de:** RN-126, RN-131
 - **Descrição:** Importar insumos, fornecedores, preços e fichas técnicas de planilhas do cliente.
 - **Tarefas técnicas:**
-  - [ ] Modelos de planilha para download
-  - [ ] Importador CSV/XLSX com validação, pré-visualização e relatório de erros
-  - [ ] Vínculo assistido de insumos com a TACO por similaridade de nome
-  - [ ] Roteiro de implantação em `docs/guias/implantacao-enterprise.md`
+  - [x] Modelos de planilha para download
+  - [x] Importador CSV/XLSX com validação, pré-visualização e relatório de erros — CSV (o Excel salva como CSV); XLSX pede para salvar como CSV
+  - [x] Vínculo assistido de insumos com a TACO por similaridade de nome
+  - [x] Roteiro de implantação em `docs/guias/implantacao-enterprise.md`
 - **Arquivos/áreas:** `apps/web/app/(uan)/uan/import/`, `supabase/functions/import-uan/`
 - **Critérios de aceite:** Dada uma planilha com 300 insumos e 10 linhas inválidas, quando importar, então 290 entram e o relatório mostra as 10 linhas com o motivo.
 - **Testes:** integração, e2e.
