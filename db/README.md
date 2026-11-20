@@ -675,6 +675,10 @@ Migração `0055_photos.sql` (**aplicada na vpsrafa em 19/11/2026**, backup `ant
 
 Sem migração: `POST /rafanutri/uan/organizations/:id/import/suppliers|ingredients|sheets` (linhas já validadas no app, até 1.000; cada linha numa transação própria; resultado `created`, `skipped` ou `error` com o motivo) e `…/import/foods-match` (melhor alimento público por `search_foods`, pontuação ≥ 0,6). Preço importado entra com `source = 'import'`; fornecedor citado no insumo é criado pelo nome se não existir; fichas entram como rascunho.
 
+## Painel da rede e relatório mensal (RN-229)
+
+Sem migração: `GET /rafanutri/uan/organizations/:id/network?month=AAAA-MM` (owner: todas as unidades ativas; gestor e RT: as suas) e `GET /rafanutri/uan/units/:id/monthly?month=` (owner, gestor, RT, auditor). Custo realizado = retiradas `out_production` × custo do lote (ou preço vigente por kg); refeições de `diner_counts`; sobra e resto de `waste_records`; satisfação de `satisfaction_responses`; conformidade de `uan_compliance`.
+
 ## Feedback do beta (RN-047)
 
 Migração `0032_feedback.sql` (**aplicada na vpsrafa em 14/11/2026**; testes em `db/tests/0032_feedback.test.sql`): `product_feedback` (consultório, autor, tipo `bug`/`idea`/`praise`/`other`, mensagem de 3 a 2.000 caracteres, caminho da página sem query string, status `new`/`read`/`done`). Gravado só por `POST /rafanutri/feedback` (qualquer conta logada, até 20 por dia); nenhum papel lê a coleção: o admin da plataforma consulta no Directus ou por SQL. Sem print de tela, porque a tela costuma ter dados de pacientes. O e2e grava mensagens com o prefixo `[e2e]`:

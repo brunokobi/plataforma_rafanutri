@@ -216,6 +216,14 @@ test('insumo com preço e fornecedor', async ({ page }) => {
     await expect(page.getByLabel('Custo por refeição realizado')).toHaveText(/R\$/);
     await expect(page.getByRole('region', { name: 'Curva ABC do consumo' })).toContainText(name);
 
+    // U5: painel da rede e relatório mensal da unidade
+    await page.goto('/app/uan/rede');
+    await expect(page.getByRole('heading', { level: 1, name: 'Painel da rede' })).toBeVisible({ timeout: 20_000 });
+    const netRow = page.getByRole('table', { name: 'Indicadores por unidade' }).getByRole('row').filter({ hasText: unitName });
+    await expect(netRow).toContainText('R$');
+    const [monthly] = await Promise.all([page.waitForEvent('download'), netRow.getByRole('link', { name: 'Relatório' }).click()]);
+    expect(monthly.suggestedFilename()).toMatch(/^relatorio-cardapio-e2e-\d+-\d{4}-\d{2}\.pdf$/);
+
     // U7: cardápio público com alergênicos e pesquisa de satisfação por prato
     await page.goto(`${unitUrl}/cardapio-publico`);
     await page.getByRole('button', { name: 'Publicar cardápio' }).click();

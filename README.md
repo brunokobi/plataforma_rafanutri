@@ -78,7 +78,7 @@ Detalhes e prioridades em [docs/02-modulos.md](docs/02-modulos.md).
 
 - **Qualidade BPF:** checklists no celular (foto, assinatura, offline), temperaturas com alerta, não conformidades com 5W2H, painel de conformidade com pendências documentais.
 - **Ficha técnica e cardápio:** insumos, fornecedores e preços; fichas com FC, IC, rendimento, custo, nutrientes, alergênicos e foto; cardápio cíclico com aprovação, perfis de público com metas (PAT/PNAE a validar), regras do contrato e ajuste local de per capita; cardápio público com QR Code, modo TV e pesquisa de satisfação.
-- **Produção, compras e estoque:** comensais, lista de preparo, requisição, desperdício; necessidade de compra, pedido, recebimento com recusa e foto; lotes FEFO e inventário cego; custos planejado × realizado e curva ABC.
+- **Produção, compras e estoque:** comensais, lista de preparo, requisição, desperdício; necessidade de compra, pedido, recebimento com recusa e foto; lotes FEFO e inventário cego; custos planejado × realizado e curva ABC; painel da rede e relatório mensal em PDF.
 - **Documentação e fiscalização:** POPs com versão, aprovação e ciência; treinamentos com certificado; Manual de Boas Práticas e dossiê em PDF; licenças; planilhas CSV; integridade SHA-256 dos registros.
 - **APPCC e rotulagem:** plano com árvore do Codex, PCC e PDF; rótulo nutricional da IN 75/2020 (vertical, horizontal e linear) com lupa e alergênicos.
 - **Contrato e implantação:** situação, faturas e modo leitura quando o contrato termina; importação de fornecedores, insumos e fichas por planilha ([roteiro](docs/guias/implantacao-enterprise.md)).
@@ -204,7 +204,7 @@ O que está feito e o que falta: [docs/plano/progresso.md](docs/plano/progresso.
 | `pnpm test` | Testes unitários e de componente (Vitest + Testing Library) |
 | `pnpm test:e2e` | Testes end-to-end (Playwright). Com `E2E_USER_EMAIL` e `E2E_USER_PASSWORD` (usuário de teste com consultório) roda também o login real e o fluxo completo de consulta; `E2E_BASE_URL=https://rafanutri.brunokobi.tech` testa a produção (um navegador por vez, por causa do limite de requisições do Directus). No WSL Ubuntu 20.04, instale o navegador com `PLAYWRIGHT_HOST_PLATFORM_OVERRIDE=ubuntu22.04-x64 npx playwright install chromium` e use a mesma variável ao rodar |
 | `node --test db/tests/extension-foods.test.mjs` | Regras puras da extensão (conversão do rótulo, composição da preparação) |
-| `db/scripts/isolation-test.sh` | Isolamento entre consultórios pela API em produção (96 verificações; sem token de admin, limpa pelo banco via SSH). No CI: workflow `isolation.yml`, semanal, com o secret `ISOLATION_SSH_KEY` |
+| `db/scripts/isolation-test.sh` | Isolamento entre consultórios pela API em produção (97 verificações; sem token de admin, limpa pelo banco via SSH). No CI: workflow `isolation.yml`, semanal, com o secret `ISOLATION_SSH_KEY` |
 
 ## Deploy
 
