@@ -22,6 +22,22 @@ export const CLINICAL_ROLES = ['owner', 'nutritionist'];
 const isEndUser = (accountability) => Boolean(accountability?.user) && !accountability.admin;
 
 export default ({ filter }, { database }) => {
+  // E-mails do Directus em português: o assunto vem fixo do código (o corpo vem dos modelos em
+  // extensions/templates) e o remetente leva o nome da marca.
+  const SUBJECTS = {
+    'Password Reset Request': 'Redefinir sua senha na Rafanutri',
+    'User Registration': 'Confirme seu cadastro na Rafanutri',
+    "You've been invited": 'Você foi convidado para a Rafanutri',
+  };
+  filter('email.send', (message) => {
+    if (message && typeof message.subject === 'string') {
+      const key = Object.keys(SUBJECTS).find((k) => message.subject.startsWith(k));
+      if (key) message.subject = SUBJECTS[key];
+    }
+    if (message && typeof message.from === 'string' && !message.from.includes('<')) message.from = `Rafanutri <${message.from}>`;
+    return message;
+  });
+
   async function assertClinicalMember(organizationId, userId) {
     const member = await database('organization_members')
       .where({ organization_id: organizationId, user_id: userId })

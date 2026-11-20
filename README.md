@@ -227,7 +227,7 @@ A lista completa, sem valores reais, fica nos arquivos `.env.example`. Principai
 | `SIGNUP_OPEN` | Servidor do app web | `true` libera o cadastro e o onboarding no Directus; padrão `false` (pré-lançamento) |
 | `KEY` / `SECRET` | Directus | Chaves da instância |
 | `LICENSE_KEY` | Directus | Licença Open Innovation Grant (libera permissões com filtro) |
-| `EMAIL_*` | Directus | SMTP do Resend para verificação de cadastro e recuperação de senha (aguarda DNS do domínio) |
+| `EMAIL_*` | Directus | SMTP do Resend (domínio `brunokobi.tech` verificado em 20/11/2026), remetente `nao-responda@brunokobi.tech`. `EMAIL_TEMPLATES_PATH=/directus/extensions/templates` (modelos em português) e `PASSWORD_RESET_URL_ALLOW_LIST=https://rafanutri.brunokobi.tech/redefinir-senha` |
 | `USER_REGISTER_URL_ALLOW_LIST` / `PASSWORD_RESET_URL_ALLOW_LIST` | Directus | URLs do app aceitas nos e-mails de cadastro e senha |
 | `DIRECTUS_ADMIN_EMAIL` / `DIRECTUS_ADMIN_PASSWORD` | Scripts de manutenção | Bootstrap e migrações; **nunca** no app web |
 | `DB_PASSWORD` | Directus e scripts | Senha do Postgres |
