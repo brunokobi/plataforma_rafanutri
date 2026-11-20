@@ -1342,6 +1342,36 @@ try {
       assert.equal((await api(`/rafanutri/uan/organizations/${A}/network`, { token: out.token })).status, 404, 'de fora vê a rede');
       assert.equal((await api(`/rafanutri/uan/units/${U1}/monthly`, { token: out.token })).status, 404, 'de fora vê relatório');
     });
+    await check('Administração: conta comum não vê; admin da plataforma cria contrato, encerra, emite e dá baixa em fatura', async () => {
+      assert.equal((await api('/rafanutri/admin/me', { token: a.token })).status, 404, 'conta comum vê admin');
+      assert.equal((await api(`/rafanutri/admin/uan/organizations/${A}/contracts`, { token: a.token, method: 'POST', body: { plan: 'uan_quality', units_contracted: 3, monthly_price: '499', starts_at: '2026-01-01' } })).status, 404, 'conta comum cria contrato');
+      const uidA = created.users[0];
+      const sql = (q) => String(execSync(process.env.ISOLATION_PSQL, { input: q, stdio: ['pipe', 'pipe', 'inherit'] }));
+      sql(`insert into platform_admins (user_id, note) select id, 'isolamento' from directus_users where id = '${uidA}' and email like '%@example.com' on conflict do nothing;`);
+      try {
+        assert.equal((await api('/rafanutri/admin/me', { token: a.token })).status, 200, 'admin da plataforma');
+        const list = await api('/rafanutri/admin/uan/organizations?q=Consult', { token: a.token });
+        assert.ok(list.json.data.some((o) => o.id === A), 'lista as empresas');
+        assert.equal((await api(`/rafanutri/admin/uan/organizations/${A}/contracts`, { token: a.token, method: 'POST', body: { plan: 'x', units_contracted: 0 } })).status, 400, 'contrato inválido');
+        const ct = await api(`/rafanutri/admin/uan/organizations/${A}/contracts`, { token: a.token, method: 'POST', body: { plan: 'uan_quality', units_contracted: 3, monthly_price: '499,90', starts_at: '2026-01-01', billing_method: 'boleto' } });
+        assert.equal(ct.status, 201, JSON.stringify(ct.json));
+        const iv = await api(`/rafanutri/admin/uan/contracts/${ct.json.data.id}/invoices`, { token: a.token, method: 'POST', body: { period_start: '2026-01-01', period_end: '2026-01-31', due_on: '2026-02-05', payment_url: 'http://inseguro' } });
+        assert.equal(iv.status, 400, 'link de pagamento sem https');
+        const iv2 = await api(`/rafanutri/admin/uan/contracts/${ct.json.data.id}/invoices`, { token: a.token, method: 'POST', body: { period_start: '2026-01-01', period_end: '2026-01-31', due_on: '2026-02-05' } });
+        assert.equal(iv2.status, 201, JSON.stringify(iv2.json));
+        const det = (await api(`/rafanutri/admin/uan/organizations/${A}`, { token: a.token })).json.data;
+        assert.equal(det.invoices.find((i) => i.id === iv2.json.data.id).amount_cents, 49990, 'valor da mensalidade');
+        assert.equal(det.unit_limit, 3, 'limite pelo contrato novo');
+        assert.equal((await api(`/rafanutri/admin/uan/invoices/${iv2.json.data.id}`, { token: a.token, method: 'PATCH', body: { status: 'paid', paid_on: '2026-02-04' } })).status, 200);
+        assert.equal((await api(`/rafanutri/admin/uan/invoices/${iv2.json.data.id}`, { token: a.token, method: 'PATCH', body: { status: 'void' } })).status, 409, 'paga não volta');
+        assert.equal((await api(`/rafanutri/admin/uan/contracts/${ct.json.data.id}`, { token: a.token, method: 'PATCH', body: { ends_at: '2025-12-01' } })).status, 400, 'fim antes do início');
+        assert.equal((await api(`/rafanutri/admin/uan/contracts/${ct.json.data.id}`, { token: a.token, method: 'PATCH', body: { ends_at: '2026-06-30' } })).status, 200);
+        assert.equal((await api(`/rafanutri/uan/organizations/${A}/contract`, { token: a.token })).json.data.invoices[0].status, 'paid', 'owner vê a fatura paga');
+      } finally {
+        sql(`delete from platform_admins where user_id = '${uidA}';`);
+      }
+      assert.equal((await api('/rafanutri/admin/me', { token: a.token })).status, 404, 'acesso removido');
+    });
   } else {
     console.log('  (pulado) UAN entre unidades: defina ISOLATION_PSQL');
   }

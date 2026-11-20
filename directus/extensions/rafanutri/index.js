@@ -5699,6 +5699,163 @@ export default {
       });
     });
 
+    // ── Administração da plataforma: contratos UAN (RN-124) ──────────────────────────────────
+    // Só admin do Directus ou listado em platform_admins (is_platform_admin, 0056). Tudo auditado pelos
+    // gatilhos de organization_contracts e contract_invoices (com o autor via withActor).
+    async function requireAdmin(req, res) {
+      const user = requireUser(req, res);
+      if (!user) return null;
+      const ok = req.accountability?.admin === true || (await database.raw('select is_platform_admin(?) as ok', [user])).rows[0].ok;
+      if (!ok) { res.status(404).json({ errors: [{ message: 'Página não encontrada.', extensions: { code: 'NOT_FOUND' } }] }); return null; }
+      return user;
+    }
+    const CONTRACT_PLANS = new Set(['uan_pilot', 'uan_quality', 'uan_complete']);
+    const BILLING = new Set(['invoice', 'pix', 'boleto', 'card']);
+
+    router.get('/admin/me', async (req, res) => {
+      const user = await requireAdmin(req, res);
+      if (!user) return;
+      res.json({ data: { admin: true } });
+    });
+
+    router.get('/admin/uan/organizations', async (req, res) => {
+      const user = await requireAdmin(req, res);
+      if (!user) return;
+      const q = typeof req.query.q === 'string' ? req.query.q.trim().slice(0, 80) : '';
+      let rows = database('organizations as o').orderBy('o.name').limit(200)
+        .select('o.id', 'o.name', 'o.type', 'o.modules', 'o.created_at',
+          database.raw("(select u.email from organization_members m join directus_users u on u.id = m.user_id where m.organization_id = o.id and m.role = 'owner' limit 1) as owner_email"),
+          database.raw('(select count(*) from production_units pu where pu.organization_id = o.id and pu.active)::int as active_units'),
+          database.raw("case when 'uan' = any(o.modules) then uan_contract_state(o.id) end as contract_state"),
+          database.raw("case when 'uan' = any(o.modules) then uan_unit_limit(o.id) end as unit_limit"));
+      if (q) rows = rows.whereRaw('f_unaccent(lower(o.name)) like f_unaccent(lower(?))', [`%${q}%`]);
+      res.json({ data: await rows });
+    });
+
+    router.get('/admin/uan/organizations/:id', async (req, res) => {
+      const user = await requireAdmin(req, res);
+      if (!user) return;
+      const org = isUuid(req.params.id) ? await database('organizations').where('id', req.params.id).first('id', 'name', 'modules') : null;
+      if (!org) return notFoundMsg(res, 'Empresa');
+      const [contracts, invoices, state, limit, active] = await Promise.all([
+        database('organization_contracts').where('organization_id', org.id).orderBy('starts_at', 'desc').select('id', 'plan', 'units_contracted', 'monthly_price_cents', 'starts_at', 'ends_at', 'billing_method', 'notes', 'created_at'),
+        database('contract_invoices').where('organization_id', org.id).orderBy('due_on', 'desc').limit(60).select('id', 'contract_id', 'period_start', 'period_end', 'amount_cents', 'due_on', 'status', 'paid_at', 'payment_url', 'gateway', 'gateway_id'),
+        database.raw('select uan_contract_state(?) as s', [org.id]).then((r) => r.rows[0].s),
+        database.raw('select uan_unit_limit(?) as n', [org.id]).then((r) => r.rows[0].n),
+        database('production_units').where({ organization_id: org.id, active: true }).count({ n: '*' }).first(),
+      ]);
+      res.json({
+        data: {
+          organization: { ...org, uan: org.modules.includes('uan') }, state, unit_limit: Number(limit), active_units: Number(active?.n ?? 0),
+          contracts: contracts.map((c) => ({ ...c, starts_at: dateOut(c.starts_at), ends_at: dateOut(c.ends_at) })),
+          invoices: invoices.map((i) => ({ ...i, period_start: dateOut(i.period_start), period_end: dateOut(i.period_end), due_on: dateOut(i.due_on) })),
+        },
+      });
+    });
+
+    router.post('/admin/uan/organizations/:id/module', async (req, res) => {
+      const user = await requireAdmin(req, res);
+      if (!user) return;
+      const org = isUuid(req.params.id) ? await database('organizations').where('id', req.params.id).first('id', 'modules') : null;
+      if (!org) return notFoundMsg(res, 'Empresa');
+      if (typeof req.body?.enabled !== 'boolean') return bad(res, { enabled: 'Informe se o módulo fica ligado.' });
+      const mods = new Set(org.modules);
+      if (req.body.enabled) mods.add('uan'); else mods.delete('uan');
+      if (!mods.size) mods.add('clinical');
+      try {
+        await withActor(user, (trx) => trx('organizations').where('id', org.id).update({ modules: [...mods] }));
+        res.json({ data: { modules: [...mods] } });
+      } catch (error) {
+        p0001(res, error, 'mudar módulo');
+      }
+    });
+
+    function contractBody(b, partial = false) {
+      const errors = {};
+      const out = {};
+      const money = (v) => Math.round(Number(String(v ?? '').replace(',', '.')) * 100);
+      if (!partial || b.plan !== undefined) { if (!CONTRACT_PLANS.has(b.plan)) errors.plan = 'Plano inválido.'; else out.plan = b.plan; }
+      if (!partial || b.units_contracted !== undefined) { const n = Number(b.units_contracted); if (!Number.isInteger(n) || n < 1 || n > 1000) errors.units_contracted = 'Unidades de 1 a 1.000.'; else out.units_contracted = n; }
+      if (!partial || b.monthly_price !== undefined) { const c = money(b.monthly_price); if (!Number.isFinite(c) || c < 0 || c > 100_000_000) errors.monthly_price = 'Mensalidade inválida.'; else out.monthly_price_cents = c; }
+      if (!partial || b.starts_at !== undefined) { if (!isIsoDate(b.starts_at)) errors.starts_at = 'Informe o início.'; else out.starts_at = b.starts_at; }
+      if (b.ends_at !== undefined) { if (b.ends_at !== null && b.ends_at !== '' && !isIsoDate(b.ends_at)) errors.ends_at = 'Data inválida.'; else out.ends_at = b.ends_at || null; }
+      if (!partial || b.billing_method !== undefined) { const m = b.billing_method ?? 'invoice'; if (!BILLING.has(m)) errors.billing_method = 'Forma de cobrança inválida.'; else out.billing_method = m; }
+      if (b.notes !== undefined) out.notes = typeof b.notes === 'string' && b.notes.trim() ? b.notes.trim().slice(0, 1000) : null;
+      if (out.starts_at && out.ends_at && out.ends_at < out.starts_at) errors.ends_at = 'O fim vem depois do início.';
+      return { errors, data: out };
+    }
+
+    router.post('/admin/uan/organizations/:id/contracts', async (req, res) => {
+      const user = await requireAdmin(req, res);
+      if (!user) return;
+      const org = isUuid(req.params.id) ? await database('organizations').where('id', req.params.id).first('id') : null;
+      if (!org) return notFoundMsg(res, 'Empresa');
+      const { errors, data } = contractBody(req.body ?? {});
+      if (Object.keys(errors).length) return bad(res, errors);
+      try {
+        const [c] = await withActor(user, (trx) => trx('organization_contracts').insert({ ...data, organization_id: org.id }).returning(['id']));
+        res.status(201).json({ data: { id: c.id } });
+      } catch (error) {
+        p0001(res, error, 'criar contrato');
+      }
+    });
+
+    router.patch('/admin/uan/contracts/:id', async (req, res) => {
+      const user = await requireAdmin(req, res);
+      if (!user) return;
+      const c = isUuid(req.params.id) ? await database('organization_contracts').where('id', req.params.id).first('id', 'starts_at') : null;
+      if (!c) return notFoundMsg(res, 'Contrato');
+      const { errors, data } = contractBody(req.body ?? {}, true);
+      if (data.ends_at && !data.starts_at && data.ends_at < dateOut(c.starts_at)) errors.ends_at = 'O fim vem depois do início.';
+      if (Object.keys(errors).length) return bad(res, errors);
+      if (!Object.keys(data).length) return bad(res, { plan: 'Nada para mudar.' });
+      try {
+        await withActor(user, (trx) => trx('organization_contracts').where('id', c.id).update(data));
+        res.json({ data: { ok: true } });
+      } catch (error) {
+        p0001(res, error, 'salvar contrato');
+      }
+    });
+
+    router.post('/admin/uan/contracts/:id/invoices', async (req, res) => {
+      const user = await requireAdmin(req, res);
+      if (!user) return;
+      const c = isUuid(req.params.id) ? await database('organization_contracts').where('id', req.params.id).first('id', 'monthly_price_cents') : null;
+      if (!c) return notFoundMsg(res, 'Contrato');
+      const b = req.body ?? {};
+      const errors = {};
+      if (!isIsoDate(b.period_start) || !isIsoDate(b.period_end) || b.period_end < b.period_start) errors.period_start = 'Período inválido.';
+      if (!isIsoDate(b.due_on)) errors.due_on = 'Informe o vencimento.';
+      const amount = b.amount === undefined || b.amount === '' ? c.monthly_price_cents : Math.round(Number(String(b.amount).replace(',', '.')) * 100);
+      if (!Number.isFinite(amount) || amount < 0) errors.amount = 'Valor inválido.';
+      const url = typeof b.payment_url === 'string' && b.payment_url.trim() ? b.payment_url.trim().slice(0, 500) : null;
+      if (url && !/^https:\/\//.test(url)) errors.payment_url = 'O link de pagamento começa com https://.';
+      if (Object.keys(errors).length) return bad(res, errors);
+      try {
+        const [i] = await withActor(user, (trx) => trx('contract_invoices').insert({ contract_id: c.id, period_start: b.period_start, period_end: b.period_end, amount_cents: amount, due_on: b.due_on, payment_url: url }).returning(['id']));
+        res.status(201).json({ data: { id: i.id } });
+      } catch (error) {
+        if (error?.code === '23505') return conflict(res, 'Já existe fatura desse período.');
+        p0001(res, error, 'emitir fatura');
+      }
+    });
+
+    router.patch('/admin/uan/invoices/:id', async (req, res) => {
+      const user = await requireAdmin(req, res);
+      if (!user) return;
+      const inv = isUuid(req.params.id) ? await database('contract_invoices').where('id', req.params.id).first('id', 'status') : null;
+      if (!inv) return notFoundMsg(res, 'Fatura');
+      const st = req.body?.status;
+      if (!['paid', 'void', 'open'].includes(st)) return bad(res, { status: 'Situação inválida.' });
+      const paidAt = st === 'paid' ? (isIsoDate(req.body?.paid_on) ? `${req.body.paid_on}T12:00:00-03:00` : new Date().toISOString()) : null;
+      try {
+        await withActor(user, (trx) => trx('contract_invoices').where('id', inv.id).update({ status: st, paid_at: paidAt }));
+        res.json({ data: { ok: true } });
+      } catch (error) {
+        p0001(res, error, 'atualizar fatura');
+      }
+    });
+
     // ── Feedback do programa beta (RN-047) ──────────────────────────────────────────────────
     // Texto + tipo + caminho da página (sem query string). Lido só pelo admin da plataforma no Directus.
     const FEEDBACK_KINDS = new Set(['bug', 'idea', 'praise', 'other']);
