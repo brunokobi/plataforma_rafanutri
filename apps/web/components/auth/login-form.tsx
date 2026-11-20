@@ -1,25 +1,28 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { AlertCircle, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { AlertCircle, ArrowRight, Eye, EyeOff, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useState, useTransition } from 'react';
 import { useForm } from 'react-hook-form';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { signIn } from '@/lib/auth/actions';
+import { cn } from '@/lib/utils';
 import { loginSchema, type LoginInput } from '@/lib/validation/login';
 
-export function LoginForm({ next }: { next?: string }) {
+// Campos no padrão da tela de login (escuro do desenho; versão clara no tema claro).
+const FIELD =
+  'h-12 w-full rounded-xl border border-[#d9e1d6] bg-white px-3.5 text-[15px] text-[#17241b] placeholder:text-[#8a9a8e] focus:border-[#6cc56f] focus:outline-none focus:ring-[3px] focus:ring-[#6cc56f]/25 dark:border-[#263429] dark:bg-[#121c15] dark:text-[#eef3ee] dark:placeholder:text-[#6f8576] aria-[invalid=true]:border-destructive';
+const LABEL = 'text-sm font-semibold text-[#17241b] dark:text-[#eef3ee]';
+const LINK = 'text-sm font-semibold text-[#2f7a3d] hover:text-[#1f5a2a] dark:text-[#7fd483] dark:hover:text-[#a6e6a8]';
+
+export function LoginForm({ next, emailPlaceholder = 'voce@consultorio.com.br' }: { next?: string; emailPlaceholder?: string }) {
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   const form = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { email: '', password: '', next },
+    defaultValues: { email: '', password: '', next, remember: true },
     mode: 'onTouched',
   });
   const { errors } = form.formState;
@@ -39,49 +42,44 @@ export function LoginForm({ next }: { next?: string }) {
   });
 
   return (
-    <form onSubmit={onSubmit} noValidate className="space-y-5" aria-describedby={serverError ? 'login-error' : undefined}>
+    <form onSubmit={onSubmit} noValidate className="flex flex-col gap-[18px]" aria-describedby={serverError ? 'login-error' : undefined}>
       {serverError && (
-        <Alert variant="destructive" id="login-error">
-          <AlertCircle />
-          <AlertDescription>{serverError}</AlertDescription>
-        </Alert>
+        <div role="alert" id="login-error" className="flex items-start gap-2 rounded-xl border border-destructive/50 bg-destructive/10 px-3.5 py-3 text-sm text-destructive dark:text-[#ff9b8f]">
+          <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+          <span>{serverError}</span>
+        </div>
       )}
 
-      <div className="space-y-2">
-        <Label htmlFor="email">E-mail</Label>
-        <Input
+      <div className="flex flex-col gap-2">
+        <label htmlFor="email" className={LABEL}>E-mail</label>
+        <input
           id="email"
           type="email"
           inputMode="email"
           autoComplete="email"
-          placeholder="voce@consultorio.com.br"
+          placeholder={emailPlaceholder}
           aria-invalid={Boolean(errors.email)}
           aria-describedby={errors.email ? 'email-error' : undefined}
-          className="h-11"
+          className={FIELD}
           {...form.register('email')}
         />
-        {errors.email && (
-          <p id="email-error" className="text-sm text-destructive">
-            {errors.email.message}
-          </p>
-        )}
+        {errors.email && <p id="email-error" className="text-sm text-destructive dark:text-[#ff9b8f]">{errors.email.message}</p>}
       </div>
 
-      <div className="space-y-2">
+      <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
-          <Label htmlFor="password">Senha</Label>
-          <Link href="/recuperar-senha" className="text-sm font-medium text-primary underline-offset-4 hover:underline">
-            Esqueci minha senha
-          </Link>
+          <label htmlFor="password" className={LABEL}>Senha</label>
+          <Link href="/recuperar-senha" className={LINK}>Esqueci minha senha</Link>
         </div>
         <div className="relative">
-          <Input
+          <input
             id="password"
             type={showPassword ? 'text' : 'password'}
             autoComplete="current-password"
+            placeholder="••••••••"
             aria-invalid={Boolean(errors.password)}
             aria-describedby={errors.password ? 'password-error' : undefined}
-            className="h-11 pr-11"
+            className={cn(FIELD, 'pr-12')}
             {...form.register('password')}
           />
           <button
@@ -89,29 +87,37 @@ export function LoginForm({ next }: { next?: string }) {
             onClick={() => setShowPassword((v) => !v)}
             aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
             aria-pressed={showPassword}
-            className="absolute inset-y-0 right-0 grid w-11 place-items-center rounded-r-md text-muted-foreground hover:text-foreground focus-visible:outline-2"
+            className="absolute top-0.5 right-0.5 grid size-11 place-items-center rounded-[10px] text-[#5b6a60] hover:text-[#17241b] focus-visible:outline-2 focus-visible:outline-[#6cc56f] dark:text-[#9fb2a4] dark:hover:text-[#eef3ee]"
           >
-            {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+            {showPassword ? <EyeOff className="size-[18px]" /> : <Eye className="size-[18px]" />}
           </button>
         </div>
-        {errors.password && (
-          <p id="password-error" className="text-sm text-destructive">
-            {errors.password.message}
-          </p>
-        )}
+        {errors.password && <p id="password-error" className="text-sm text-destructive dark:text-[#ff9b8f]">{errors.password.message}</p>}
       </div>
+
+      <label className="flex min-h-7 cursor-pointer items-center gap-2.5 text-sm text-[#4b5d52] dark:text-[#b7c7bb]">
+        <input type="checkbox" className="size-[18px] accent-[#6cc56f]" {...form.register('remember')} />
+        Lembrar de mim neste dispositivo
+      </label>
 
       <input type="hidden" {...form.register('next')} />
 
-      <Button type="submit" size="lg" className="h-11 w-full text-base" disabled={pending} aria-busy={pending}>
+      <button
+        type="submit"
+        disabled={pending}
+        aria-busy={pending}
+        className="inline-flex h-[50px] items-center justify-center gap-2 rounded-xl bg-[#6cc56f] text-base font-bold text-[#0b1f10] transition-colors hover:bg-[#7fd483] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7fd483] disabled:opacity-70"
+      >
         {pending ? (
           <>
-            <Loader2 className="size-4 animate-spin" /> Entrando…
+            <Loader2 className="size-4 animate-spin" aria-hidden="true" /> Entrando…
           </>
         ) : (
-          'Entrar'
+          <>
+            Entrar <ArrowRight className="size-[18px]" strokeWidth={2.2} aria-hidden="true" />
+          </>
         )}
-      </Button>
+      </button>
     </form>
   );
 }

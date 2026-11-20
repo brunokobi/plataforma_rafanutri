@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { ACCESS_COOKIE, REFRESH_COOKIE, clearedCookies, sessionCookies, type TokenSet } from '@/lib/auth/cookies';
+import { ACCESS_COOKIE, REFRESH_COOKIE, TRANSIENT_COOKIE, clearedCookies, sessionCookies, type TokenSet } from '@/lib/auth/cookies';
 
 const DIRECTUS_URL = process.env.DIRECTUS_URL || 'https://rafanutri-api.brunokobi.tech';
 
@@ -32,7 +32,8 @@ export async function proxy(request: NextRequest) {
   const refreshToken = request.cookies.get(REFRESH_COOKIE)?.value;
   if (!hasSession && refreshToken && (isProtected || isLogin)) {
     const tokens = await refresh(refreshToken);
-    cookiesToSet = tokens ? sessionCookies(tokens) : clearedCookies();
+    // sessão só deste navegador continua sem prazo depois da renovação
+    cookiesToSet = tokens ? sessionCookies(tokens, !request.cookies.has(TRANSIENT_COOKIE)) : clearedCookies();
     hasSession = Boolean(tokens?.access_token);
     for (const c of cookiesToSet) request.cookies.set(c.name, c.value);
   }

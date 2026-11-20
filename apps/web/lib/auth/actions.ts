@@ -21,7 +21,7 @@ export async function signIn(input: LoginInput): Promise<SignInResult> {
     return { ok: false, message: 'Revise os campos destacados.', fieldErrors };
   }
 
-  const { email, password, next } = parsed.data;
+  const { email, password, next, remember } = parsed.data;
   let tokens;
   try {
     tokens = await directus().request(login({ email: email.toLowerCase(), password }, { mode: 'json' }));
@@ -38,7 +38,7 @@ export async function signIn(input: LoginInput): Promise<SignInResult> {
   }
 
   const store = await cookies();
-  for (const c of sessionCookies(tokens)) store.set(c.name, c.value, c.options);
+  for (const c of sessionCookies(tokens, remember !== false)) store.set(c.name, c.value, c.options);
   redirect(safeRedirect(next));
 }
 

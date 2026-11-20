@@ -38,7 +38,19 @@ describe('LoginForm', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Entrar' }));
     });
     expect(await screen.findByText('E-mail ou senha incorretos.')).toBeTruthy();
-    expect(signIn).toHaveBeenCalledWith({ email: 'ana@consultorio.com.br', password: 'errada', next: '/app' });
+    expect(signIn).toHaveBeenCalledWith({ email: 'ana@consultorio.com.br', password: 'errada', next: '/app', remember: true });
+  });
+
+  it('envia "Lembrar de mim" desmarcado', async () => {
+    signIn.mockResolvedValue({ ok: false, message: 'E-mail ou senha incorretos.' });
+    render(<LoginForm />);
+    fireEvent.change(screen.getByLabelText('E-mail'), { target: { value: 'ana@consultorio.com.br' } });
+    fireEvent.change(screen.getByLabelText('Senha'), { target: { value: 'x' } });
+    fireEvent.click(screen.getByLabelText('Lembrar de mim neste dispositivo'));
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Entrar' }));
+    });
+    expect(signIn).toHaveBeenCalledWith(expect.objectContaining({ remember: false }));
   });
 
   it('alterna a visibilidade da senha', () => {

@@ -42,6 +42,15 @@ describe('cookies de sessão', () => {
   it('limpa a sessão quando o Directus não devolve tokens', () => {
     const cookies = sessionCookies({ access_token: null, refresh_token: null, expires: null });
     expect(cookies.every((c) => c.value === '' && c.options.maxAge === 0)).toBe(true);
-    expect(clearedCookies()).toHaveLength(2);
+    expect(clearedCookies()).toHaveLength(3);
+  });
+  it('sem "Lembrar de mim": refresh e marca rn_tmp sem prazo (somem ao fechar o navegador)', () => {
+    const [access, refresh, tmp] = sessionCookies({ access_token: 'a', refresh_token: 'r', expires: 900_000 }, false);
+    expect(access!.options.maxAge).toBe(890);
+    expect(refresh!.options.maxAge).toBeUndefined();
+    expect(tmp).toMatchObject({ name: 'rn_tmp', value: '1' });
+    expect(tmp!.options.maxAge).toBeUndefined();
+    const persistent = sessionCookies({ access_token: 'a', refresh_token: 'r', expires: 900_000 });
+    expect(persistent[2]).toMatchObject({ name: 'rn_tmp', value: '', options: { maxAge: 0 } });
   });
 });
