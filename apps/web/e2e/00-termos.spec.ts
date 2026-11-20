@@ -23,7 +23,7 @@ test('aceite dos termos pela conta profissional', async ({ page }) => {
   await page.getByRole('button', { name: 'Entrar' }).click();
   await expect(page).toHaveURL(/\/app$/, { timeout: 20_000 });
   const dialog = page.getByRole('dialog', { name: /Antes de continuar|Atualizamos nossos documentos/ });
-  if (await dialog.isVisible().catch(() => false)) {
+  if (await dialog.waitFor({ state: 'visible', timeout: 8000 }).then(() => true, () => false)) {
     await expect(dialog.getByRole('link', { name: 'Termos de Uso para Profissionais' })).toBeVisible();
     await expect(dialog.getByRole('button', { name: 'Aceitar e continuar' })).toBeDisabled();
     await dialog.getByRole('checkbox').check();

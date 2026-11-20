@@ -204,7 +204,7 @@ O que está feito e o que falta: [docs/plano/progresso.md](docs/plano/progresso.
 | `pnpm test` | Testes unitários e de componente (Vitest + Testing Library) |
 | `pnpm test:e2e` | Testes end-to-end (Playwright). Com `E2E_USER_EMAIL` e `E2E_USER_PASSWORD` (usuário de teste com consultório) roda também o login real e o fluxo completo de consulta; `E2E_BASE_URL=https://rafanutri.brunokobi.tech` testa a produção (um navegador por vez, por causa do limite de requisições do Directus). No WSL Ubuntu 20.04, instale o navegador com `PLAYWRIGHT_HOST_PLATFORM_OVERRIDE=ubuntu22.04-x64 npx playwright install chromium` e use a mesma variável ao rodar |
 | `node --test db/tests/extension-foods.test.mjs` | Regras puras da extensão (conversão do rótulo, composição da preparação) |
-| `db/scripts/isolation-test.sh` | Isolamento entre consultórios pela API em produção (98 verificações; sem token de admin, limpa pelo banco via SSH). No CI: workflow `isolation.yml`, semanal, com o secret `ISOLATION_SSH_KEY` |
+| `db/scripts/isolation-test.sh` | Isolamento entre consultórios pela API em produção (99 verificações; sem token de admin, limpa pelo banco via SSH). No CI: workflow `isolation.yml`, semanal, com o secret `ISOLATION_SSH_KEY` |
 
 ## Deploy
 
@@ -223,6 +223,7 @@ A lista completa, sem valores reais, fica nos arquivos `.env.example`. Principai
 |---|---|---|
 | `DIRECTUS_URL` | Servidor do app web | URL da API do Directus (`https://rafanutri-api.brunokobi.tech`) |
 | `NEXT_PUBLIC_SITE_URL` | App web (build e execução) | URL pública do app (`https://rafanutri.brunokobi.tech`) |
+| `NEXT_PUBLIC_LEGAL_NAME`, `NEXT_PUBLIC_LEGAL_CNPJ`, `NEXT_PUBLIC_LEGAL_EMAIL`, `NEXT_PUBLIC_LEGAL_DPO` | App web (build) | Razão social, CNPJ, e-mail de contato e encarregado de dados mostrados nos Termos e na Política de Privacidade (opcionais; sem eles, os textos apontam para o botão Feedback) |
 | `SIGNUP_OPEN` | Servidor do app web | `true` libera o cadastro e o onboarding no Directus; padrão `false` (pré-lançamento) |
 | `KEY` / `SECRET` | Directus | Chaves da instância |
 | `LICENSE_KEY` | Directus | Licença Open Innovation Grant (libera permissões com filtro) |
