@@ -602,7 +602,7 @@ Referências: ANVISA RDC nº 429/2020 e IN nº 75/2020. Todos os valores abaixo 
 - **Depende de:** RN-057, RN-121
 - **Descrição:** Planos Enterprise cobrados por unidade, com limite de unidades ativas e recursos por plano.
 - **Tarefas técnicas:**
-  - [x] Cadastro de contrato (unidades, preço, vigência, recursos) (pelo admin no banco; o owner vê em `/app/uan/contrato`)
+  - [x] Cadastro de contrato (unidades, preço, vigência, recursos) — pelo admin em `/app/admin`; o owner vê em `/app/uan/contrato`
   - [x] Bloqueio ao exceder o nº de unidades contratadas
   - [ ] Cobrança recorrente por fatura (boleto/Pix) no gateway — tabela de faturas pronta (0054); falta integrar o gateway
   - [x] Tela de faturamento Enterprise

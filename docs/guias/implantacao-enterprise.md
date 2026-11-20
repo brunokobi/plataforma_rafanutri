@@ -6,15 +6,16 @@ painel do Directus. O que depende do admin da Rafanutri está marcado **(admin)*
 ## 1. Contrato e módulo (admin)
 
 1. A empresa cria a conta e o consultório (`/onboarding`) com o tipo "empresa".
-2. **(admin)** Habilitar o módulo e o contrato por SQL na vpsrafa:
-   ```sql
-   update organizations set modules = array_append(modules, 'uan') where id = '<empresa>' and not 'uan' = any(modules);
-   insert into organization_contracts (organization_id, plan, units_contracted, monthly_price_cents, starts_at, ends_at, billing_method)
-   values ('<empresa>', 'uan_quality', 3, 49900, current_date, null, 'boleto');
-   ```
-   Sem contrato a empresa fica no piloto (1 unidade). Contrato encerrado deixa a UAN em modo leitura por 90 dias.
-3. **(admin)** Faturas, até integrar o gateway: `insert into contract_invoices (contract_id, period_start, period_end, amount_cents, due_on, payment_url) values (...)`.
-   O owner acompanha em **UAN › contrato**.
+2. **(admin)** Em **/app/admin** (só o administrador da plataforma: a conta admin do Directus ou quem estiver em
+   `platform_admins`), abrir a empresa e:
+   - **Ligar módulo** UAN;
+   - **Novo contrato**: plano, unidades, mensalidade, início, fim (opcional) e forma de cobrança;
+   - **Emitir fatura** por período, com vencimento e link de pagamento (boleto/Pix gerado fora, até integrar o
+     gateway); **Dar baixa** quando pago ou **Cancelar**;
+   - **Encerrar** o contrato na data de fim (a UAN fica em modo leitura por 90 dias).
+   Sem contrato a empresa fica no piloto (1 unidade). O owner acompanha em **UAN › contrato**.
+3. Para dar acesso de admin a outra pessoa sem torná-la admin do Directus:
+   `insert into platform_admins (user_id, note) values ('<id da conta>', 'motivo');`
 
 ## 2. Unidades e equipe
 

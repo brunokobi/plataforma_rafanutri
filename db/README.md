@@ -679,6 +679,10 @@ Sem migração: `POST /rafanutri/uan/organizations/:id/import/suppliers|ingredie
 
 Sem migração: `GET /rafanutri/uan/organizations/:id/network?month=AAAA-MM` (owner: todas as unidades ativas; gestor e RT: as suas) e `GET /rafanutri/uan/units/:id/monthly?month=` (owner, gestor, RT, auditor). Custo realizado = retiradas `out_production` × custo do lote (ou preço vigente por kg); refeições de `diner_counts`; sobra e resto de `waste_records`; satisfação de `satisfaction_responses`; conformidade de `uan_compliance`.
 
+## Administrador da plataforma (RN-124)
+
+Migração `0056_platform_admins.sql` (**aplicada na vpsrafa em 20/11/2026**, backup `antes-0056-2026-11-20.dump`; testes em `db/tests/0056_platform_admins.test.sql`): `platform_admins (user_id)` (vazia; inclusão só por SQL) e `is_platform_admin(usuário)` = listado ali ou com política `admin_access` do Directus. Endpoints `/rafanutri/admin/*` (`me`, `uan/organizations`, `uan/organizations/:id`, `…/module`, `…/contracts`, `uan/contracts/:id` PATCH, `…/invoices`, `uan/invoices/:id` PATCH) respondem 404 para quem não é admin. Tela em `/app/admin`.
+
 ## Feedback do beta (RN-047)
 
 Migração `0032_feedback.sql` (**aplicada na vpsrafa em 14/11/2026**; testes em `db/tests/0032_feedback.test.sql`): `product_feedback` (consultório, autor, tipo `bug`/`idea`/`praise`/`other`, mensagem de 3 a 2.000 caracteres, caminho da página sem query string, status `new`/`read`/`done`). Gravado só por `POST /rafanutri/feedback` (qualquer conta logada, até 20 por dia); nenhum papel lê a coleção: o admin da plataforma consulta no Directus ou por SQL. Sem print de tela, porque a tela costuma ter dados de pacientes. O e2e grava mensagens com o prefixo `[e2e]`:
