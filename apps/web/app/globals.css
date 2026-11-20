@@ -122,3 +122,37 @@
 .bg-grain {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.35'/%3E%3C/svg%3E");
 }
+
+/* ── Tela de login: animações (todas desligadas com prefers-reduced-motion) ───────────────── */
+@keyframes rn-rise { from { opacity: 0; transform: translateY(18px) scale(.98); } to { opacity: 1; transform: none; } }
+@keyframes rn-spin-slow { to { transform: rotate(360deg); } }
+@keyframes rn-float { 0%, 100% { transform: translate3d(0, 0, 0) rotate(var(--r, 0deg)); } 50% { transform: translate3d(var(--dx, 10px), -22px, 0) rotate(calc(var(--r, 0deg) + 25deg)); } }
+@keyframes rn-pulse-ring { 0% { r: 4.5; opacity: .7; } 100% { r: 14; opacity: 0; } }
+@keyframes rn-draw { from { stroke-dashoffset: var(--len, 260); } to { stroke-dashoffset: 0; } }
+@keyframes rn-shine { 0% { transform: translateX(-120%) skewX(-20deg); } 60%, 100% { transform: translateX(260%) skewX(-20deg); } }
+@keyframes rn-blink { 50% { opacity: 0; } }
+@keyframes rn-twinkle { 0%, 100% { transform: scale(1) rotate(0); } 50% { transform: scale(1.18) rotate(12deg); } }
+@keyframes rn-dot { 0%, 100% { opacity: .35; } 50% { opacity: 1; } }
+
+.rn-rise { opacity: 0; animation: rn-rise .7s cubic-bezier(.2, .8, .2, 1) forwards; animation-delay: var(--d, 0ms); }
+.rn-spin-slow { animation: rn-spin-slow 48s linear infinite; transform-origin: 50% 50%; }
+.rn-float { animation: rn-float var(--t, 9s) ease-in-out infinite; animation-delay: var(--d, 0s); }
+.rn-draw { stroke-dasharray: var(--len, 260); animation: rn-draw 1.6s cubic-bezier(.4, 0, .2, 1) forwards; animation-delay: var(--d, 0ms); stroke-dashoffset: var(--len, 260); }
+.rn-pulse-ring { animation: rn-pulse-ring 1.8s ease-out infinite; transform-box: fill-box; }
+.rn-shine { position: relative; overflow: hidden; }
+.rn-shine::after { content: ''; position: absolute; inset: 0; width: 40%; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .35), transparent); animation: rn-shine 3.6s ease-in-out infinite; animation-delay: var(--d, 1.2s); pointer-events: none; }
+.rn-caret { display: inline-block; width: 2px; height: 1em; margin-left: 2px; vertical-align: -2px; background: currentColor; animation: rn-blink 1s steps(1) infinite; }
+.rn-twinkle { animation: rn-twinkle 2.4s ease-in-out infinite; }
+.rn-live-dot { animation: rn-dot 1.6s ease-in-out infinite; }
+/* Cartão com brilho que segue o mouse (--mx/--my vêm do JS) e leve inclinação 3D */
+.rn-card { position: relative; transform: perspective(900px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) translateY(var(--ty, 0)); transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease; will-change: transform; }
+.rn-card::before { content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: var(--glow, 0); transition: opacity .3s ease; background: radial-gradient(380px circle at var(--mx, 50%) var(--my, 50%), rgba(166, 230, 168, .16), transparent 45%); }
+.rn-card:hover { --ty: -4px; box-shadow: 0 18px 40px -18px rgba(0, 0, 0, .55); }
+
+@media (prefers-reduced-motion: reduce) {
+  .rn-rise, .rn-draw { animation: none; opacity: 1; stroke-dashoffset: 0; }
+  .rn-spin-slow, .rn-float, .rn-pulse-ring, .rn-twinkle, .rn-live-dot, .rn-caret { animation: none; }
+  .rn-shine::after { display: none; }
+  .rn-card { transform: none; transition: none; }
+  .rn-card:hover { --ty: 0; }
+}

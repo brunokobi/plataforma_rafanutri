@@ -106,7 +106,7 @@ export function LoginForm({ next, emailPlaceholder = 'voce@consultorio.com.br' }
         type="submit"
         disabled={pending}
         aria-busy={pending}
-        className="inline-flex h-[50px] items-center justify-center gap-2 rounded-[12px] bg-[#6cc56f] text-base font-bold text-[#0b1f10] transition-colors hover:bg-[#7fd483] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7fd483] disabled:opacity-70"
+        className="group relative inline-flex h-[50px] items-center justify-center gap-2 overflow-hidden rounded-[12px] bg-[#6cc56f] text-base font-bold text-[#0b1f10] shadow-[0_10px_24px_-12px_rgba(108,197,111,.9)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#7fd483] hover:shadow-[0_16px_30px_-12px_rgba(108,197,111,1)] active:translate-y-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7fd483] disabled:opacity-70 motion-reduce:transition-none motion-reduce:hover:translate-y-0"
       >
         {pending ? (
           <>
@@ -114,7 +114,9 @@ export function LoginForm({ next, emailPlaceholder = 'voce@consultorio.com.br' }
           </>
         ) : (
           <>
-            Entrar <ArrowRight className="size-[18px]" strokeWidth={2.2} aria-hidden="true" />
+            {/* reflexo que passa pelo botão ao passar o mouse */}
+            <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 -left-1/3 w-1/3 -skew-x-12 bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-0 transition-all duration-700 group-hover:left-[110%] group-hover:opacity-100 motion-reduce:hidden" />
+            Entrar <ArrowRight className="size-[18px] transition-transform duration-200 group-hover:translate-x-1" strokeWidth={2.2} aria-hidden="true" />
           </>
         )}
       </button>
