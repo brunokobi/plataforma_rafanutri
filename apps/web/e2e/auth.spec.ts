@@ -24,13 +24,13 @@ test('senha errada mostra mensagem neutra', async ({ page }) => {
 
 test('com prefers-reduced-motion a cena fica estática', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  await page.goto('/login');
+  await page.goto('/cadastro'); // a cena animada ficou só no cadastro (o login tem a vitrine das áreas)
   await expect(page.getByTestId('parallax-scene')).toHaveAttribute('data-reduced-motion', 'true');
 });
 
 test('sem prefers-reduced-motion a cena é animada', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'no-preference' });
-  await page.goto('/login');
+  await page.goto('/cadastro'); // a cena animada ficou só no cadastro (o login tem a vitrine das áreas)
   await expect(page.getByTestId('parallax-scene')).toHaveAttribute('data-reduced-motion', 'false');
 });
 
