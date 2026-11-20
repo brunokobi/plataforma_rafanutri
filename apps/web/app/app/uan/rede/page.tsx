@@ -51,6 +51,7 @@ export default async function NetworkPage({ searchParams }: { searchParams: Prom
               <div className="rounded-2xl border border-border bg-card p-4"><p className="text-xs text-muted-foreground">Refeições servidas</p><p className="mt-1 text-xl font-semibold">{int(d.totals.meals_served)}</p><p className="text-xs text-muted-foreground">previstas: {int(d.totals.meals_planned)}</p></div>
               <div className="rounded-2xl border border-border bg-card p-4"><p className="text-xs text-muted-foreground">Custo por refeição</p><p className="mt-1 text-xl font-semibold" aria-label="Custo por refeição da rede">{d.totals.cost_per_meal_cents === null ? '—' : brl(d.totals.cost_per_meal_cents)}</p></div>
             </section>
+            {d.units.length === 0 ? <p className="text-sm text-muted-foreground">Nenhuma unidade ativa na empresa.</p> : (
             <div className="overflow-x-auto rounded-2xl border border-border bg-card">
               <table className="w-full min-w-[60rem] text-sm" aria-label="Indicadores por unidade">
                 <thead>
@@ -78,6 +79,7 @@ export default async function NetworkPage({ searchParams }: { searchParams: Prom
                 </tbody>
               </table>
             </div>
+            )}
             <p className="text-xs text-muted-foreground">Custo realizado = retiradas do estoque para produção, pelo custo do lote (ou pelo preço vigente). Sobra = sobra limpa ÷ produzido; resto-ingesta = resto ÷ (produzido − sobra). Conformidade dos últimos dias do período.</p>
           </>
         )}

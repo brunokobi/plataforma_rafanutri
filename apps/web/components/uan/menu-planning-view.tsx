@@ -81,7 +81,7 @@ export function MenuPlanningView({ data }: { data: MenuPlanningOrg }) {
   const [rule, setRule] = useState<Record<'kind' | 'ingredient_id' | 'sheet_category' | 'slot' | 'service' | 'max_count' | 'cost' | 'profile_id' | 'note', string>>({ kind: 'vetoed_ingredient', ingredient_id: '', sheet_category: 'main', slot: 'salad', service: '', max_count: '2', cost: '', profile_id: '', note: '' });
   const [msg, setMsg] = useState<Msg>(null);
   const [pending, startTransition] = useTransition();
-  const mine = data.profiles.filter((p) => !p.platform);
+  const mine = data.profiles.filter((p) => !p.platform).sort((a, b) => Number(b.active) - Number(a.active));
   const platform = data.profiles.filter((p) => p.platform);
   const run = (fn: () => Promise<{ ok: boolean; message?: string; id?: string }>, done: string, after?: (id?: string) => void) =>
     startTransition(async () => {

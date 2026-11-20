@@ -5656,7 +5656,7 @@ export default {
       let q = database('production_units').where({ organization_id: org.id, active: true }).orderBy('name');
       if (!org.is_owner) q = q.whereIn('id', database('unit_members').where('user_id', user).whereIn('role', ['manager', 'technical_lead']).select('unit_id'));
       const units = await q.select('id', 'name', 'kind');
-      if (!units.length) return res.status(403).json({ errors: [{ message: 'Só o responsável, o gestor ou o RT veem o painel da rede.', extensions: { code: 'FORBIDDEN' } }] });
+      if (!units.length && !org.is_owner) return res.status(403).json({ errors: [{ message: 'Só o responsável, o gestor ou o RT veem o painel da rede.', extensions: { code: 'FORBIDDEN' } }] });
       const p = monthRange(req.query.month);
       const rows = [];
       for (const u of units) rows.push({ ...u, ...(await unitMonthStats(u.id, p.from, p.to)) });

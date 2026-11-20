@@ -55,7 +55,7 @@ export default async function ContractPage({ searchParams }: { searchParams: Pro
                   {d.contracts.map((c) => (
                     <li key={c.id} className="flex flex-wrap justify-between gap-2 p-3">
                       <span>Plano {PLAN_LABEL[c.plan] ?? c.plan} · {c.units_contracted} unidade(s) · {brl(c.monthly_price_cents)}/mês · {BILLING[c.billing_method] ?? c.billing_method}</span>
-                      <span className="text-muted-foreground">{day(c.starts_at)} a {c.ends_at ? day(c.ends_at) : 'sem prazo'}</span>
+                      <span className="text-muted-foreground">{c.ends_at ? `${day(c.starts_at)} a ${day(c.ends_at)}` : `desde ${day(c.starts_at)}, sem prazo`}</span>
                     </li>
                   ))}
                 </ul>
