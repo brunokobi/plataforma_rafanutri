@@ -107,7 +107,7 @@ function Showcase() {
               <p className="text-[13px] text-[#4b5d52]">Sugestões que aceleram a prescrição</p>
             </div>
           </div>
-          <div className="rounded-xl border border-[#e3e9df] bg-white px-3.5 py-3 text-[13px] leading-[1.45]">
+          <div className="rounded-[12px] border border-[#e3e9df] bg-white px-3.5 py-3 text-[13px] leading-[1.45]">
             <strong>Substituição sugerida:</strong> 4 col. de arroz ↔ 2 escumadeiras de macarrão
           </div>
         </article>
@@ -133,7 +133,7 @@ function Showcase() {
         </article>
       </div>
 
-      <div className="inline-flex items-center gap-3 self-start rounded-2xl border border-[#22603a] bg-[#0a2814] py-2.5 pr-4 pl-2.5">
+      <div className="inline-flex items-center gap-3 self-start rounded-[16px] border border-[#22603a] bg-[#0a2814] py-2.5 pr-4 pl-2.5">
         <span className={cn(ICON, 'bg-[#f2a65a] text-[#17241b]')}><Check aria-hidden="true" /></span>
         <div>
           <p className="text-sm font-bold text-white">Até 20 pacientes grátis</p>
@@ -158,7 +158,7 @@ export function LoginScreen({ next }: { next?: string }) {
       <main className="flex min-w-0 flex-[1_1_440px] flex-col gap-6 px-5 py-5 sm:px-12 sm:py-8">
         <header className="flex items-center justify-between">
           <Logo />
-          <ThemeToggle className="size-11 rounded-xl border border-[#d9e1d6] dark:border-[#1f2b23]" />
+          <ThemeToggle className="size-11 rounded-[12px] border border-[#d9e1d6] dark:border-[#1f2b23]" />
         </header>
 
         <div className="flex flex-1 items-center justify-center py-6">

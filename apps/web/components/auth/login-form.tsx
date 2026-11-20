@@ -11,7 +11,7 @@ import { loginSchema, type LoginInput } from '@/lib/validation/login';
 
 // Campos no padrão da tela de login (escuro do desenho; versão clara no tema claro).
 const FIELD =
-  'h-12 w-full rounded-xl border border-[#d9e1d6] bg-white px-3.5 text-[15px] text-[#17241b] placeholder:text-[#8a9a8e] focus:border-[#6cc56f] focus:outline-none focus:ring-[3px] focus:ring-[#6cc56f]/25 dark:border-[#263429] dark:bg-[#121c15] dark:text-[#eef3ee] dark:placeholder:text-[#6f8576] aria-[invalid=true]:border-destructive';
+  'h-12 w-full rounded-[12px] border border-[#d9e1d6] bg-white px-3.5 text-[15px] text-[#17241b] placeholder:text-[#8a9a8e] focus:border-[#6cc56f] focus:outline-none focus:ring-[3px] focus:ring-[#6cc56f]/25 dark:border-[#263429] dark:bg-[#121c15] dark:text-[#eef3ee] dark:placeholder:text-[#6f8576] aria-[invalid=true]:border-destructive';
 const LABEL = 'text-sm font-semibold text-[#17241b] dark:text-[#eef3ee]';
 const LINK = 'text-sm font-semibold text-[#2f7a3d] hover:text-[#1f5a2a] dark:text-[#7fd483] dark:hover:text-[#a6e6a8]';
 
@@ -44,7 +44,7 @@ export function LoginForm({ next, emailPlaceholder = 'voce@consultorio.com.br' }
   return (
     <form onSubmit={onSubmit} noValidate className="flex flex-col gap-[18px]" aria-describedby={serverError ? 'login-error' : undefined}>
       {serverError && (
-        <div role="alert" id="login-error" className="flex items-start gap-2 rounded-xl border border-destructive/50 bg-destructive/10 px-3.5 py-3 text-sm text-destructive dark:text-[#ff9b8f]">
+        <div role="alert" id="login-error" className="flex items-start gap-2 rounded-[12px] border border-destructive/50 bg-destructive/10 px-3.5 py-3 text-sm text-destructive dark:text-[#ff9b8f]">
           <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
           <span>{serverError}</span>
         </div>
@@ -106,7 +106,7 @@ export function LoginForm({ next, emailPlaceholder = 'voce@consultorio.com.br' }
         type="submit"
         disabled={pending}
         aria-busy={pending}
-        className="inline-flex h-[50px] items-center justify-center gap-2 rounded-xl bg-[#6cc56f] text-base font-bold text-[#0b1f10] transition-colors hover:bg-[#7fd483] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7fd483] disabled:opacity-70"
+        className="inline-flex h-[50px] items-center justify-center gap-2 rounded-[12px] bg-[#6cc56f] text-base font-bold text-[#0b1f10] transition-colors hover:bg-[#7fd483] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7fd483] disabled:opacity-70"
       >
         {pending ? (
           <>
