@@ -1,12 +1,9 @@
 import type { Metadata } from 'next';
-import { SimplePage } from '@/components/layout/simple-page';
+import { LegalPage } from '@/components/legal/legal-page';
+import { PrivacyPolicy } from '@/components/legal/legal-texts';
 
-export const metadata: Metadata = { title: 'Política de privacidade' };
+export const metadata: Metadata = { title: 'Política de Privacidade', description: 'Como a Rafanutri trata os dados pessoais (LGPD).' };
 
 export default function PrivacyPage() {
-  return (
-    <SimplePage title="Política de privacidade">
-      <p>A política de privacidade da Rafanutri está em elaboração e será publicada antes da abertura do cadastro.</p>
-    </SimplePage>
-  );
+  return <LegalPage doc="privacy"><PrivacyPolicy /></LegalPage>;
 }

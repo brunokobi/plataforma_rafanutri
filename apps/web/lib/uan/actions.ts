@@ -156,15 +156,16 @@ export type StaffSignupResult = { ok: false; message: string; fields?: Record<st
 /** Cria a conta pelo convite, entra e abre a unidade. */
 export async function acceptUnitInviteWithSignup(
   token: string,
-  input: { full_name: string; email: string; password: string; confirm: string },
+  input: { full_name: string; email: string; password: string; confirm: string; accept_terms?: boolean },
 ): Promise<StaffSignupResult | undefined> {
   if (!isToken(token)) return { ok: false, message: 'Convite inválido.' };
+  if (!input.accept_terms) return { ok: false, message: 'Para continuar, aceite os Termos de Uso e a Política de Privacidade.' };
   const fields = validateStaffSignup(input);
   if (Object.keys(fields).length) return { ok: false, message: 'Revise os campos destacados.', fields };
   const email = input.email.trim().toLowerCase();
   let unitId: string;
   try {
-    const r = await call('/public/unit-invites/accept', 'POST', { token, full_name: input.full_name, email, password: input.password }, false);
+    const r = await call('/public/unit-invites/accept', 'POST', { token, full_name: input.full_name, email, password: input.password, accept_terms: true }, false);
     if (r.status === 409 && r.json?.errors?.[0]?.extensions?.code === 'ACCOUNT_EXISTS') {
       return { ok: false, message: errMsg(r, 'Já existe uma conta com este e-mail.'), accountExists: true };
     }

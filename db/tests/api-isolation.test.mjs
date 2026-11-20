@@ -510,10 +510,13 @@ try {
     assert.equal((await api(`/rafanutri/patients/${patientA}/app-invite`, { token: a.token, method: 'POST', body: { email: patientEmail } })).status, 409, 'arquivado não recebe convite');
     const inv = await api(`/rafanutri/patients/${pid}/app-invite`, { token: a.token, method: 'POST', body: { email: patientEmail } });
     assert.equal(inv.status, 201, JSON.stringify(inv.json));
-    const acc = await api('/rafanutri/public/patient-invites/accept', { method: 'POST', body: { token: inv.json.data.token, password: 'Senha-isolamento-1' } });
+    assert.equal((await api('/rafanutri/public/patient-invites/accept', { method: 'POST', body: { token: inv.json.data.token, password: 'Senha-isolamento-1' } })).status, 400, 'convite sem aceite dos termos');
+    const acc = await api('/rafanutri/public/patient-invites/accept', { method: 'POST', body: { token: inv.json.data.token, password: 'Senha-isolamento-1', accept_terms: true } });
     assert.equal(acc.status, 201);
     const login = await api('/auth/login', { method: 'POST', body: { email: patientEmail, password: 'Senha-isolamento-1' } });
     const pt = login.json.data.access_token;
+    const terms = (await api('/rafanutri/me/terms', { token: pt })).json.data;
+    assert.deepEqual(terms.accepted.map((t) => t.document).sort(), ['patient_terms', 'privacy'], 'aceite gravado no convite');
     const me = (await api('/rafanutri/me/patient', { token: pt })).json.data;
     assert.equal(me.patient_account, true);
     assert.deepEqual(me.records.map((r) => r.patient_id), [pid]);
@@ -610,7 +613,7 @@ try {
     assert.equal((await api(`/rafanutri/patients/${pid}/share`, { token: pt, method: 'PUT', body: { show_kcal: true, show_macros: true, show_weight_history: true } })).status, 404);
     assert.equal((await api(`/rafanutri/patients/${patientB}/share`, { token: a.token })).status, 404);
     assert.equal((await api(`/rafanutri/patients/${patientB}/preview`, { token: a.token })).status, 404);
-    assert.equal((await api('/rafanutri/public/patient-invites/accept', { method: 'POST', body: { token: inv.json.data.token, password: 'Senha-isolamento-2' } })).status, 410);
+    assert.equal((await api('/rafanutri/public/patient-invites/accept', { method: 'POST', body: { token: inv.json.data.token, password: 'Senha-isolamento-2', accept_terms: true } })).status, 410);
     // RN-213: a conta de paciente não lê nenhuma coleção pela API de itens (todas as tabelas do produto)
     const collections = ADMIN
       ? (await api('/collections?limit=-1', { token: ADMIN })).json.data.map((c) => c.collection).filter((c) => !c.startsWith('directus_'))
@@ -631,7 +634,7 @@ try {
     assert.equal(p2.status, 200, JSON.stringify(p2.json));
     const pid2 = p2.json.data.id;
     const inv2 = await api(`/rafanutri/patients/${pid2}/app-invite`, { token: a.token, method: 'POST', body: { email: email2 } });
-    assert.equal((await api('/rafanutri/public/patient-invites/accept', { method: 'POST', body: { token: inv2.json.data.token, password: 'Senha-isolamento-2b' } })).status, 201);
+    assert.equal((await api('/rafanutri/public/patient-invites/accept', { method: 'POST', body: { token: inv2.json.data.token, password: 'Senha-isolamento-2b', accept_terms: true } })).status, 201);
     const pt2 = (await api('/auth/login', { method: 'POST', body: { email: email2, password: 'Senha-isolamento-2b' } })).json.data.access_token;
     created.users.push((await api('/users/me?fields=id', { token: pt2 })).json.data.id);
     for (const [tok, other] of [[pt, pid2], [pt2, pid]]) {
@@ -799,7 +802,8 @@ try {
       const email = `isol-uan-${Date.now()}@example.com`;
       const password = `Senha-${Math.random().toString(36).slice(2)}A1`;
       assert.equal((await api('/rafanutri/public/unit-invites/accept', { method: 'POST', body: { token: inv.json.data.token, full_name: 'Estoquista Teste', email: 'x', password } })).status, 400);
-      const acc = await api('/rafanutri/public/unit-invites/accept', { method: 'POST', body: { token: inv.json.data.token, full_name: 'Estoquista Teste', email, password } });
+      assert.equal((await api('/rafanutri/public/unit-invites/accept', { method: 'POST', body: { token: inv.json.data.token, full_name: 'Estoquista Teste', email, password } })).status, 400, 'equipe sem aceite dos termos');
+      const acc = await api('/rafanutri/public/unit-invites/accept', { method: 'POST', body: { token: inv.json.data.token, full_name: 'Estoquista Teste', email, password, accept_terms: true } });
       assert.equal(acc.status, 201, JSON.stringify(acc.json));
       const login = await api('/auth/login', { method: 'POST', body: { email, password } });
       assert.equal(login.status, 200);
@@ -1371,6 +1375,17 @@ try {
         sql(`delete from platform_admins where user_id = '${uidA}';`);
       }
       assert.equal((await api('/rafanutri/admin/me', { token: a.token })).status, 404, 'acesso removido');
+    });
+    await check('Aceite dos termos: registra só a versão vigente, não se altera e cada um vê só o seu', async () => {
+      assert.equal((await api('/rafanutri/me/terms', { token: a.token, method: 'POST', body: { documents: ['nada'] } })).status, 400, 'documento inválido');
+      assert.equal((await api('/rafanutri/me/terms', { token: a.token, method: 'POST', body: { documents: ['professional_terms', 'privacy'] } })).status, 200);
+      assert.equal((await api('/rafanutri/me/terms', { token: a.token, method: 'POST', body: { documents: ['professional_terms'] } })).status, 200, 'repetir não duplica');
+      const mine = (await api('/rafanutri/me/terms', { token: a.token })).json.data;
+      assert.equal(mine.accepted.filter((t) => t.document === 'professional_terms').length, 1);
+      assert.equal(mine.accepted[0].version, mine.current.professional_terms, 'versão vigente');
+      const other = (await api('/rafanutri/me/terms', { token: b.token })).json.data;
+      assert.ok(!other.accepted.some((t) => t.document === 'professional_terms'), 'não vê o aceite de outra conta');
+      assert.ok((await api('/items/terms_acceptances?limit=1', { token: a.token })).status >= 400, 'coleção direta recusada');
     });
   } else {
     console.log('  (pulado) UAN entre unidades: defina ISOLATION_PSQL');

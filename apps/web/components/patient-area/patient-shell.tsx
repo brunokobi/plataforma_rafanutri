@@ -1,6 +1,7 @@
 import { ArrowLeftRight, LogOut } from 'lucide-react';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
+import { TermsGate } from '@/components/legal/terms-gate';
 import { Button } from '@/components/ui/button';
 import { signOut } from '@/lib/auth/actions';
 import { PatientBottomNav } from './patient-bottom-nav';
@@ -10,6 +11,7 @@ export function PatientShell({ practice, professional, canSwitch = false, childr
   const color = practice?.brand_color ?? undefined;
   return (
     <div className="min-h-dvh">
+      <TermsGate profile="patient" />
       <header className="border-b border-border/60" style={color ? { borderTop: `4px solid ${color}` } : undefined}>
         <div className="mx-auto flex max-w-2xl items-center justify-between gap-3 px-4 py-3">
           {practice?.has_logo && practice.id && (

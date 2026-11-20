@@ -59,6 +59,7 @@ test('convite e área do paciente', async ({ page, browser }) => {
       await pp.waitForLoadState('networkidle');
       await pp.getByLabel('Crie uma senha').fill(pwd);
       await pp.getByLabel('Repita a senha').fill(pwd);
+      await pp.getByRole('checkbox', { name: /Li e aceito os Termos de Uso/ }).check();
       await pp.getByRole('button', { name: /Criar acesso/ }).click();
       await expect(pp).toHaveURL(/\/p$/);
       await expect(pp.getByRole('heading', { level: 1, name: 'Olá, Paciente!' })).toBeVisible();

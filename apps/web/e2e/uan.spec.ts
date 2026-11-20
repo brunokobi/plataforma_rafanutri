@@ -60,6 +60,7 @@ test('unidade produtora da UAN e convite da equipe', async ({ page, browser }) =
     await staff.getByLabel('E-mail').fill(staffEmail);
     await staff.getByLabel('Crie uma senha').fill(staffPassword);
     await staff.getByLabel('Repita a senha').fill(staffPassword);
+    await staff.getByRole('checkbox', { name: /Li e aceito os Termos de Uso/ }).check();
     await staff.getByRole('button', { name: 'Criar acesso e entrar' }).click();
     const unitUrl = /\/app\/uan\/unidades\/[0-9a-f-]{36}$/;
     const exists = staff.getByRole('alert').filter({ hasText: 'Já existe uma conta' });

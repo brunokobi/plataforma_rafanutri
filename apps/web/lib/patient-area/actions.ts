@@ -167,13 +167,14 @@ export async function openInvite(token: string): Promise<{ ok: true; data: Invit
 }
 
 /** Primeiro acesso: cria a conta com a senha escolhida, entra e vai para a área do paciente. */
-export async function acceptInviteWithPassword(token: string, password: string, confirm: string): Promise<ActionResult> {
+export async function acceptInviteWithPassword(token: string, password: string, confirm: string, acceptTerms = false): Promise<ActionResult> {
   if (!isToken(token)) return { ok: false, message: 'Convite inválido.' };
+  if (!acceptTerms) return { ok: false, message: 'Para continuar, aceite os Termos de Uso e a Política de Privacidade.', field: 'terms' };
   if (password.length < 8) return { ok: false, message: 'A senha precisa ter pelo menos 8 caracteres.', field: 'password' };
   if (password !== confirm) return { ok: false, message: 'As senhas não conferem.', field: 'confirm' };
   let email: string;
   try {
-    const r = await call('/public/patient-invites/accept', 'POST', { token, password }, false);
+    const r = await call('/public/patient-invites/accept', 'POST', { token, password, accept_terms: true }, false);
     if (r.status === 409) return { ok: false, message: msg(r, 'Já existe uma conta com este e-mail.') };
     if (r.status === 410) return { ok: false, message: msg(r, 'Este convite não está mais disponível.') };
     if (r.status === 400) return { ok: false, message: 'A senha precisa ter de 8 a 128 caracteres.', field: 'password' };
@@ -193,10 +194,11 @@ export async function acceptInviteWithPassword(token: string, password: string, 
 }
 
 /** Conta de paciente já existente (outro nutricionista): aceita o convite estando logada. */
-export async function acceptInviteLoggedIn(token: string): Promise<ActionResult> {
+export async function acceptInviteLoggedIn(token: string, acceptTerms = false): Promise<ActionResult> {
   if (!isToken(token)) return { ok: false, message: 'Convite inválido.' };
+  if (!acceptTerms) return { ok: false, message: 'Para continuar, aceite os Termos de Uso e a Política de Privacidade.' };
   try {
-    const r = await call('/patient-invites/accept', 'POST', { token });
+    const r = await call('/patient-invites/accept', 'POST', { token, accept_terms: true });
     if (r.status === 200) {
       revalidatePath('/p');
       return { ok: true };

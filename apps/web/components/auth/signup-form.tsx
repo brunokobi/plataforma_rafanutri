@@ -167,7 +167,7 @@ export function SignupForm({ signupOpen }: { signupOpen: boolean }) {
           />
           <label htmlFor="accept_terms" className="text-sm leading-snug text-muted-foreground">
             Li e aceito os{' '}
-            <Link href="/termos" className="font-medium text-primary underline-offset-4 hover:underline">Termos de uso</Link> e a{' '}
+            <Link href="/termos" className="font-medium text-primary underline-offset-4 hover:underline">Termos de Uso</Link> e a{' '}
             <Link href="/privacidade" className="font-medium text-primary underline-offset-4 hover:underline">Política de privacidade</Link>.
           </label>
         </div>

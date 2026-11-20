@@ -1957,6 +1957,7 @@ export default {
       if (fullName.length < 2 || fullName.length > 120) errors.full_name = 'Informe seu nome.';
       if (!EMAIL.test(email) || email.length > 254) errors.email = 'Informe um e-mail válido.';
       if (password.length < 8 || password.length > 128) errors.password = 'A senha precisa ter de 8 a 128 caracteres.';
+      if (b.accept_terms !== true) errors.accept_terms = 'É preciso aceitar os Termos e a Política de Privacidade.';
       if (Object.keys(errors).length) return bad(res, errors);
       const inv = await pendingUnitInvite(b.token);
       if (!inv) return unitInviteGone(res);
@@ -1978,6 +1979,7 @@ export default {
           await users.deleteOne(userId);
           return unitInviteGone(res);
         }
+        await recordTerms(userId, ['professional_terms', 'privacy'], req);
         res.status(201).json({ data: { email, unit_id: unitId } });
       } catch (error) {
         if (userId) await database('directus_users').where({ id: userId }).del().catch(() => {});
@@ -6073,6 +6075,31 @@ export default {
       res.json({ data: { ok: true } });
     });
 
+    // ── Aceite dos documentos legais (0057) ─────────────────────────────────────────────────
+    // Versões vigentes: iguais a apps/web/lib/legal/info.ts (LEGAL_VERSIONS).
+    const LEGAL_VERSIONS = { professional_terms: '2026-11-20', patient_terms: '2026-11-20', privacy: '2026-11-20' };
+    async function recordTerms(userId, documents, req) {
+      const ua = typeof req.headers['user-agent'] === 'string' ? req.headers['user-agent'].slice(0, 300) : null;
+      const rows = documents.filter((d) => LEGAL_VERSIONS[d]).map((d) => ({ user_id: userId, document: d, version: LEGAL_VERSIONS[d], user_agent: ua }));
+      if (rows.length) await database('terms_acceptances').insert(rows).onConflict(['user_id', 'document', 'version']).ignore();
+    }
+
+    router.get('/me/terms', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const accepted = await database('terms_acceptances').where('user_id', user).orderBy('accepted_at', 'desc').select('document', 'version', 'accepted_at');
+      res.json({ data: { current: LEGAL_VERSIONS, accepted } });
+    });
+
+    router.post('/me/terms', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const docs = Array.isArray(req.body?.documents) ? [...new Set(req.body.documents)].filter((d) => LEGAL_VERSIONS[d]) : [];
+      if (!docs.length) return bad(res, { documents: 'Informe os documentos aceitos.' });
+      await recordTerms(user, docs, req);
+      res.json({ data: { ok: true } });
+    });
+
     // Público (sem login): abrir o convite e criar a conta
     router.post('/public/patient-invites/open', async (req, res) => {
       const inv = await pendingInvite(req.body?.token);
@@ -6099,6 +6126,7 @@ export default {
     router.post('/public/patient-invites/accept', async (req, res) => {
       const password = typeof req.body?.password === 'string' ? req.body.password : '';
       if (password.length < 8 || password.length > 128) return bad(res, { password: 'A senha precisa ter de 8 a 128 caracteres.' });
+      if (req.body?.accept_terms !== true) return bad(res, { accept_terms: 'É preciso aceitar os Termos e a Política de Privacidade.' });
       const inv = await pendingInvite(req.body?.token);
       if (!inv) return gone(res);
       if (await database('directus_users').whereRaw('lower(email) = ?', [inv.email]).first('id')) {
@@ -6112,6 +6140,7 @@ export default {
           await users.deleteOne(userId);
           return gone(res);
         }
+        await recordTerms(userId, ['patient_terms', 'privacy'], req);
         res.status(201).json({ data: { email: inv.email } });
       } catch (error) {
         logger.error({ err: error }, 'rafanutri: falha ao aceitar convite do paciente');
@@ -6130,6 +6159,7 @@ export default {
       if (me?.role !== PATIENT_ROLE || (await isProfessional(user))) return res.status(403).json({ errors: [{ message: 'Esta é uma conta de profissional. Entre com a conta de paciente.', extensions: { code: 'FORBIDDEN' } }] });
       if ((me.email ?? '').toLowerCase() !== inv.email) return res.status(403).json({ errors: [{ message: 'Este convite é para outro e-mail.', extensions: { code: 'EMAIL_MISMATCH' } }] });
       if (!(await linkInvite(inv, user))) return gone(res);
+      if (req.body?.accept_terms === true) await recordTerms(user, ['patient_terms', 'privacy'], req);
       res.json({ data: { ok: true } });
     });
 

@@ -1,12 +1,9 @@
 import type { Metadata } from 'next';
-import { SimplePage } from '@/components/layout/simple-page';
+import { LegalPage } from '@/components/legal/legal-page';
+import { ProfessionalTerms } from '@/components/legal/legal-texts';
 
-export const metadata: Metadata = { title: 'Termos de uso' };
+export const metadata: Metadata = { title: 'Termos de Uso para Profissionais', description: 'Contrato de uso da Rafanutri para nutricionistas, consultórios e empresas.' };
 
 export default function TermsPage() {
-  return (
-    <SimplePage title="Termos de uso">
-      <p>Os termos de uso da Rafanutri estão em elaboração e serão publicados antes da abertura do cadastro.</p>
-    </SimplePage>
-  );
+  return <LegalPage doc="professional_terms"><ProfessionalTerms /></LegalPage>;
 }

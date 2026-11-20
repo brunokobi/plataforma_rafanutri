@@ -11,11 +11,11 @@ import { acceptUnitInviteLoggedIn, acceptUnitInviteWithSignup } from '@/lib/uan/
 
 /** Primeiro acesso pela equipe: nome, e-mail e senha. */
 export function StaffSignupForm({ token, defaultName }: { token: string; defaultName?: string }) {
-  const [v, setV] = useState({ full_name: defaultName ?? '', email: '', password: '', confirm: '' });
+  const [v, setV] = useState({ full_name: defaultName ?? '', email: '', password: '', confirm: '', accept_terms: false });
   const [error, setError] = useState<{ message: string; fields?: Record<string, string>; accountExists?: boolean } | null>(null);
   const [pending, startTransition] = useTransition();
   const loginHref = `/login?next=${encodeURIComponent(`/uan/convite/${token}`)}`;
-  const field = (k: keyof typeof v, label: string, props: React.ComponentProps<typeof Input>) => (
+  const field = (k: 'full_name' | 'email' | 'password' | 'confirm', label: string, props: React.ComponentProps<typeof Input>) => (
     <div className="space-y-1.5">
       <Label htmlFor={`staff-${k}`}>{label}</Label>
       <Input
@@ -46,6 +46,10 @@ export function StaffSignupForm({ token, defaultName }: { token: string; default
         {field('email', 'E-mail', { type: 'email', autoComplete: 'username', maxLength: 254 })}
         {field('password', 'Crie uma senha', { type: 'password', autoComplete: 'new-password', minLength: 8 })}
         {field('confirm', 'Repita a senha', { type: 'password', autoComplete: 'new-password' })}
+        <label className="flex items-start gap-2.5 text-sm">
+          <input type="checkbox" className="mt-0.5 size-4 accent-primary" checked={v.accept_terms} onChange={(e) => setV({ ...v, accept_terms: e.target.checked })} />
+          <span>Li e aceito os <Link href="/termos" target="_blank" className="font-medium text-primary underline">Termos de Uso</Link> e a <Link href="/privacidade" target="_blank" className="font-medium text-primary underline">Política de Privacidade</Link>.</span>
+        </label>
         {error && (
           <p role="alert" className="text-sm text-destructive">
             {error.message}{' '}

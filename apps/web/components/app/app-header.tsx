@@ -1,6 +1,7 @@
 import { LogOut } from 'lucide-react';
 import { AppNav } from '@/components/app/app-nav';
 import { FeedbackButton } from '@/components/app/feedback-button';
+import { TermsGate } from '@/components/legal/terms-gate';
 import { Logo } from '@/components/brand/logo';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Button } from '@/components/ui/button';
@@ -9,6 +10,8 @@ import { signOut } from '@/lib/auth/actions';
 /** Cabeçalho da área logada. `withSignOut=false` nas pré-visualizações locais. */
 export function AppHeader({ homeHref = '/app', patientsHref = '/app/pacientes', withSignOut = true }: { homeHref?: string; patientsHref?: string; withSignOut?: boolean }) {
   return (
+    <>
+    {withSignOut && <TermsGate profile="professional" />}
     <header className="sticky top-0 z-30 border-b border-border/60 bg-background/80 backdrop-blur-lg">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:px-5">
         {/* Atalhos principais + "Mais" no computador; menu lateral abaixo de 1024 px. Nada fica escondido
@@ -30,5 +33,6 @@ export function AppHeader({ homeHref = '/app', patientsHref = '/app/pacientes', 
         </div>
       </div>
     </header>
+    </>
   );
 }

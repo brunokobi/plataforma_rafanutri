@@ -51,6 +51,11 @@ export async function signUp(input: SignupInput): Promise<ActionResult> {
   }
   const store = await cookies();
   for (const c of sessionCookies(tokens)) store.set(c.name, c.value, c.options);
+  // Registra o aceite que o formulário exigiu (Termos do profissional e Política de Privacidade).
+  await fetch(`${env.DIRECTUS_URL}/rafanutri/me/terms`, {
+    method: 'POST', headers: { Authorization: `Bearer ${tokens.access_token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ documents: ['professional_terms', 'privacy'] }), cache: 'no-store',
+  }).catch(() => undefined);
   redirect('/onboarding');
 }
 
