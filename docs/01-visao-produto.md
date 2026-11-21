@@ -36,7 +36,7 @@ Ser a plataforma de trabalho do nutricionista em qualquer área de atuação: do
 | Clínica | Equipes | Por profissional, com desconto por volume | Multiusuário, papéis e permissões, relatórios da clínica |
 | Enterprise UAN | Empresas de alimentação | R$ 500 a R$ 2.000+/mês por contrato | Módulo UAN/Qualidade por unidade produtora |
 
-Os valores são referência de mercado para validar com entrevistas e testes de preço; não são decisão final. Concorrentes cobram de R$ 40 a R$ 60/mês no plano básico (ver [benchmark](pesquisa/benchmark-clinico.md)).
+Preços em vigor desde 21/11/2026 (Pix, mensal): Essencial R$ 49,90, Profissional R$ 99,90 e Clínica R$ 199,90 (valor único por consultório). Os valores seguem em validação com entrevistas e testes de preço. Concorrentes cobram de R$ 40 a R$ 60/mês no plano básico (ver [benchmark](pesquisa/benchmark-clinico.md)).
 
 ## Por que o paciente segura o cliente
 
