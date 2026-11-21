@@ -198,6 +198,14 @@ psql -v ON_ERROR_STOP=1 -v csv=db/seed/ibge/pof-2008-2009.csv -f db/seed/ibge/im
 
 A TBCA (USP) não entra: consultar é livre, mas usar a base dentro de outro sistema exige licença paga.
 
+## Materno-infantil (0062)
+
+Migração `0062_maternal.sql` (**aplicada na vpsrafa em 21/11/2026**, backup `antes-0062-2026-11-21.dump`; testes em `db/tests/0062_maternal.test.sql`):
+
+- `anthropometric_assessments` ganha `head_circumference_cm` (25 a 60) e `measured_lying` (deitado/em pé) para as curvas da OMS; as medidas do módulo entram por `POST /rafanutri/patients/:id/maternal/measurements`.
+- `pregnancies`: DUM, peso pré-gestacional, altura, situação (`active`/`ended`, com data e motivo), observações. Uma gestação ativa por paciente (índice único parcial); só paciente do consultório e não masculina; autor owner/nutricionista; não muda de consultório nem de paciente (gatilho `pregnancies_guard`); auditada. O peso ao longo das semanas vem das avaliações da paciente.
+- Endpoints em `directus/extensions/rafanutri/maternal.js`, liberados nos planos Profissional e Clínica ou com o módulo `maternal` em `organizations.modules`.
+
 ## Avaliações antropométricas (RN-028)
 
 Tabela `anthropometric_assessments`: medidas (peso, altura, cintura, quadril), protocolo e dobras (`skinfolds`, jsonb), **resultados** calculados pelo `@rafanutri/nutrition-core` (`results`, jsonb, com a `calc_version`), observações, autor (`user_created`, preenchido pelo Directus) e datas.

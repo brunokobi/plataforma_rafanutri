@@ -150,22 +150,22 @@ Status: `todo`, `doing`, `done`, `adiado` (fora do MVP, ver [ADR 0004](adr/0004-
 
 | ID | Item | Tipo | Pts | Depende de | Status |
 |---|---|---|---|---|---|
-| [RN-100](plano/fase-4-materno-infantil.md#rn-100--obter-e-validar-as-tabelas-lms-da-oms) | Obter e validar as tabelas LMS da OMS | pesquisa | 2 | RN-015 | todo |
-| [RN-101](plano/fase-4-materno-infantil.md#rn-101--migração-das-tabelas-pediátricas) | Migração das tabelas pediátricas | infra | 3 | RN-008, RN-020 | todo |
-| [RN-102](plano/fase-4-materno-infantil.md#rn-102--importação-das-tabelas-lms) | Importação das tabelas LMS | infra | 3 | RN-100, RN-101 | todo |
-| [RN-103](plano/fase-4-materno-infantil.md#rn-103--nutrition-core-escore-z-e-percentil-lms) | `nutrition-core`: escore-z e percentil LMS | feature | 5 | RN-100 | todo |
+| [RN-100](plano/fase-4-materno-infantil.md#rn-100--obter-e-validar-as-tabelas-lms-da-oms) | Obter e validar as tabelas LMS da OMS | pesquisa | 2 | RN-015 | done |
+| [RN-101](plano/fase-4-materno-infantil.md#rn-101--migração-das-tabelas-pediátricas) | Migração das tabelas pediátricas | infra | 3 | RN-008, RN-020 | done |
+| [RN-102](plano/fase-4-materno-infantil.md#rn-102--importação-das-tabelas-lms) | Importação das tabelas LMS | infra | 3 | RN-100, RN-101 | done |
+| [RN-103](plano/fase-4-materno-infantil.md#rn-103--nutrition-core-escore-z-e-percentil-lms) | `nutrition-core`: escore-z e percentil LMS | feature | 5 | RN-100 | done |
 | [RN-104](plano/fase-4-materno-infantil.md#rn-104--nutrition-core-idade-e-idade-corrigida) | `nutrition-core`: idade e idade corrigida | feature | 2 | RN-103 | todo |
-| [RN-105](plano/fase-4-materno-infantil.md#rn-105--nutrition-core-classificação-sisvanoms) | `nutrition-core`: classificação SISVAN/OMS | feature | 3 | RN-103 | todo |
-| [RN-106](plano/fase-4-materno-infantil.md#rn-106--tela-de-registro-de-medida-pediátrica) | Tela de registro de medida pediátrica | feature | 5 | RN-101, RN-104, RN-105 | todo |
-| [RN-107](plano/fase-4-materno-infantil.md#rn-107--gráficos-das-curvas-oms) | Gráficos das curvas OMS | feature | 5 | RN-102, RN-106 | todo |
-| [RN-108](plano/fase-4-materno-infantil.md#rn-108--alertas-de-crescimento) | Alertas de crescimento | feature | 3 | RN-106 | todo |
+| [RN-105](plano/fase-4-materno-infantil.md#rn-105--nutrition-core-classificação-sisvanoms) | `nutrition-core`: classificação SISVAN/OMS | feature | 3 | RN-103 | done |
+| [RN-106](plano/fase-4-materno-infantil.md#rn-106--tela-de-registro-de-medida-pediátrica) | Tela de registro de medida pediátrica | feature | 5 | RN-101, RN-104, RN-105 | done |
+| [RN-107](plano/fase-4-materno-infantil.md#rn-107--gráficos-das-curvas-oms) | Gráficos das curvas OMS | feature | 5 | RN-102, RN-106 | done |
+| [RN-108](plano/fase-4-materno-infantil.md#rn-108--alertas-de-crescimento) | Alertas de crescimento | feature | 3 | RN-106 | done |
 | [RN-109](plano/fase-4-materno-infantil.md#rn-109--relatório-de-crescimento-em-pdf) | Relatório de crescimento em PDF | feature | 3 | RN-107, RN-036 | todo |
-| [RN-110](plano/fase-4-materno-infantil.md#rn-110--migração-de-gestação-e-lactação) | Migração de gestação e lactação | infra | 2 | RN-101 | todo |
-| [RN-111](plano/fase-4-materno-infantil.md#rn-111--nutrition-core-ganho-de-peso-gestacional) | `nutrition-core`: ganho de peso gestacional | feature | 5 | RN-110 | todo |
-| [RN-112](plano/fase-4-materno-infantil.md#rn-112--tela-de-acompanhamento-da-gestante) | Tela de acompanhamento da gestante | feature | 5 | RN-111 | todo |
+| [RN-110](plano/fase-4-materno-infantil.md#rn-110--migração-de-gestação-e-lactação) | Migração de gestação e lactação | infra | 2 | RN-101 | done |
+| [RN-111](plano/fase-4-materno-infantil.md#rn-111--nutrition-core-ganho-de-peso-gestacional) | `nutrition-core`: ganho de peso gestacional | feature | 5 | RN-110 | done |
+| [RN-112](plano/fase-4-materno-infantil.md#rn-112--tela-de-acompanhamento-da-gestante) | Tela de acompanhamento da gestante | feature | 5 | RN-111 | done |
 | [RN-113](plano/fase-4-materno-infantil.md#rn-113--adicional-energético-na-gestação-e-lactação) | Adicional energético na gestação e lactação | feature | 2 | RN-030, RN-111 | todo |
 | [RN-114](plano/fase-4-materno-infantil.md#rn-114--registro-de-lactação) | Registro de lactação | feature | 2 | RN-110 | todo |
-| [RN-115](plano/fase-4-materno-infantil.md#rn-115--conteúdos-de-introdução-alimentar) | Conteúdos de introdução alimentar | feature | 3 | RN-101 | todo |
+| [RN-115](plano/fase-4-materno-infantil.md#rn-115--conteúdos-de-introdução-alimentar) | Conteúdos de introdução alimentar | feature | 3 | RN-101 | done |
 | [RN-116](plano/fase-4-materno-infantil.md#rn-116--checklist-de-alergênicos-e-texturas) | Checklist de alergênicos e texturas | feature | 3 | RN-115 | todo |
 | [RN-117](plano/fase-4-materno-infantil.md#rn-117--visão-do-responsável-no-app-do-paciente) | Visão do responsável no app do paciente | feature | 3 | RN-107, RN-116, RN-118 | todo |
 | [RN-118](plano/fase-4-materno-infantil.md#rn-118--responsáveis-legais) | Responsáveis legais | feature | 3 | RN-101, RN-070 | todo |

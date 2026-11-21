@@ -67,7 +67,8 @@ export const MODULES: readonly ModuleDefinition[] = [
     includes: ['Curvas de crescimento da OMS', 'Ganho de peso gestacional', 'Introdução alimentar', 'Alertas de desvio'],
     icon: 'baby',
     phase: 'Fase 4',
-    availability: 'building',
+    availability: 'available',
+    href: '/app/pacientes',
   },
   {
     code: 'uan',

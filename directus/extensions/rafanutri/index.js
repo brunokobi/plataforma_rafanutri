@@ -11,6 +11,7 @@ import { validateLead } from './crm.js';
 import { isOfferedSlot, localDateOf, publicSlots, validateBooking } from './booking.js';
 import { setupNotifications } from './notify.js';
 import { setupSubscriptions } from './subscriptions.js';
+import { setupMaternal } from './maternal.js';
 import { fillMonths, isIsoDate, monthStart, splitInstallments, validatePackage, validateTransaction } from './finance.js';
 
 const TYPES = new Set(['solo', 'clinic']);
@@ -6562,5 +6563,8 @@ export default {
 
     // ── Assinatura da plataforma por Pix (0059) ───────────────────────────────────────────────
     setupSubscriptions({ router, database, logger, notifier, h: { requireUser, bad, conflict, isUuid, memberOrg, withActor, requireAdmin } });
+
+    // ── Materno-infantil: curvas da OMS e gestação (0062) ─────────────────────────────────────
+    setupMaternal({ router, database, logger, h: { requireUser, bad, conflict, isUuid, clinicalOrg, withActor } });
   },
 };

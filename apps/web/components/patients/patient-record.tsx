@@ -66,7 +66,14 @@ export function variationText(latest: Assessment, previous: Assessment): string 
 
 const missing = <span className="font-normal text-muted-foreground">Não informado</span>;
 
-export function PatientHeader({ patient, activeLimitReached, active, alerts = null }: { patient: Patient; activeLimitReached: boolean; active: 'resumo' | 'prontuario' | 'avaliacoes' | 'planos' | 'anamneses' | 'recomendacoes' | 'documentos'; alerts?: HealthAlerts | null }) {
+/** Aba materno-infantil: crianças e adolescentes (até 19 anos) e pacientes que podem estar gestantes. */
+export function showsMaternal(patient: Pick<Patient, 'sex' | 'birth_date'>): boolean {
+  if (patient.sex !== 'male') return true;
+  if (!patient.birth_date) return false;
+  return Date.now() - Date.parse(`${patient.birth_date}T12:00:00Z`) <= 19 * 365.25 * 864e5;
+}
+
+export function PatientHeader({ patient, activeLimitReached, active, alerts = null }: { patient: Patient; activeLimitReached: boolean; active: 'resumo' | 'prontuario' | 'avaliacoes' | 'planos' | 'anamneses' | 'recomendacoes' | 'documentos' | 'materno'; alerts?: HealthAlerts | null }) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [feedback, setFeedback] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
@@ -166,6 +173,7 @@ export function PatientHeader({ patient, activeLimitReached, active, alerts = nu
             ['anamneses', 'Anamneses', `/app/pacientes/${patient.id}/anamneses`],
             ['recomendacoes', 'Recomendações', `/app/pacientes/${patient.id}/recomendacoes`],
             ['documentos', 'Documentos', `/app/pacientes/${patient.id}/documentos`],
+            ...(showsMaternal(patient) ? ([['materno', 'Materno-infantil', `/app/pacientes/${patient.id}/materno-infantil`]] as const) : []),
           ] as const
         ).map(([key, label, href]) => (
           <Link

@@ -57,7 +57,7 @@ describe('resolveModuleAccess', () => {
   });
   it('Profissional inclui IA sem cota e Materno-infantil', () => {
     expect(resolveModuleAccess('professional', byCode('ai')).grant).toBe('included');
-    expect(resolveModuleAccess('professional', byCode('maternal')).status).toBe('included_soon');
+    expect(resolveModuleAccess('professional', byCode('maternal')).status).toBe('available');
   });
 });
 
