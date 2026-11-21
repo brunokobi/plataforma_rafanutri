@@ -14,6 +14,11 @@ export const KINDS = {
   plan_published: { label: 'Plano novo', important: false },
   patient_invite: { label: 'Convite da área do paciente', important: true },
   test: { label: 'Teste', important: true },
+  invoice_created: { label: 'Fatura da assinatura', important: true },
+  invoice_due: { label: 'Fatura vencendo', important: true },
+  payment_reported: { label: 'Pagamento informado', important: true },
+  payment_confirmed: { label: 'Pagamento confirmado', important: true },
+  subscription_ended: { label: 'Assinatura encerrada', important: true },
 };
 
 /** O primeiro lembrete (o de mais horas de antecedência) vale e-mail; os seguintes só vão pelo Telegram. */
@@ -29,7 +34,8 @@ export function isImportant(kind, { hour = null, hours = [] } = {}) {
 export function pickChannel({ important, prefs, email, skipTelegram = false }) {
   const p = prefs ?? { email_opt_in: true, telegram_opt_in: true, telegram_chat_id: null };
   if (!skipTelegram && p.telegram_opt_in !== false && p.telegram_chat_id != null) return { channel: 'telegram', recipient: String(p.telegram_chat_id) };
-  if (important && p.email_opt_in !== false && typeof email === 'string' && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return { channel: 'email', recipient: email };
+  // Domínios reservados para teste (RFC 2606) nunca recebem: evita e-mail devolvido.
+  if (important && p.email_opt_in !== false && typeof email === 'string' && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) && !/@(example\.(com|org|net)|[^@]+\.(test|invalid|example))$/i.test(email)) return { channel: 'email', recipient: email };
   return null;
 }
 
@@ -78,6 +84,16 @@ export function buildMessage(kind, ctx) {
       return { subject: 'Seu novo plano alimentar está disponível', lines: [`Olá, ${name}!`, `${practice} publicou seu novo plano alimentar. Ele já está na sua área do paciente.`], link: ctx.link ?? null };
     case 'patient_invite':
       return { subject: `${practice} convidou você para a área do paciente`, lines: [`Olá, ${name}!`, `Seu plano alimentar e as orientações de ${practice} agora ficam na sua área do paciente.`, 'Crie seu acesso pelo link abaixo. Ele vale 7 dias.'], link: ctx.link ?? null };
+    case 'invoice_created':
+      return { subject: `Fatura da Rafanutri — plano ${ctx.planName}, ${ctx.amount}`, lines: [`Olá, ${name}!`, `A fatura do plano ${ctx.planName} de ${practice} está disponível: ${ctx.amount}, período de ${ctx.period}, vencimento ${ctx.due}.`, 'Pague pelo Pix (QR code ou copia e cola) na página da fatura e toque em "Já paguei". A confirmação sai em até 1 dia útil.'], link: ctx.link ?? null };
+    case 'invoice_due':
+      return { subject: ctx.late ? `Fatura em atraso — plano ${ctx.planName}` : `Sua fatura vence hoje — ${ctx.amount}`, lines: [`Olá, ${name}!`, ctx.late ? `A fatura do plano ${ctx.planName} (${ctx.amount}) venceu em ${ctx.due}. Sem o pagamento até ${ctx.cutoff}, ${practice} volta ao plano Gratuito.` : `A fatura do plano ${ctx.planName} (${ctx.amount}) vence hoje, ${ctx.due}.`, 'Já pagou? Toque em "Já paguei" na página da fatura.'], link: ctx.link ?? null };
+    case 'payment_reported':
+      return { subject: `Pix informado: ${practice} — ${ctx.amount}`, lines: [`${practice} informou o pagamento da fatura do plano ${ctx.planName} (${ctx.amount}, identificador ${ctx.txid}).`, 'Confira no extrato e confirme na administração.'], link: ctx.link ?? null };
+    case 'payment_confirmed':
+      return { subject: `Pagamento confirmado — plano ${ctx.planName}`, lines: [`Olá, ${name}!`, `Recebemos o pagamento de ${ctx.amount}. O plano ${ctx.planName} de ${practice} está ativo até ${ctx.until}.`, 'Obrigado por usar a Rafanutri!'], link: ctx.link ?? null };
+    case 'subscription_ended':
+      return { subject: `Assinatura encerrada — ${practice}`, lines: [`Olá, ${name}!`, `A assinatura do plano ${ctx.planName} de ${practice} terminou e o consultório voltou ao plano Gratuito. Seus dados continuam guardados.`, 'Para voltar ao plano pago, assine de novo em Meu plano.'], link: ctx.link ?? null };
     case 'test':
       return { subject: 'Teste de aviso da Rafanutri', lines: [`Olá, ${name}!`, `Este é um teste dos avisos de ${practice}. Se você recebeu, está tudo certo.`], link: ctx.link ?? null };
     default:

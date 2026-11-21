@@ -18,6 +18,8 @@ test('e-mail só para o importante, sem Telegram ou com falha', () => {
   assert.deepEqual(pickChannel({ important: true, prefs: linked, email: 'a@b.com', skipTelegram: true }), { channel: 'email', recipient: 'a@b.com' });
   assert.equal(pickChannel({ important: true, prefs: { ...noTelegram, email_opt_in: false }, email: 'a@b.com' }), null);
   assert.equal(pickChannel({ important: true, prefs: noTelegram, email: null }), null);
+  assert.equal(pickChannel({ important: true, prefs: noTelegram, email: 'iso@example.com' }), null, 'domínio de teste');
+  assert.equal(pickChannel({ important: true, prefs: noTelegram, email: 'a@loja.test' }), null, 'domínio .test');
   assert.deepEqual(pickChannel({ important: true, prefs: null, email: 'a@b.com' }), { channel: 'email', recipient: 'a@b.com' });
   assert.equal(pickChannel({ important: false, prefs: { ...linked, telegram_opt_in: false }, email: 'a@b.com' }), null);
 });

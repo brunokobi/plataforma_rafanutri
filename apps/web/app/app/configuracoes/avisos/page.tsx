@@ -2,7 +2,9 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { AppHeader } from '@/components/app/app-header';
+import { AccountTelegram } from '@/components/billing/account-telegram';
 import { NotificationSettingsView } from '@/components/notifications/settings-view';
+import { getMyAccountNotifications } from '@/lib/billing/actions';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { getMyOrganizations, landingRedirect } from '@/lib/auth/organizations';
 import { getCurrentUser } from '@/lib/auth/session';
@@ -18,7 +20,7 @@ export default async function NotificationSettingsPage() {
   const organizations = await getMyOrganizations();
   const target = landingRedirect('app', organizations, isSignupOpen());
   if (target) redirect(target);
-  const [overview, log] = await Promise.all([getNotificationOverview(), getNotificationLog()]);
+  const [overview, log, mine] = await Promise.all([getNotificationOverview(), getNotificationLog(), getMyAccountNotifications()]);
   return (
     <div className="min-h-dvh">
       <AppHeader />
@@ -36,6 +38,7 @@ export default async function NotificationSettingsPage() {
         ) : (
           <NotificationSettingsView overview={overview} log={log ?? []} />
         )}
+        {mine && <AccountTelegram prefs={mine} />}
       </main>
     </div>
   );

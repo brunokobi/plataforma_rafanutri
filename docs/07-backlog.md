@@ -108,7 +108,7 @@ Status: `todo`, `doing`, `done`, `adiado` (fora do MVP, ver [ADR 0004](adr/0004-
 | [RN-054](plano/fase-2-gestao.md#rn-054--pacotes-de-consultas) | Pacotes de consultas | feature | 3 | RN-053, RN-022 | done |
 | [RN-055](plano/fase-2-gestao.md#rn-055--recibo-em-pdf) | Recibo em PDF | feature | 2 | RN-053, RN-036 | done |
 | [RN-056](plano/fase-2-gestao.md#rn-056--crm-funil-e-retornos-atrasados) | CRM: funil e retornos atrasados | feature | 5 | RN-020, RN-022 | done |
-| [RN-057](plano/fase-2-gestao.md#rn-057--planos-pagos-do-saas-e-cobrança-recorrente) | Planos pagos do SaaS e cobrança recorrente | feature | 8 | RN-004, RN-062 | todo |
+| [RN-057](plano/fase-2-gestao.md#rn-057--planos-pagos-do-saas-e-cobrança-recorrente) | Planos pagos do SaaS e cobrança recorrente (Pix direto com confirmação do admin, 21/11/2026; gateway com baixa automática fica para depois) | feature | 8 | RN-004, RN-062 | done |
 | [RN-058](plano/fase-2-gestao.md#rn-058--sincronização-com-google-calendar) | Sincronização com Google Calendar | feature | 5 | RN-022 | todo |
 | [RN-059](plano/fase-2-gestao.md#rn-059--preferências-de-comunicação-e-opt-out-lgpd) | Preferências de comunicação e opt-out (LGPD) | feature | 3 | RN-021 | adiado |
 | [RN-060](plano/fase-2-gestao.md#rn-060--log-de-mensagens-e-painel-de-entregas) | Log de mensagens e painel de entregas | feature | 3 | RN-050 | todo |

@@ -25,6 +25,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
           <h1 className="font-display text-3xl font-semibold tracking-tight">Administração</h1>
           <p className="text-sm text-muted-foreground">Empresas da plataforma, módulo UAN e contratos.</p>
         </div>
+        <Link href="/app/admin/assinaturas" className="inline-flex min-h-11 items-center rounded-xl border border-border bg-card px-4 text-sm font-medium hover:bg-muted">Assinaturas e Pix →</Link>
         <form className="flex gap-2" role="search">
           <Input name="q" defaultValue={q ?? ''} placeholder="Buscar empresa" aria-label="Buscar empresa" className="max-w-sm" />
         </form>

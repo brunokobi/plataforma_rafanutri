@@ -67,11 +67,20 @@ export function setupNotifications({ router, database, logger, services, getSche
     return { url: `https://t.me/${botUsername}?start=${token}`, expires_at: expires.toISOString() };
   }
 
-  async function unlinkTelegram(where) {
+  async function unlinkTelegram(where, table = 'patient_contact_prefs') {
     await database.transaction(async (trx) => {
       await trx.raw("select set_config('rafanutri.telegram_link', 'on', true)");
-      await trx('patient_contact_prefs').where(where).update({ telegram_chat_id: null, telegram_name: null, telegram_linked_at: null });
+      await trx(table).where(where).update({ telegram_chat_id: null, telegram_name: null, telegram_linked_at: null });
     });
+  }
+
+  /** Link de ativação do Telegram de uma pessoa (owner, admin). */
+  async function userTelegramLink(userId) {
+    const token = randomBytes(32).toString('base64url');
+    const expires = new Date(Date.now() + LINK_TTL_DAYS * 864e5);
+    await database('user_contact_prefs').insert({ user_id: userId, telegram_link_hash: hashToken(token), telegram_link_expires_at: expires })
+      .onConflict('user_id').merge({ telegram_link_hash: hashToken(token), telegram_link_expires_at: expires });
+    return { url: `https://t.me/${botUsername}?start=${token}`, expires_at: expires.toISOString() };
   }
 
   router.post('/public/telegram/webhook', async (req, res) => {
@@ -93,13 +102,21 @@ export function setupNotifications({ router, database, logger, services, getSche
             .where('telegram_link_hash', hashToken(token)).where('telegram_link_expires_at', '>', trx.fn.now())
             .update({ telegram_chat_id: chatId, telegram_name: name, telegram_linked_at: trx.fn.now(), telegram_opt_in: true, telegram_link_hash: null, telegram_link_expires_at: null })
             .returning('organization_id');
-          return row ? trx('organizations').where('id', row.organization_id).first('name') : null;
+          if (row) return trx('organizations').where('id', row.organization_id).first('name');
+          // link de pessoa (nutricionista, admin): avisos da conta e da cobrança
+          const [u] = await trx('user_contact_prefs')
+            .where('telegram_link_hash', hashToken(token)).where('telegram_link_expires_at', '>', trx.fn.now())
+            .update({ telegram_chat_id: chatId, telegram_name: name, telegram_linked_at: trx.fn.now(), telegram_opt_in: true, telegram_link_hash: null, telegram_link_expires_at: null })
+            .returning('user_id');
+          return u ? { account: true } : null;
         });
+        if (linked?.account) return reply('Pronto! Os avisos da sua conta Rafanutri (faturas, pagamentos e assinatura) chegam aqui a partir de agora.\n\nPara parar, envie /parar.');
         if (linked) return reply(`Pronto! Os avisos de <b>${escape(linked.name)}</b> (consultas, lembretes e plano novo) chegam aqui a partir de agora.\n\nPara parar, envie /parar.`);
         return reply('Este link de ativação expirou ou já foi usado. Peça um novo ao seu nutricionista ou gere outro na área do paciente.');
       }
       if (isStop(text)) {
-        const n = await database('patient_contact_prefs').where('telegram_chat_id', chatId).update({ telegram_opt_in: false });
+        const n = await database('patient_contact_prefs').where('telegram_chat_id', chatId).update({ telegram_opt_in: false })
+          + await database('user_contact_prefs').where('telegram_chat_id', chatId).update({ telegram_opt_in: false });
         return reply(n ? 'Certo, você não vai mais receber avisos aqui. Para voltar, ative de novo na área do paciente.' : 'Este chat não está ligado a nenhum consultório.');
       }
       if (/^\/start/.test(text)) return reply('Olá! Este é o canal de avisos da Rafanutri. Para receber os avisos do seu consultório, abra o link enviado pelo seu nutricionista ou gere um na área do paciente.');
@@ -156,6 +173,45 @@ export function setupNotifications({ router, database, logger, services, getSche
 
   const patientLink = (p) => (p?.app_user_id ? `${SITE}/p` : null);
 
+  /** Aviso para uma pessoa (owner, admin): Telegram ligado ou o e-mail da conta. Sempre importante. */
+  async function enqueueUser({ orgId, userId, kind, dedupe, ctx, email = undefined }) {
+    const u = await database('directus_users').where('id', userId).first('id', 'email', 'first_name', 'status');
+    if (!u || (u.status && u.status !== 'active')) return null;
+    const prefs = await database('user_contact_prefs').where('user_id', userId).first();
+    const to = pickChannel({ important: true, prefs: prefs ? { ...prefs, email_opt_in: true } : null, email: email !== undefined ? email : u.email });
+    if (!to) return null;
+    const org = orgId ? await database('organizations').where('id', orgId).first('name') : null;
+    const msg = buildMessage(kind, { patientName: u.first_name || 'Olá', practice: org?.name, ...ctx });
+    const [row] = await database('notification_outbox').insert({
+      organization_id: orgId, user_id: userId, kind, channel: to.channel, recipient: to.recipient,
+      subject: msg.subject.slice(0, 200), body: plainBody(msg).slice(0, 4000), link: msg.link, dedupe_key: dedupe ? `${dedupe}:u:${userId}`.slice(0, 200) : null,
+    }).onConflict('dedupe_key').ignore().returning('id');
+    return row?.id ?? null;
+  }
+
+  /** Avisa os owners do consultório. */
+  async function notifyOwners({ orgId, kind, dedupe, ctx }) {
+    const owners = await database('organization_members').where({ organization_id: orgId, role: 'owner' }).pluck('user_id');
+    let n = 0;
+    for (const id of owners) if (await enqueueUser({ orgId, userId: id, kind, dedupe, ctx })) n += 1;
+    return n;
+  }
+
+  /** Avisa os admins da plataforma (platform_admins e administradores do Directus) e o e-mail de cobrança. */
+  async function notifyAdmins({ orgId, kind, dedupe, ctx, extraEmail = null }) {
+    const admins = await database('directus_users').where('status', 'active').whereRaw('is_platform_admin(id)').pluck('id');
+    for (const id of admins) await enqueueUser({ orgId, userId: id, kind, dedupe, ctx });
+    if (extraEmail) {
+      const msg = buildMessage(kind, { practice: (await database('organizations').where('id', orgId).first('name'))?.name, ...ctx });
+      await database('notification_outbox').insert({
+        organization_id: orgId, kind, channel: 'email', recipient: extraEmail, subject: msg.subject.slice(0, 200), body: plainBody(msg).slice(0, 4000), link: msg.link,
+        dedupe_key: dedupe ? `${dedupe}:billing-email`.slice(0, 200) : null,
+      }).onConflict('dedupe_key').ignore();
+    }
+  }
+
+  const extraCycles = [];
+
   /** Consulta marcada, remarcada e cancelada (mudanças dos últimos 30 minutos). */
   async function scanAppointments() {
     const rows = await database('appointments as a').join('patients as p', 'p.id', 'a.patient_id')
@@ -211,6 +267,7 @@ export function setupNotifications({ router, database, logger, services, getSche
     }
   }
 
+  const LINK_LABEL = { patient_invite: 'Criar meu acesso', invoice_created: 'Pagar com Pix', invoice_due: 'Pagar com Pix', payment_reported: 'Conferir e confirmar', payment_confirmed: 'Ver meu plano', subscription_ended: 'Ver planos', test: 'Abrir a Rafanutri' };
   async function sendEmail(row) {
     const { MailService } = services;
     const mail = new MailService({ schema: await getSchema(), knex: database });
@@ -218,7 +275,7 @@ export function setupNotifications({ router, database, logger, services, getSche
     await mail.send({
       to: row.recipient,
       subject: row.subject,
-      template: { name: 'notification', data: { subject: row.subject, paragraphs: row.body.split('\n\n'), link: row.link, linkLabel: row.kind === 'patient_invite' ? 'Criar meu acesso' : 'Abrir a área do paciente', unsubscribe } },
+      template: { name: 'notification', data: { subject: row.subject, paragraphs: row.body.split('\n\n'), link: row.link, linkLabel: LINK_LABEL[row.kind] ?? (row.user_id ? 'Abrir a Rafanutri' : 'Abrir a área do paciente'), unsubscribe } },
     });
   }
 
@@ -233,6 +290,15 @@ export function setupNotifications({ router, database, logger, services, getSche
 
   /** Reserva por e-mail quando o Telegram falha de vez: só para aviso importante (o primeiro lembrete conta). */
   async function fallbackToEmail(row) {
+    if (row.user_id) {
+      const u = await database('directus_users').where('id', row.user_id).first('email');
+      if (!u?.email) return;
+      await database('notification_outbox').insert({
+        organization_id: row.organization_id, user_id: row.user_id, kind: row.kind, channel: 'email', recipient: u.email,
+        subject: row.subject, body: row.body, link: row.link, dedupe_key: row.dedupe_key ? `${row.dedupe_key}:email`.slice(0, 200) : null,
+      }).onConflict('dedupe_key').ignore();
+      return;
+    }
     if (!row.patient_id) return;
     let important = isImportant(row.kind);
     if (row.kind === 'appointment_reminder') {
@@ -266,7 +332,8 @@ export function setupNotifications({ router, database, logger, services, getSche
           if (r.ok) { await done({ status: 'sent', sent_at: database.fn.now(), last_error: null }); continue; }
           if (isTelegramGone(r.status, r.description)) {
             await unlinkTelegram({ telegram_chat_id: row.recipient });
-            await done({ status: 'failed', last_error: 'O paciente bloqueou o bot ou saiu do Telegram.' });
+            await unlinkTelegram({ telegram_chat_id: row.recipient }, 'user_contact_prefs');
+            await done({ status: 'failed', last_error: 'O destinatário bloqueou o bot ou saiu do Telegram.' });
             await fallbackToEmail(row);
             continue;
           }
@@ -292,6 +359,7 @@ export function setupNotifications({ router, database, logger, services, getSche
       await scanAppointments();
       await scanReminders();
       await scanPlans();
+      for (const fn of extraCycles) await fn().catch((error) => logger.error({ err: error?.message }, 'rafanutri: falha num ciclo extra'));
       await deliver();
       if (Date.now() - lastCleanup > 3600e3) {
         lastCleanup = Date.now();
@@ -457,7 +525,30 @@ export function setupNotifications({ router, database, logger, services, getSche
     res.json({ data: { ok: true } });
   });
 
+  // ── Pessoa logada (nutricionista, admin): Telegram para os avisos da conta ────────────────
+  const userPrefsOut = (p) => ({ telegram_linked: p?.telegram_chat_id != null, telegram_opt_in: p?.telegram_opt_in ?? true, telegram_name: p?.telegram_name ?? null, telegram_linked_at: p?.telegram_linked_at ?? null, telegram_ready: telegramReady() });
+  router.get('/me/notifications', async (req, res) => {
+    const user = requireUser(req, res);
+    if (!user) return;
+    const u = await database('directus_users').where('id', user).first('email');
+    res.json({ data: { ...userPrefsOut(await database('user_contact_prefs').where('user_id', user).first()), email: u?.email ?? null } });
+  });
+  router.post('/me/notifications/telegram-link', async (req, res) => {
+    const user = requireUser(req, res);
+    if (!user) return;
+    if (!telegramReady()) return unavailableTelegram(res);
+    res.status(201).json({ data: await userTelegramLink(user) });
+  });
+  router.post('/me/notifications/telegram-unlink', async (req, res) => {
+    const user = requireUser(req, res);
+    if (!user) return;
+    await unlinkTelegram({ user_id: user }, 'user_contact_prefs');
+    res.json({ data: { ok: true } });
+  });
+
   return {
+    enqueueUser, notifyOwners, notifyAdmins, tick, site: SITE,
+    addCycle: (fn) => extraCycles.push(fn),
     /** Convite da área do paciente pelo canal do paciente (Telegram ligado ou e-mail do convite). */
     async sendInvite({ orgId, patientId, email, link, inviteId }) {
       const id = await enqueue({ orgId, patientId, kind: 'patient_invite', important: true, email, dedupe: `invite:${inviteId}`, ctx: { link } });

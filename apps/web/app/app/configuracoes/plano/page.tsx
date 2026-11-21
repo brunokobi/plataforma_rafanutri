@@ -3,7 +3,9 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { AppHeader } from '@/components/app/app-header';
+import { SubscriptionPanel } from '@/components/billing/subscription-panel';
 import { WaitlistForm } from '@/components/plan/waitlist-form';
+import { getBilling } from '@/lib/billing/actions';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { getMyOrganizations, landingRedirect } from '@/lib/auth/organizations';
 import { getCurrentUser } from '@/lib/auth/session';
@@ -35,7 +37,7 @@ export default async function PlanPage() {
   if (!user) redirect('/login?next=/app/configuracoes/plano');
   const target = landingRedirect('app', await getMyOrganizations(), isSignupOpen());
   if (target) redirect(target);
-  const data = await getPlanUsage();
+  const [data, billing] = await Promise.all([getPlanUsage(), getBilling()]);
   const code = (data?.plan.code ?? 'free') as PlanCode;
   const plan = getPlan(code);
   const ent = getEntitlements(code);
@@ -47,7 +49,7 @@ export default async function PlanPage() {
       <main className="mx-auto max-w-4xl space-y-8 px-5 py-10">
         <div>
           <h1 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">Meu plano</h1>
-          <p className="mt-2 text-muted-foreground">Plano <strong className="text-foreground">{data?.plan.name ?? plan.name}</strong>, permanente e sem cartão.</p>
+          <p className="mt-2 text-muted-foreground">Plano <strong className="text-foreground">{data?.plan.name ?? plan.name}</strong>{code === 'free' ? ', permanente e sem cartão' : ''}. Planos pagos por Pix, mês a mês, sem fidelidade.</p>
         </div>
         {!data ? (
           <Alert variant="destructive"><AlertCircle /><AlertDescription>Não foi possível carregar o uso do plano agora.</AlertDescription></Alert>
@@ -78,7 +80,8 @@ export default async function PlanPage() {
             ))}
           </ul>
         </section>
-        {code === 'free' && (
+        {billing && <SubscriptionPanel billing={billing} />}
+        {code === 'free' && (!billing?.pix_ready || billing.plans.length === 0) && (
           <section id="interesse" aria-labelledby="pago" className="rounded-2xl border border-border bg-card p-5">
             <h2 id="pago" className="font-display text-xl font-semibold">Plano pago</h2>
             <p className="mt-1 mb-4 text-sm text-muted-foreground">Os planos pagos ainda não abriram. Registre seu interesse e avisamos quando estiverem disponíveis.</p>

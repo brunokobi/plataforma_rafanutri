@@ -1395,6 +1395,47 @@ try {
       }
       assert.equal((await api('/rafanutri/admin/me', { token: a.token })).status, 404, 'acesso removido');
     });
+    await check('Assinatura por Pix (0059): só o owner assina; de fora não vê a fatura; só admin confirma; confirmar libera o plano', async () => {
+      const sql = (q) => String(execSync(process.env.ISOLATION_PSQL, { input: q, stdio: ['pipe', 'pipe', 'inherit'] }));
+      // Recebimento e preço de teste (os valores de produção são restaurados no fim).
+      const before = JSON.parse(sql(`copy (select json_build_object('b', (select row_to_json(b) from platform_billing b), 'p', (select json_agg(row_to_json(p)) from plans p where code = 'essential'))) to stdout;`).trim());
+      sql(`update platform_billing set pix_key = coalesce(pix_key, 'financeiro@rafanutri.test'), receiver_name = coalesce(receiver_name, 'RAFANUTRI TESTE'), receiver_city = coalesce(receiver_city, 'BELO HORIZONTE'); update plans set price_cents = 4990, sellable = true where code = 'essential';`);
+      try {
+        assert.equal((await api('/rafanutri/billing/subscribe', { token: a.token, method: 'POST', body: { plan: 'free' } })).status, 400, 'gratuito não se assina');
+        const sub = await api('/rafanutri/billing/subscribe', { token: a.token, method: 'POST', body: { plan: 'essential' } });
+        assert.equal(sub.status, 201, JSON.stringify(sub.json));
+        const inv = sub.json.data.invoice.id;
+        const mine = (await api(`/rafanutri/billing/invoices/${inv}`, { token: a.token })).json.data;
+        assert.equal(mine.amount_cents, 4990);
+        assert.match(mine.pix_payload, /^000201.*br\.gov\.bcb\.pix.*540549\.90.*6304[0-9A-F]{4}$/);
+        assert.equal((await api(`/rafanutri/billing/invoices/${inv}`, { token: b.token })).status, 404, 'B não vê a fatura de A');
+        assert.equal((await api(`/rafanutri/admin/billing/invoices/${inv}/confirm`, { token: a.token, method: 'POST' })).status, 404, 'conta comum não confirma');
+        assert.equal((await api('/rafanutri/admin/billing', { token: a.token })).status, 404, 'conta comum não vê a administração');
+        for (const c of ['subscriptions', 'subscription_invoices', 'platform_billing', 'user_contact_prefs']) {
+          assert.ok((await api(`/items/${c}?limit=1`, { token: a.token })).status >= 400, `coleção ${c} fechada`);
+        }
+        assert.ok((await api(`/items/subscription_invoices/${inv}`, { token: a.token, method: 'PATCH', body: { status: 'paid' } })).status >= 400, 'não se dá baixa pela API');
+        const uidA = (await api('/users/me?fields=id', { token: a.token })).json.data.id;
+        sql(`insert into platform_admins (user_id, note) select id, 'isolamento' from directus_users where id = '${uidA}' and email like '%@example.com' on conflict do nothing;`);
+        try {
+          const ok = await api(`/rafanutri/admin/billing/invoices/${inv}/confirm`, { token: a.token, method: 'POST' });
+          assert.equal(ok.status, 200, JSON.stringify(ok.json));
+          assert.equal((await api(`/rafanutri/admin/billing/invoices/${inv}/confirm`, { token: a.token, method: 'POST' })).status, 409, 'não confirma duas vezes');
+        } finally {
+          sql(`delete from platform_admins where user_id = '${uidA}';`);
+        }
+        const bill = (await api('/rafanutri/billing', { token: a.token })).json.data;
+        assert.equal(bill.current_plan, 'essential', 'plano liberado');
+        assert.equal(bill.subscription.status, 'active');
+        assert.equal((await api('/rafanutri/billing', { token: b.token })).json.data.subscription, null, 'B não vê a assinatura de A');
+        const cancel = await api('/rafanutri/billing/cancel', { token: a.token, method: 'POST' });
+        assert.equal(cancel.status, 200);
+        assert.ok(cancel.json.data.until, 'cancelamento vale no fim do período');
+      } finally {
+        const b0 = before.b; const p0 = before.p[0];
+        sql(`update platform_billing set pix_key = ${b0.pix_key ? `'${b0.pix_key}'` : 'null'}, receiver_name = ${b0.receiver_name ? `'${b0.receiver_name}'` : 'null'}, receiver_city = ${b0.receiver_city ? `'${b0.receiver_city}'` : 'null'}; update plans set price_cents = ${p0.price_cents}, sellable = ${p0.sellable} where code = 'essential';`);
+      }
+    });
     await check('Aceite dos termos: registra só a versão vigente, não se altera e cada um vê só o seu', async () => {
       assert.equal((await api('/rafanutri/me/terms', { token: a.token, method: 'POST', body: { documents: ['nada'] } })).status, 400, 'documento inválido');
       assert.equal((await api('/rafanutri/me/terms', { token: a.token, method: 'POST', body: { documents: ['professional_terms', 'privacy'] } })).status, 200);

@@ -10,6 +10,7 @@ import { validateDocumentInput } from './documents.js';
 import { validateLead } from './crm.js';
 import { isOfferedSlot, localDateOf, publicSlots, validateBooking } from './booking.js';
 import { setupNotifications } from './notify.js';
+import { setupSubscriptions } from './subscriptions.js';
 import { fillMonths, isIsoDate, monthStart, splitInstallments, validatePackage, validateTransaction } from './finance.js';
 
 const TYPES = new Set(['solo', 'clinic']);
@@ -6558,5 +6559,8 @@ export default {
     // ── Avisos por Telegram e e-mail (0058) ─────────────────────────────────────────────────
     notifier = setupNotifications({ router, database, logger, services, getSchema,
       h: { requireUser, bad, conflict, isUuid, clinicalOrg, memberOrg, clinicalPatient, myPatientRecord } });
+
+    // ── Assinatura da plataforma por Pix (0059) ───────────────────────────────────────────────
+    setupSubscriptions({ router, database, logger, notifier, h: { requireUser, bad, conflict, isUuid, memberOrg, withActor, requireAdmin } });
   },
 };
