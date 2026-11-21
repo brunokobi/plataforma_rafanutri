@@ -32,10 +32,12 @@ export interface PatientsListProps {
   planName: string;
   /** Link da ficha da paciente fictícia de demonstração. */
   demoHref: string;
+  /** Busca vinda do menu lateral (?q=). */
+  initialQuery?: string;
 }
 
-export function PatientsList({ patients, limit, planName, demoHref }: PatientsListProps) {
-  const [q, setQ] = useState('');
+export function PatientsList({ patients, limit, planName, demoHref, initialQuery = '' }: PatientsListProps) {
+  const [q, setQ] = useState(initialQuery);
   const [status, setStatus] = useState<PatientStatus>('active');
   const [creating, setCreating] = useState(false);
   const [feedback, setFeedback] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);

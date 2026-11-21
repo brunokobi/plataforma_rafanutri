@@ -167,6 +167,12 @@ Começou em 15/11/2026 pela entrega **U0** do [plano do módulo](../modulos/uan.
 | RN-229 Planejado × realizado e curva ABC | 🟡 | `/app/uan/unidades/[id]/custos` (período de até 31 dias): custo por refeição planejado (cardápio aprovado × comensais previstos × adesão × fichas, pelo preço vigente) × realizado (retiradas para produção pelo custo do lote; sem custo, preço vigente sinalizado), diferença (R$ 12,00 × R$ 13,10 = +9,2%), refeições previstas × servidas, os 5 insumos que mais explicam o desvio, dia a dia e curva ABC por insumo e por fornecedor (`nutrition-core/costs.ts`). Falta: visão da rede (várias unidades), CMV clássico, meta de custo com trava no cardápio (o teto por refeição já exige justificativa no envio) |
 | RN-124 Contrato Enterprise | ⏳ | Contrato já existe no banco (habilitado pelo admin por SQL); a cobrança depende do gateway (RN-057) |
 
+## Navegação
+
+| Item | Status | Observação |
+|---|---|---|
+| Menu lateral | ✅ | **21/11/2026.** Substitui o menu do topo na área logada (`components/app/app-sidebar.tsx`, modelo em `components/app/app-nav.tsx`): logo, cartão do consultório com o plano, **busca de paciente** (Ctrl+K, leva a `/app/pacientes?q=`), grupos Atendimento, Gestão (UAN só quando o consultório tem o módulo), Conteúdo e Conta com ícones, e no rodapé feedback, usuário, tema e sair. Fixo à esquerda a partir de 1.024 px (o conteúdo ganha margem por CSS, sem mexer nas páginas); no celular e tablet, barra no topo com gaveta |
+
 ## Página pública e marketing
 
 | Item | Situação |

@@ -11,7 +11,7 @@ import { FEEDBACK_KINDS, validateFeedback, type FeedbackKind } from '@/lib/feedb
 import { cn } from '@/lib/utils';
 
 /** RN-047 — Botão "Feedback" no cabeçalho: tipo + texto, com a página atual (só o caminho). */
-export function FeedbackButton() {
+export function FeedbackButton({ variant = 'header' }: { variant?: 'header' | 'sidebar' }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [kind, setKind] = useState<FeedbackKind>('idea');
@@ -41,9 +41,15 @@ export function FeedbackButton() {
       }}
     >
       <SheetTrigger asChild>
-        <Button variant="ghost" size="sm" aria-label="Enviar feedback" title="Enviar feedback">
-          <MessageSquarePlus className="size-4" /> <span className="hidden 2xl:inline">Feedback</span>
-        </Button>
+        {variant === 'sidebar' ? (
+          <button type="button" className="flex min-h-11 w-full items-center gap-3 rounded-[10px] px-3 text-left text-sm font-medium text-foreground/80 transition-colors hover:bg-muted hover:text-foreground">
+            <MessageSquarePlus className="size-[18px] shrink-0" aria-hidden="true" /> Enviar feedback
+          </button>
+        ) : (
+          <Button variant="ghost" size="sm" aria-label="Enviar feedback" title="Enviar feedback">
+            <MessageSquarePlus className="size-4" /> <span className="hidden 2xl:inline">Feedback</span>
+          </Button>
+        )}
       </SheetTrigger>
       <SheetContent className="w-full sm:max-w-md">
         <SheetHeader>

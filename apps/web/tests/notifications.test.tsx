@@ -14,7 +14,7 @@ describe('avisos', () => {
     expect(Object.keys(KIND_LABEL)).not.toContain('whatsapp');
   });
   it('menu do consultório leva aos avisos', () => {
-    const conta = navModel('/app/clinico').more.find((g) => g.title === 'Conta');
+    const conta = navModel('/app/clinico').find((g) => g.title === 'Conta');
     expect(conta?.links.map((l) => l.href)).toContain('/app/configuracoes/avisos');
   });
 });

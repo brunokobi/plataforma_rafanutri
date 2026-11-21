@@ -162,3 +162,10 @@
 html:has([data-patient-shell]) {
   scroll-padding-bottom: calc(5.5rem + env(safe-area-inset-bottom));
 }
+
+/* Menu lateral fixo da área logada (components/app/app-sidebar.tsx): o conteúdo começa depois dele. */
+@media (min-width: 1024px) {
+  body:has([data-app-sidebar]) {
+    padding-left: 264px;
+  }
+}

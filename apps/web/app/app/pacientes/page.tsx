@@ -11,7 +11,7 @@ import { listPatients } from '@/lib/patients/repository';
 
 export const metadata: Metadata = { title: 'Pacientes', robots: { index: false } };
 
-export default async function PatientsPage() {
+export default async function PatientsPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const user = await getCurrentUser();
   if (!user) redirect('/login?next=/app/pacientes');
 
@@ -22,6 +22,8 @@ export default async function PatientsPage() {
   const organization = organizations?.find((o) => o.role === 'owner' || o.role === 'nutritionist') ?? null;
   const plan = getPlan(getUserPlan(organizations));
   const patients = organization ? await listPatients(organization.id) : null;
+  const sp = await searchParams;
+  const q = typeof sp.q === 'string' ? sp.q.slice(0, 80) : '';
 
   return (
     <div className="min-h-dvh">
@@ -30,7 +32,7 @@ export default async function PatientsPage() {
         <h1 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">Pacientes</h1>
         {organization && <p className="mt-1 text-sm text-muted-foreground">{organization.name}</p>}
         <div className="mt-6">
-          <PatientsList patients={patients} limit={plan.maxActivePatients} planName={plan.name} demoHref="/app/pacientes/exemplo" />
+          <PatientsList patients={patients} limit={plan.maxActivePatients} planName={plan.name} demoHref="/app/pacientes/exemplo" key={q} initialQuery={q} />
         </div>
       </main>
     </div>
