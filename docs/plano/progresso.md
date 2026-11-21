@@ -104,6 +104,12 @@ Atualizado em **21/11/2026**. O que já está no código (`main`), o que está s
 | RN-115 Introdução alimentar | ✅ | Orientações por fase (até 6 meses, 6, 7–8, 9–11 meses e 1 a 2 anos) com base no Guia para Crianças Menores de 2 Anos, na aba da criança. Texto-base a validar pela RT |
 | Acesso | ✅ | Planos Profissional e Clínica (ou módulo habilitado por contrato); a API (`/patients/:id/maternal`, medidas e gestações, `directus/extensions/rafanutri/maternal.js`) confere o plano. Falta: lactação (RN-113, RN-114), alergênicos e texturas (RN-116), responsáveis legais e visão no app do paciente (RN-117, RN-118) |
 
+## Fase 3 — Assistente de IA
+
+| Item | Status | Observação |
+|---|---|---|
+| Assistente de IA | ✅ | **21/11/2026**, migração 0063. Página `/app/assistente` (no menu "Mais" e na aba Anamneses): **perguntar**, **ideias de receitas**, **resumo da anamnese** e **sugestão de cardápio** para a meta de calorias. Só **modelos gratuitos do OpenRouter** (id `:free`, preço zero e `max_price` zero na chamada), com troca automática de modelo quando um está ocupado. **Sem identificação do paciente**: o servidor monta o contexto com idade, sexo, medidas, gestação e respostas da anamnese, tirando nome, CPF, e-mail, telefone e datas; nenhum texto é gravado (`ai_requests` guarda só tipo, modelo e tokens). Cota: Gratuito e Essencial 5 pedidos por dia; Profissional e Clínica 200 (uso justo). Chave em `OPENROUTER_API_KEY` no `.env` do Directus. **Pendente:** trocar a chave (foi colada na conversa) |
+
 ## Fase 5 — UAN e Qualidade (Enterprise)
 
 Começou em 15/11/2026 pela entrega **U0** do [plano do módulo](../modulos/uan.md) (refeito no mesmo dia com a comparação com TecFood e NutriUAN: entregas U0 a U9, tipos de cardápio, desperdício, custos e IA, itens RN-220 a RN-239), adiantada em relação à ordem do roadmap, enquanto a Fase 2 espera Resend, n8n e o gateway.

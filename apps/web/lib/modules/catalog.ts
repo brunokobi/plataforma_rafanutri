@@ -58,7 +58,8 @@ export const MODULES: readonly ModuleDefinition[] = [
     includes: ['Sugestão de plano alimentar', 'Resumo da anamnese', 'Ideias de receitas', 'Consulta a diretrizes'],
     icon: 'sparkles',
     phase: 'Fase 3',
-    availability: 'building',
+    availability: 'available',
+    href: '/app/assistente',
   },
   {
     code: 'maternal',

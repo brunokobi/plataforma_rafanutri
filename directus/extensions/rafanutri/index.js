@@ -12,6 +12,7 @@ import { isOfferedSlot, localDateOf, publicSlots, validateBooking } from './book
 import { setupNotifications } from './notify.js';
 import { setupSubscriptions } from './subscriptions.js';
 import { setupMaternal } from './maternal.js';
+import { setupAI } from './ai.js';
 import { fillMonths, isIsoDate, monthStart, splitInstallments, validatePackage, validateTransaction } from './finance.js';
 
 const TYPES = new Set(['solo', 'clinic']);
@@ -6566,5 +6567,8 @@ export default {
 
     // ── Materno-infantil: curvas da OMS e gestação (0062) ─────────────────────────────────────
     setupMaternal({ router, database, logger, h: { requireUser, bad, conflict, isUuid, clinicalOrg, withActor } });
+
+    // ── Assistente de IA, só modelos gratuitos do OpenRouter (0063) ───────────────────────────
+    setupAI({ router, database, logger, h: { requireUser, bad, isUuid } });
   },
 };

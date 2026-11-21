@@ -52,8 +52,8 @@ export interface UserNotificationPrefs { telegram_linked: boolean; telegram_opt_
 
 /** O que cada plano pago traz, nos cartões de "Meu plano" (limites vêm do banco; espelha lib/modules/plans.ts). */
 export const PLAN_HIGHLIGHTS: Record<string, string[]> = {
-  essential: ['Clínico completo e área do paciente', 'Agenda, avisos no Telegram e financeiro', 'IA: 5 usos por dia (em breve)'],
-  professional: ['Tudo do Essencial', 'IA sem limite e materno-infantil (em breve)'],
+  essential: ['Clínico completo e área do paciente', 'Agenda, avisos no Telegram e financeiro', 'Assistente de IA: 5 pedidos por dia'],
+  professional: ['Tudo do Essencial', 'Assistente de IA livre e módulo materno-infantil'],
   clinic: ['Tudo do Profissional', 'Equipe sem limite, com papéis e permissões'],
 };
 

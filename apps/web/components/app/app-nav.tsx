@@ -42,6 +42,7 @@ export function navModel(pathname: string, homeHref = '/app', patientsHref = '/a
       {
         title: 'Conteúdo',
         links: [
+          { href: '/app/assistente', label: 'Assistente de IA' },
           { href: '/app/questionarios', label: 'Questionários' },
           { href: '/app/modelos-de-plano', label: 'Modelos de plano' },
           { href: '/app/alimentos', label: 'Alimentos' },

@@ -1,5 +1,6 @@
 import { AlertCircle } from 'lucide-react';
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { AppHeader } from '@/components/app/app-header';
 import { PatientAnamneses } from '@/components/patients/patient-anamneses';
@@ -47,6 +48,9 @@ export default async function PatientAnamnesesPage({ params }: { params: Promise
         ) : (
           <>
             <PatientHeader patient={patient} activeLimitReached={activeLimitReached} active="anamneses" alerts={extractHealthAlerts(anamneses)} />
+            <p className="text-sm">
+              <Link href={`/app/assistente?paciente=${patient.id}`} className="font-medium text-primary hover:underline">Resumir a anamnese com o assistente de IA →</Link>
+            </p>
             <PatientAnamneses
               patientId={patient.id}
               patientFirstName={patient.full_name.split(/\s+/)[0] ?? patient.full_name}

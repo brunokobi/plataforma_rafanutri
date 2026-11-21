@@ -36,11 +36,11 @@ describe('plano gratuito na tela principal', () => {
     expect(others.find((v) => v.module.code === 'maternal')?.unlockedBy[0]?.name).toBe('Profissional');
     expect(others.find((v) => v.module.code === 'uan')?.unlockedBy[0]?.name).toBe('Enterprise UAN');
   });
-  it('módulos publicados abrem; IA, ainda em construção, fica "em breve"', () => {
+  it('módulos publicados abrem, inclusive a IA (com cota no Gratuito)', () => {
     expect(mine.map((v) => [v.module.code, v.status])).toEqual([
       ['clinical', 'available'],
       ['patient_area', 'available'],
-      ['ai', 'included_soon'],
+      ['ai', 'available'],
     ]);
     expect(mine.find((v) => v.module.code === 'clinical')?.module.href).toBe('/app/clinico');
   });

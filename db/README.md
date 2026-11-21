@@ -206,6 +206,10 @@ Migração `0062_maternal.sql` (**aplicada na vpsrafa em 21/11/2026**, backup `a
 - `pregnancies`: DUM, peso pré-gestacional, altura, situação (`active`/`ended`, com data e motivo), observações. Uma gestação ativa por paciente (índice único parcial); só paciente do consultório e não masculina; autor owner/nutricionista; não muda de consultório nem de paciente (gatilho `pregnancies_guard`); auditada. O peso ao longo das semanas vem das avaliações da paciente.
 - Endpoints em `directus/extensions/rafanutri/maternal.js`, liberados nos planos Profissional e Clínica ou com o módulo `maternal` em `organizations.modules`.
 
+## Assistente de IA (0063)
+
+Migração `0063_ai_requests.sql` (**aplicada na vpsrafa em 21/11/2026**, backup `antes-0063-2026-11-21.dump`): `ai_requests` registra cada pedido ao assistente (consultório, usuário, tipo, modelo, paciente, tokens, ok/erro) para a cota diária. **Não guarda o texto enviado nem a resposta.** Endpoints `GET /rafanutri/ai/status` e `POST /rafanutri/ai/ask` em `directus/extensions/rafanutri/ai.js`; regras puras (modelos gratuitos, anonimização, mensagens) em `ai-core.js`, testadas em `db/tests/extension-ai.test.mjs`.
+
 ## Avaliações antropométricas (RN-028)
 
 Tabela `anthropometric_assessments`: medidas (peso, altura, cintura, quadril), protocolo e dobras (`skinfolds`, jsonb), **resultados** calculados pelo `@rafanutri/nutrition-core` (`results`, jsonb, com a `calc_version`), observações, autor (`user_created`, preenchido pelo Directus) e datas.
