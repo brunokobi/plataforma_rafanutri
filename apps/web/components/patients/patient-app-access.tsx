@@ -22,7 +22,8 @@ export function PatientAppAccess({ patientId, access, firstName, phone }: { pati
   const router = useRouter();
   const [email, setEmail] = useState(access?.invite?.email ?? access?.patient_email ?? '');
   const [inviting, setInviting] = useState(false);
-  const [sent, setSent] = useState<{ link: string; expires_at: string } | null>(null);
+  const [sent, setSent] = useState<{ link: string; expires_at: string; sent: boolean } | null>(null);
+  const [sendNow, setSendNow] = useState(true);
   const [copied, setCopied] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -39,7 +40,7 @@ export function PatientAppAccess({ patientId, access, firstName, phone }: { pati
   const send = () => {
     setMessage(null);
     startTransition(async () => {
-      const r = await invitePatient(patientId, email);
+      const r = await invitePatient(patientId, email, sendNow);
       if (r.ok && r.data) {
         setSent(r.data);
         setInviting(false);
@@ -71,11 +72,12 @@ export function PatientAppAccess({ patientId, access, firstName, phone }: { pati
           ? `${firstName} entra com ${access.email}${access.activated_at ? ` desde ${day(access.activated_at)}` : ''} e vê o plano publicado.`
           : access.invite
             ? `Convite para ${access.invite.email}, válido até ${day(access.invite.expires_at)}. O link só aparece quando é gerado; se ele se perdeu, gere outro.`
-            : `${firstName} ainda não tem acesso. Gere o link e envie pelo WhatsApp: no primeiro acesso, ${firstName} cria a própria senha.`}
+            : `${firstName} ainda não tem acesso. A Rafanutri envia o convite por e-mail (ou pelo Telegram, se estiver ligado); no primeiro acesso, ${firstName} cria a própria senha.`}
       </p>
 
       {sent && (
         <div className="space-y-2 rounded-xl bg-muted/50 p-3">
+          {sent.sent && <p className="text-sm font-medium text-primary">Convite enviado para {firstName}. Se quiser, copie o link abaixo e mande por outro canal.</p>}
           <input readOnly value={sent.link} aria-label="Link do convite" onFocus={(e) => e.currentTarget.select()} className="w-full rounded-md border border-input bg-background px-3 py-2 font-mono text-xs" />
           <div className="flex flex-wrap gap-2">
             <Button
@@ -111,7 +113,11 @@ export function PatientAppAccess({ patientId, access, firstName, phone }: { pati
             <Label htmlFor="app-email">E-mail de acesso de {firstName}</Label>
             <Input id="app-email" type="email" autoComplete="off" value={email} onChange={(e) => setEmail(e.target.value)} required />
           </div>
-          <Button type="submit" disabled={pending}>{pending && <Loader2 className="size-4 animate-spin" />} Gerar link</Button>
+          <label className="flex min-h-11 items-center gap-2 text-sm">
+            <input type="checkbox" className="size-4 accent-primary" checked={sendNow} onChange={(e) => setSendNow(e.target.checked)} />
+            Enviar o convite agora
+          </label>
+          <Button type="submit" disabled={pending}>{pending && <Loader2 className="size-4 animate-spin" />} {sendNow ? 'Enviar convite' : 'Gerar link'}</Button>
           <Button type="button" variant="ghost" onClick={() => setInviting(false)} disabled={pending}>Cancelar</Button>
         </form>
       )}

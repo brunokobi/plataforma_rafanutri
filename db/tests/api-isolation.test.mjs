@@ -503,6 +503,25 @@ try {
     assert.equal((await api(`/rafanutri/patients/${patientA}/app-access/revoke`, { token: b.token, method: 'POST' })).status, 404);
     assert.ok((await api(`/items/patients/${patientA}`, { token: a.token, method: 'PATCH', body: { app_user_id: created.users[1] } })).status >= 400);
   });
+  await check('Avisos (0058): B não vê nem muda os avisos do paciente de A; bot e cancelamento exigem segredo', async () => {
+    assert.equal((await api(`/rafanutri/patients/${patientA}/notifications`, { token: b.token })).status, 404);
+    assert.equal((await api(`/rafanutri/patients/${patientA}/notifications`, { token: b.token, method: 'PUT', body: { email_opt_in: false } })).status, 404);
+    assert.equal((await api(`/rafanutri/patients/${patientA}/notifications/telegram-link`, { token: b.token, method: 'POST' })).status, 404);
+    assert.equal((await api(`/rafanutri/patients/${patientA}/notifications/telegram-unlink`, { token: b.token, method: 'POST' })).status, 404);
+    const mine = await api(`/rafanutri/patients/${patientA}/notifications`, { token: a.token });
+    assert.equal(mine.status, 200);
+    assert.equal(mine.json.data.telegram_linked, false);
+    const off = await api(`/rafanutri/patients/${patientA}/notifications`, { token: a.token, method: 'PUT', body: { email_opt_in: false } });
+    assert.equal(off.json.data.email_opt_in, false);
+    await api(`/rafanutri/patients/${patientA}/notifications`, { token: a.token, method: 'PUT', body: { email_opt_in: true } });
+    assert.equal((await api('/rafanutri/notifications/settings', { token: a.token, method: 'PUT', body: { reminders_enabled: true, scheduled_enabled: true, plan_enabled: true, reminder_hours: [5] } })).status, 400);
+    assert.ok((await api('/rafanutri/notifications/log', { token: b.token })).json.data.every((n) => n.patient_id !== patientA), 'histórico só do próprio consultório');
+    assert.equal((await api('/rafanutri/public/telegram/webhook', { method: 'POST', body: { message: { chat: { id: 1, type: 'private' }, text: '/parar' } } })).status, 401, 'webhook sem segredo');
+    assert.equal((await api('/rafanutri/public/notifications/unsubscribe', { method: 'POST', body: { t: `${patientA}.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx` } })).status, 404, 'cancelamento com assinatura falsa');
+    for (const c of ['notification_outbox', 'patient_contact_prefs', 'notification_settings']) {
+      assert.ok((await api(`/items/${c}?limit=1`, { token: a.token })).status >= 400, `coleção ${c} fechada`);
+    }
+  });
   await check('convite: e-mail de profissional recusado; paciente cria a conta e só vê os próprios dados', async () => {
     // patientA foi arquivado no teste de limite: usa um paciente ativo de A
     const pid = (await api(`/items/patients?fields=id&limit=1&filter[organization_id][_eq]=${A}&filter[status][_eq]=active`, { token: a.token })).json.data[0].id;

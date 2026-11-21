@@ -39,14 +39,14 @@ export async function getAppAccess(patientId: string): Promise<AppAccess | null>
 }
 
 /** Cria o convite e devolve o link (o token só aparece agora; depois só dá para gerar outro). */
-export async function invitePatient(patientId: string, email: string): Promise<ActionResult<{ link: string; expires_at: string }>> {
+export async function invitePatient(patientId: string, email: string, send = false): Promise<ActionResult<{ link: string; expires_at: string; sent: boolean }>> {
   if (!isId(patientId)) return { ok: false, message: 'Pedido inválido.' };
   try {
-    const r = await call(`/patients/${patientId}/app-invite`, 'POST', { email });
+    const r = await call(`/patients/${patientId}/app-invite`, 'POST', { email, send });
     if (r.status === 201) {
-      const d = r.json?.data as { token: string; expires_at: string };
+      const d = r.json?.data as { token: string; expires_at: string; sent?: boolean };
       revalidatePath(`/app/pacientes/${patientId}`);
-      return { ok: true, data: { link: `${env.NEXT_PUBLIC_SITE_URL}/p/convite/${d.token}`, expires_at: d.expires_at } };
+      return { ok: true, data: { link: `${env.NEXT_PUBLIC_SITE_URL}/p/convite/${d.token}`, expires_at: d.expires_at, sent: d.sent === true } };
     }
     if (r.status === 400) return { ok: false, message: 'Informe um e-mail válido.', field: 'email' };
     if (r.status === 401) return { ok: false, message: 'Sua sessão expirou. Entre novamente.' };

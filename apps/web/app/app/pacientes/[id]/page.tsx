@@ -3,6 +3,8 @@ import type { Metadata } from 'next';
 import { notFound, redirect } from 'next/navigation';
 import { AppHeader } from '@/components/app/app-header';
 import { PatientAppAccess } from '@/components/patients/patient-app-access';
+import { PatientNotifications } from '@/components/notifications/patient-notifications';
+import { getPatientContactPrefs } from '@/lib/notifications/actions';
 import { PatientShareSettings } from '@/components/patients/patient-share-settings';
 import { PatientPackages } from '@/components/packages/patient-packages';
 import { listPackages, listPatientPackages } from '@/lib/packages/actions';
@@ -37,7 +39,7 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
   if (target) redirect(target);
 
   const organization = organizations?.find((o) => o.role === 'owner' || o.role === 'nutritionist') ?? null;
-  const [patient, all, assessments, plans, anamneses, nextAppointment, appAccess, patientRecipes, library, shareConfig, patientPackages, packageCatalog] = await Promise.all([
+  const [patient, all, assessments, plans, anamneses, nextAppointment, appAccess, patientRecipes, library, shareConfig, patientPackages, packageCatalog, contactPrefs] = await Promise.all([
     getPatient(id),
     organization ? listPatients(organization.id) : null,
     listAssessments(id),
@@ -50,6 +52,7 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
     getShareConfig(id),
     listPatientPackages(id),
     listPackages(),
+    getPatientContactPrefs(id),
   ]);
   if (patient === undefined) notFound();
 
@@ -76,6 +79,11 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
         {patient && (
           <div className="mt-6">
             <PatientAppAccess patientId={patient.id} access={appAccess} firstName={patient.full_name.split(/\s+/)[0] ?? patient.full_name} phone={patient.phone} />
+          </div>
+        )}
+        {patient && patient.status === 'active' && (
+          <div className="mt-6">
+            <PatientNotifications patientId={patient.id} prefs={contactPrefs} firstName={patient.full_name.split(/\s+/)[0] ?? patient.full_name} />
           </div>
         )}
         {patient && (

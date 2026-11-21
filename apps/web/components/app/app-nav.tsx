@@ -49,7 +49,7 @@ export function navModel(pathname: string, homeHref = '/app', patientsHref = '/a
           { href: '/app/orientacoes', label: 'Orientações' },
         ],
       },
-      { title: 'Conta', links: [{ href: '/app/configuracoes/consultorio', label: 'Consultório' }, { href: '/app/configuracoes/plano', label: 'Meu plano' }] },
+      { title: 'Conta', links: [{ href: '/app/configuracoes/consultorio', label: 'Consultório' }, { href: '/app/configuracoes/avisos', label: 'Avisos' }, { href: '/app/configuracoes/plano', label: 'Meu plano' }] },
     ],
   };
 }

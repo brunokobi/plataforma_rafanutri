@@ -6,11 +6,11 @@ import { brasiliaMinutes, mealOfTheMoment } from '@/lib/patient-area/meal-now';
 import type { AppAccess } from '@/lib/patient-area/types';
 
 type R = { ok: true; data?: { link: string; expires_at: string } } | { ok: false; message: string; field?: string };
-const invitePatient = vi.fn<(id: string, email: string) => Promise<R>>(async () => ({ ok: true, data: { link: 'https://x/p/convite/abc', expires_at: '2026-11-21T12:00:00Z' } }));
+const invitePatient = vi.fn<(id: string, email: string, send?: boolean) => Promise<R>>(async () => ({ ok: true, data: { link: 'https://x/p/convite/abc', expires_at: '2026-11-21T12:00:00Z', sent: true } }));
 const revokeAppAccess = vi.fn<(id: string) => Promise<R>>(async () => ({ ok: true }));
 const acceptInviteWithPassword = vi.fn<(t: string, p: string, c: string) => Promise<R>>(async () => ({ ok: false, message: 'As senhas não conferem.', field: 'confirm' }));
 vi.mock('@/lib/patient-area/actions', () => ({
-  invitePatient: (id: string, e: string) => invitePatient(id, e),
+  invitePatient: (id: string, e: string, send?: boolean) => invitePatient(id, e, send),
   revokeAppAccess: (id: string) => revokeAppAccess(id),
   acceptInviteWithPassword: (t: string, p: string, c: string) => acceptInviteWithPassword(t, p, c),
   acceptInviteLoggedIn: vi.fn(),
@@ -54,8 +54,9 @@ describe('PatientAppAccess (nutricionista)', () => {
     expect(screen.getByText('Sem acesso')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Convidar para a área do paciente' }));
     expect((screen.getByLabelText(/E-mail de acesso/) as HTMLInputElement).value).toBe('rafa@exemplo.com');
-    await act(async () => fireEvent.click(screen.getByRole('button', { name: /Gerar link/ })));
-    expect(invitePatient).toHaveBeenCalledWith('p1', 'rafa@exemplo.com');
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: /Enviar convite/ })));
+    expect(invitePatient).toHaveBeenCalledWith('p1', 'rafa@exemplo.com', true);
+    expect(screen.getByText(/Convite enviado para Rafael/)).toBeTruthy();
     expect((screen.getByLabelText('Link do convite') as HTMLInputElement).value).toBe('https://x/p/convite/abc');
     expect(screen.getByRole('link', { name: /WhatsApp/ }).getAttribute('href')).toContain('wa.me/5531999990000');
   });
@@ -63,7 +64,9 @@ describe('PatientAppAccess (nutricionista)', () => {
     invitePatient.mockResolvedValueOnce({ ok: false, message: 'Este e-mail é de uma conta de profissional; use outro e-mail para o paciente.', field: 'email' });
     render(<PatientAppAccess patientId="p1" access={access()} firstName="Rafael" phone={null} />);
     fireEvent.click(screen.getByRole('button', { name: 'Convidar para a área do paciente' }));
+    fireEvent.click(screen.getByLabelText('Enviar o convite agora'));   // só o link, sem enviar
     await act(async () => fireEvent.click(screen.getByRole('button', { name: /Gerar link/ })));
+    expect(invitePatient).toHaveBeenLastCalledWith('p1', expect.any(String), false);
     expect(screen.getByRole('alert').textContent).toMatch(/conta de profissional/);
   });
   it('acesso ativo: revogar com confirmação', async () => {

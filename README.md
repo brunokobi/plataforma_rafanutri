@@ -68,7 +68,7 @@ A Rafanutri reúne as áreas da nutrição em um só lugar: atendimento clínico
 | **2. Materno-Infantil** | Nutrição pediátrica e gestantes | Curvas de crescimento da OMS com escore-z, ganho de peso gestacional, introdução alimentar |
 | **3. Saúde Pública** | UBS, ambulatórios, programas | Triagens (NRS-2002, MNA, MUST), grupos populacionais, relatórios |
 | **4. UAN e Qualidade** | Restaurantes, hospitais, escolas, hotéis | Ficha técnica, cardápio cíclico, compras, estoque, checklists BPF, POPs, APPCC, rotulagem |
-| **5. Gestão do consultório** | Profissionais e clínicas | Lembretes por WhatsApp, CRM, financeiro, pacotes, conteúdo de marketing |
+| **5. Gestão do consultório** | Profissionais e clínicas | Avisos e lembretes pelo Telegram (e e-mail no importante), CRM, financeiro, pacotes, conteúdo de marketing |
 | **IA** | Nutricionista | Sugestão de plano, resumo de anamnese, assistente sobre diretrizes (sempre revisado pelo profissional) |
 | **Área do paciente** | Paciente | Plano alimentar, receitas, recomendações e PDFs (MVP); depois diário, hidratação, lista de compras e chat |
 
@@ -83,7 +83,7 @@ Detalhes e prioridades em [docs/02-modulos.md](docs/02-modulos.md).
 - **APPCC e rotulagem:** plano com árvore do Codex, PCC e PDF; rótulo nutricional da IN 75/2020 (vertical, horizontal e linear) com lupa e alergênicos.
 - **Contrato e implantação:** situação, faturas e modo leitura quando o contrato termina; administração da plataforma em `/app/admin` (contratos e faturas); importação de fornecedores, insumos e fichas por planilha ([roteiro](docs/guias/implantacao-enterprise.md)).
 
-Depende de definição externa: avisos e envio por WhatsApp/e-mail (n8n), cobrança no gateway, IA e a revisão da RT dos textos-base e critérios marcados "a validar". Detalhes em [docs/plano/progresso.md](docs/plano/progresso.md) e [docs/modulos/uan.md](docs/modulos/uan.md).
+Avisos ao paciente: Telegram para tudo e e-mail só no importante (falta o token do bot). Depende de definição externa: cobrança no gateway, IA e a revisão da RT dos textos-base e critérios marcados "a validar". Detalhes em [docs/plano/progresso.md](docs/plano/progresso.md) e [docs/modulos/uan.md](docs/modulos/uan.md).
 
 ## Estratégia de lançamento
 

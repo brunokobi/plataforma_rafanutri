@@ -32,6 +32,13 @@ export default async function PracticeSettingsPage() {
           <Alert variant="destructive"><AlertDescription>Não foi possível carregar o consultório agora. Atualize a página em instantes.</AlertDescription></Alert>
         )}
         {org && <WorkScheduleForm orgId={org.id} initial={scheduleOf(org)} canEdit={org.role === 'owner'} />}
+        {org && (
+          <section className="space-y-1 rounded-lg border p-4">
+            <h2 className="font-medium">Avisos aos pacientes</h2>
+            <p className="text-sm text-muted-foreground">Lembretes de consulta, mudanças de horário e plano novo pelo Telegram (gratuito) e, no que é importante, por e-mail.</p>
+            <Link href="/app/configuracoes/avisos" className="text-sm font-medium text-primary underline-offset-4 hover:underline">Configurar avisos</Link>
+          </section>
+        )}
         {org?.role === 'owner' && (
           <section className="space-y-1 rounded-lg border p-4">
             <h2 className="font-medium">Auditoria</h2>

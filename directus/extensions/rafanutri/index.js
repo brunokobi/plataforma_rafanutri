@@ -9,6 +9,7 @@ import { CUSTOM_NUTRIENTS, parseImageDataUrl, recipePer100g, validateFoodInput, 
 import { validateDocumentInput } from './documents.js';
 import { validateLead } from './crm.js';
 import { isOfferedSlot, localDateOf, publicSlots, validateBooking } from './booking.js';
+import { setupNotifications } from './notify.js';
 import { fillMonths, isIsoDate, monthStart, splitInstallments, validatePackage, validateTransaction } from './finance.js';
 
 const TYPES = new Set(['solo', 'clinic']);
@@ -36,6 +37,7 @@ const MAX_ANSWERS_BYTES = 100_000;
 export default {
   id: 'rafanutri',
   handler: (router, { database, logger, services, getSchema }) => {
+    let notifier = null;   // avisos (notify.js), montado no fim do handler
     // Papel "Paciente" (migração 0018): conta da área do paciente.
     const PATIENT_ROLE = '5d1c7a3e-0002-4b6e-9a01-7e2a0c9a0002';
     async function isPatientAccount(userId) {
@@ -6053,7 +6055,13 @@ export default {
             .returning('expires_at');
           return row.expires_at;
         });
-        res.status(201).json({ data: { token, email, expires_at: expires } });
+        // send: true → o convite sai pelo canal do paciente (Telegram ligado ou e-mail do convite).
+        let sent = false;
+        if (req.body?.send === true && notifier) {
+          const site = (process.env.RAFANUTRI_SITE_URL || 'https://rafanutri.brunokobi.tech').replace(/\/$/, '');
+          sent = await notifier.sendInvite({ orgId: p.organization_id, patientId: p.id, email, link: `${site}/p/convite/${token}`, inviteId: hashToken(token).slice(0, 32) }).catch(() => false);
+        }
+        res.status(201).json({ data: { token, email, expires_at: expires, sent } });
       } catch (error) {
         if (error?.code === 'P0001') return conflict(res, error.message.split('\n')[0].replace(/^.* - /, ''));
         logger.error({ err: error }, 'rafanutri: falha ao criar convite do paciente');
@@ -6546,5 +6554,9 @@ export default {
         res.status(500).json({ errors: [{ message: 'Não foi possível salvar agora.', extensions: { code: 'INTERNAL_SERVER_ERROR' } }] });
       }
     });
+
+    // ── Avisos por Telegram e e-mail (0058) ─────────────────────────────────────────────────
+    notifier = setupNotifications({ router, database, logger, services, getSchema,
+      h: { requireUser, bad, conflict, isUuid, clinicalOrg, memberOrg, clinicalPatient, myPatientRecord } });
   },
 };

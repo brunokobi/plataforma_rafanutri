@@ -102,7 +102,7 @@ Status: `todo`, `doing`, `done`, `adiado` (fora do MVP, ver [ADR 0004](adr/0004-
 | ID | Item | Tipo | Pts | Depende de | Status |
 |---|---|---|---|---|---|
 | [RN-050](plano/fase-2-gestao.md#rn-050--subir-n8n-self-hosted-e-conectar-ao-supabase) | Subir n8n (self-hosted) e conectar ao Supabase | infra | 3 | RN-003, RN-014 | todo |
-| [RN-051](plano/fase-2-gestao.md#rn-051--lembrete-de-consulta-por-whatsapp-e-e-mail) | Lembrete de consulta por WhatsApp e e-mail | feature | 5 | RN-050, RN-059, RN-060, RN-063 | todo |
+| [RN-051](plano/fase-2-gestao.md#rn-051--lembrete-de-consulta-por-whatsapp-e-e-mail) | Lembrete de consulta por Telegram e e-mail (WhatsApp automático descartado em 21/11/2026) | feature | 5 | — | done |
 | [RN-052](plano/fase-2-gestao.md#rn-052--lembrete-de-retorno-e-envio-de-link-de-anamnese) | Lembrete de retorno e envio de link de anamnese | feature | 3 | RN-051, RN-026, RN-056 | todo |
 | [RN-053](plano/fase-2-gestao.md#rn-053--financeiro-recebimentos-e-fluxo-de-caixa) | Financeiro: recebimentos e fluxo de caixa | feature | 5 | RN-008, RN-009 | done |
 | [RN-054](plano/fase-2-gestao.md#rn-054--pacotes-de-consultas) | Pacotes de consultas | feature | 3 | RN-053, RN-022 | done |
@@ -114,9 +114,9 @@ Status: `todo`, `doing`, `done`, `adiado` (fora do MVP, ver [ADR 0004](adr/0004-
 | [RN-060](plano/fase-2-gestao.md#rn-060--log-de-mensagens-e-painel-de-entregas) | Log de mensagens e painel de entregas | feature | 3 | RN-050 | todo |
 | [RN-061](plano/fase-2-gestao.md#rn-061--bloqueio-por-inadimplência-e-régua-de-cobrança) | Bloqueio por inadimplência e régua de cobrança | feature | 5 | RN-057, RN-062 | todo |
 | [RN-062](plano/fase-2-gestao.md#rn-062--webhooks-do-gateway-com-idempotência) | Webhooks do gateway com idempotência | infra | 3 | RN-057 (pode ser desenvolvido em paralelo) | todo |
-| [RN-063](plano/fase-2-gestao.md#rn-063--modelos-de-mensagem-e-aprovação-de-templates-whatsapp) | Modelos de mensagem e aprovação de templates WhatsApp | feature | 3 | RN-050 | todo |
+| [RN-063](plano/fase-2-gestao.md#rn-063--modelos-de-mensagem-e-aprovação-de-templates-whatsapp) | ~~Modelos de mensagem e aprovação de templates WhatsApp~~ — descartado: avisos por Telegram (gratuito) e e-mail | feature | 3 | RN-050 | cancelled |
 | [RN-064](plano/fase-2-gestao.md#rn-064--painel-financeiro-e-indicadores-do-consultório) | Painel financeiro e indicadores do consultório | feature | 3 | RN-053, RN-054, RN-056 | done |
-| [RN-065](plano/fase-2-gestao.md#rn-065--configurações-de-automação-por-organização) | Configurações de automação por organização | feature | 2 | RN-051 | todo |
+| [RN-065](plano/fase-2-gestao.md#rn-065--configurações-de-automação-por-organização) | Configurações de automação por organização (avisos: `/app/configuracoes/avisos`) | feature | 2 | RN-051 | done |
 | [RN-066](plano/fase-2-gestao.md#rn-066--operação-do-n8n-monitoramento-backup-e-runbook) | Operação do n8n: monitoramento, backup e runbook | infra | 2 | RN-050 | todo |
 | [RN-067](plano/fase-2-gestao.md#rn-067--documentação-da-fase-e-atualização-de-termos) | Documentação da fase e atualização de termos | doc | 1 | RN-057, RN-059 | todo |
 | [RN-068](plano/fase-2-gestao.md#rn-068--página-pública-do-nutricionista-e-agendamento-online) | Página pública do nutricionista e agendamento online | feature | 5 | RN-022, RN-051 | done |
