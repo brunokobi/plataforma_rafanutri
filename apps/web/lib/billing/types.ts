@@ -50,6 +50,13 @@ export interface AdminBilling {
 
 export interface UserNotificationPrefs { telegram_linked: boolean; telegram_opt_in: boolean; telegram_name: string | null; telegram_linked_at: string | null; telegram_ready: boolean; email: string | null }
 
+/** O que cada plano pago traz, nos cartões de "Meu plano" (limites vêm do banco; espelha lib/modules/plans.ts). */
+export const PLAN_HIGHLIGHTS: Record<string, string[]> = {
+  essential: ['Clínico completo e área do paciente', 'Agenda, avisos no Telegram e financeiro', 'IA: 5 usos por dia (em breve)'],
+  professional: ['Tudo do Essencial', 'IA sem limite e materno-infantil (em breve)'],
+  clinic: ['Tudo do Profissional', 'Equipe sem limite, com papéis e permissões'],
+};
+
 /** "R$ 49,90". */
 export const brl = (cents: number) => (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 /** "25/11/2026" a partir de AAAA-MM-DD. */

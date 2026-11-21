@@ -95,8 +95,13 @@ export function setupSubscriptions({ router, database, logger, h, notifier }) {
     const o = await ownerOrg(req, res);
     if (!o) return;
     const plan = req.body?.plan;
-    const p = PAID.includes(plan) ? await database('plans').where({ code: plan, sellable: true }).where('price_cents', '>=', 100).first('code') : null;
+    const p = PAID.includes(plan) ? await database('plans').where({ code: plan, sellable: true }).where('price_cents', '>=', 100).first('code', 'max_active_patients') : null;
     if (!p) return bad(res, { plan: 'Plano indisponível.' });
+    if (p.max_active_patients != null) {
+      // Plano menor que o uso atual: o consultório ficaria sem poder ativar pacientes. Pede para arquivar antes.
+      const active = await database('patients').where({ organization_id: o.org, status: 'active' }).count('* as n').first();
+      if (Number(active?.n ?? 0) > p.max_active_patients) return conflict(res, `Este plano vai até ${p.max_active_patients} pacientes ativos e o consultório tem ${active.n}. Arquive pacientes ou escolha um plano maior.`);
+    }
     const cfg = await billingConfig();
     if (!cfg) return res.status(503).json({ errors: [{ message: 'O pagamento por Pix ainda não foi configurado. Tente de novo em breve.', extensions: { code: 'BILLING_OFF' } }] });
     try {

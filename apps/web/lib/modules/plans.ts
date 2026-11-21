@@ -39,12 +39,12 @@ export const PLANS: readonly PlanDefinition[] = [
   {
     code: 'essential',
     name: 'Essencial',
-    price: 'Em breve',
+    price: 'R$ 49,90/mês',
     audience: 'Nutricionista autônomo',
-    maxActivePatients: null,
+    maxActivePatients: 100,
     maxMembers: 1,
     grants: {
-      clinical: { grant: 'included', note: 'Mais pacientes ativos' },
+      clinical: { grant: 'included', note: 'Até 100 pacientes ativos' },
       patient_area: { grant: 'included' },
       practice: { grant: 'included', note: 'Lembretes e agendamento online' },
       ai: { grant: 'quota', note: '5 por dia' },
@@ -56,12 +56,12 @@ export const PLANS: readonly PlanDefinition[] = [
   {
     code: 'professional',
     name: 'Profissional',
-    price: 'Em breve',
+    price: 'R$ 99,90/mês',
     audience: 'Consultório com volume',
     maxActivePatients: null,
     maxMembers: 1,
     grants: {
-      clinical: { grant: 'included' },
+      clinical: { grant: 'included', note: 'Pacientes ativos sem limite' },
       patient_area: { grant: 'included' },
       practice: { grant: 'included', note: 'Completo' },
       ai: { grant: 'included' },
@@ -73,7 +73,7 @@ export const PLANS: readonly PlanDefinition[] = [
   {
     code: 'clinic',
     name: 'Clínica',
-    price: 'Em breve',
+    price: 'R$ 199,90/mês',
     audience: 'Equipes',
     maxActivePatients: null,
     maxMembers: null,

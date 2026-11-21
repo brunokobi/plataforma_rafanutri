@@ -14,7 +14,7 @@ vi.mock('@/lib/billing/actions', () => ({
 const base: Billing = {
   current_plan: 'free', role: 'owner', pix_ready: true, subscription: null, invoices: [],
   plans: [
-    { code: 'essential', name: 'Essencial', price_cents: 4990, max_active_patients: null, max_members: 1 },
+    { code: 'essential', name: 'Essencial', price_cents: 4990, max_active_patients: 100, max_members: 1 },
     { code: 'clinic', name: 'Clínica', price_cents: 19990, max_active_patients: null, max_members: null },
   ],
 };
@@ -32,6 +32,7 @@ describe('assinatura por Pix', () => {
     const { SubscriptionPanel } = await import('@/components/billing/subscription-panel');
     render(<SubscriptionPanel billing={base} />);
     expect(screen.getByText('Essencial')).toBeTruthy();
+    expect(screen.getByText('Agenda, avisos no Telegram e financeiro')).toBeTruthy();
     await act(async () => fireEvent.click(screen.getAllByRole('button', { name: 'Assinar com Pix' })[0]!));
     expect(subscribe).toHaveBeenCalledWith('essential');
     expect(push).toHaveBeenCalledWith('/app/configuracoes/plano/fatura/inv-1');

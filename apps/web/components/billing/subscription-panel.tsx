@@ -7,7 +7,7 @@ import { useState, useTransition } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cancelSubscription, resumeSubscription, subscribe } from '@/lib/billing/actions';
-import { brl, dateBR, INVOICE_STATUS_LABEL, SUB_STATUS_LABEL, type Billing } from '@/lib/billing/types';
+import { brl, dateBR, INVOICE_STATUS_LABEL, PLAN_HIGHLIGHTS, SUB_STATUS_LABEL, type Billing } from '@/lib/billing/types';
 
 /** Assinatura por Pix em "Meu plano": planos à venda, situação, faturas, trocar e cancelar. */
 export function SubscriptionPanel({ billing }: { billing: Billing }) {
@@ -86,6 +86,11 @@ export function SubscriptionPanel({ billing }: { billing: Billing }) {
                 <p className="text-xs text-muted-foreground">
                   {p.max_active_patients === null ? 'Pacientes ativos sem limite' : `Até ${p.max_active_patients} pacientes ativos`} · {p.max_members === null ? 'equipe sem limite' : p.max_members === 1 ? '1 profissional' : `até ${p.max_members} profissionais`} · sem anúncios
                 </p>
+                {(PLAN_HIGHLIGHTS[p.code]?.length ?? 0) > 0 && (
+                  <ul className="list-disc space-y-0.5 pl-4 text-sm">
+                    {PLAN_HIGHLIGHTS[p.code]?.map((h) => <li key={h}>{h}</li>)}
+                  </ul>
+                )}
                 {owner && (
                   <Button type="button" size="sm" className="mt-auto" variant={current ? 'outline' : 'default'} disabled={pending || current || next} onClick={() => choose(p.code)}>
                     {pending && <Loader2 className="size-4 animate-spin" />}
