@@ -53,7 +53,7 @@ test('login, sessão httpOnly e logout', async ({ page, context }) => {
   // Celular e tablet: o "Sair" fica na gaveta do menu lateral.
   const openMenu = page.getByRole('button', { name: 'Abrir menu' });
   if (await openMenu.isVisible()) await openMenu.click();
-  await page.getByRole('button', { name: 'Sair' }).locator('visible=true').click();
+  await page.getByRole('button', { name: 'Sair' }).filter({ visible: true }).click();
   await expect(page).toHaveURL(/\/login$/);
 });
 

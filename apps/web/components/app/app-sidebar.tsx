@@ -52,7 +52,7 @@ function SidebarBody({ homeHref = '/app', patientsHref = '/app/pacientes', org, 
   }, []);
 
   return (
-    <div className="flex h-full flex-col gap-5 px-3.5 py-5">
+    <div className="flex h-full min-h-0 flex-col gap-5 px-3.5 py-5">
       <Logo href={homeHref} className="px-2" />
 
       {org && (
@@ -152,7 +152,7 @@ export function AppSidebar(props: SidebarProps) {
         <Logo href={props.homeHref ?? '/app'} />
       </header>
       <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent side="left" className="w-[288px] max-w-[85vw] p-0">
+        <SheetContent side="left" className="h-dvh max-h-dvh w-[288px] max-w-[85vw] gap-0 overflow-hidden p-0">
           <SheetTitle className="sr-only">Menu</SheetTitle>
           <SidebarBody {...props} onNavigate={() => setOpen(false)} />
         </SheetContent>

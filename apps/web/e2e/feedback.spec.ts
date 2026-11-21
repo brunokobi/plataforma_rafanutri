@@ -12,7 +12,10 @@ test('enviar feedback pelo cabeçalho', async ({ page }) => {
   await page.getByRole('button', { name: 'Entrar' }).click();
   await expect(page).toHaveURL(/^[^?]*\/app\/agenda$/);
 
-  await page.getByRole('button', { name: 'Enviar feedback' }).click();
+  // Celular e tablet: o feedback fica na gaveta do menu lateral.
+  const openMenu = page.getByRole('button', { name: 'Abrir menu' });
+  if (await openMenu.isVisible()) await openMenu.click();
+  await page.getByRole('button', { name: 'Enviar feedback' }).filter({ visible: true }).click();
   const form = page.getByRole('form', { name: 'Feedback' });
   await expect(form.getByText('(/app/agenda)')).toBeVisible();
   await form.getByRole('button', { name: 'Enviar' }).click();

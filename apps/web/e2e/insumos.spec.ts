@@ -29,7 +29,7 @@ test('insumo com preço e fornecedor', async ({ page }) => {
   const supItem = page.getByRole('list', { name: 'Fornecedores' }).getByRole('listitem').filter({ hasText: supplier });
   await expect(supItem.getByText(/CNPJ 12\.345\.678\/0001-90/)).toBeVisible({ timeout: 15_000 });
 
-  await page.getByRole('link', { name: 'Insumos', exact: true }).click();
+  await page.getByRole('main').getByRole('link', { name: 'Insumos', exact: true }).click();
   await page.getByRole('button', { name: 'Novo insumo' }).click();
   const f = page.getByRole('form', { name: 'Novo insumo' });
   await f.getByLabel('Nome do insumo').fill(name);
