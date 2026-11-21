@@ -313,6 +313,20 @@ Migrações `0009_meal_plan_templates.sql` e `0010_meal_plan_templates_tags_json
 | Autor owner/nutricionista; plano de origem do mesmo consultório; não muda de consultório; até 10 etiquetas de até 30 caracteres, normalizadas | gatilho `meal_plan_templates_guard` |
 | Aplicar um modelo cria um **rascunho** de plano para o paciente (cópia); com meta de calorias, as quantidades são escaladas pelo fator meta ÷ energia do modelo (limitado a 0,3–3×) e arredondadas de 5 em 5 g (abaixo de 20 g, de 1 em 1 g) | app (`lib/meal-plans/scale.ts`, `template-actions.ts`) |
 
+### Biblioteca de modelos da plataforma
+
+`db/seed/plan-library/build_library.py` gera `library.sql` (aplicado na vpsrafa em 21/11/2026, backup `antes-biblioteca-2026-11-21.dump`): **42 modelos** sem consultório, em 9 padrões (tradicional brasileiro, ovolactovegetariano, vegano, mediterrâneo adaptado, DASH, controle glicêmico, gestante, pessoa idosa e criança escolar) e faixas de 1.200 a 2.600 kcal.
+
+- Cada padrão tem uma refeição-base de ~2.000 kcal; para cada faixa o gerador acha o fator que leva o dia à meta, escalando por classe (verduras fixas; frutas, laticínios e proteínas pouco; cereais, tubérculos e gorduras na proporção) e arredondando como o app.
+- Até 3 **substituições de mesma energia** por item; orientações escritas para a Rafanutri (base: Guia Alimentar, DASH, padrões do USDA).
+- Alimentos citados como `FONTE:código` e trocados pelo id do banco no SQL; ids dos modelos estáveis (uuid5), então rodar de novo atualiza; modelos retirados da lista são apagados. Confere no fim que nenhum alimento ficou sem id.
+- Todos com "Modelo base — revisar antes de prescrever": **dependem da validação da RT**.
+
+```bash
+python3 db/seed/plan-library/build_library.py      # gera library.sql e imprime kcal, macros, fibra e sódio de cada modelo
+psql -v ON_ERROR_STOP=1 -f db/seed/plan-library/library.sql
+```
+
 ## Segurança: biblioteca da plataforma (0011)
 
 Modelos com `organization_id` nulo (questionários padrão e, no futuro, a biblioteca de métodos de prescrição) aparecem para **todos** os consultórios. Em 12/11/2026 o teste de isolamento mostrou que um usuário conseguia criar um modelo de plano sem consultório: a validação `_nnull` da permissão do Directus **não é aplicada quando o campo não vem no corpo**. Correção:

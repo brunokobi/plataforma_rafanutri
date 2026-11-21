@@ -163,6 +163,7 @@ db/
   migrations/             # SQL versionado e idempotente (0001 alimentos … 0018 acesso do paciente)
   seed/taco/              # TACO 4ª edição (CSV + importador + gerador a partir da planilha oficial)
   seed/ibge/              # IBGE POF 2008-2009 (CSV + importador + gerador a partir das planilhas oficiais)
+  seed/plan-library/      # biblioteca de 42 modelos de plano (gerador + SQL)
   seed/dev/               # seed de nutricionista de teste com consultório e pacientes
   tests/                  # testes SQL das regras do banco + teste de isolamento pela API
 directus/extensions/

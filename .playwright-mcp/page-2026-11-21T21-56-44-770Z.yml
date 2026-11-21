@@ -1,0 +1,107 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - main [ref=e3]:
+      - generic [ref=e4]:
+        - link "Rafanutri" [ref=e5] [cursor=pointer]:
+          - /url: /
+        - button "Alternar tema claro e escuro" [ref=e10]
+      - generic [ref=e12]:
+        - generic [ref=e13]:
+          - heading "Entrar na Rafanutri" [level=1] [ref=e14]
+          - paragraph [ref=e15]: Acesse seus pacientes, planos alimentares, agenda e a gestão do consultório.
+        - group "Tipo de acesso" [ref=e16]:
+          - button "Sou nutricionista" [pressed] [ref=e18]
+          - button "Sou paciente" [ref=e23]
+        - generic [ref=e27]:
+          - generic [ref=e28]:
+            - generic [ref=e29]: E-mail
+            - textbox "E-mail" [ref=e30]:
+              - /placeholder: voce@consultorio.com.br
+          - generic [ref=e31]:
+            - generic [ref=e32]:
+              - generic [ref=e33]: Senha
+              - link "Esqueci minha senha" [ref=e34] [cursor=pointer]:
+                - /url: /recuperar-senha
+            - generic [ref=e35]:
+              - textbox "Senha" [ref=e36]:
+                - /placeholder: ••••••••
+              - button "Mostrar senha" [ref=e37]
+          - generic [ref=e41] [cursor=pointer]:
+            - checkbox "Lembrar de mim neste dispositivo" [checked] [ref=e42]
+            - text: Lembrar de mim neste dispositivo
+          - button "Entrar" [ref=e43]
+        - generic [ref=e46]:
+          - paragraph [ref=e47]:
+            - text: Ainda não tem conta?
+            - link "Criar conta grátis" [ref=e48] [cursor=pointer]:
+              - /url: /cadastro
+          - paragraph [ref=e49]: Até 20 pacientes, sem cartão, para sempre.
+      - generic [ref=e50]:
+        - link "Termos" [ref=e51] [cursor=pointer]:
+          - /url: /termos
+        - link "Privacidade" [ref=e52] [cursor=pointer]:
+          - /url: /privacidade
+        - generic [ref=e53]: © 2026 Rafanutri
+    - region "Áreas atendidas pela Rafanutri" [ref=e54]:
+      - generic [ref=e63]:
+        - paragraph [ref=e64]: Uma plataforma, toda a nutrição
+        - heading "Nutrição de precisão, do consultório ao prato." [level=2] [ref=e65]
+        - paragraph [ref=e66]: Atendimento clínico e esportivo, materno-infantil, saúde pública, UAN e a gestão do seu negócio — com assistentes de IA e um app para o paciente.
+      - generic [ref=e67]:
+        - article [ref=e68]:
+          - generic [ref=e75]:
+            - heading "Nutrição clínica" [level=3] [ref=e76]
+            - paragraph [ref=e77]: Consultas, avaliação e planos alimentares
+          - generic [ref=e78]:
+            - generic [ref=e79]:
+              - generic [ref=e80]: Plano alimentar
+              - generic [ref=e81]: Publicado
+            - paragraph [ref=e83]: 0 kcal
+            - generic [ref=e85]:
+              - generic [ref=e86]:
+                - text: Proteína
+                - strong [ref=e87]: 0 g
+              - generic [ref=e88]:
+                - text: Carboidrato
+                - strong [ref=e89]: 0 g
+              - generic [ref=e90]:
+                - text: Gorduras
+                - strong [ref=e91]: 0 g
+        - article [ref=e97]:
+          - heading "Esportiva" [level=3] [ref=e101]
+          - paragraph [ref=e102]: Composição corporal e estratégia para treino e competição.
+        - article [ref=e103]:
+          - heading "Materno-infantil" [level=3] [ref=e108]
+          - paragraph [ref=e109]: Gestação, amamentação e infância.
+        - article [ref=e110]:
+          - heading "Saúde pública" [level=3] [ref=e117]
+          - paragraph [ref=e118]: Ações coletivas e acompanhamento de grupos.
+        - article [ref=e119]:
+          - heading "UAN" [level=3] [ref=e126]
+          - paragraph [ref=e127]: Unidades de alimentação com gestão de qualidade.
+        - article [ref=e128]:
+          - generic [ref=e133]:
+            - heading "Gestão do negócio" [level=3] [ref=e134]
+            - paragraph [ref=e135]: O consultório organizado de ponta a ponta
+          - generic [ref=e136]:
+            - generic [ref=e137]: Agenda
+            - generic [ref=e138]: Pacientes
+            - generic [ref=e139]: Financeiro
+            - generic [ref=e140]: Indicadores
+        - article [ref=e141]:
+          - generic [ref=e149]:
+            - heading "Assistentes de IA" [level=3] [ref=e150]
+            - paragraph [ref=e151]: Sugestões que aceleram a prescrição
+          - strong [ref=e153]: "Substituição sugerida:"
+        - article [ref=e155]:
+          - generic [ref=e160]:
+            - heading "App do paciente" [level=3] [ref=e161]
+            - paragraph [ref=e162]: Plano alimentar e evolução no celular
+          - generic [ref=e164]:
+            - paragraph [ref=e165]: −0,0 kg
+            - paragraph [ref=e166]: em 8 semanas
+      - generic [ref=e176]:
+        - paragraph [ref=e177]: Até 20 pacientes grátis
+        - paragraph [ref=e178]: Sem cartão, para sempre
+  - region "Notifications alt+T"
+  - alert [ref=e179]
