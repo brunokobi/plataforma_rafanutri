@@ -26,7 +26,7 @@ async function query(params: Record<string, unknown>): Promise<Food[] | null> {
 export async function searchFoodsRepo(text: string, limit = 12): Promise<Food[] | null> {
   const filter = foodSearchFilter(text);
   if (!filter) return [];
-  const found = await query({ filter, limit: 40, sort: ['name'] });
+  const found = await query({ filter, limit: 80, sort: ['name'] });
   return found ? rankFoods(found, text).slice(0, limit) : null;
 }
 

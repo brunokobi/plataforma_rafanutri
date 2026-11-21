@@ -4,7 +4,8 @@ import { CustomFoodForm, portionTo100g } from '@/components/foods/custom-food-fo
 import { CustomFoods, filterCustomFoods } from '@/components/foods/custom-foods';
 import { previewPer100g, RecipeForm } from '@/components/foods/recipe-form';
 import type { CustomFood } from '@/lib/foods/custom';
-import { foodOriginLabel, type Food } from '@/lib/foods/food';
+import { foodOriginLabel, rankFoods, type Food } from '@/lib/foods/food';
+import { isPublicSource } from '@/lib/foods/taco-data';
 
 type R = { ok: true; id: string; per100g?: Record<string, number | null> } | { ok: false; message: string; fields?: Record<string, string> };
 const saveCustomFood = vi.fn<(input: unknown, id?: string) => Promise<R>>(async () => ({ ok: true, id: '700' }));
@@ -48,6 +49,18 @@ describe('conversões e prévias', () => {
     expect(foodOriginLabel({ source: 'CUSTOM', kind: 'food' })).toBe('Próprio');
     expect(foodOriginLabel({ source: 'CUSTOM', kind: 'recipe' })).toBe('Preparação');
     expect(foodOriginLabel({ source: 'TACO', kind: 'food' })).toBeNull();
+    expect(foodOriginLabel({ source: 'IBGE', kind: 'food' })).toBe('IBGE');
+  });
+  it('busca: no empate, o próprio vem antes da TACO e a TACO antes do IBGE', () => {
+    const base = { group: 'Leguminosas e derivados', kind: 'food' as const, per100g: {}, householdMeasures: [{ label: 'concha', grams: 80 }] };
+    const ranked = rankFoods([
+      { ...base, id: '1', name: 'Feijão, cozido', source: 'IBGE' },
+      { ...base, id: '2', name: 'Feijão, cozido', source: 'TACO' },
+      { ...base, id: '3', name: 'Feijão, cozido', source: 'CUSTOM' },
+    ], 'feijao');
+    expect(ranked.map((f) => f.source)).toEqual(['CUSTOM', 'TACO', 'IBGE']);
+    expect(isPublicSource('IBGE')).toBe(true);
+    expect(isPublicSource('CUSTOM')).toBe(false);
   });
 });
 

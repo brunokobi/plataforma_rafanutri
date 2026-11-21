@@ -10,9 +10,9 @@ import { getMyOrganizations, landingRedirect } from '@/lib/auth/organizations';
 import { getCurrentUser } from '@/lib/auth/session';
 import { isSignupOpen } from '@/lib/flags';
 import { listTaco } from '@/lib/foods/taco';
-import { formatNutrient, TACO_GROUPS } from '@/lib/foods/taco-data';
+import { formatNutrient, isPublicSource, PUBLIC_SOURCES, TACO_GROUPS } from '@/lib/foods/taco-data';
 
-export const metadata: Metadata = { title: 'Tabela TACO', robots: { index: false } };
+export const metadata: Metadata = { title: 'Tabelas de composição', robots: { index: false } };
 export const dynamic = 'force-dynamic';
 
 const COLS = [
@@ -23,7 +23,7 @@ const COLS = [
   ['fiber_g', 'Fibra (g)'],
 ] as const;
 
-export default async function TacoPage({ searchParams }: { searchParams: Promise<{ q?: string; grupo?: string }> }) {
+export default async function TacoPage({ searchParams }: { searchParams: Promise<{ q?: string; grupo?: string; fonte?: string }> }) {
   const user = await getCurrentUser();
   if (!user) redirect('/login?next=/app/alimentos/taco');
   const organizations = await getMyOrganizations();
@@ -33,8 +33,9 @@ export default async function TacoPage({ searchParams }: { searchParams: Promise
   const sp = await searchParams;
   const q = typeof sp.q === 'string' ? sp.q.slice(0, 80) : '';
   const group = typeof sp.grupo === 'string' && (TACO_GROUPS as readonly string[]).includes(sp.grupo) ? sp.grupo : '';
+  const source = isPublicSource(sp.fonte) ? sp.fonte : '';
   const searching = Boolean(q.trim() || group);
-  const foods = searching ? await listTaco({ q, group }) : [];
+  const foods = searching ? await listTaco({ q, group, source }) : [];
 
   return (
     <div className="min-h-dvh">
@@ -42,14 +43,23 @@ export default async function TacoPage({ searchParams }: { searchParams: Promise
       <main className="mx-auto max-w-5xl space-y-6 px-5 py-8">
         <div className="space-y-1">
           <Link href="/app/alimentos" className="text-sm text-muted-foreground hover:underline">← Alimentos do consultório</Link>
-          <h1 className="font-display text-3xl font-semibold tracking-tight">Tabela TACO</h1>
-          <p className="text-sm text-muted-foreground">597 alimentos da Tabela Brasileira de Composição de Alimentos (NEPA/Unicamp, 4ª edição). Valores por 100 g da parte comestível.</p>
+          <h1 className="font-display text-3xl font-semibold tracking-tight">Tabelas de composição</h1>
+          <p className="text-sm text-muted-foreground">
+            597 alimentos da TACO (NEPA/Unicamp, 4ª edição) e cerca de 1.900 alimentos e preparações como o brasileiro consome, da POF 2008-2009 do IBGE, com medidas caseiras. Valores por 100 g da parte comestível.
+          </p>
         </div>
 
-        <form method="get" className="grid gap-3 rounded-lg border p-4 sm:grid-cols-[1fr_16rem_auto] sm:items-end" role="search" aria-label="Buscar na TACO">
+        <form method="get" className="grid gap-3 rounded-lg border p-4 sm:grid-cols-[1fr_12rem_14rem_auto] sm:items-end" role="search" aria-label="Buscar nas tabelas">
           <div className="space-y-1">
             <Label htmlFor="taco-q">Alimento</Label>
             <Input id="taco-q" name="q" defaultValue={q} placeholder="Ex.: feijão cozido, banana prata" autoComplete="off" />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="taco-fonte">Tabela</Label>
+            <select id="taco-fonte" name="fonte" defaultValue={source} className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm">
+              <option value="">TACO e IBGE</option>
+              {Object.entries(PUBLIC_SOURCES).map(([code, label]) => <option key={code} value={code}>{label}</option>)}
+            </select>
           </div>
           <div className="space-y-1">
             <Label htmlFor="taco-grupo">Grupo</Label>
@@ -82,7 +92,7 @@ export default async function TacoPage({ searchParams }: { searchParams: Promise
                   <tr key={f.id}>
                     <td className="px-3 py-2">
                       <Link href={`/app/alimentos/taco/${f.id}`} className="font-medium underline-offset-4 hover:underline">{f.name}</Link>
-                      {!group && <span className="block text-xs text-muted-foreground">{f.group}</span>}
+                      <span className="block text-xs text-muted-foreground">{[f.source === 'IBGE' ? 'IBGE' : 'TACO', !group ? f.group : null].filter(Boolean).join(' · ')}</span>
                     </td>
                     {COLS.map(([k]) => (
                       <td key={k} className="px-3 py-2 text-right tabular-nums">{formatNutrient({ amount: f.per100g[k] ?? null, trace: false })}</td>
@@ -93,7 +103,7 @@ export default async function TacoPage({ searchParams }: { searchParams: Promise
             </table>
           </div>
         )}
-        <p className="text-xs text-muted-foreground">NA = não analisado. Tr = traço (quantidade muito pequena, contada como zero no plano).</p>
+        <p className="text-xs text-muted-foreground">NA = não analisado (na base do IBGE, valor não disponível). Tr = traço (quantidade muito pequena, contada como zero no plano).</p>
       </main>
     </div>
   );

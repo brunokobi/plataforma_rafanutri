@@ -40,6 +40,7 @@ export function foodSearchFilter(query: string): Record<string, unknown> | null 
 export function foodOriginLabel(food: Pick<Food, 'source' | 'kind'>): string | null {
   if (food.kind === 'recipe') return 'Preparação';
   if (food.source === 'CUSTOM') return 'Próprio';
+  if (food.source === 'IBGE') return 'IBGE';
   return null;
 }
 
@@ -96,7 +97,7 @@ export function mapDirectusFood(item: DirectusFood): Food {
 
 /**
  * Ordena resultados da busca: quem começa com a 1ª palavra vem antes, depois quem tem
- * medida caseira cadastrada (alimentos mais usados) e, por fim, o nome mais curto.
+ * medida caseira cadastrada (alimentos mais usados), a origem e, por fim, o nome mais curto.
  */
 export function rankFoods(foods: Food[], query: string): Food[] {
   const first = searchWords(query)[0] ?? '';
@@ -104,7 +105,9 @@ export function rankFoods(foods: Food[], query: string): Food[] {
     const name = normalizeSearch(f.name);
     return (name.startsWith(first) ? 0 : 2) + (f.householdMeasures.length > 0 ? 0 : 1);
   };
-  return [...foods].sort((a, b) => score(a) - score(b) || a.name.length - b.name.length || a.name.localeCompare(b.name, 'pt-BR'));
+  // Empate: o do consultório, depois a TACO, depois o IBGE.
+  const origin = (f: Food) => (f.source === 'IBGE' ? 2 : f.source === 'TACO' ? 1 : 0);
+  return [...foods].sort((a, b) => score(a) - score(b) || origin(a) - origin(b) || a.name.length - b.name.length || a.name.localeCompare(b.name, 'pt-BR'));
 }
 
 const RAW = /\bcrua?\b/;

@@ -8,7 +8,7 @@ import { isSignupOpen } from '@/lib/flags';
 import { getTacoFood } from '@/lib/foods/taco';
 import { formatNutrient } from '@/lib/foods/taco-data';
 
-export const metadata: Metadata = { title: 'Alimento da TACO', robots: { index: false } };
+export const metadata: Metadata = { title: 'Composição do alimento', robots: { index: false } };
 export const dynamic = 'force-dynamic';
 
 export default async function TacoFoodPage({ params }: { params: Promise<{ id: string }> }) {
@@ -28,7 +28,7 @@ export default async function TacoFoodPage({ params }: { params: Promise<{ id: s
         <div className="space-y-1">
           <Link href={`/app/alimentos/taco?grupo=${encodeURIComponent(food.group)}`} className="text-sm text-muted-foreground hover:underline">← {food.group}</Link>
           <h1 className="font-display text-3xl font-semibold tracking-tight">{food.name}</h1>
-          <p className="text-sm text-muted-foreground">TACO nº {food.code ?? '—'} · valores por 100 g da parte comestível</p>
+          <p className="text-sm text-muted-foreground">{food.source.code === 'IBGE' ? `IBGE (POF 2008-2009), código ${food.code ?? '—'}` : `TACO nº ${food.code ?? '—'}`} · valores por 100 g da parte comestível</p>
         </div>
 
         <section aria-labelledby="taco-comp" className="overflow-x-auto rounded-lg border">

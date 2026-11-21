@@ -1,6 +1,11 @@
-// Funções puras da consulta à TACO (RN-010): grupos, ficha e formatação dos valores.
+// Funções puras da consulta às tabelas públicas (TACO e IBGE/POF): grupos, ficha e formatação dos valores.
 
-/** Grupos da TACO 4ª edição (fixos na fonte). */
+/** Tabelas públicas de composição consultáveis em /app/alimentos/taco. */
+export const PUBLIC_SOURCES = { TACO: 'TACO 4ª ed.', IBGE: 'IBGE (POF 2008-2009)' } as const;
+export type PublicSource = keyof typeof PUBLIC_SOURCES;
+export const isPublicSource = (v: unknown): v is PublicSource => v === 'TACO' || v === 'IBGE';
+
+/** Grupos da TACO 4ª edição (fixos na fonte; a base do IBGE foi classificada nos mesmos grupos). */
 export const TACO_GROUPS = [
   'Cereais e derivados',
   'Verduras, hortaliças e derivados',
@@ -35,7 +40,7 @@ export interface TacoFoodDetail {
   group: string;
   householdMeasures: Array<{ label: string; grams: number }>;
   nutrients: TacoNutrient[];
-  source: { name: string; version: string | null; citation: string | null };
+  source: { code: string; name: string; version: string | null; citation: string | null };
 }
 
 export interface DirectusTacoDetail {
@@ -44,7 +49,7 @@ export interface DirectusTacoDetail {
   food_group: string | null;
   source_code: string | null;
   household_measures: Array<{ label: string; grams: number }> | null;
-  source_id: { name: string; version: string | null; citation: string | null } | null;
+  source_id: { code?: string; name: string; version: string | null; citation: string | null } | null;
   nutrients: Array<{ amount_per_100g: string | number | null; is_trace: boolean; nutrient_id: { code: string; name: string; unit: string; position: number } | null }>;
 }
 
@@ -66,7 +71,7 @@ export function toDetail(item: DirectusTacoDetail): TacoFoodDetail {
     group: item.food_group ?? 'Outros',
     householdMeasures: (item.household_measures ?? []).filter((m) => m && typeof m.label === 'string' && m.label.trim() !== '' && Number(m.grams) > 0).map((m) => ({ label: m.label.trim(), grams: Number(m.grams) })),
     nutrients,
-    source: { name: item.source_id?.name ?? 'TACO', version: item.source_id?.version ?? null, citation: item.source_id?.citation ?? null },
+    source: { code: item.source_id?.code ?? 'TACO', name: item.source_id?.name ?? 'TACO', version: item.source_id?.version ?? null, citation: item.source_id?.citation ?? null },
   };
 }
 

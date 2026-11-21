@@ -143,7 +143,7 @@ db/scripts/isolation-test.sh
 
 | Tabela | Conteúdo |
 |---|---|
-| `food_sources` | Fonte (`TACO`, depois `TBCA` e `CUSTOM`), versão, citação e licença |
+| `food_sources` | Fonte (`TACO`, `IBGE`, `CUSTOM`; `TBCA` só com licença), versão, citação e licença |
 | `nutrients` | 29 nutrientes com código e unidade (`energy_kcal`, `protein_g`, `carbohydrate_g`, `lipid_g`, `fiber_g`, ...) |
 | `foods` | Alimento, grupo, código na fonte, medidas caseiras (`jsonb`) e `search_name` (nome sem acento, minúsculo, com índice trigram) |
 | `food_nutrients` | Valor por 100 g: `null` = não analisado (NA); `0` com `is_trace = true` = traço (Tr) |
@@ -176,6 +176,27 @@ Regerar o CSV (só se a fonte mudar):
 python3 -m venv /tmp/venv && /tmp/venv/bin/pip install xlrd==2.0.1
 /tmp/venv/bin/python db/seed/taco/build_taco_csv.py <pasta_com_original.xls_e_csvs> db/seed/taco/taco-4ed.csv
 ```
+
+### Base do IBGE (POF 2008-2009)
+
+Migração `0061_food_source_ibge.sql` (**aplicada na vpsrafa em 21/11/2026**, backup `antes-0061-2026-11-21.dump`): fonte `IBGE` e 9 nutrientes a mais (açúcares totais e de adição, gorduras trans, sódio de adição, selênio, B12, folato, vitaminas D e E). Os alimentos entram por `db/seed/ibge/import.sql` (idempotente; confere contagem no fim):
+
+- **1.923 alimentos e preparações** como o brasileiro consome (arroz com feijão, feijão tropeiro, cuscuz, moqueca, sucos…), cada preparo (cru, cozido, frito, grelhado…) como um item; `source_code` = `<código do alimento>-<código do preparo>`.
+- **Medidas caseiras** da *Tabela de Medidas Referidas* em `household_measures` (até 12 por alimento, sem grama/quilo/litro): 1.919 alimentos têm pelo menos uma.
+- Classificados nos **15 grupos da TACO** (prefixo do código + palavras-chave), para a navegação por grupo valer para as duas tabelas.
+- Nomes em minúsculas com acento restaurado (vocabulário da TACO + lista do gerador); itens "orgânicos" ficam de fora (mesmos valores do comum).
+- "-" na fonte (não disponível) vira nulo. **Sódio** sem o sal do preparo; o sal do preparo fica em `added_sodium_mg`.
+- **Licença:** dados públicos do IBGE, com citação (em `food_sources.citation`). Fontes: `ftp.ibge.gov.br/Orcamentos_Familiares/Pesquisa_de_Orcamentos_Familiares_2008_2009/` (`tabelacompleta.zip` e `tabelamedidas_bd.zip`).
+
+Regerar e importar:
+
+```bash
+python3 -m venv /tmp/venv && /tmp/venv/bin/pip install xlrd==2.0.1
+/tmp/venv/bin/python db/seed/ibge/build_pof_csv.py <pasta_com_tabelacompleta.xls_e_tabelamedidas_bd.xls> db/seed/taco/taco-4ed.csv db/seed/ibge/pof-2008-2009.csv
+psql -v ON_ERROR_STOP=1 -v csv=db/seed/ibge/pof-2008-2009.csv -f db/seed/ibge/import.sql
+```
+
+A TBCA (USP) não entra: consultar é livre, mas usar a base dentro de outro sistema exige licença paga.
 
 ## Avaliações antropométricas (RN-028)
 

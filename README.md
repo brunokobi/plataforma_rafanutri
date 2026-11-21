@@ -29,7 +29,7 @@
 
 A Rafanutri reúne as áreas da nutrição em um só lugar: atendimento clínico e esportivo, nutrição materno-infantil, saúde pública, Unidades de Alimentação e Nutrição (UAN) com gestão de qualidade, e gestão do negócio do nutricionista. Também traz assistentes de IA e um app para o paciente acompanhar o plano alimentar.
 
-> **Status (14/11/2026):** MVP em construção, **no ar em https://rafanutri.brunokobi.tech**. Já gravam no banco: cadastro com login automático, onboarding do consultório (plano gratuito), **pacientes** (cadastro, ficha, edição, limite de 20 ativos), **avaliações antropométricas**, **planos alimentares por paciente** (rascunho, publicação e versões), **agenda** de consultas **anamneses** com link público para o paciente responder **modelos de plano** com ajuste à meta de calorias e **alimentos e preparações do consultório**, **orientações reutilizáveis**, **prontuário com evoluções assinadas**, **convite do paciente e área do paciente com o plano alimentar completo, receitas, recomendações, PDFs dos planos, documentos clínicos com a marca (pedido de exames, prescrição, declaração) e escolha do que o paciente vê (calorias, macros, peso)**, **biblioteca de receitas com foto**, **marca do consultório (logo e cor)**, **financeiro (receitas, despesas, a receber, fluxo de 6 meses, CSV, recibo numerado em PDF e pacotes de consultas)**, **CRM (funil de leads, retornos e conversão)**, **indicadores do consultório no painel inicial**, **página pública com agendamento online**, **auditoria (quem criou, alterou, abriu ou exportou dados clínicos e financeiros)** e um **painel inicial** com o dia do nutricionista e a base de alimentos **TACO 4ª edição** usada pelo editor de plano alimentar.  Veja o [progresso](docs/plano/progresso.md).
+> **Status (14/11/2026):** MVP em construção, **no ar em https://rafanutri.brunokobi.tech**. Já gravam no banco: cadastro com login automático, onboarding do consultório (plano gratuito), **pacientes** (cadastro, ficha, edição, limite de 20 ativos), **avaliações antropométricas**, **planos alimentares por paciente** (rascunho, publicação e versões), **agenda** de consultas **anamneses** com link público para o paciente responder **modelos de plano** com ajuste à meta de calorias e **alimentos e preparações do consultório**, **orientações reutilizáveis**, **prontuário com evoluções assinadas**, **convite do paciente e área do paciente com o plano alimentar completo, receitas, recomendações, PDFs dos planos, documentos clínicos com a marca (pedido de exames, prescrição, declaração) e escolha do que o paciente vê (calorias, macros, peso)**, **biblioteca de receitas com foto**, **marca do consultório (logo e cor)**, **financeiro (receitas, despesas, a receber, fluxo de 6 meses, CSV, recibo numerado em PDF e pacotes de consultas)**, **CRM (funil de leads, retornos e conversão)**, **indicadores do consultório no painel inicial**, **página pública com agendamento online**, **auditoria (quem criou, alterou, abriu ou exportou dados clínicos e financeiros)** e um **painel inicial** com o dia do nutricionista e a base de alimentos **TACO 4ª edição + IBGE (POF 2008-2009, cerca de 1.900 alimentos e preparações com medidas caseiras)** usada pelo editor de plano alimentar.  Veja o [progresso](docs/plano/progresso.md).
 
 ---
 
@@ -148,7 +148,7 @@ apps/
     components/           # telas e componentes (ui/ = shadcn/ui)
     lib/
       auth/               # login, sessão, consultórios do usuário e Server Actions (Directus)
-      foods/              # base de alimentos (TACO) pela API do Directus: busca e substitutos
+      foods/              # base de alimentos (TACO e IBGE) pela API do Directus: busca e substitutos
       patients/           # pacientes: validação (CPF, telefone), leitura e Server Actions
       modules/            # catálogo de módulos e acesso por plano
       demo/               # dados de exemplo do módulo clínico (pré-lançamento)
@@ -162,6 +162,7 @@ packages/
 db/
   migrations/             # SQL versionado e idempotente (0001 alimentos … 0018 acesso do paciente)
   seed/taco/              # TACO 4ª edição (CSV + importador + gerador a partir da planilha oficial)
+  seed/ibge/              # IBGE POF 2008-2009 (CSV + importador + gerador a partir das planilhas oficiais)
   seed/dev/               # seed de nutricionista de teste com consultório e pacientes
   tests/                  # testes SQL das regras do banco + teste de isolamento pela API
 directus/extensions/

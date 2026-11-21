@@ -27,10 +27,10 @@ export default async function CustomFoodsPage() {
       <main className="mx-auto max-w-6xl px-5 py-10">
         <h1 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">Alimentos do consultório</h1>
         <p className="mt-2 text-muted-foreground">
-          Alimentos que não estão na TACO (produtos pelo rótulo) e preparações da casa. Aparecem na busca do plano alimentar, marcados como próprios, e só o seu consultório vê.
+          Alimentos que não estão na TACO nem na base do IBGE (produtos pelo rótulo) e preparações da casa. Aparecem na busca do plano alimentar, marcados como próprios, e só o seu consultório vê.
         </p>
         <p className="mt-2 text-sm">
-          <Link href="/app/alimentos/taco" className="font-medium text-primary underline-offset-4 hover:underline">Consultar a tabela TACO</Link>
+          <Link href="/app/alimentos/taco" className="font-medium text-primary underline-offset-4 hover:underline">Consultar as tabelas TACO e IBGE</Link>
         </p>
         <div className="mt-8">
           {foods === null ? (
