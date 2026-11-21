@@ -43,6 +43,8 @@ test('convite e área do paciente', async ({ page, browser }) => {
       await expect(card.getByText('Sem acesso')).toBeVisible();
       await card.getByRole('button', { name: 'Convidar para a área do paciente' }).click();
       await expect(card.getByLabel(/E-mail de acesso/)).toHaveValue(patientEmail);
+      // e-mail de teste (example.com): só gera o link, sem enviar
+      await card.getByLabel('Enviar o convite agora').uncheck();
       await card.getByRole('button', { name: /Gerar link/ }).click();
       await expect(card.getByLabel('Link do convite')).toHaveValue(/\/p\/convite\/[A-Za-z0-9_-]{43}$/);
     });
@@ -80,6 +82,17 @@ test('convite e área do paciente', async ({ page, browser }) => {
       await expect(nav.getByRole('link', { name: 'Receitas' })).toHaveAttribute('aria-current', 'page');
       await nav.getByRole('link', { name: 'Início' }).click();
       await expect(pp).toHaveURL(/\/p$/);
+      // Avisos: Telegram e e-mail
+      await pp.getByRole('link', { name: /Avisos no Telegram e por e-mail/ }).click();
+      await expect(pp.getByRole('heading', { level: 1, name: 'Avisos' })).toBeVisible();
+      await expect(pp.getByRole('heading', { name: 'Telegram' })).toBeVisible();
+      const optIn = pp.getByRole('checkbox', { name: /avisos importantes por e-mail/ });
+      await expect(optIn).toBeChecked();
+      await optIn.uncheck();
+      await expect(optIn).not.toBeChecked();
+      await pp.reload();
+      await expect(pp.getByRole('checkbox', { name: /avisos importantes por e-mail/ })).not.toBeChecked();
+      await pp.goto('/p');
     });
 
     await test.step('nutricionista publica um plano; paciente vê o plano completo (RN-205)', async () => {

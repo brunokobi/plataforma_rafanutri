@@ -31,13 +31,21 @@ export function ContactPrefsPanel({ mode, patientId = null, context = null, pref
   const [message, setMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const who = mode === 'patient' ? 'você' : firstName ?? 'o paciente';
+  // Mudança aparece na hora; volta ao valor do servidor se a gravação falhar.
+  const [local, setLocal] = useState<{ email_opt_in?: boolean; telegram_opt_in?: boolean }>({});
+  const emailOn = local.email_opt_in ?? prefs.email_opt_in;
+  const telegramOptIn = local.telegram_opt_in ?? prefs.telegram_opt_in;
 
   const save = (patch: { email_opt_in?: boolean; telegram_opt_in?: boolean }) => {
     setMessage(null);
+    setLocal((l) => ({ ...l, ...patch }));
     startTransition(async () => {
       const r = mode === 'patient' ? await saveMyContactPrefs(context, patch) : await savePatientContactPrefs(patientId!, patch);
       if (r.ok) router.refresh();
-      else setMessage(r.message);
+      else {
+        setLocal({});
+        setMessage(r.message);
+      }
     });
   };
   const generate = () => {
@@ -64,7 +72,7 @@ export function ContactPrefsPanel({ mode, patientId = null, context = null, pref
     });
   };
 
-  const telegramOn = prefs.telegram_linked && prefs.telegram_opt_in;
+  const telegramOn = prefs.telegram_linked && telegramOptIn;
 
   return (
     <div className="space-y-4">
@@ -83,8 +91,8 @@ export function ContactPrefsPanel({ mode, patientId = null, context = null, pref
               {prefs.telegram_linked_at ? `, ligado em ${when(prefs.telegram_linked_at)}` : ''}.
             </p>
             <div className="flex flex-wrap gap-2">
-              <Button type="button" size="sm" variant="outline" disabled={pending} onClick={() => save({ telegram_opt_in: !prefs.telegram_opt_in })}>
-                {prefs.telegram_opt_in ? 'Pausar avisos no Telegram' : 'Retomar avisos no Telegram'}
+              <Button type="button" size="sm" variant="outline" disabled={pending} onClick={() => save({ telegram_opt_in: !telegramOptIn })}>
+                {telegramOptIn ? 'Pausar avisos no Telegram' : 'Retomar avisos no Telegram'}
               </Button>
               <Button type="button" size="sm" variant="ghost" className="text-destructive" disabled={pending} onClick={unlink}>Desligar</Button>
             </div>
@@ -138,7 +146,7 @@ export function ContactPrefsPanel({ mode, patientId = null, context = null, pref
             : mode === 'patient' ? 'Seu consultório não tem um e-mail seu no cadastro.' : `Sem e-mail no cadastro de ${who}: cadastre um para os avisos importantes.`}
         </p>
         <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm">
-          <input type="checkbox" className="size-4 accent-primary" checked={prefs.email_opt_in} disabled={pending} onChange={(e) => save({ email_opt_in: e.target.checked })} />
+          <input type="checkbox" className="size-4 accent-primary" checked={emailOn} disabled={pending} onChange={(e) => save({ email_opt_in: e.target.checked })} />
           Receber os avisos importantes por e-mail
         </label>
       </div>
