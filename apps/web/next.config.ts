@@ -22,6 +22,19 @@ const csp = [
   'upgrade-insecure-requests',
 ].join('; ');
 
+/**
+ * Telas com anúncio do plano Gratuito (lib/ads/config.ts): a CSP libera o Google AdSense só nelas. As telas
+ * com dados de paciente continuam com a CSP fechada acima.
+ */
+const GOOGLE_ADS = 'https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.doubleclick.net https://*.google.com https://*.gstatic.com https://*.adtrafficquality.google https://fundingchoicesmessages.google.com';
+const cspAds = csp
+  .replace("script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://static.cloudflareinsights.com", `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://static.cloudflareinsights.com ${GOOGLE_ADS}`)
+  .replace("img-src 'self' data: blob:", 'img-src \'self\' data: blob: https:')
+  .replace("connect-src 'self' data: https://cloudflareinsights.com", `connect-src 'self' data: https://cloudflareinsights.com ${GOOGLE_ADS}`)
+  .replace("frame-ancestors 'none'", `frame-src ${GOOGLE_ADS}; frame-ancestors 'none'`);
+/** Iguais a AD_ZONE_EXACT e AD_ZONE_PREFIX em lib/ads/config.ts. */
+const AD_ZONE_SOURCES = ['/app', '/app/configuracoes/plano', '/app/alimentos/:path*', '/app/receitas/:path*', '/app/questionarios/:path*', '/app/modelos-de-plano/:path*', '/app/orientacoes/:path*'];
+
 const securityHeaders = [
   ...(process.env.NODE_ENV === 'production' ? [{ key: 'Content-Security-Policy', value: csp }] : []),
   { key: 'X-Frame-Options', value: 'DENY' },
@@ -38,7 +51,11 @@ const config: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
   async headers() {
-    return [{ source: '/(.*)', headers: securityHeaders }];
+    return [
+      { source: '/(.*)', headers: securityHeaders },
+      // a última regra que casa ganha: CSP com o AdSense só nas telas com anúncio
+      ...(process.env.NODE_ENV === 'production' ? AD_ZONE_SOURCES.map((source) => ({ source, headers: [{ key: 'Content-Security-Policy', value: cspAds }] })) : []),
+    ];
   },
 };
 

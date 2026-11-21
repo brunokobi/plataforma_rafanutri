@@ -84,7 +84,7 @@ export function SubscriptionPanel({ billing }: { billing: Billing }) {
                 <p className="font-semibold">{p.name}</p>
                 <p className="font-display text-2xl font-semibold">{brl(p.price_cents)}<span className="text-sm font-normal text-muted-foreground">/mês</span></p>
                 <p className="text-xs text-muted-foreground">
-                  {p.max_active_patients === null ? 'Pacientes ativos sem limite' : `Até ${p.max_active_patients} pacientes ativos`} · {p.max_members === null ? 'equipe sem limite' : p.max_members === 1 ? '1 profissional' : `até ${p.max_members} profissionais`}
+                  {p.max_active_patients === null ? 'Pacientes ativos sem limite' : `Até ${p.max_active_patients} pacientes ativos`} · {p.max_members === null ? 'equipe sem limite' : p.max_members === 1 ? '1 profissional' : `até ${p.max_members} profissionais`} · sem anúncios
                 </p>
                 {owner && (
                   <Button type="button" size="sm" className="mt-auto" variant={current ? 'outline' : 'default'} disabled={pending || current || next} onClick={() => choose(p.code)}>

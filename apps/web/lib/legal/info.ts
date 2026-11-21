@@ -7,7 +7,7 @@ export type LegalDocument = 'professional_terms' | 'patient_terms' | 'privacy';
 export const LEGAL_VERSIONS: Record<LegalDocument, string> = {
   professional_terms: '2026-11-20',
   patient_terms: '2026-11-20',
-  privacy: '2026-11-20',
+  privacy: '2026-11-21',
 };
 
 export const LEGAL_TITLE: Record<LegalDocument, string> = {

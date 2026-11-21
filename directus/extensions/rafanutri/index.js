@@ -6086,7 +6086,7 @@ export default {
 
     // ── Aceite dos documentos legais (0057) ─────────────────────────────────────────────────
     // Versões vigentes: iguais a apps/web/lib/legal/info.ts (LEGAL_VERSIONS).
-    const LEGAL_VERSIONS = { professional_terms: '2026-11-20', patient_terms: '2026-11-20', privacy: '2026-11-20' };
+    const LEGAL_VERSIONS = { professional_terms: '2026-11-20', patient_terms: '2026-11-20', privacy: '2026-11-21' };
     async function recordTerms(userId, documents, req) {
       const ua = typeof req.headers['user-agent'] === 'string' ? req.headers['user-agent'].slice(0, 300) : null;
       const rows = documents.filter((d) => LEGAL_VERSIONS[d]).map((d) => ({ user_id: userId, document: d, version: LEGAL_VERSIONS[d], user_agent: ua }));

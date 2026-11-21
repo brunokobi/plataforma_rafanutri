@@ -165,12 +165,13 @@ export function PrivacyPolicy() {
       </S>
       <S n={5} title="Compartilhamento">
         <p>Não vendemos dados. Compartilhamos apenas com fornecedores necessários ao serviço (hospedagem em nuvem, banco de dados, envio de e-mail e mensagens, meios de pagamento, provedores de IA), sob contrato e com segurança, e com autoridades quando a lei exigir. Os servidores podem ficar fora do Brasil, com as salvaguardas da LGPD.</p>
+        <p>Publicidade: no plano Gratuito, algumas telas da área do profissional que não mostram dados de pacientes (início, alimentos, receitas, questionários, modelos de plano, orientações e Meu plano) exibem anúncios do Google AdSense, não personalizados. Nessas telas o Google pode receber dados técnicos de navegação (endereço IP, navegador, página visitada) e usar cookies próprios para entregar e medir os anúncios, conforme a política do Google. Prontuário, pacientes, agenda, financeiro, área do paciente e documentos nunca têm anúncios, e nenhum dado de paciente é enviado a anunciantes. Os planos pagos não têm anúncios.</p>
       </S>
       <S n={6} title="Segurança">
         <p>Conexão criptografada, senhas com hash, sessão em cookies protegidos (sem acesso por JavaScript), acesso por papel, isolamento entre consultórios e empresas, trilha de auditoria, registros de qualidade que não podem ser apagados e cópias de segurança. Nenhum sistema é infalível; se houver incidente relevante, avisamos os envolvidos e a ANPD como manda a lei.</p>
       </S>
       <S n={7} title="Cookies">
-        <p>Usamos cookies essenciais para manter você conectado (sessão), lembrar a escolha de tema e de consultório. Se você desmarcar “Lembrar de mim neste dispositivo”, a sessão termina ao fechar o navegador. Não usamos cookies de publicidade.</p>
+        <p>Usamos cookies essenciais para manter você conectado (sessão), lembrar a escolha de tema e de consultório. Se você desmarcar “Lembrar de mim neste dispositivo”, a sessão termina ao fechar o navegador. Cookies de publicidade só existem nas telas com anúncio do plano Gratuito (ver Compartilhamento), colocados pelo Google para anúncios não personalizados; você pode bloqueá-los no navegador sem perder o acesso.</p>
       </S>
       <S n={8} title="Por quanto tempo">
         <p>Enquanto a conta estiver ativa e pelo tempo necessário para cumprir obrigações legais (por exemplo, a guarda do prontuário pelo profissional e registros fiscais). Depois do cancelamento, os dados ficam disponíveis para exportação por 90 dias e então são excluídos ou anonimizados.</p>
