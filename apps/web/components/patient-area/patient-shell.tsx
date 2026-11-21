@@ -30,7 +30,7 @@ export function PatientShell({ practice, professional, canSwitch = false, childr
           </form>
         </div>
       </header>
-      <main className="mx-auto max-w-2xl space-y-6 px-4 pb-28 pt-6">{children}</main>
+      <main data-patient-shell className="mx-auto max-w-2xl space-y-6 px-4 pb-28 pt-6">{children}</main>
       <PatientBottomNav color={color} />
     </div>
   );

@@ -156,3 +156,9 @@
   .rn-card { transform: none; transition: none; }
   .rn-card:hover { --ty: 0; }
 }
+
+/* Área do paciente: a navegação inferior é fixa. Ao rolar até um campo (foco, toque), ele para acima dela
+   e nunca fica encoberto (WCAG 2.4.11). */
+html:has([data-patient-shell]) {
+  scroll-padding-bottom: calc(5.5rem + env(safe-area-inset-bottom));
+}
