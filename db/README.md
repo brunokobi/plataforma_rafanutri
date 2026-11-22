@@ -186,8 +186,9 @@ psql -v ON_ERROR_STOP=1 -v source=OFF  -v csv=db/seed/off/off-brasil.csv       -
 psql -v ON_ERROR_STOP=1 -v source=USDA -v csv=db/seed/usda/usda-sr-legacy.csv  -f db/seed/import_foods.sql
 ```
 
-- **Open Food Facts — 8.782 produtos industrializados vendidos no Brasil** (tabela nutricional do rótulo por 100 g, "porção do rótulo" como medida). Filtros: energia coerente com os macros (Atwater ±25%), kJ coerente, sem valores impossíveis, um por nome. Licença **ODbL** (base) — atribuição "Open Food Facts contributors" exibida na ficha. Geradores: `db/seed/off/fetch_off.py` (busca por prefixo de código de barras em search.openfoodfacts.org), `enrich_off.py` (categorias e porção pela API de produto) e `build_off_csv.py`.
+- **Open Food Facts — 8.494 produtos industrializados vendidos no Brasil** (tabela nutricional do rótulo por 100 g, "porção do rótulo" como medida). Filtros: energia coerente com os macros (Atwater ±25%), kJ coerente, sem valores impossíveis, um por nome. Licença **ODbL** (base) — atribuição "Open Food Facts contributors" exibida na ficha. Geradores: `db/seed/off/fetch_off.py` (busca por prefixo de código de barras em search.openfoodfacts.org), `enrich_off.py` (categorias e porção pela API de produto) e `build_off_csv.py`.
 - **USDA SR Legacy (abril de 2018) — 6.132 alimentos** com até 35 nutrientes e medidas caseiras traduzidas (xícara, colher, fatia, unidade…). Ficam de fora alimentos infantis, fast-food, restaurantes e itens de marca. **Domínio público (CC0)**, citação "U.S. Department of Agriculture, Agricultural Research Service. FoodData Central". Nomes traduzidos por IA (modelos gratuitos) em `db/seed/usda/usda-names-pt.json` — revisáveis; gerador `build_usda_csv.py`.
+- **Limpeza** (`db/seed/prune_source.sql`, mesmos parâmetros, depois do import): remove da fonte os itens que saíram do CSV, só se nenhum plano, modelo, preparação ou insumo aponta para eles. Refino de 22/11/2026: backup `antes-off-refino-2026-11-22.dump`, 357 removidos.
 - Na busca do editor, TACO, IBGE e alimentos do consultório vêm primeiro; Rótulo (OFF) e USDA completam a lista.
 
 ### Base do IBGE (POF 2008-2009)

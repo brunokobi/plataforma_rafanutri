@@ -91,14 +91,16 @@ NAME_GROUPS = [
     (r'\b(leite|iogurte|queijo|requeijao|coalhada|kefir|nata|creme de leite|bebida lactea|whey)\b', 'Leite e derivados'),
     (r'\b(ovo|ovos)\b', 'Ovos e derivados'),
     (r'\b(atum|sardinha|salmao|bacalhau|peixe|camarao|merluza|tilapia)\b', 'Pescados e frutos do mar'),
-    (r'\b(carne|frango|peru|presunto|salsicha|linguica|mortadela|salame|bacon|hamburguer|charque|peito de)\b', 'Carnes e derivados'),
+    (r'\b(carne|frango|peru|presunto|salsicha|linguica|mortadela|salame|salsichao|bacon|hamburguer|charque|peito de|almondega|kibe|quibe)\b', 'Carnes e derivados'),
     (r'\b(feijao|lentilha|grao de bico|ervilha|soja|tofu)\b', 'Leguminosas e derivados'),
     (r'\b(castanha|amendoim|amendoa|noz|nozes|chia|linhaca|gergelim|semente|pasta de amendoim)\b', 'Nozes e sementes'),
-    (r'\b(chocolate|bombom|bala|doce|geleia|achocolatado|sorvete|acucar|mel|goiabada|pacoca|wafer|recheado)\b', 'Produtos açucarados'),
-    (r'\b(arroz|aveia|granola|cereal|farinha|fuba|macarrao|massa|pao|biscoito|bolacha|torrada|tapioca|cuscuz|quinoa|milho|bolo)\b', 'Cereais e derivados'),
+    (r'\b(chocolate|bombom|bala|doce|geleia|achocolatado|sorvete|acucar|mel|goiabada|pacoca|wafer|recheado|brownie|brigadeiro|cocada|pe de moleque|cacau|marshmallow|pudim|trufa|alfajor)\b', 'Produtos açucarados'),
+    (r'\b(arroz|aveia|granola|cereal|farinha|fuba|macarrao|massa|pao|biscoito|bolacha|torrada|tapioca|cuscuz|quinoa|milho|bolo|panetone|panettone|chocotone|brioche|torradita|torradinha|crepioca|bisnaguinha|croissant|wrap|tortilla|rosca|cracker)\b', 'Cereais e derivados'),
     (r'\b(suco|refrigerante|cha|cafe|agua|cerveja|vinho|energetico|isotonico|nectar|bebida)\b', 'Bebidas (alcoólicas e não alcoólicas)'),
     (r'\b(molho|ketchup|maionese|mostarda|tempero|sal|caldo|vinagre)\b', 'Miscelâneas'),
-    (r'\b(pizza|lasanha|sanduiche|sopa|refeicao|empanado|nuggets|pao de queijo)\b', 'Alimentos preparados'),
+    (r'\b(azeitona|aceituna|palmito|pepino|picles|cogumelo|champignon|tomate seco|seleta de legumes|batata)\b', 'Verduras, hortaliças e derivados'),
+    (r'\b(fruta|frutas|uva passa|damasco|ameixa|tamara|acai|banana passa|banana chips|maca desidratada|coco ralado)\b', 'Frutas e derivados'),
+    (r'\b(pizza|lasanha|sanduiche|sopa|refeicao|empanado|nuggets|pao de queijo|lasagne|lasanha|yakisoba|strogonoff|escondidinho|coxinha|esfiha|pastel)\b', 'Alimentos preparados'),
 ]
 
 
