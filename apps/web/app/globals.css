@@ -174,26 +174,49 @@ html:has([data-patient-shell]) {
    [data-module-page] marca a página (no menu lateral): o tema vale para a tela toda, sem piscar.
    [data-module-scope] aplica o tema só dentro do elemento (ex.: cartões dos módulos na tela inicial). */
 
-/* Clínico e Esportivo: azul elétrico e verde-limão "volt", títulos condensados, faixas de velocidade */
+/* Clínico: verde-água de consultório, calmo, com cruzinhas bem leves */
 :root:has([data-module-page="clinical"]), [data-module-scope="clinical"] {
+  --primary: oklch(0.5 0.09 188); --primary-foreground: oklch(0.99 0.01 188); --ring: oklch(0.5 0.09 188);
+  --secondary: oklch(0.95 0.03 185); --secondary-foreground: oklch(0.32 0.07 190);
+  --accent: oklch(0.95 0.04 55); --accent-foreground: oklch(0.42 0.08 45);
+  --module-tint: oklch(0.6 0.08 188 / 0.12); --module-tint-2: oklch(0.85 0.06 185 / 0.25);
+}
+:root:has([data-module-page="clinical"]) { --background: oklch(0.985 0.008 185); --muted: oklch(0.965 0.012 185); --border: oklch(0.9 0.018 185); }
+.dark:has([data-module-page="clinical"]), .dark [data-module-scope="clinical"] {
+  --primary: oklch(0.76 0.1 185); --primary-foreground: oklch(0.18 0.03 190); --ring: oklch(0.76 0.1 185);
+  --secondary: oklch(0.28 0.04 188); --secondary-foreground: oklch(0.92 0.03 185);
+  --accent: oklch(0.32 0.04 50); --accent-foreground: oklch(0.93 0.04 55);
+  --module-tint: oklch(0.76 0.1 185 / 0.08); --module-tint-2: oklch(0.6 0.08 185 / 0.08);
+}
+.dark:has([data-module-page="clinical"]) { --background: oklch(0.16 0.02 190); --card: oklch(0.2 0.025 190); --popover: oklch(0.2 0.025 190); --muted: oklch(0.24 0.025 190); --border: oklch(0.31 0.03 190); }
+:root:has([data-module-page="clinical"]) body {
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='56'%3E%3Cpath d='M26 22h4v4h4v4h-4v4h-4v-4h-4v-4h4z' fill='%2350a8a0' fill-opacity='.10'/%3E%3C/svg%3E"),
+    radial-gradient(54rem 26rem at 100% 0%, var(--module-tint-2), transparent 70%);
+  background-attachment: fixed;
+}
+
+/* Esportivo: azul elétrico e verde-limão "volt", títulos condensados, faixas de velocidade.
+   Vem depois do Clínico: na ficha de um atleta (marcador extra na ficha) o esportivo vence. */
+:root:has([data-module-page="sport"]), [data-module-scope="sport"] {
   --primary: oklch(0.5 0.19 264); --primary-foreground: oklch(0.99 0.01 264); --ring: oklch(0.5 0.19 264);
   --secondary: oklch(0.95 0.035 262); --secondary-foreground: oklch(0.33 0.12 264);
   --accent: oklch(0.93 0.16 124); --accent-foreground: oklch(0.32 0.09 130);
   --module-tint: oklch(0.5 0.19 264 / 0.07); --module-tint-2: oklch(0.86 0.19 124 / 0.12);
 }
-:root:has([data-module-page="clinical"]) { --background: oklch(0.985 0.004 260); --muted: oklch(0.965 0.01 260); --border: oklch(0.9 0.015 260); --font-display: var(--font-sport); --radius: 0.75rem; }
-.dark:has([data-module-page="clinical"]), .dark [data-module-scope="clinical"] {
+:root:has([data-module-page="sport"]) { --background: oklch(0.985 0.004 260); --muted: oklch(0.965 0.01 260); --border: oklch(0.9 0.015 260); --font-display: var(--font-sport); --radius: 0.75rem; }
+.dark:has([data-module-page="sport"]), .dark [data-module-scope="sport"] {
   --primary: oklch(0.74 0.15 262); --primary-foreground: oklch(0.17 0.04 265); --ring: oklch(0.74 0.15 262);
   --secondary: oklch(0.28 0.06 264); --secondary-foreground: oklch(0.92 0.04 262);
   --accent: oklch(0.82 0.18 125); --accent-foreground: oklch(0.2 0.05 130);
   --module-tint: oklch(0.74 0.15 262 / 0.08); --module-tint-2: oklch(0.82 0.18 125 / 0.07);
 }
-.dark:has([data-module-page="clinical"]) { --background: oklch(0.15 0.025 265); --card: oklch(0.19 0.03 265); --popover: oklch(0.19 0.03 265); --muted: oklch(0.23 0.03 265); --border: oklch(0.3 0.04 265); }
-:root:has([data-module-page="clinical"]) body {
+.dark:has([data-module-page="sport"]) { --background: oklch(0.15 0.025 265); --card: oklch(0.19 0.03 265); --popover: oklch(0.19 0.03 265); --muted: oklch(0.23 0.03 265); --border: oklch(0.3 0.04 265); }
+:root:has([data-module-page="sport"]) body {
   background-image: repeating-linear-gradient(-58deg, transparent 0 46px, var(--module-tint) 46px 52px, transparent 52px 120px), radial-gradient(60rem 30rem at 100% 0%, var(--module-tint-2), transparent 70%);
   background-attachment: fixed;
 }
-:root:has([data-module-page="clinical"]) .font-display { letter-spacing: 0.01em; font-weight: 700; }
+:root:has([data-module-page="sport"]) .font-display { letter-spacing: 0.01em; font-weight: 700; }
 
 /* Materno-infantil: rosa-framboesa, lavanda e amarelo-manteiga, cantos bem redondos, nuvens e estrelinhas */
 :root:has([data-module-page="maternal"]), [data-module-scope="maternal"] {

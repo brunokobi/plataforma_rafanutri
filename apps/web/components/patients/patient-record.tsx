@@ -17,6 +17,7 @@ import { setPatientStatus } from '@/lib/patients/actions';
 import type { Assessment } from '@/lib/assessments/schema';
 import type { MealPlanSummary } from '@/lib/meal-plans/schema';
 import { ageInYears, formatCpf, maskCpf, toFormValues, type Patient, type PatientStatus } from '@/lib/patients/schema';
+import { patientTheme } from '@/lib/modules/theme';
 import { cn } from '@/lib/utils';
 import { dateBR as formatDateBR } from '@/lib/format/date';
 
@@ -85,6 +86,8 @@ export function PatientHeader({ patient, activeLimitReached, active, alerts = nu
   const age = patient.birth_date ? ageInYears(patient.birth_date) : null;
   const subtitle = [age !== null ? `${age} anos` : null, patient.sex ? SEX_LABEL[patient.sex] : null].filter(Boolean).join(' · ');
   const archived = patient.status !== 'active';
+  // Ficha de criança com o visual infantil e de atleta com o esportivo (app/globals.css)
+  const theme = patientTheme(patient, age, active);
 
   function changeStatus(next: PatientStatus) {
     setFeedback(null);
@@ -109,7 +112,10 @@ export function PatientHeader({ patient, activeLimitReached, active, alerts = nu
         <span className="grid size-14 place-items-center rounded-full bg-primary/15 text-lg font-semibold text-primary">{initials}</span>
         <div className="min-w-0 flex-1">
           <h1 className="font-display text-3xl font-semibold tracking-tight">{patient.full_name}</h1>
-          <p className="text-sm text-muted-foreground">{subtitle || 'Sem idade e sexo informados'}</p>
+          <p className="text-sm text-muted-foreground">
+            {subtitle || 'Sem idade e sexo informados'}
+            {theme && <span data-module-page={theme} className="module-seal ml-2 rounded-full px-2 py-0.5 text-xs font-semibold">{theme === 'sport' ? 'Perfil esportivo' : 'Perfil infantil'}</span>}
+          </p>
         </div>
         <Badge variant={archived ? 'outline' : 'secondary'} data-testid="patient-status">
           {STATUS_LABEL[patient.status]}

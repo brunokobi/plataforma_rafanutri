@@ -1,7 +1,7 @@
 'use client';
 
 import {
-  Apple, Baby, Bell, Briefcase, Dumbbell, Landmark, BookOpen, Box, Building2, CalendarDays, ChefHat, ClipboardCheck, ClipboardList, Crown, FileSpreadsheet, Filter, Home,
+  Apple, Baby, Stethoscope, Bell, Briefcase, Dumbbell, Landmark, BookOpen, Box, Building2, CalendarDays, ChefHat, ClipboardCheck, ClipboardList, Crown, FileSpreadsheet, Filter, Home,
   LayoutGrid, ListChecks, LogOut, Menu, Network, Salad, Search, Sparkles, Truck, Upload, Users, Wallet, Warehouse, type LucideIcon,
 } from 'lucide-react';
 import Form from 'next/form';
@@ -21,10 +21,10 @@ const ICONS: Record<NavIcon, LucideIcon> = {
   home: Home, dashboard: LayoutGrid, patients: Users, calendar: CalendarDays, sparkles: Sparkles, funnel: Filter, wallet: Wallet,
   chef: ChefHat, templates: ClipboardList, apple: Apple, recipes: Salad, questionnaires: ListChecks, guidelines: BookOpen,
   building: Building2, bell: Bell, crown: Crown, units: Warehouse, sheet: FileSpreadsheet, check: ClipboardCheck, network: Network,
-  box: Box, truck: Truck, rules: ClipboardList, upload: Upload, landmark: Landmark,
+  box: Box, truck: Truck, rules: ClipboardList, upload: Upload, landmark: Landmark, baby: Baby, sport: Dumbbell,
 };
 
-const THEME_ICON: Record<ModuleTheme, LucideIcon> = { clinical: Dumbbell, maternal: Baby, practice: Briefcase, ai: Sparkles, uan: ChefHat, public_health: Landmark };
+const THEME_ICON: Record<ModuleTheme, LucideIcon> = { clinical: Stethoscope, sport: Dumbbell, maternal: Baby, practice: Briefcase, ai: Sparkles, uan: ChefHat, public_health: Landmark };
 
 export interface SidebarProps {
   homeHref?: string;
@@ -33,12 +33,13 @@ export interface SidebarProps {
   user: { name: string; initial: string; roleLabel: string } | null;
   uan: boolean;
   publicHealth?: boolean;
+  maternal?: boolean;
   withSignOut: boolean;
 }
 
-function SidebarBody({ homeHref = '/app', patientsHref = '/app/pacientes', org, user, uan, publicHealth = false, withSignOut, onNavigate }: SidebarProps & { onNavigate?: () => void }) {
+function SidebarBody({ homeHref = '/app', patientsHref = '/app/pacientes', org, user, uan, publicHealth = false, maternal = false, withSignOut, onNavigate }: SidebarProps & { onNavigate?: () => void }) {
   const pathname = usePathname() ?? '';
-  const groups = navModel(pathname, { homeHref, patientsHref, uan, publicHealth });
+  const groups = navModel(pathname, { homeHref, patientsHref, uan, publicHealth, maternal });
   const active = activeHref(pathname, groups.flatMap((g) => g.links.map((l) => l.href)));
   const searchRef = useRef<HTMLInputElement>(null);
   const inUan = pathname.startsWith('/app/uan');

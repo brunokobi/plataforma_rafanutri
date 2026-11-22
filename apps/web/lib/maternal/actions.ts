@@ -136,3 +136,23 @@ export async function saveMyFeeding(recordId: string, kind: FeedingKind, item: s
     return { ok: false, message: 'Não foi possível salvar agora.' };
   }
 }
+
+export type MaternalOverview =
+  | { allowed: false }
+  | {
+      allowed: true;
+      children: Array<{ id: string; full_name: string; sex: 'female' | 'male' | null; birth_date: string }>;
+      pregnancies: Array<{ id: string; full_name: string; lmp_date: string }>;
+      lactations: Array<{ id: string; full_name: string; started_on: string; feeding_type: string; baby_name: string | null }>;
+      reactions: Array<{ id: string; full_name: string; item: string; reaction: 'moderate' | 'severe'; introduced_on: string; by_guardian: boolean }>;
+    };
+
+/** Entrada do módulo materno-infantil. Null se falhar. */
+export async function getMaternalOverview(): Promise<MaternalOverview | null> {
+  try {
+    const r = await call('/maternal/overview', 'GET');
+    return r.status === 200 ? (r.json?.data as MaternalOverview) : null;
+  } catch {
+    return null;
+  }
+}

@@ -69,7 +69,7 @@ export const MODULES: readonly ModuleDefinition[] = [
     icon: 'baby',
     phase: 'Fase 4',
     availability: 'available',
-    href: '/app/pacientes',
+    href: '/app/materno-infantil',
   },
   {
     code: 'uan',

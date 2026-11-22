@@ -3,13 +3,13 @@
 export type NavIcon =
   | 'home' | 'dashboard' | 'patients' | 'calendar' | 'sparkles' | 'funnel' | 'wallet' | 'chef'
   | 'templates' | 'apple' | 'recipes' | 'questionnaires' | 'guidelines' | 'building' | 'bell' | 'crown'
-  | 'units' | 'sheet' | 'check' | 'network' | 'box' | 'truck' | 'rules' | 'upload' | 'landmark';
+  | 'units' | 'sheet' | 'check' | 'network' | 'box' | 'truck' | 'rules' | 'upload' | 'landmark' | 'baby' | 'sport';
 
 export type NavLink = { href: string; label: string; icon: NavIcon };
 export type NavGroup = { title: string | null; links: NavLink[] };
 
 /** Grupos do menu. `uan`: o consultório tem o módulo UAN (mostra o atalho na Gestão). */
-export function navModel(pathname: string, opts: { homeHref?: string; patientsHref?: string; uan?: boolean; publicHealth?: boolean } = {}): NavGroup[] {
+export function navModel(pathname: string, opts: { homeHref?: string; patientsHref?: string; uan?: boolean; publicHealth?: boolean; maternal?: boolean } = {}): NavGroup[] {
   const home = opts.homeHref ?? '/app';
   const account: NavGroup = {
     title: 'Conta',
@@ -48,6 +48,8 @@ export function navModel(pathname: string, opts: { homeHref?: string; patientsHr
       title: 'Atendimento',
       links: [
         { href: opts.patientsHref ?? '/app/pacientes', label: 'Pacientes', icon: 'patients' },
+        { href: '/app/esportivo', label: 'Esportivo', icon: 'sport' },
+        ...(opts.maternal ? [{ href: '/app/materno-infantil', label: 'Materno-infantil', icon: 'baby' as const }] : []),
         { href: '/app/agenda', label: 'Agenda', icon: 'calendar' },
         { href: '/app/assistente', label: 'Assistente de IA', icon: 'sparkles' },
       ],

@@ -30,6 +30,7 @@ export async function AppHeader({ homeHref = '/app', patientsHref = '/app/pacien
         withSignOut={withSignOut}
         uan={Boolean(organizations?.some((o) => o.plan === 'enterprise_uan' || o.modules?.includes('uan')))}
         publicHealth={Boolean(organizations?.some((o) => o.modules?.includes('public_health')))}
+        maternal={Boolean(organizations?.some((o) => o.plan === 'professional' || o.plan === 'clinic' || o.modules?.includes('maternal')))}
         org={org ? { name: org.name, initials: initials(org.name), planName: getPlan(org.plan).name } : null}
         user={user ? { name: user.first_name || name, initial: ((user.first_name || name)[0] ?? 'R').toUpperCase(), roleLabel: org ? ROLE_LABEL[org.role] : 'Conta' } : null}
       />

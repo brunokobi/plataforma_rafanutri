@@ -200,6 +200,38 @@ export function setupMaternal({ router, database, logger, h, notifier = null }) 
     return { value: feedingOut(row) };
   }
 
+  // Entrada do módulo: crianças, gestantes, lactantes e reações recentes na introdução alimentar.
+  router.get('/maternal/overview', async (req, res) => {
+    const user = requireUser(req, res);
+    if (!user) return;
+    const org = await clinicalOrg(user);
+    if (!org) return res.status(403).json({ errors: [{ message: 'Só owner ou nutricionista.', extensions: { code: 'FORBIDDEN' } }] });
+    const o = await database('organizations').where('id', org).first('plan', 'modules');
+    if (!(MATERNAL_PLANS.has(o?.plan) || (o?.modules ?? []).includes('maternal'))) return res.json({ data: { allowed: false } });
+    const [children, pregnancies, lactations, reactions] = await Promise.all([
+      database('patients').where({ organization_id: org, status: 'active' }).whereRaw("birth_date > current_date - interval '10 years'")
+        .orderBy('birth_date', 'desc').limit(300).select('id', 'full_name', 'sex', 'birth_date'),
+      database('pregnancies as g').join('patients as p', 'p.id', 'g.patient_id').where({ 'g.organization_id': org, 'g.status': 'active', 'p.status': 'active' })
+        .orderBy('g.lmp_date').select('p.id', 'p.full_name', 'g.lmp_date'),
+      database('lactations as l').join('patients as p', 'p.id', 'l.patient_id').leftJoin('patients as b', 'b.id', 'l.baby_patient_id')
+        .where({ 'l.organization_id': org, 'l.status': 'active', 'p.status': 'active' }).orderBy('l.started_on', 'desc')
+        .select('p.id', 'p.full_name', 'l.started_on', 'l.feeding_type', 'b.full_name as baby_name'),
+      database('feeding_intro_progress as f').join('patients as p', 'p.id', 'f.patient_id')
+        .where('f.organization_id', org).whereIn('f.reaction', ['moderate', 'severe']).whereRaw("coalesce(f.date_updated, f.date_created) > now() - interval '60 days'")
+        .orderByRaw('coalesce(f.date_updated, f.date_created) desc').limit(50)
+        .select('p.id', 'p.full_name', 'f.item', 'f.reaction', 'f.introduced_on', 'f.by_guardian'),
+    ]);
+    res.json({
+      data: {
+        allowed: true,
+        children: children.map((c) => ({ ...c, birth_date: iso(c.birth_date) })),
+        pregnancies: pregnancies.map((g) => ({ ...g, lmp_date: iso(g.lmp_date) })),
+        lactations: lactations.map((l) => ({ ...l, started_on: iso(l.started_on) })),
+        reactions: reactions.map((r) => ({ ...r, introduced_on: iso(r.introduced_on) })),
+      },
+    });
+  });
+
   router.get('/patients/:id/maternal', async (req, res) => {
     const a = await access(req, res);
     if (!a) return;
