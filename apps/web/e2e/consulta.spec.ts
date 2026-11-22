@@ -181,7 +181,7 @@ test('consulta de ponta a ponta', async ({ page }) => {
       // Segunda vez na mesma consulta: avisa que já existe
       await page.goto(`/app/agenda?semana=${appointmentDate}`);
       await page.getByRole('link', { name: `Registrar pagamento da consulta de ${name}` }).click();
-      await expect(page.getByRole('status').filter({ hasText: 'já tem um recebimento registrado' })).toBeVisible();
+      await expect(page.getByRole('alert').filter({ hasText: 'já tem um recebimento registrado' })).toBeVisible();
       // Recibo numerado (RN-055): emite, baixa o PDF; lançamento com recibo não se exclui, só se cancela
       await page.goto('/app/financeiro');
       const download = page.waitForEvent('download');

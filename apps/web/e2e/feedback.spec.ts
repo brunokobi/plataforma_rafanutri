@@ -19,7 +19,7 @@ test('enviar feedback pelo cabeçalho', async ({ page }) => {
   const form = page.getByRole('form', { name: 'Feedback' });
   await expect(form.getByText('(/app/agenda)')).toBeVisible();
   await form.getByRole('button', { name: 'Enviar' }).click();
-  await expect(form.getByRole('status')).toHaveText('Escreva pelo menos 3 caracteres.');
+  await expect(form.getByRole('alert')).toHaveText('Escreva pelo menos 3 caracteres.');
   await form.getByRole('button', { name: 'Algo deu errado' }).click();
   await form.getByLabel('Mensagem').fill(`[e2e] teste automático ${test.info().project.name}`);
   await form.getByRole('button', { name: 'Enviar' }).click();
