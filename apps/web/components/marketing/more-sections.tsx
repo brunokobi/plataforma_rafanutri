@@ -74,12 +74,12 @@ export function Specialties() {
 const toolkit: Array<{ icon: typeof Apple; title: string; text: string; soon?: boolean }> = [
   { icon: ClipboardCheck, title: 'Anamnese completa', text: 'Use nossos modelos ou crie os seus, com perguntas condicionais. Nenhum detalhe se perde.' },
   { icon: FileHeart, title: 'Questionários pré-consulta', text: 'Envie por link antes da consulta e chegue com o histórico do paciente já organizado.' },
-  { icon: Apple, title: 'Base de alimentos brasileira', text: 'TACO e TBCA, com medidas caseiras e espaço para os seus alimentos e preparações.' },
+  { icon: Apple, title: 'Base de alimentos brasileira', text: 'TACO, IBGE, USDA e produtos de rótulo (Open Food Facts): cerca de 17 mil itens com medidas caseiras, além dos seus alimentos e preparações.' },
   { icon: Scale, title: 'Avaliação física completa', text: 'Dobras, circunferências, protocolos clássicos e perfil ISAK, com gráficos de evolução.' },
   { icon: Target, title: 'Metas e check-ins', text: 'Defina metas para cada paciente e acompanhe a adesão pela área do paciente.', soon: true },
-  { icon: Baby, title: 'Materno-infantil', text: 'Curvas de crescimento da OMS, ganho de peso gestacional e introdução alimentar.', soon: true },
-  { icon: Wallet, title: 'Financeiro do consultório', text: 'Recebimentos, pacotes de consultas e recibos com a sua marca.', soon: true },
-  { icon: BellRing, title: 'Lembretes automáticos', text: 'Consultas e retornos lembrados pelo WhatsApp e e-mail, para reduzir faltas.', soon: true },
+  { icon: Baby, title: 'Materno-infantil', text: 'Curvas de crescimento da OMS, ganho de peso gestacional, amamentação e introdução alimentar.' },
+  { icon: Wallet, title: 'Financeiro do consultório', text: 'Recebimentos, pacotes de consultas e recibos com a sua marca.' },
+  { icon: BellRing, title: 'Lembretes automáticos', text: 'Consultas lembradas pelo Telegram e por e-mail, para reduzir faltas.' },
   { icon: Palette, title: 'Materiais com a sua marca', text: 'Orientações e conteúdos educativos prontos para entregar ou postar.', soon: true },
 ];
 
@@ -193,8 +193,8 @@ const showcaseItems: Array<{ title: string; text: string; soon?: string }> = [
     text: 'Energia, macros e micronutrientes contra as metas do paciente enquanto você monta cada refeição.',
   },
   {
-    title: 'WhatsApp e agenda do Google',
-    text: 'Lembretes de consulta e retorno pelo WhatsApp e agenda sincronizada com o Google.',
+    title: 'Agenda do Google',
+    text: 'Consultas sincronizadas com o Google Agenda.',
     soon: 'Em breve',
   },
 ];
@@ -236,10 +236,10 @@ export function Showcase() {
 // IA
 // ---------------------------------------------------------------------------
 const aiCards = [
-  { icon: Brain, title: 'Anamnese resumida', text: 'Os pontos principais da anamnese organizados antes da consulta.' },
-  { icon: Lightbulb, title: 'Orientações sob medida', text: 'Rascunhos de orientações adaptadas a cada paciente, para você revisar.' },
-  { icon: FlaskConical, title: 'Leitura de exames', text: 'Destaque dos valores fora da referência para apoiar a sua análise.' },
-  { icon: Sparkles, title: 'Sugestão de cardápio', text: 'Propostas com alimentos da base, calculadas pelo sistema, nunca inventadas pela IA.' },
+  { icon: Brain, title: 'Anamnese resumida', text: 'Os pontos principais da anamnese organizados antes da consulta, sem dados que identifiquem o paciente.' },
+  { icon: Lightbulb, title: 'Perguntas livres', text: 'Dúvidas sobre condutas, alimentos e nutrientes respondidas na hora, para você conferir.' },
+  { icon: FlaskConical, title: 'Ideias de receitas', text: 'Receitas pelo objetivo e pelas restrições do paciente.' },
+  { icon: Sparkles, title: 'Sugestão de cardápio', text: 'Rascunho de cardápio para a meta de calorias, para você revisar e montar no editor do plano.' },
 ];
 
 export function AiSection() {
@@ -249,9 +249,9 @@ export function AiSection() {
       <div className="mx-auto max-w-6xl px-5">
         <Reveal className="mx-auto max-w-2xl text-center">
           <Badge variant="secondary" className="gap-1.5 rounded-full px-3 py-1">
-            <Sparkles className="size-3.5" /> Assistente de IA · em breve
+            <Sparkles className="size-3.5" /> Assistente de IA
           </Badge>
-          <h2 className="mt-4 font-display text-3xl font-semibold tracking-tight sm:text-4xl">O que a IA vai fazer por você</h2>
+          <h2 className="mt-4 font-display text-3xl font-semibold tracking-tight sm:text-4xl">O que a IA faz por você</h2>
           <p className="mt-4 text-muted-foreground">A IA sugere, você decide. Nada chega ao paciente sem a sua revisão.</p>
         </Reveal>
         <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
@@ -279,8 +279,8 @@ const forNutritionist: Array<{ text: string; soon?: boolean }> = [
   { text: 'Pacientes, prontuário, avaliações e planos no mesmo lugar' },
   { text: 'Plano alimentar pronto em minutos, com PDF da sua marca' },
   { text: 'Atendimento presencial, online ou híbrido' },
-  { text: 'Menos faltas com lembretes automáticos', soon: true },
-  { text: 'Página pública com agendamento online', soon: true },
+  { text: 'Menos faltas com lembretes automáticos' },
+  { text: 'Página pública com agendamento online' },
   { text: 'Comece grátis com até 20 pacientes ativos' },
 ];
 
@@ -290,7 +290,7 @@ const forPatient: Array<{ text: string; soon?: boolean }> = [
   { text: 'Lista de compras gerada a partir do plano', soon: true },
   { text: 'Diário alimentar e meta de hidratação', soon: true },
   { text: 'Lembretes de refeição e de água', soon: true },
-  { text: 'Acompanhamento da evolução', soon: true },
+  { text: 'Acompanhamento da evolução' },
 ];
 
 function BenefitList({ items }: { items: Array<{ text: string; soon?: boolean }> }) {

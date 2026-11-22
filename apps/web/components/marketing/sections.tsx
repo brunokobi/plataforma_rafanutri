@@ -1,3 +1,4 @@
+import { getPlan, type PlanCode } from '@/lib/modules/plans';
 import { ArrowRight, Ruler, ShieldCheck, Smartphone, Sparkles, Table2, Users } from 'lucide-react';
 import Link from 'next/link';
 import { Logo } from '@/components/brand/logo';
@@ -44,7 +45,7 @@ export function Hero() {
 }
 
 const trust = [
-  { icon: Table2, label: 'Tabelas TACO e TBCA' },
+  { icon: Table2, label: 'TACO, IBGE e USDA' },
   { icon: Ruler, label: 'Protocolos de dobras e ISAK' },
   { icon: Smartphone, label: 'Área do paciente' },
   { icon: ShieldCheck, label: 'Dados isolados por consultório' },
@@ -67,27 +68,12 @@ export function TrustBar() {
   );
 }
 
-const plans = [
-  {
-    name: 'Gratuito',
-    price: 'R$ 0',
-    note: 'para sempre',
-    highlight: true,
-    features: ['Até 20 pacientes ativos', 'Anamnese, avaliação e plano alimentar', 'Área do paciente', 'PDF com a sua marca'],
-    cta: { label: 'Começar grátis', href: '/cadastro' },
-  },
-  {
-    name: 'Essencial',
-    price: 'Em breve',
-    note: 'para quem está crescendo',
-    features: ['Mais pacientes ativos', 'Tudo do Gratuito', 'Lembretes automáticos'],
-  },
-  {
-    name: 'Profissional',
-    price: 'Em breve',
-    note: 'para consultórios com volume',
-    features: ['Tudo do Essencial', 'Assistente de IA', 'Financeiro e automações de WhatsApp'],
-  },
+// Preços vêm do catálogo de planos (lib/modules/plans.ts); os itens resumem as concessões de cada plano.
+const plans: Array<{ code: PlanCode; note: string; highlight?: boolean; features: string[] }> = [
+  { code: 'free', note: 'para sempre', highlight: true, features: ['Até 20 pacientes ativos', 'Anamnese, avaliação e plano alimentar', 'Área do paciente e PDF com a sua marca', 'Assistente de IA: 5 pedidos por dia'] },
+  { code: 'essential', note: 'para quem está crescendo', features: ['Até 100 pacientes ativos', 'Financeiro, pacotes e CRM', 'Agendamento online e lembretes por Telegram e e-mail', 'Assistente de IA: 5 pedidos por dia'] },
+  { code: 'professional', note: 'para consultórios com volume', features: ['Pacientes ativos sem limite', 'Tudo do Essencial', 'Assistente de IA: 200 pedidos por dia', 'Módulo materno-infantil'] },
+  { code: 'clinic', note: 'para equipes', features: ['Tudo do Profissional', 'Equipe sem limite, com papéis e permissões'] },
 ];
 
 export function Pricing() {
@@ -99,17 +85,17 @@ export function Pricing() {
           <h2 className="mt-2 font-display text-3xl font-semibold tracking-tight sm:text-4xl">Comece sem pagar nada</h2>
           <p className="mt-4 text-muted-foreground">Quando passar de 20 pacientes, seu consultório já estará faturando.</p>
         </Reveal>
-        <div className="mt-12 grid gap-5 lg:grid-cols-3">
+        <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {plans.map((p, i) => (
-            <Reveal key={p.name} delay={i * 0.08}>
+            <Reveal key={p.code} delay={i * 0.08}>
               <article
                 className={`relative flex h-full flex-col rounded-2xl border p-7 ${
                   p.highlight ? 'border-primary bg-card shadow-xl shadow-primary/10' : 'border-border bg-card/60'
                 }`}
               >
                 {p.highlight && <Badge className="absolute -top-3 left-7">Comece por aqui</Badge>}
-                <h3 className="text-lg font-semibold">{p.name}</h3>
-                <p className="mt-3 font-display text-4xl font-semibold">{p.price}</p>
+                <h3 className="text-lg font-semibold">{getPlan(p.code).name}</h3>
+                <p className="mt-3 font-display text-3xl font-semibold">{getPlan(p.code).price}</p>
                 <p className="text-sm text-muted-foreground">{p.note}</p>
                 <ul className="mt-6 flex-1 space-y-2.5 text-sm">
                   {p.features.map((f) => (
@@ -119,15 +105,9 @@ export function Pricing() {
                     </li>
                   ))}
                 </ul>
-                {p.cta ? (
-                  <Button asChild className="mt-7 h-11">
-                    <Link href={p.cta.href}>{p.cta.label}</Link>
-                  </Button>
-                ) : (
-                  <Button variant="outline" className="mt-7 h-11" disabled>
-                    Em breve
-                  </Button>
-                )}
+                <Button asChild variant={p.highlight ? 'default' : 'outline'} className="mt-7 h-11">
+                  <Link href="/cadastro">{p.code === 'free' ? 'Começar grátis' : 'Começar e assinar por Pix'}</Link>
+                </Button>
               </article>
             </Reveal>
           ))}
@@ -140,7 +120,7 @@ export function Pricing() {
 const faq = [
   { q: 'O plano gratuito tem prazo?', a: 'Não. Você usa sem pagar com até 20 pacientes ativos. Pacientes arquivados não contam.' },
   { q: 'Preciso instalar alguma coisa?', a: 'Não. A Rafanutri funciona no navegador, no computador e no celular.' },
-  { q: 'Quais tabelas de alimentos são usadas?', a: 'Tabelas brasileiras de composição (TACO e TBCA), além dos alimentos e preparações que você cadastrar.' },
+  { q: 'Quais tabelas de alimentos são usadas?', a: 'TACO (4ª edição), IBGE (POF 2008-2009), USDA e produtos industrializados pelo rótulo (Open Food Facts), além dos alimentos e preparações que você cadastrar.' },
   { q: 'Meu paciente precisa pagar?', a: 'Não. A área do paciente faz parte da sua conta.' },
   { q: 'Posso usar a minha marca?', a: 'Sim. Seu logo e suas cores aparecem nos PDFs e na área do paciente.' },
 ];
