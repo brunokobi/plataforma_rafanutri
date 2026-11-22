@@ -50,6 +50,8 @@ describe('conversões e prévias', () => {
     expect(foodOriginLabel({ source: 'CUSTOM', kind: 'recipe' })).toBe('Preparação');
     expect(foodOriginLabel({ source: 'TACO', kind: 'food' })).toBeNull();
     expect(foodOriginLabel({ source: 'IBGE', kind: 'food' })).toBe('IBGE');
+    expect(foodOriginLabel({ source: 'OFF', kind: 'food' })).toBe('Rótulo');
+    expect(foodOriginLabel({ source: 'USDA', kind: 'food' })).toBe('USDA');
   });
   it('busca: no empate, o próprio vem antes da TACO e a TACO antes do IBGE', () => {
     const base = { group: 'Leguminosas e derivados', kind: 'food' as const, per100g: {}, householdMeasures: [{ label: 'concha', grams: 80 }] };
@@ -57,10 +59,13 @@ describe('conversões e prévias', () => {
       { ...base, id: '1', name: 'Feijão, cozido', source: 'IBGE' },
       { ...base, id: '2', name: 'Feijão, cozido', source: 'TACO' },
       { ...base, id: '3', name: 'Feijão, cozido', source: 'CUSTOM' },
+      { ...base, id: '4', name: 'Feijão, cozido', source: 'USDA' },
+      { ...base, id: '5', name: 'Feijão, cozido', source: 'OFF' },
     ], 'feijao');
-    expect(ranked.map((f) => f.source)).toEqual(['CUSTOM', 'TACO', 'IBGE']);
+    expect(ranked.map((f) => f.source)).toEqual(['CUSTOM', 'TACO', 'IBGE', 'OFF', 'USDA']);
     expect(isPublicSource('IBGE')).toBe(true);
     expect(isPublicSource('CUSTOM')).toBe(false);
+    expect(isPublicSource('USDA')).toBe(true);
   });
 });
 

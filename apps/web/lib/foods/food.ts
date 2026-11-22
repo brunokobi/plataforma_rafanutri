@@ -41,6 +41,8 @@ export function foodOriginLabel(food: Pick<Food, 'source' | 'kind'>): string | n
   if (food.kind === 'recipe') return 'Preparação';
   if (food.source === 'CUSTOM') return 'Próprio';
   if (food.source === 'IBGE') return 'IBGE';
+  if (food.source === 'OFF') return 'Rótulo';
+  if (food.source === 'USDA') return 'USDA';
   return null;
 }
 
@@ -105,8 +107,9 @@ export function rankFoods(foods: Food[], query: string): Food[] {
     const name = normalizeSearch(f.name);
     return (name.startsWith(first) ? 0 : 2) + (f.householdMeasures.length > 0 ? 0 : 1);
   };
-  // Empate: o do consultório, depois a TACO, depois o IBGE.
-  const origin = (f: Food) => (f.source === 'IBGE' ? 2 : f.source === 'TACO' ? 1 : 0);
+  // Empate: o do consultório, depois TACO, IBGE, rótulos (OFF) e USDA.
+  const ORIGIN: Record<string, number> = { TACO: 1, IBGE: 2, OFF: 3, USDA: 4 };
+  const origin = (f: Food) => ORIGIN[f.source] ?? 0;
   return [...foods].sort((a, b) => score(a) - score(b) || origin(a) - origin(b) || a.name.length - b.name.length || a.name.localeCompare(b.name, 'pt-BR'));
 }
 

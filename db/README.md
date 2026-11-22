@@ -143,7 +143,7 @@ db/scripts/isolation-test.sh
 
 | Tabela | Conteúdo |
 |---|---|
-| `food_sources` | Fonte (`TACO`, `IBGE`, `CUSTOM`; `TBCA` só com licença), versão, citação e licença |
+| `food_sources` | Fonte (`TACO`, `IBGE`, `OFF`, `USDA`, `CUSTOM`; `TBCA` só com licença), versão, citação e licença |
 | `nutrients` | 29 nutrientes com código e unidade (`energy_kcal`, `protein_g`, `carbohydrate_g`, `lipid_g`, `fiber_g`, ...) |
 | `foods` | Alimento, grupo, código na fonte, medidas caseiras (`jsonb`) e `search_name` (nome sem acento, minúsculo, com índice trigram) |
 | `food_nutrients` | Valor por 100 g: `null` = não analisado (NA); `0` com `is_trace = true` = traço (Tr) |
@@ -176,6 +176,19 @@ Regerar o CSV (só se a fonte mudar):
 python3 -m venv /tmp/venv && /tmp/venv/bin/pip install xlrd==2.0.1
 /tmp/venv/bin/python db/seed/taco/build_taco_csv.py <pasta_com_original.xls_e_csvs> db/seed/taco/taco-4ed.csv
 ```
+
+### Open Food Facts (Brasil) e USDA FoodData Central
+
+Migração `0064_food_sources_off_usda.sql` (**aplicada na vpsrafa em 21/11/2026**, backup `antes-0064-2026-11-21.dump`): fontes `OFF` e `USDA` com citação e licença. Os alimentos entram pelo importador genérico `db/seed/import_foods.sql` (idempotente, atualiza o que já existe e confere a contagem; backup `antes-usda-2026-11-21.dump` antes da carga):
+
+```bash
+psql -v ON_ERROR_STOP=1 -v source=OFF  -v csv=db/seed/off/off-brasil.csv       -f db/seed/import_foods.sql
+psql -v ON_ERROR_STOP=1 -v source=USDA -v csv=db/seed/usda/usda-sr-legacy.csv  -f db/seed/import_foods.sql
+```
+
+- **Open Food Facts — 8.782 produtos industrializados vendidos no Brasil** (tabela nutricional do rótulo por 100 g, "porção do rótulo" como medida). Filtros: energia coerente com os macros (Atwater ±25%), kJ coerente, sem valores impossíveis, um por nome. Licença **ODbL** (base) — atribuição "Open Food Facts contributors" exibida na ficha. Geradores: `db/seed/off/fetch_off.py` (busca por prefixo de código de barras em search.openfoodfacts.org), `enrich_off.py` (categorias e porção pela API de produto) e `build_off_csv.py`.
+- **USDA SR Legacy (abril de 2018) — 6.132 alimentos** com até 35 nutrientes e medidas caseiras traduzidas (xícara, colher, fatia, unidade…). Ficam de fora alimentos infantis, fast-food, restaurantes e itens de marca. **Domínio público (CC0)**, citação "U.S. Department of Agriculture, Agricultural Research Service. FoodData Central". Nomes traduzidos por IA (modelos gratuitos) em `db/seed/usda/usda-names-pt.json` — revisáveis; gerador `build_usda_csv.py`.
+- Na busca do editor, TACO, IBGE e alimentos do consultório vêm primeiro; Rótulo (OFF) e USDA completam a lista.
 
 ### Base do IBGE (POF 2008-2009)
 

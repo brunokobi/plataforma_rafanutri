@@ -26,8 +26,16 @@ async function query(params: Record<string, unknown>): Promise<Food[] | null> {
 export async function searchFoodsRepo(text: string, limit = 12): Promise<Food[] | null> {
   const filter = foodSearchFilter(text);
   if (!filter) return [];
-  const found = await query({ filter, limit: 80, sort: ['name'] });
-  return found ? rankFoods(found, text).slice(0, limit) : null;
+  // Duas consultas: o consultório e as tabelas brasileiras (TACO, IBGE) não são empurrados para fora pelos milhares de rótulos e itens do USDA.
+  const extra = ['OFF', 'USDA'];
+  const [main, more] = await Promise.all([
+    query({ filter: { _and: [filter, { _or: [{ source_id: { code: { _nin: extra } } }, { organization_id: { _nnull: true } }] }] }, limit: 60, sort: ['name'] }),
+    query({ filter: { _and: [filter, { source_id: { code: { _in: extra } } }] }, limit: 30, sort: ['name'] }),
+  ]);
+  if (!main) return null;
+  const ranked = rankFoods(main, text).slice(0, limit);
+  const fill = rankFoods(more ?? [], text).slice(0, Math.max(3, limit - ranked.length));
+  return [...ranked, ...fill];
 }
 
 export async function foodsInGroupRepo(group: string, limit = 120): Promise<Food[] | null> {

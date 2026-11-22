@@ -10,7 +10,7 @@ import { getMyOrganizations, landingRedirect } from '@/lib/auth/organizations';
 import { getCurrentUser } from '@/lib/auth/session';
 import { isSignupOpen } from '@/lib/flags';
 import { listTaco } from '@/lib/foods/taco';
-import { formatNutrient, isPublicSource, PUBLIC_SOURCES, TACO_GROUPS } from '@/lib/foods/taco-data';
+import { formatNutrient, isPublicSource, PUBLIC_SOURCES, SOURCE_SHORT, TACO_GROUPS } from '@/lib/foods/taco-data';
 
 export const metadata: Metadata = { title: 'Tabelas de composição', robots: { index: false } };
 export const dynamic = 'force-dynamic';
@@ -33,7 +33,7 @@ export default async function TacoPage({ searchParams }: { searchParams: Promise
   const sp = await searchParams;
   const q = typeof sp.q === 'string' ? sp.q.slice(0, 80) : '';
   const group = typeof sp.grupo === 'string' && (TACO_GROUPS as readonly string[]).includes(sp.grupo) ? sp.grupo : '';
-  const source = isPublicSource(sp.fonte) ? sp.fonte : '';
+  const source = isPublicSource(sp.fonte) || sp.fonte === 'ALL' ? sp.fonte : '';
   const searching = Boolean(q.trim() || group);
   const foods = searching ? await listTaco({ q, group, source }) : [];
 
@@ -45,7 +45,7 @@ export default async function TacoPage({ searchParams }: { searchParams: Promise
           <Link href="/app/alimentos" className="text-sm text-muted-foreground hover:underline">← Alimentos do consultório</Link>
           <h1 className="font-display text-3xl font-semibold tracking-tight">Tabelas de composição</h1>
           <p className="text-sm text-muted-foreground">
-            597 alimentos da TACO (NEPA/Unicamp, 4ª edição) e cerca de 1.900 alimentos e preparações como o brasileiro consome, da POF 2008-2009 do IBGE, com medidas caseiras. Valores por 100 g da parte comestível.
+            TACO (NEPA/Unicamp, 4ª edição) e cerca de 1.900 alimentos e preparações da POF 2008-2009 do IBGE, com medidas caseiras. Em &quot;Todas as tabelas&quot;, também produtos industrializados pelo rótulo (Open Food Facts) e a base do USDA, com micronutrientes completos e nomes traduzidos. Valores por 100 g da parte comestível.
           </p>
         </div>
 
@@ -58,6 +58,7 @@ export default async function TacoPage({ searchParams }: { searchParams: Promise
             <Label htmlFor="taco-fonte">Tabela</Label>
             <select id="taco-fonte" name="fonte" defaultValue={source} className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm">
               <option value="">TACO e IBGE</option>
+              <option value="ALL">Todas as tabelas</option>
               {Object.entries(PUBLIC_SOURCES).map(([code, label]) => <option key={code} value={code}>{label}</option>)}
             </select>
           </div>
@@ -92,7 +93,7 @@ export default async function TacoPage({ searchParams }: { searchParams: Promise
                   <tr key={f.id}>
                     <td className="px-3 py-2">
                       <Link href={`/app/alimentos/taco/${f.id}`} className="font-medium underline-offset-4 hover:underline">{f.name}</Link>
-                      <span className="block text-xs text-muted-foreground">{[f.source === 'IBGE' ? 'IBGE' : 'TACO', !group ? f.group : null].filter(Boolean).join(' · ')}</span>
+                      <span className="block text-xs text-muted-foreground">{[SOURCE_SHORT[f.source] ?? f.source, !group ? f.group : null].filter(Boolean).join(' · ')}</span>
                     </td>
                     {COLS.map(([k]) => (
                       <td key={k} className="px-3 py-2 text-right tabular-nums">{formatNutrient({ amount: f.per100g[k] ?? null, trace: false })}</td>

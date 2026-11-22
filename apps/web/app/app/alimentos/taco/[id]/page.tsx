@@ -28,7 +28,7 @@ export default async function TacoFoodPage({ params }: { params: Promise<{ id: s
         <div className="space-y-1">
           <Link href={`/app/alimentos/taco?grupo=${encodeURIComponent(food.group)}`} className="text-sm text-muted-foreground hover:underline">← {food.group}</Link>
           <h1 className="font-display text-3xl font-semibold tracking-tight">{food.name}</h1>
-          <p className="text-sm text-muted-foreground">{food.source.code === 'IBGE' ? `IBGE (POF 2008-2009), código ${food.code ?? '—'}` : `TACO nº ${food.code ?? '—'}`} · valores por 100 g da parte comestível</p>
+          <p className="text-sm text-muted-foreground">{food.source.code === 'IBGE' ? `IBGE (POF 2008-2009), código ${food.code ?? '—'}` : food.source.code === 'OFF' ? `Rótulo (Open Food Facts), código de barras ${food.code ?? '—'}` : food.source.code === 'USDA' ? `USDA FoodData Central, FDC ${food.code ?? '—'} · nome traduzido` : `TACO nº ${food.code ?? '—'}`} · valores por 100 g da parte comestível</p>
         </div>
 
         <section aria-labelledby="taco-comp" className="overflow-x-auto rounded-lg border">

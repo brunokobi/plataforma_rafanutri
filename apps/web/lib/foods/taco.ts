@@ -5,14 +5,15 @@ import { directus, directusErrorInfo } from '@/lib/auth/directus';
 import { FOOD_DEEP, FOOD_FIELDS, foodSearchFilter, mapDirectusFood, rankFoods, type DirectusFood, type Food } from './food';
 import { type DirectusTacoDetail, type PublicSource, type TacoFoodDetail, toDetail } from './taco-data';
 
-const bySource = (source?: PublicSource | '') => ({ source_id: { code: source ? { _eq: source } : { _in: ['TACO', 'IBGE'] } } });
+// Sem fonte escolhida: as tabelas brasileiras (TACO e IBGE). 'ALL' inclui rótulos (OFF) e USDA.
+const bySource = (source?: PublicSource | '' | 'ALL') => ({ source_id: { code: source === 'ALL' ? { _in: ['TACO', 'IBGE', 'OFF', 'USDA'] } : source ? { _eq: source } : { _in: ['TACO', 'IBGE'] } } });
 
 async function token() {
   return (await cookies()).get(ACCESS_COOKIE)?.value ?? null;
 }
 
 /** Busca nas tabelas públicas (TACO, IBGE ou as duas) por texto ou lista um grupo. Null se o Directus falhar. */
-export async function listTaco(opts: { q?: string; group?: string; source?: PublicSource | '' }): Promise<Food[] | null> {
+export async function listTaco(opts: { q?: string; group?: string; source?: PublicSource | '' | 'ALL' }): Promise<Food[] | null> {
   const t = await token();
   if (!t) return null;
   const text = opts.q?.trim() ?? '';
@@ -44,7 +45,7 @@ export async function getTacoFood(id: string): Promise<TacoFoodDetail | null> {
       withToken(t, readItems('foods' as never, {
         fields: ['id', 'name', 'food_group', 'source_code', 'household_measures', 'source_id.code', 'source_id.name', 'source_id.version', 'source_id.citation',
           'nutrients.amount_per_100g', 'nutrients.is_trace', 'nutrients.nutrient_id.code', 'nutrients.nutrient_id.name', 'nutrients.nutrient_id.unit', 'nutrients.nutrient_id.position'],
-        filter: { _and: [{ id: { _eq: Number(id) } }, bySource()] },
+        filter: { _and: [{ id: { _eq: Number(id) } }, bySource('ALL')] },
         deep: { nutrients: { _limit: 100 } },
         limit: 1,
       } as never)),

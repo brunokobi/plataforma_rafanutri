@@ -1,9 +1,12 @@
 // Funções puras da consulta às tabelas públicas (TACO e IBGE/POF): grupos, ficha e formatação dos valores.
 
 /** Tabelas públicas de composição consultáveis em /app/alimentos/taco. */
-export const PUBLIC_SOURCES = { TACO: 'TACO 4ª ed.', IBGE: 'IBGE (POF 2008-2009)' } as const;
+export const PUBLIC_SOURCES = { TACO: 'TACO 4ª ed.', IBGE: 'IBGE (POF 2008-2009)', OFF: 'Rótulos (Open Food Facts)', USDA: 'USDA (EUA)' } as const;
 export type PublicSource = keyof typeof PUBLIC_SOURCES;
-export const isPublicSource = (v: unknown): v is PublicSource => v === 'TACO' || v === 'IBGE';
+export const isPublicSource = (v: unknown): v is PublicSource => typeof v === 'string' && v in PUBLIC_SOURCES;
+
+/** Rótulo curto da fonte (listas e ficha). */
+export const SOURCE_SHORT: Record<string, string> = { TACO: 'TACO', IBGE: 'IBGE', OFF: 'Rótulo', USDA: 'USDA', CUSTOM: 'Próprio' };
 
 /** Grupos da TACO 4ª edição (fixos na fonte; a base do IBGE foi classificada nos mesmos grupos). */
 export const TACO_GROUPS = [
