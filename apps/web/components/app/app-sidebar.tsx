@@ -1,7 +1,7 @@
 'use client';
 
 import {
-  Apple, Bell, Landmark, BookOpen, Box, Building2, CalendarDays, ChefHat, ClipboardCheck, ClipboardList, Crown, FileSpreadsheet, Filter, Home,
+  Apple, Baby, Bell, Briefcase, Dumbbell, Landmark, BookOpen, Box, Building2, CalendarDays, ChefHat, ClipboardCheck, ClipboardList, Crown, FileSpreadsheet, Filter, Home,
   LayoutGrid, ListChecks, LogOut, Menu, Network, Salad, Search, Sparkles, Truck, Upload, Users, Wallet, Warehouse, type LucideIcon,
 } from 'lucide-react';
 import Form from 'next/form';
@@ -9,6 +9,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { activeHref, navModel, type NavIcon } from '@/components/app/app-nav';
+import { MODULE_THEME_LABEL, moduleThemeOf, type ModuleTheme } from '@/lib/modules/theme';
 import { FeedbackButton } from '@/components/app/feedback-button';
 import { Logo } from '@/components/brand/logo';
 import { ThemeToggle } from '@/components/theme-toggle';
@@ -22,6 +23,8 @@ const ICONS: Record<NavIcon, LucideIcon> = {
   building: Building2, bell: Bell, crown: Crown, units: Warehouse, sheet: FileSpreadsheet, check: ClipboardCheck, network: Network,
   box: Box, truck: Truck, rules: ClipboardList, upload: Upload, landmark: Landmark,
 };
+
+const THEME_ICON: Record<ModuleTheme, LucideIcon> = { clinical: Dumbbell, maternal: Baby, practice: Briefcase, ai: Sparkles, uan: ChefHat, public_health: Landmark };
 
 export interface SidebarProps {
   homeHref?: string;
@@ -39,6 +42,7 @@ function SidebarBody({ homeHref = '/app', patientsHref = '/app/pacientes', org, 
   const active = activeHref(pathname, groups.flatMap((g) => g.links.map((l) => l.href)));
   const searchRef = useRef<HTMLInputElement>(null);
   const inUan = pathname.startsWith('/app/uan');
+  const theme = moduleThemeOf(pathname);
 
   // Ctrl+K / ⌘K: vai para a busca de paciente.
   useEffect(() => {
@@ -55,6 +59,7 @@ function SidebarBody({ homeHref = '/app', patientsHref = '/app/pacientes', org, 
   return (
     <div className="flex h-full min-h-0 flex-col gap-5 px-3.5 py-5">
       <Logo href={homeHref} className="px-2" />
+      {theme && <ModuleSeal theme={theme} />}
 
       {org && (
         <Link href="/app/configuracoes/plano" onClick={onNavigate} className="flex min-h-[52px] items-center gap-2.5 rounded-xl border border-border bg-card px-2.5 py-2 transition-colors hover:border-primary/40">
@@ -131,6 +136,17 @@ function SidebarBody({ homeHref = '/app', patientsHref = '/app/pacientes', org, 
         </div>
       </div>
     </div>
+  );
+}
+
+/** Selo do módulo atual. Também marca a página ([data-module-page]) para o tema do módulo (globals.css). */
+function ModuleSeal({ theme }: { theme: ModuleTheme }) {
+  const Icon = THEME_ICON[theme];
+  return (
+    <p data-module-page={theme} className="module-seal -mt-2 flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold">
+      <Icon className="size-4" aria-hidden="true" />
+      {MODULE_THEME_LABEL[theme]}
+    </p>
   );
 }
 

@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import type { IconName } from '@/lib/modules/catalog';
 import type { ModuleAccessView } from '@/lib/modules/access';
+import { THEME_OF_MODULE } from '@/lib/modules/theme';
 import { cn } from '@/lib/utils';
 
 const ICONS: Record<IconName, typeof Stethoscope> = {
@@ -46,8 +47,10 @@ export function ModuleCard({ view }: { view: ModuleAccessView }) {
     <article
       data-testid={`module-${module.code}`}
       data-status={view.status}
+      data-module-scope={locked ? undefined : THEME_OF_MODULE[module.code]}
       className={cn(
         'flex h-full flex-col rounded-2xl border bg-card p-5 transition-shadow',
+        !locked && 'border-t-4 border-t-primary',
         locked ? 'border-dashed border-border bg-card/60' : 'border-border hover:shadow-lg hover:shadow-primary/5',
       )}
     >

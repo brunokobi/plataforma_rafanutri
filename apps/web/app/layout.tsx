@@ -1,11 +1,15 @@
 import type { Metadata, Viewport } from 'next';
-import { Fraunces, Plus_Jakarta_Sans } from 'next/font/google';
+import { Baloo_2, Barlow_Condensed, Fraunces, Plus_Jakarta_Sans, Space_Grotesk } from 'next/font/google';
 import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from '@/components/ui/sonner';
 import './globals.css';
 
 const sans = Plus_Jakarta_Sans({ subsets: ['latin'], variable: '--font-sans', display: 'swap' });
 const display = Fraunces({ subsets: ['latin'], variable: '--font-display', display: 'swap', axes: ['SOFT', 'opsz'] });
+// Títulos dos módulos (app/globals.css): carregam só quando a página do módulo usa
+const kids = Baloo_2({ subsets: ['latin'], variable: '--font-kids', display: 'swap', preload: false, weight: ['600', '700'] });
+const sport = Barlow_Condensed({ subsets: ['latin'], variable: '--font-sport', display: 'swap', preload: false, weight: ['600', '700'] });
+const tech = Space_Grotesk({ subsets: ['latin'], variable: '--font-tech', display: 'swap', preload: false, weight: ['500', '700'] });
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://rafanutri.brunokobi.tech';
 
@@ -37,7 +41,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR" suppressHydrationWarning className={`${sans.variable} ${display.variable}`}>
+    <html lang="pt-BR" suppressHydrationWarning className={`${sans.variable} ${display.variable} ${kids.variable} ${sport.variable} ${tech.variable}`}>
       <body className="min-h-dvh font-sans">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           {children}

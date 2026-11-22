@@ -169,3 +169,136 @@ html:has([data-patient-shell]) {
     padding-left: 264px;
   }
 }
+
+/* ── Identidade por módulo (lib/modules/theme.ts) ────────────────────────────────────────────
+   [data-module-page] marca a página (no menu lateral): o tema vale para a tela toda, sem piscar.
+   [data-module-scope] aplica o tema só dentro do elemento (ex.: cartões dos módulos na tela inicial). */
+
+/* Clínico e Esportivo: azul elétrico e verde-limão "volt", títulos condensados, faixas de velocidade */
+:root:has([data-module-page="clinical"]), [data-module-scope="clinical"] {
+  --primary: oklch(0.5 0.19 264); --primary-foreground: oklch(0.99 0.01 264); --ring: oklch(0.5 0.19 264);
+  --secondary: oklch(0.95 0.035 262); --secondary-foreground: oklch(0.33 0.12 264);
+  --accent: oklch(0.93 0.16 124); --accent-foreground: oklch(0.32 0.09 130);
+  --module-tint: oklch(0.5 0.19 264 / 0.07); --module-tint-2: oklch(0.86 0.19 124 / 0.12);
+}
+:root:has([data-module-page="clinical"]) { --background: oklch(0.985 0.004 260); --muted: oklch(0.965 0.01 260); --border: oklch(0.9 0.015 260); --font-display: var(--font-sport); --radius: 0.75rem; }
+.dark:has([data-module-page="clinical"]), .dark [data-module-scope="clinical"] {
+  --primary: oklch(0.74 0.15 262); --primary-foreground: oklch(0.17 0.04 265); --ring: oklch(0.74 0.15 262);
+  --secondary: oklch(0.28 0.06 264); --secondary-foreground: oklch(0.92 0.04 262);
+  --accent: oklch(0.82 0.18 125); --accent-foreground: oklch(0.2 0.05 130);
+  --module-tint: oklch(0.74 0.15 262 / 0.08); --module-tint-2: oklch(0.82 0.18 125 / 0.07);
+}
+.dark:has([data-module-page="clinical"]) { --background: oklch(0.15 0.025 265); --card: oklch(0.19 0.03 265); --popover: oklch(0.19 0.03 265); --muted: oklch(0.23 0.03 265); --border: oklch(0.3 0.04 265); }
+:root:has([data-module-page="clinical"]) body {
+  background-image: repeating-linear-gradient(-58deg, transparent 0 46px, var(--module-tint) 46px 52px, transparent 52px 120px), radial-gradient(60rem 30rem at 100% 0%, var(--module-tint-2), transparent 70%);
+  background-attachment: fixed;
+}
+:root:has([data-module-page="clinical"]) .font-display { letter-spacing: 0.01em; font-weight: 700; }
+
+/* Materno-infantil: rosa-framboesa, lavanda e amarelo-manteiga, cantos bem redondos, nuvens e estrelinhas */
+:root:has([data-module-page="maternal"]), [data-module-scope="maternal"] {
+  --primary: oklch(0.56 0.16 345); --primary-foreground: oklch(0.99 0.01 345); --ring: oklch(0.56 0.16 345);
+  --secondary: oklch(0.95 0.04 305); --secondary-foreground: oklch(0.38 0.1 305);
+  --accent: oklch(0.95 0.07 90); --accent-foreground: oklch(0.42 0.09 70);
+  --module-tint: oklch(0.8 0.1 345 / 0.18); --module-tint-2: oklch(0.85 0.08 300 / 0.2);
+}
+:root:has([data-module-page="maternal"]) { --background: oklch(0.99 0.012 60); --muted: oklch(0.965 0.02 320); --border: oklch(0.91 0.03 330); --font-display: var(--font-kids); --radius: 1.25rem; }
+.dark:has([data-module-page="maternal"]), .dark [data-module-scope="maternal"] {
+  --primary: oklch(0.78 0.13 345); --primary-foreground: oklch(0.2 0.05 340); --ring: oklch(0.78 0.13 345);
+  --secondary: oklch(0.3 0.06 305); --secondary-foreground: oklch(0.93 0.04 305);
+  --accent: oklch(0.36 0.06 80); --accent-foreground: oklch(0.94 0.06 90);
+  --module-tint: oklch(0.78 0.13 345 / 0.1); --module-tint-2: oklch(0.75 0.1 300 / 0.1);
+}
+.dark:has([data-module-page="maternal"]) { --background: oklch(0.18 0.03 320); --card: oklch(0.22 0.035 320); --popover: oklch(0.22 0.035 320); --muted: oklch(0.26 0.035 320); --border: oklch(0.33 0.045 320); }
+:root:has([data-module-page="maternal"]) body {
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cg fill='%23f0a6c4' fill-opacity='.22'%3E%3Cpath d='M40 52l3 7 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z'/%3E%3Cpath d='M170 150l2 5 5 1-4 3 1 5-4-2-4 2 1-5-4-3 5-1z'/%3E%3C/g%3E%3Cg fill='%23b9a4e6' fill-opacity='.18'%3E%3Cellipse cx='150' cy='60' rx='26' ry='12'/%3E%3Cellipse cx='136' cy='54' rx='14' ry='11'/%3E%3Cellipse cx='60' cy='170' rx='22' ry='10'/%3E%3Ccircle cx='110' cy='120' r='4'/%3E%3C/g%3E%3C/svg%3E"),
+    radial-gradient(50rem 26rem at 0% 0%, var(--module-tint), transparent 70%), radial-gradient(46rem 24rem at 100% 100%, var(--module-tint-2), transparent 70%);
+  background-attachment: fixed;
+}
+.dark:has([data-module-page="maternal"]) body { background-blend-mode: soft-light, normal, normal; }
+
+/* Gestão do consultório: azul-marinho e dourado, sóbrio, com linhas de livro-caixa */
+:root:has([data-module-page="practice"]), [data-module-scope="practice"] {
+  --primary: oklch(0.42 0.1 258); --primary-foreground: oklch(0.98 0.01 258); --ring: oklch(0.42 0.1 258);
+  --secondary: oklch(0.95 0.02 258); --secondary-foreground: oklch(0.3 0.08 258);
+  --accent: oklch(0.92 0.09 85); --accent-foreground: oklch(0.42 0.09 70);
+  --module-tint: oklch(0.42 0.1 258 / 0.05); --module-tint-2: oklch(0.85 0.12 85 / 0.12);
+}
+:root:has([data-module-page="practice"]) { --background: oklch(0.985 0.004 255); --muted: oklch(0.965 0.008 255); --border: oklch(0.9 0.012 255); }
+.dark:has([data-module-page="practice"]), .dark [data-module-scope="practice"] {
+  --primary: oklch(0.78 0.1 85); --primary-foreground: oklch(0.2 0.04 80); --ring: oklch(0.78 0.1 85);
+  --secondary: oklch(0.27 0.04 258); --secondary-foreground: oklch(0.92 0.03 258);
+  --accent: oklch(0.32 0.05 80); --accent-foreground: oklch(0.93 0.06 85);
+  --module-tint: oklch(0.78 0.1 85 / 0.05); --module-tint-2: oklch(0.6 0.1 258 / 0.1);
+}
+.dark:has([data-module-page="practice"]) { --background: oklch(0.16 0.025 258); --card: oklch(0.2 0.03 258); --popover: oklch(0.2 0.03 258); --muted: oklch(0.24 0.03 258); --border: oklch(0.31 0.035 258); }
+:root:has([data-module-page="practice"]) body {
+  background-image: repeating-linear-gradient(0deg, transparent 0 31px, var(--module-tint) 31px 32px), radial-gradient(50rem 24rem at 100% 0%, var(--module-tint-2), transparent 70%);
+  background-attachment: fixed;
+}
+
+/* Assistente de IA: violeta com brilho */
+:root:has([data-module-page="ai"]), [data-module-scope="ai"] {
+  --primary: oklch(0.52 0.2 295); --primary-foreground: oklch(0.99 0.01 295); --ring: oklch(0.52 0.2 295);
+  --secondary: oklch(0.95 0.04 295); --secondary-foreground: oklch(0.36 0.14 295);
+  --accent: oklch(0.94 0.06 200); --accent-foreground: oklch(0.38 0.08 210);
+  --module-tint: oklch(0.6 0.2 295 / 0.12); --module-tint-2: oklch(0.75 0.12 200 / 0.12);
+}
+:root:has([data-module-page="ai"]) { --background: oklch(0.985 0.008 295); --border: oklch(0.91 0.02 295); }
+.dark:has([data-module-page="ai"]), .dark [data-module-scope="ai"] {
+  --primary: oklch(0.75 0.15 295); --primary-foreground: oklch(0.18 0.05 295); --ring: oklch(0.75 0.15 295);
+  --secondary: oklch(0.29 0.07 295); --secondary-foreground: oklch(0.93 0.04 295);
+  --accent: oklch(0.32 0.05 210); --accent-foreground: oklch(0.92 0.05 200);
+}
+.dark:has([data-module-page="ai"]) { --background: oklch(0.16 0.03 295); --card: oklch(0.2 0.04 295); --popover: oklch(0.2 0.04 295); --muted: oklch(0.24 0.04 295); --border: oklch(0.32 0.05 295); }
+:root:has([data-module-page="ai"]) body {
+  background-image: radial-gradient(40rem 26rem at 85% 10%, var(--module-tint), transparent 70%), radial-gradient(36rem 22rem at 10% 90%, var(--module-tint-2), transparent 70%);
+  background-attachment: fixed;
+}
+
+/* UAN e Qualidade: cozinha industrial, terracota e aço, cantos retos, azulejo */
+:root:has([data-module-page="uan"]), [data-module-scope="uan"] {
+  --primary: oklch(0.5 0.13 42); --primary-foreground: oklch(0.99 0.01 42); --ring: oklch(0.5 0.13 42);
+  --secondary: oklch(0.95 0.015 230); --secondary-foreground: oklch(0.32 0.03 230);
+  --accent: oklch(0.94 0.05 70); --accent-foreground: oklch(0.42 0.09 50);
+  --module-tint: oklch(0.55 0.02 230 / 0.07);
+}
+:root:has([data-module-page="uan"]) { --background: oklch(0.982 0.003 230); --muted: oklch(0.96 0.006 230); --border: oklch(0.89 0.01 230); --font-display: var(--font-tech); --radius: 0.5rem; }
+.dark:has([data-module-page="uan"]), .dark [data-module-scope="uan"] {
+  --primary: oklch(0.74 0.13 45); --primary-foreground: oklch(0.2 0.04 40); --ring: oklch(0.74 0.13 45);
+  --secondary: oklch(0.28 0.02 230); --secondary-foreground: oklch(0.92 0.01 230);
+  --accent: oklch(0.33 0.04 60); --accent-foreground: oklch(0.93 0.05 70);
+  --module-tint: oklch(0.7 0.02 230 / 0.06);
+}
+.dark:has([data-module-page="uan"]) { --background: oklch(0.16 0.008 230); --card: oklch(0.2 0.01 230); --popover: oklch(0.2 0.01 230); --muted: oklch(0.24 0.01 230); --border: oklch(0.32 0.012 230); }
+:root:has([data-module-page="uan"]) body {
+  background-image: linear-gradient(var(--module-tint) 1px, transparent 1px), linear-gradient(90deg, var(--module-tint) 1px, transparent 1px);
+  background-size: 36px 36px;
+  background-attachment: fixed;
+}
+
+/* Saúde pública: azul institucional e amarelo, mapa pontilhado */
+:root:has([data-module-page="public_health"]), [data-module-scope="public_health"] {
+  --primary: oklch(0.47 0.14 250); --primary-foreground: oklch(0.99 0.01 250); --ring: oklch(0.47 0.14 250);
+  --secondary: oklch(0.95 0.03 250); --secondary-foreground: oklch(0.32 0.1 250);
+  --accent: oklch(0.94 0.12 98); --accent-foreground: oklch(0.38 0.08 85);
+  --module-tint: oklch(0.47 0.14 250 / 0.14); --module-tint-2: oklch(0.9 0.15 98 / 0.14);
+}
+:root:has([data-module-page="public_health"]) { --background: oklch(0.985 0.005 245); --border: oklch(0.9 0.015 248); }
+.dark:has([data-module-page="public_health"]), .dark [data-module-scope="public_health"] {
+  --primary: oklch(0.75 0.12 250); --primary-foreground: oklch(0.18 0.05 250); --ring: oklch(0.75 0.12 250);
+  --secondary: oklch(0.28 0.06 250); --secondary-foreground: oklch(0.93 0.03 250);
+  --accent: oklch(0.36 0.07 95); --accent-foreground: oklch(0.94 0.1 98);
+  --module-tint: oklch(0.75 0.12 250 / 0.12); --module-tint-2: oklch(0.85 0.14 98 / 0.06);
+}
+.dark:has([data-module-page="public_health"]) { --background: oklch(0.16 0.025 250); --card: oklch(0.2 0.03 250); --popover: oklch(0.2 0.03 250); --muted: oklch(0.24 0.03 250); --border: oklch(0.32 0.04 250); }
+:root:has([data-module-page="public_health"]) body {
+  background-image: radial-gradient(var(--module-tint) 1.2px, transparent 1.4px), radial-gradient(48rem 22rem at 100% 0%, var(--module-tint-2), transparent 70%);
+  background-size: 22px 22px, auto;
+  background-attachment: fixed;
+}
+
+/* Selo do módulo no menu lateral */
+.module-seal { background: color-mix(in oklch, var(--primary) 12%, transparent); color: var(--primary); }
+.dark .module-seal { background: color-mix(in oklch, var(--primary) 18%, transparent); }
