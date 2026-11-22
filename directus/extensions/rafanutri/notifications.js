@@ -1,29 +1,17 @@
 // Avisos ao paciente (0058): regras puras — canal, janelas de lembrete, textos e validação.
 // Telegram primeiro para tudo (gratuito); e-mail só para os avisos importantes, quando o paciente não tem
 // Telegram ligado ou o envio pelo Telegram falhou.
+import { ALLERGENS, NOTIFICATION_KINDS, REMINDER_HOURS } from './catalogs.js';
 
-export const ALLOWED_HOURS = [1, 2, 3, 6, 12, 24, 48, 72];
+export const ALLOWED_HOURS = [...REMINDER_HOURS].reverse();
 export const TZ = 'America/Sao_Paulo';
 
 /** Tipos de aviso e se merecem e-mail quando não há Telegram. */
-export const KINDS = {
-  appointment_reminder: { label: 'Lembrete de consulta', important: false },   // o primeiro lembrete é importante (ver isImportant)
-  appointment_scheduled: { label: 'Consulta marcada', important: true },
-  appointment_changed: { label: 'Consulta remarcada', important: true },
-  appointment_cancelled: { label: 'Consulta cancelada', important: true },
-  plan_published: { label: 'Plano novo', important: false },
-  patient_invite: { label: 'Convite da área do paciente', important: true },
-  test: { label: 'Teste', important: true },
-  invoice_created: { label: 'Fatura da assinatura', important: true },
-  invoice_due: { label: 'Fatura vencendo', important: true },
-  payment_reported: { label: 'Pagamento informado', important: true },
-  payment_confirmed: { label: 'Pagamento confirmado', important: true },
-  subscription_ended: { label: 'Assinatura encerrada', important: true },
-  feeding_reaction: { label: 'Reação na introdução alimentar', important: true },
-};
+/** Tipos de aviso e se merecem e-mail quando não há Telegram (catálogo compartilhado). */
+export const KINDS = NOTIFICATION_KINDS;
 
 /** Nomes dos alergênicos (apps/web/lib/maternal/feeding.ts). */
-const FEEDING_ITEM_LABEL = { egg: 'ovo', peanut: 'amendoim', cow_milk: 'leite de vaca', wheat: 'trigo', fish: 'peixe', shellfish: 'frutos do mar', soy: 'soja', tree_nuts: 'castanhas', sesame: 'gergelim' };
+const FEEDING_ITEM_LABEL = Object.fromEntries(ALLERGENS.map((a) => [a.code, a.label.toLowerCase()]));
 
 /** O primeiro lembrete (o de mais horas de antecedência) vale e-mail; os seguintes só vão pelo Telegram. */
 export function isImportant(kind, { hour = null, hours = [] } = {}) {

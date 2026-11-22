@@ -3,6 +3,7 @@
 import { parseImageDataUrl } from './foods.js';
 import { randomBytes } from 'node:crypto';
 import { Readable } from 'node:stream';
+import { LEGAL_VERSIONS, SHARE_KEYS } from './catalogs.js';
 
 export function setupPatientArea(ctx) {
   const { EMAIL, PATIENT_ROLE, TOKEN_FORMAT, bad, clinicalOrg, conflict, database, getSchema, hashToken, isPatientAccount, isUuid, logger, myPatientRecord, notifierRef, orgNotFound, requireUser, router, services, withActor } = ctx;
@@ -128,8 +129,7 @@ export function setupPatientArea(ctx) {
     });
 
     // ── Aceite dos documentos legais (0057) ─────────────────────────────────────────────────
-    // Versões vigentes: iguais a apps/web/lib/legal/info.ts (LEGAL_VERSIONS).
-    const LEGAL_VERSIONS = { professional_terms: '2026-11-20', patient_terms: '2026-11-20', privacy: '2026-11-21' };
+    // Versões vigentes: catálogo compartilhado (catalogs.js, fonte em packages/catalogs).
     async function recordTerms(userId, documents, req) {
       const ua = typeof req.headers['user-agent'] === 'string' ? req.headers['user-agent'].slice(0, 300) : null;
       const rows = documents.filter((d) => LEGAL_VERSIONS[d]).map((d) => ({ user_id: userId, document: d, version: LEGAL_VERSIONS[d], user_agent: ua }));
@@ -392,7 +392,6 @@ export function setupPatientArea(ctx) {
     });
 
     // RN-210 — O que o paciente vê (padrão do consultório + escolha por paciente).
-    const SHARE_KEYS = ['show_kcal', 'show_macros', 'show_weight_history', 'show_maternal'];
     async function shareOf(patientId) {
       const r = await database.raw('select patient_share(?) as s', [patientId]);
       const s = r.rows?.[0]?.s ?? {};

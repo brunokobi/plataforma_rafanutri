@@ -1,11 +1,12 @@
 // Assistente de IA (0063): regras puras — escolha de modelos gratuitos, anonimização e montagem das mensagens.
 // Só modelos gratuitos do OpenRouter (id terminando em ":free" e preço zero). Nesses modelos o provedor pode
 // registrar o que recebe; por isso nada que identifique o paciente sai daqui (nome, CPF, contatos, datas exatas).
+import { AI_DAILY_LIMIT } from './catalogs.js';
 
 export const AI_KINDS = ['question', 'recipes', 'anamnesis_summary', 'plan_suggestion'];
 
 /** Limite diário por consultório. Planos pagos: uso justo para proteger a cota dos modelos gratuitos. */
-export const AI_DAILY_LIMIT = { free: 5, essential: 5, professional: 200, clinic: 200, enterprise_uan: 0 };
+export { AI_DAILY_LIMIT };
 
 /** Ordem de preferência; qualquer outro gratuito grande entra depois, se estes estiverem fora do ar. */
 export const PREFERRED_MODELS = [

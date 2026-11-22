@@ -1,6 +1,7 @@
 // Painéis clínicos: visão geral de todos os pacientes do consultório e painel de cada paciente.
 // Leitura agregada em poucas consultas (sem N+1); as regras de "precisa de atenção" ficam em funções puras, testadas
 // em db/tests/extension-clinical-dashboard.test.mjs.
+import { ATTENTION_REASONS, ATTENTION_RULES } from './catalogs.js';
 
 const DAY = 864e5;
 const iso = (d) => (d instanceof Date ? d.toISOString().slice(0, 10) : d ? String(d).slice(0, 10) : null);
@@ -11,18 +12,9 @@ const addDays = (day, k) => new Date(Date.parse(`${day}T12:00:00Z`) + k * DAY).t
 const n = (v) => (v === null || v === undefined || v === '' ? null : Number(v));
 
 /** Limites das regras de atenção (dias). */
-export const ATTENTION_RULES = { defaultReturnDays: 30, neverSeenGraceDays: 14, planExpiringDays: 14, noAssessmentDays: 90 };
+export { ATTENTION_RULES };
 
-export const REASONS = {
-  no_return: 'Retorno atrasado (passou do intervalo de retorno) e sem consulta marcada',
-  never_seen: 'Cadastrado e ainda sem consulta',
-  plan_expired: 'Plano alimentar vencido',
-  plan_expiring: 'Plano alimentar vence em até 14 dias',
-  no_plan: 'Atendido e sem plano publicado',
-  no_assessment: 'Sem avaliação há mais de 90 dias',
-  risk_high: 'Risco nutricional alto na última triagem',
-  pending_anamnesis: 'Anamnese respondida aguardando revisão',
-};
+export const REASONS = ATTENTION_REASONS;
 
 function ageYears(birth, now) {
   if (!birth) return null;

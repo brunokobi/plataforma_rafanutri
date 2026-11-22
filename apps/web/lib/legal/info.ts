@@ -1,14 +1,12 @@
 // Documentos legais: versões vigentes e dados do responsável.
 // Mudar o texto de um documento = nova versão (data). Quem aceitou a anterior aceita de novo ao entrar.
 
-export type LegalDocument = 'professional_terms' | 'patient_terms' | 'privacy';
+import { LEGAL_VERSIONS as CAT_LEGAL_VERSIONS, type LegalDocument } from '@rafanutri/catalogs';
 
-/** Versões vigentes (iguais às da extensão: LEGAL_VERSIONS em directus/extensions/rafanutri/index.js). */
-export const LEGAL_VERSIONS: Record<LegalDocument, string> = {
-  professional_terms: '2026-11-20',
-  patient_terms: '2026-11-20',
-  privacy: '2026-11-21',
-};
+export type { LegalDocument };
+
+/** Versões vigentes: catálogo compartilhado com a extensão (packages/catalogs). */
+export const LEGAL_VERSIONS: Record<LegalDocument, string> = CAT_LEGAL_VERSIONS;
 
 export const LEGAL_TITLE: Record<LegalDocument, string> = {
   professional_terms: 'Termos de Uso para Profissionais',

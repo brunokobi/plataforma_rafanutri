@@ -1,39 +1,21 @@
 // Catálogos do materno-infantil (RN-114, RN-116, RN-118). Os códigos são iguais aos da extensão (maternal.js).
-import type { ConsentMethod, FeedingRecord, FeedingType, Reaction, Relationship } from './types';
+import {
+  ALLERGENS as CAT_ALLERGENS, CONSENT_LABEL as CAT_CONSENT_LABEL, FEEDING_TYPE_LABEL as CAT_FEEDING_TYPE_LABEL, REACTION_LABEL as CAT_REACTION_LABEL,
+  RELATIONSHIP_LABEL as CAT_RELATIONSHIP_LABEL, SERIOUS_REACTIONS, TEXTURES as CAT_TEXTURES,
+} from '@rafanutri/catalogs';
+import type { FeedingRecord, Reaction } from './types';
 
-/** Alergênicos mais comuns na introdução alimentar, com a idade de referência para oferecer (meses). */
-export const ALLERGENS: Array<{ code: string; label: string; fromMonths: number; tip: string }> = [
-  { code: 'egg', label: 'Ovo', fromMonths: 6, tip: 'Ovo inteiro bem cozido (clara e gema), desde o início da introdução alimentar.' },
-  { code: 'peanut', label: 'Amendoim', fromMonths: 6, tip: 'Em pasta diluída ou farinha misturada à comida; nunca o grão inteiro (risco de engasgo).' },
-  { code: 'wheat', label: 'Trigo', fromMonths: 6, tip: 'Macarrão, pão ou farinha nas preparações.' },
-  { code: 'fish', label: 'Peixe', fromMonths: 6, tip: 'Bem cozido, desfiado e sem espinhas.' },
-  { code: 'soy', label: 'Soja', fromMonths: 6, tip: 'Grão cozido ou tofu nas refeições.' },
-  { code: 'sesame', label: 'Gergelim', fromMonths: 6, tip: 'Tahine ou semente moída misturada à comida.' },
-  { code: 'tree_nuts', label: 'Castanhas', fromMonths: 6, tip: 'Moídas ou em pasta; nunca inteiras antes dos 4 anos.' },
-  { code: 'shellfish', label: 'Frutos do mar', fromMonths: 6, tip: 'Bem cozidos e picados, se fizerem parte da alimentação da família.' },
-  { code: 'cow_milk', label: 'Leite de vaca', fromMonths: 12, tip: 'Como bebida, só depois de 1 ano; antes disso, em pequena quantidade nas preparações, se orientado.' },
-];
+export const ALLERGENS = CAT_ALLERGENS;
 
-/** Etapas de textura, com a idade de referência (Guia Alimentar para Crianças Menores de 2 Anos). */
-export const TEXTURES: Array<{ code: string; label: string; fromMonths: number; tip: string }> = [
-  { code: 'mashed', label: 'Amassada com garfo', fromMonths: 6, tip: 'Comida amassada, sem liquidificar nem peneirar.' },
-  { code: 'soft_pieces', label: 'Pedaços pequenos e macios', fromMonths: 7, tip: 'Mais grossa, com pedaços para treinar a mastigação.' },
-  { code: 'chopped', label: 'Picada ou desfiada', fromMonths: 9, tip: 'Perto da comida da família; a criança pega com a mão.' },
-  { code: 'family', label: 'Comida da família', fromMonths: 12, tip: 'Mesma comida da família, com pouco sal e sem temperos prontos.' },
-];
+export const TEXTURES = CAT_TEXTURES;
 
-export const REACTION_LABEL: Record<Reaction, string> = { none: 'Sem reação', mild: 'Reação leve', moderate: 'Reação moderada', severe: 'Reação grave' };
-export const FEEDING_TYPE_LABEL: Record<FeedingType, string> = {
-  exclusive: 'Aleitamento materno exclusivo',
-  predominant: 'Aleitamento predominante (leite materno e água, chás ou sucos)',
-  complemented: 'Aleitamento complementado (leite materno e comida)',
-  mixed: 'Aleitamento misto (leite materno e outro leite)',
-};
-export const RELATIONSHIP_LABEL: Record<Relationship, string> = { mother: 'Mãe', father: 'Pai', grandparent: 'Avó ou avô', legal_guardian: 'Tutor legal', other: 'Outro' };
-export const CONSENT_LABEL: Record<ConsentMethod, string> = { in_person: 'Presencial, na consulta', signed_form: 'Termo assinado', other: 'Outra forma' };
+export const REACTION_LABEL = CAT_REACTION_LABEL;
+export const FEEDING_TYPE_LABEL = CAT_FEEDING_TYPE_LABEL;
+export const RELATIONSHIP_LABEL = CAT_RELATIONSHIP_LABEL;
+export const CONSENT_LABEL = CAT_CONSENT_LABEL;
 
 /** Reação que merece destaque (e aviso ao nutricionista quando o responsável registra). */
-export const isSeriousReaction = (r: Reaction) => r === 'moderate' || r === 'severe';
+export const isSeriousReaction = (r: Reaction) => SERIOUS_REACTIONS.includes(r);
 
 export interface ChecklistItem {
   code: string;

@@ -1,8 +1,9 @@
 // Módulo materno-infantil (0062): medidas para as curvas da OMS e acompanhamento da gestação.
 // Os cálculos (escore-z, ganho de peso) ficam no app, com o @rafanutri/nutrition-core; aqui só dados e regras de acesso.
 // Disponível nos planos Profissional e Clínica, ou quando o consultório tem o módulo habilitado por contrato.
+import { ALLERGENS as CAT_ALLERGENS, CONSENT_LABEL, FEEDING_TYPE_LABEL, MATERNAL_PLANS as MATERNAL_PLAN_LIST, REACTION_LABEL, RELATIONSHIP_LABEL, SERIOUS_REACTIONS, TEXTURES as CAT_TEXTURES } from './catalogs.js';
 
-const MATERNAL_PLANS = new Set(['professional', 'clinic']);
+const MATERNAL_PLANS = new Set(MATERNAL_PLAN_LIST);
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
 
 const iso = (d) => (d instanceof Date ? d.toISOString().slice(0, 10) : d ? String(d).slice(0, 10) : null);
@@ -55,12 +56,12 @@ export function validatePregnancy(b, { partial = false } = {}) {
 }
 
 /** Alergênicos e etapas de textura (RN-116). Iguais a apps/web/lib/maternal/feeding.ts. */
-export const ALLERGENS = ['egg', 'peanut', 'cow_milk', 'wheat', 'fish', 'shellfish', 'soy', 'tree_nuts', 'sesame'];
-export const TEXTURES = ['mashed', 'soft_pieces', 'chopped', 'family'];
-export const REACTIONS = ['none', 'mild', 'moderate', 'severe'];
-export const FEEDING_TYPES = ['exclusive', 'predominant', 'complemented', 'mixed'];
-export const RELATIONSHIPS = ['mother', 'father', 'grandparent', 'legal_guardian', 'other'];
-export const CONSENT_METHODS = ['in_person', 'signed_form', 'other'];
+export const ALLERGENS = CAT_ALLERGENS.map((a) => a.code);
+export const TEXTURES = CAT_TEXTURES.map((t) => t.code);
+export const REACTIONS = Object.keys(REACTION_LABEL);
+export const FEEDING_TYPES = Object.keys(FEEDING_TYPE_LABEL);
+export const RELATIONSHIPS = Object.keys(RELATIONSHIP_LABEL);
+export const CONSENT_METHODS = Object.keys(CONSENT_LABEL);
 const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 const text = (v, max) => (typeof v === 'string' && v.trim() ? v.trim().replace(/\s+/g, ' ').slice(0, max) : null);
 
@@ -174,7 +175,7 @@ export function setupMaternal({ router, database, logger, h, notifier = null }) 
 
   /** Aviso ao nutricionista do paciente (ou aos owners) quando o responsável registra reação moderada ou grave. */
   async function warnReaction(patient, row) {
-    if (!notifier || !['moderate', 'severe'].includes(row.reaction)) return;
+    if (!notifier || !SERIOUS_REACTIONS.includes(row.reaction)) return;
     const ctx = { childName: patient.full_name, item: row.item, reaction: row.reaction, link: `${notifier.site}/app/pacientes/${patient.id}/materno-infantil` };
     const dedupe = `feeding-reaction:${patient.id}:${row.item}:${row.reaction}`;
     try {
@@ -221,7 +222,7 @@ export function setupMaternal({ router, database, logger, h, notifier = null }) 
         .where({ 'l.organization_id': org, 'l.status': 'active', 'p.status': 'active' }).orderBy('l.started_on', 'desc')
         .select('p.id', 'p.full_name', 'l.started_on', 'l.feeding_type', 'b.full_name as baby_name'),
       database('feeding_intro_progress as f').join('patients as p', 'p.id', 'f.patient_id')
-        .where({ 'f.organization_id': org, 'p.status': 'active' }).whereIn('f.reaction', ['moderate', 'severe']).whereRaw("coalesce(f.date_updated, f.date_created) > now() - interval '60 days'")
+        .where({ 'f.organization_id': org, 'p.status': 'active' }).whereIn('f.reaction', SERIOUS_REACTIONS).whereRaw("coalesce(f.date_updated, f.date_created) > now() - interval '60 days'")
         .orderByRaw('coalesce(f.date_updated, f.date_created) desc').limit(50)
         .select('p.id', 'p.full_name', 'f.item', 'f.reaction', 'f.introduced_on', 'f.by_guardian'),
     ]);

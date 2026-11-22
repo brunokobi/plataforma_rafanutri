@@ -1,16 +1,9 @@
-export type AttentionReason = 'no_return' | 'never_seen' | 'plan_expired' | 'plan_expiring' | 'no_plan' | 'no_assessment' | 'risk_high' | 'pending_anamnesis';
+import { ATTENTION_REASONS, type AttentionReason } from '@rafanutri/catalogs';
 
-/** Textos iguais a REASONS de directus/extensions/rafanutri/clinical-dashboard.js (conferido em tests/catalog-sync.test.ts). */
-export const REASON_LABEL: Record<AttentionReason, string> = {
-  no_return: 'Retorno atrasado (passou do intervalo de retorno) e sem consulta marcada',
-  never_seen: 'Cadastrado e ainda sem consulta',
-  plan_expired: 'Plano alimentar vencido',
-  plan_expiring: 'Plano alimentar vence em até 14 dias',
-  no_plan: 'Atendido e sem plano publicado',
-  no_assessment: 'Sem avaliação há mais de 90 dias',
-  risk_high: 'Risco nutricional alto na última triagem',
-  pending_anamnesis: 'Anamnese respondida aguardando revisão',
-};
+export type { AttentionReason };
+
+/** Textos dos motivos: catálogo compartilhado com a extensão (packages/catalogs). */
+export const REASON_LABEL: Record<AttentionReason, string> = ATTENTION_REASONS;
 export const REASON_SHORT: Record<AttentionReason, string> = {
   no_return: 'Retorno atrasado', never_seen: 'Sem consulta', plan_expired: 'Plano vencido', plan_expiring: 'Plano vencendo',
   no_plan: 'Sem plano', no_assessment: 'Sem avaliação', risk_high: 'Risco alto', pending_anamnesis: 'Anamnese',

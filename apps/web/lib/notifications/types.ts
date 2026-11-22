@@ -1,35 +1,10 @@
+import { NOTIFICATION_KINDS, REMINDER_HOURS as CAT_REMINDER_HOURS, type NotificationKind } from '@rafanutri/catalogs';
 // Avisos ao paciente (0058): Telegram primeiro para tudo; e-mail só para os avisos importantes.
 
-export type NotificationKind =
-  | 'appointment_reminder'
-  | 'appointment_scheduled'
-  | 'appointment_changed'
-  | 'appointment_cancelled'
-  | 'plan_published'
-  | 'patient_invite'
-  | 'test'
-  | 'invoice_created'
-  | 'invoice_due'
-  | 'payment_reported'
-  | 'payment_confirmed'
-  | 'subscription_ended'
-  | 'feeding_reaction';
+export type { NotificationKind };
 
-export const KIND_LABEL: Record<NotificationKind, string> = {
-  appointment_reminder: 'Lembrete de consulta',
-  appointment_scheduled: 'Consulta marcada',
-  appointment_changed: 'Consulta remarcada',
-  appointment_cancelled: 'Consulta cancelada',
-  plan_published: 'Plano novo',
-  patient_invite: 'Convite da área do paciente',
-  test: 'Teste',
-  invoice_created: 'Fatura da assinatura',
-  invoice_due: 'Fatura vencendo',
-  payment_reported: 'Pagamento informado',
-  payment_confirmed: 'Pagamento confirmado',
-  subscription_ended: 'Assinatura encerrada',
-  feeding_reaction: 'Reação na introdução alimentar',
-};
+/** Rótulos dos tipos de aviso: catálogo compartilhado com a extensão (packages/catalogs). */
+export const KIND_LABEL: Record<NotificationKind, string> = Object.fromEntries(Object.entries(NOTIFICATION_KINDS).map(([k, v]) => [k, v.label])) as Record<NotificationKind, string>;
 
 /** Rótulo de um tipo vindo do servidor; tipo novo ainda sem rótulo aparece pelo código, nunca "undefined". */
 export const kindLabel = (k: string) => KIND_LABEL[k as NotificationKind] ?? k;
@@ -39,7 +14,7 @@ export const STATUS_LABEL: Record<NotificationStatus, string> = { queued: 'Na fi
 export const CHANNEL_LABEL = { telegram: 'Telegram', email: 'E-mail' } as const;
 
 /** Horários de lembrete permitidos (iguais ao banco). */
-export const REMINDER_HOURS = [72, 48, 24, 12, 6, 3, 2, 1] as const;
+export const REMINDER_HOURS = CAT_REMINDER_HOURS;
 export const hoursLabel = (h: number) => (h >= 24 ? (h === 24 ? '1 dia antes' : `${h / 24} dias antes`) : h === 1 ? '1 hora antes' : `${h} horas antes`);
 
 export interface NotificationSettings {

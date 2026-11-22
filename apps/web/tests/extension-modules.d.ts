@@ -17,3 +17,6 @@ declare module '*/directus/extensions/rafanutri/notifications.js' {
 declare module '*/directus/extensions/rafanutri/public-health.js' {
   export const TOOLS: Record<string, string>;
 }
+declare module '*/directus/extensions/rafanutri/catalogs.js' {
+  export * from '@rafanutri/catalogs';
+}

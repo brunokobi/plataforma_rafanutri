@@ -1,7 +1,5 @@
-// Catálogos que existem dos dois lados (app web e extensão do Directus) precisam ser iguais.
-// Se um lado mudar sem o outro, este teste falha.
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+// Catálogos usados dos dois lados (app web e extensão do Directus). A fonte é packages/catalogs; este teste confere
+// que os módulos da extensão expõem os mesmos valores que o app usa.
 import { describe, expect, it } from 'vitest';
 import { REASON_LABEL } from '@/lib/clinical-dashboard/types';
 import { LEGAL_VERSIONS } from '@/lib/legal/info';
@@ -12,9 +10,9 @@ import * as dash from '../../../directus/extensions/rafanutri/clinical-dashboard
 import * as maternal from '../../../directus/extensions/rafanutri/maternal.js';
 import * as notifications from '../../../directus/extensions/rafanutri/notifications.js';
 import * as ph from '../../../directus/extensions/rafanutri/public-health.js';
+import * as extCatalogs from '../../../directus/extensions/rafanutri/catalogs.js';
 
 const sorted = (a: Iterable<string | number>) => [...a].map(String).sort();
-const indexJs = readFileSync(resolve(__dirname, '../../../directus/extensions/rafanutri/index.js'), 'utf8');
 
 describe('catálogos web × extensão', () => {
   it('motivos de atenção do painel: mesmas chaves e mesmos textos', () => {
@@ -35,10 +33,8 @@ describe('catálogos web × extensão', () => {
   it('triagens: mesmas ferramentas e versões', () => {
     expect(Object.fromEntries(Object.entries(SCREENING_TOOLS).map(([k, t]) => [k, t.version]))).toEqual(ph.TOOLS);
   });
-  it('versões dos termos e chaves do que o paciente vê', () => {
-    const legal = indexJs.match(/const LEGAL_VERSIONS = (\{[^}]+\})/)?.[1];
-    expect(legal && JSON.parse(legal.replace(/(\w+):/g, '"$1":').replace(/'/g, '"'))).toEqual(LEGAL_VERSIONS);
-    const keys = indexJs.match(/const SHARE_KEYS = \[([^\]]+)\]/)?.[1]?.match(/'(\w+)'/g)?.map((k) => k.slice(1, -1));
-    expect(sorted(keys ?? [])).toEqual(['show_kcal', 'show_macros', 'show_maternal', 'show_weight_history']);
+  it('a extensão usa a mesma cópia do catálogo que o app (versões dos termos e chaves do que o paciente vê)', () => {
+    expect(extCatalogs.LEGAL_VERSIONS).toEqual(LEGAL_VERSIONS);
+    expect(sorted(extCatalogs.SHARE_KEYS)).toEqual(['show_kcal', 'show_macros', 'show_maternal', 'show_weight_history']);
   });
 });

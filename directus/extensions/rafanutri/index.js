@@ -19,6 +19,7 @@ import { setupPatientArea } from './patient-area.js';
 import { setupPractice } from './practice.js';
 import { setupUan } from './uan.js';
 import { fillMonths, isIsoDate, monthStart, splitInstallments, validatePackage, validateTransaction } from './finance.js';
+import { PAID_PLANS as PAID_PLAN_LIST, PRACTICE_PLANS as PRACTICE_PLAN_LIST } from './catalogs.js';
 
 const TYPES = new Set(['solo', 'clinic']);
 const CRN_REGION = /^CRN-([1-9]|1[01])$/;
@@ -113,7 +114,7 @@ export default {
 
     // ── Módulo Gestão do consultório (financeiro, CRM, pacotes, agendamento online e lembretes) ──
     // Fora do plano Gratuito: Essencial, Profissional e Clínica, ou habilitado por contrato (organizations.modules).
-    const PRACTICE_PLANS = new Set(['essential', 'professional', 'clinic']);
+    const PRACTICE_PLANS = new Set(PRACTICE_PLAN_LIST);
     const hasPractice = (o) => Boolean(o && (PRACTICE_PLANS.has(o.plan) || (o.modules ?? []).includes('practice')));
     const PRACTICE_ROUTES = ['/finance', '/crm', '/packages', '/patient-packages', '/patients/:id/packages', '/booking-requests', '/notifications/settings', '/notifications/test', '/practices/:id/public-profile'];
     router.use(PRACTICE_ROUTES, async (req, res, next) => {
@@ -897,7 +898,7 @@ export default {
         .orderBy('o.created_at')
         .first('o.id', 'o.plan', 'm.role');
     }
-    const PAID_PLANS = new Set(['essential', 'professional', 'clinic']);
+    const PAID_PLANS = new Set(PAID_PLAN_LIST);
 
     router.get('/plan', async (req, res) => {
       const user = requireUser(req, res);

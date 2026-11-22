@@ -19,8 +19,9 @@ export interface Pregnancy {
   notes: string | null;
 }
 
-export type FeedingType = 'exclusive' | 'predominant' | 'complemented' | 'mixed';
-export type Reaction = 'none' | 'mild' | 'moderate' | 'severe';
+import type { ConsentMethod, FeedingType, Reaction, Relationship } from '@rafanutri/catalogs';
+
+export type { ConsentMethod, FeedingType, Reaction, Relationship };
 export type FeedingKind = 'allergen' | 'texture';
 
 export interface Lactation {
@@ -47,8 +48,6 @@ export interface FeedingRecord {
   by_guardian: boolean;
 }
 
-export type Relationship = 'mother' | 'father' | 'grandparent' | 'legal_guardian' | 'other';
-export type ConsentMethod = 'in_person' | 'signed_form' | 'other';
 
 export interface Guardian {
   id: string;

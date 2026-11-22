@@ -1,8 +1,9 @@
 // Saúde pública, bloco A (0066): triagens nutricionais (NRS-2002, MUST, ASG) e painel de risco do consultório.
 // O cálculo (pontuação, classificação, risco) é feito no app pelo @rafanutri/nutrition-core; aqui ficam a validação
 // do formato, o acesso (módulo public_health habilitado por contrato) e os dados de apoio (IMC, idade, perda de peso).
+import { SCREENING_TOOL_VERSIONS } from './catalogs.js';
 
-export const TOOLS = { nrs_2002: 'nrs_2002@kondrup2003', must: 'must@bapen2011', sga: 'sga@detsky1987' };
+export const TOOLS = SCREENING_TOOL_VERSIONS;
 const RISKS = ['low', 'medium', 'high'];
 const iso = (d) => (d instanceof Date ? d.toISOString().slice(0, 10) : d ? String(d).slice(0, 10) : null);
 
