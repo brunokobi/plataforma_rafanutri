@@ -71,7 +71,9 @@ db/
 │   ├── 0064_food_sources_off_usda.sql  # fontes Open Food Facts e USDA
 │   ├── 0065_maternal_care.sql  # RN-113 a 118: lactação, introdução alimentar e responsáveis
 │   ├── 0066_public_health.sql  # RN-170 a 174: triagens nutricionais e módulos por contrato
-│   └── 0067_patient_care_profile.sql  # tipo de acompanhamento do paciente (visual da ficha)
+│   ├── 0067_patient_care_profile.sql  # tipo de acompanhamento do paciente (visual da ficha)
+│   ├── 0068_clinical_member.sql  # is_clinical_member() nas 24 guardas; ator da auditoria validado
+│   └── 0069_annual_billing.sql  # plano anual com 50% de desconto
 ├── tests/
 │   ├── 0002_organizations.test.sql  # regras do banco (transação desfeita no fim)
 │   ├── 0004_patients.test.sql       # limite de 20 ativos, CPF, responsável, formatos
@@ -131,6 +133,7 @@ db/
 │   ├── 0062_maternal.test.sql  # gestação
 │   ├── 0065_maternal_care.test.sql  # lactação, introdução alimentar, responsáveis e convite ao responsável
 │   ├── 0066_public_health.test.sql  # triagens nutricionais e módulos por contrato
+│   ├── 0069_annual_billing.test.sql  # plano anual: preço, ciclo da assinatura e da fatura
 │   ├── extension-ai.test.mjs  # IA: modelos gratuitos, anonimização, cota (node --test)
 │   ├── extension-billing.test.mjs  # código Pix (BR Code), períodos e valores (node --test)
 │   ├── extension-booking.test.mjs  # horários livres e validação do pedido online (node --test)
@@ -1102,6 +1105,32 @@ Planos hoje (espelho de `apps/web/lib/modules/plans.ts`; preços definidos pelo 
 | `clinic` | Clínica | R$ 199,90/mês | sem limite | sem limite | sim | 200 | sim |
 
 O módulo Gestão (financeiro, pacotes, CRM, agendamento online e lembretes) é barrado na API para o Gratuito (`PRACTICE_ROUTES` em `index.js`), salvo com o módulo `practice` em `organizations.modules`. Saúde pública e UAN só por contrato (`organizations.modules`).
+
+## Regras de acesso: is_clinical_member (0068)
+
+Migração `0068_clinical_member.sql` (**aplicada na vpsrafa em 22/11/2026**, backup `antes-0068-2026-11-22.dump`). Refatoração sem mudança de comportamento:
+
+- `is_clinical_member(org, user)` responde "é owner ou nutricionista do consultório". Antes, a subconsulta estava repetida em 24 funções-guarda.
+- As guardas foram recriadas a partir das definições vigentes no banco (`pg_get_functiondef`), trocando só a subconsulta. O tratamento de autor nulo de cada uma não mudou.
+- `financial_transactions_guard` e `leads_events` passam a ler o ator pela `audit_actor()`, que valida o UUID. Antes, um valor inválido em `rafanutri.actor` quebrava no `::uuid`.
+- Todos os 58 testes SQL passaram numa cópia descartável, com as migrações aplicadas do zero e a 0068 reaplicada.
+
+## Plano anual (0069)
+
+Migração `0069_annual_billing.sql` (**aplicada na vpsrafa em 22/11/2026**, backup `antes-0069-2026-11-22.dump`; teste em `db/tests/0069_annual_billing.test.sql`):
+
+- `plans.annual_price_cents` guarda o preço do ano, que por padrão são 6 mensalidades (12 meses com 50% de desconto). Valores: Essencial R$ 299,40, Profissional R$ 599,40 e Clínica R$ 1.199,40. O admin muda o mensal, e o anual é recalculado ao salvar.
+- `subscriptions.billing_cycle` vale `monthly` ou `annual`. Já `next_billing_cycle` guarda a troca de ciclo agendada, que vale na próxima fatura, como a troca de plano.
+- `subscription_invoices.billing_cycle`: a fatura anual cobre 12 meses (`annualPeriod` em `billing.js`). O `billing_guard` impede mudar o ciclo de uma fatura emitida.
+- Endpoints: `POST /rafanutri/billing/subscribe` recebe `{ plan, cycle }`; a confirmação do admin e a renovação usam o ciclo da fatura ou da assinatura.
+
+## Catálogos compartilhados (`packages/catalogs`)
+
+Planos com Gestão, materno-infantil e pagos, cota de IA, versões dos termos, chaves do que o paciente vê, tipos de aviso e horários de lembrete, motivos de atenção do painel, alergênicos, texturas, reações, aleitamento, parentesco, consentimento e versões das triagens ficam num só arquivo: `packages/catalogs/src/catalogs.js`.
+
+- O app importa de `@rafanutri/catalogs`.
+- A extensão usa a cópia `directus/extensions/rafanutri/catalogs.js`, gerada por `pnpm --filter @rafanutri/catalogs sync`.
+- O teste do pacote confere três coisas: a cópia igual à fonte, os tipos de aviso iguais ao `CHECK` de `notification_outbox.kind` e as chaves do que o paciente vê iguais às aceitas por `share_settings_valid`.
 
 ## Tipo de acompanhamento (0067)
 

@@ -100,14 +100,14 @@ Detalhes e prioridades em [docs/02-modulos.md](docs/02-modulos.md).
 - **Materno-infantil** (Profissional e Clínica): curvas da OMS com alertas, ganho de peso na gestação pelas curvas brasileiras, adicional energético no plano, lactação, introdução alimentar com alergênicos e texturas, responsáveis legais com consentimento e acompanhamento no app do paciente. Página de entrada `/app/materno-infantil`.
 - **Esportivo:** página `/app/esportivo` com os atletas e ficha com visual próprio. O tipo de acompanhamento do paciente (automático, clínico, esportivo ou materno-infantil) define o visual da ficha.
 - **Saúde pública** (por contrato): triagens NRS-2002, MUST e ASG na ficha e painel de pacientes em risco.
-- **Planos:** Gratuito (R$ 0, 20 pacientes ativos, com anúncios do Google só nas telas sem dado de paciente), Essencial (R$ 49,90/mês, 100), Profissional (R$ 99,90/mês, sem limite) e Clínica (R$ 199,90/mês, equipe sem limite), pagos por Pix com confirmação do admin.
+- **Planos:** Gratuito (R$ 0, 20 pacientes ativos, com anúncios do Google só nas telas sem dado de paciente), Essencial (R$ 49,90/mês ou R$ 299,40/ano, 100), Profissional (R$ 99,90/mês ou R$ 599,40/ano, sem limite) e Clínica (R$ 199,90/mês ou R$ 1.199,40/ano, equipe sem limite). O anual tem 50% de desconto (12 meses pelo preço de 6). Pagos por Pix com confirmação do admin; módulo Gestão fora do Gratuito. Gateway de cobrança avaliado em [docs/pesquisa/cobranca-gateways.md](docs/pesquisa/cobranca-gateways.md).
 
 Depende de definição externa: gateway com baixa automática (opcional), revisão da RT dos textos-base e critérios marcados "a validar" e licença da MNA. Detalhes em [docs/plano/progresso.md](docs/plano/progresso.md) e [docs/modulos/uan.md](docs/modulos/uan.md).
 
 ## Estratégia de lançamento
 
 1. **Plano gratuito** com até 20 pacientes ativos por nutricionista para atrair usuários no MVP.
-2. **Clínico + Gestão** como base dos planos pagos, por Pix: Essencial R$ 49,90/mês, Profissional R$ 99,90/mês e Clínica R$ 199,90/mês (por consultório, equipe sem limite).
+2. **Clínico + Gestão** como base dos planos pagos, por Pix: Essencial R$ 49,90/mês, Profissional R$ 99,90/mês e Clínica R$ 199,90/mês (por consultório, equipe sem limite), ou anual com 50% de desconto.
 3. **Área do paciente** como mecanismo de retenção: quando os pacientes usam o app, trocar de sistema fica caro para o profissional.
 4. **UAN/Qualidade Enterprise** em seguida: contratos B2B por unidade produtora (referência de R$ 500 a R$ 2.000+/mês).
 
@@ -180,9 +180,10 @@ apps/
 packages/
   nutrition-core/         # fórmulas e cálculos nutricionais (TS puro)
   forms/                  # formato dos questionários e validador das respostas (app + extensão do Directus)
+  catalogs/               # catálogos compartilhados app + extensão (planos, IA, termos, avisos, motivos de atenção, materno-infantil, triagens)
   config/                 # tsconfig base
 db/
-  migrations/             # SQL versionado e idempotente (0001 alimentos … 0067 tipo de acompanhamento)
+  migrations/             # SQL versionado e idempotente (0001 alimentos … 0069 plano anual)
   seed/taco/              # TACO 4ª edição (CSV + importador + gerador a partir da planilha oficial)
   seed/ibge/              # IBGE POF 2008-2009 (CSV + importador + gerador a partir das planilhas oficiais)
   seed/off/ seed/usda/    # Open Food Facts (Brasil) e USDA SR Legacy (CSVs + geradores); importador comum seed/import_foods.sql
@@ -191,7 +192,7 @@ db/
   tests/                  # testes SQL das regras do banco, regras da extensão (node --test) e isolamento pela API
   scripts/                # isolation-test.sh (isolamento sem token) e metrics.sh (métricas do plano gratuito)
 directus/extensions/
-  rafanutri/              # endpoints próprios em /rafanutri (292 rotas; ver abaixo)
+  rafanutri/              # endpoints próprios em /rafanutri (292 rotas em 10 arquivos; ver abaixo)
   rafanutri-hooks/        # ganchos: gravação só no próprio consultório, limite do plano, e-mails em português
   templates/              # modelos de e-mail (aviso e recuperação de senha)
 docs/                     # produto, arquitetura, plano, specs, runbooks e ADRs
@@ -200,14 +201,17 @@ docs/                     # produto, arquitetura, plano, specs, runbooks e ADRs
 
 ### Extensão `rafanutri` por arquivo
 
-Contagem de rotas por `router.get|post|put|patch|delete(` em 22/11/2026. Os arquivos sem rotas guardam regras puras, testadas em `db/tests/extension-*.test.mjs`.
+Contagem de rotas por `router.get|post|put|patch|delete(` em 22/11/2026, depois da divisão do `index.js` por área (a ordem de registro das rotas não mudou). Os arquivos sem rotas guardam regras puras, testadas em `db/tests/extension-*.test.mjs`.
 
 | Arquivo | Rotas | Conteúdo |
 |---|---|---|
-| `index.js` | 242 | Endpoints do núcleo: consultórios, pacientes, agenda, anamneses, planos, prontuário, área do paciente, financeiro, CRM, agendamento online, UAN, admin; carrega os demais arquivos |
+| `index.js` | 48 | Núcleo: consultórios, pacientes, agenda, anamneses, planos alimentares, prontuário, documentos, alimentos próprios e receitas, filtro do módulo Gestão por plano; monta os demais arquivos (1.167 linhas) |
+| `uan.js` | 139 | UAN e Qualidade: unidades, equipe, checklists, temperaturas, não conformidades, insumos, fichas técnicas, cardápios, produção, estoque, compras, documentos, APPCC, rótulos, cardápio publicado, contrato, importação, rede e administração dos contratos |
+| `practice.js` | 35 | Gestão do consultório: financeiro, recibos, pacotes, CRM, indicadores e página pública com agendamento online |
+| `patient-area.js` | 20 | Área do paciente: convite e vínculo, aceite dos termos, marca do consultório, plano e o que o paciente vê |
 | `notify.js` | 17 | Motor dos avisos (0058): fila a cada minuto, Telegram e e-mail, webhook do bot, preferências |
 | `maternal.js` | 15 | Materno-infantil (0062, 0065): medidas, gestação, lactação, introdução alimentar, responsáveis, `/maternal/overview` |
-| `subscriptions.js` | 11 | Assinatura por Pix (0059): consultório e admin, ciclo de renovação |
+| `subscriptions.js` | 11 | Assinatura por Pix (0059, 0069): mensal ou anual com 50% de desconto, consultório e admin, ciclo de renovação |
 | `public-health.js` | 3 | Triagens (0066) e painel `/public-health/overview` |
 | `clinical-dashboard.js` | 2 | Painéis clínicos: `/clinical/patients-dashboard` e `/patients/:id/dashboard` |
 | `ai.js` | 2 | Assistente de IA (0063): `/ai/status` e `/ai/ask` |
@@ -216,6 +220,7 @@ Contagem de rotas por `router.get|post|put|patch|delete(` em 22/11/2026. Os arqu
 | `notifications.js` | 0 | Regras dos avisos: canal, janelas de lembrete, textos |
 | `foods.js`, `finance.js`, `crm.js`, `booking.js`, `documents.js` | 0 | Validações e cálculos de alimentos próprios, financeiro, CRM, agendamento online e documentos clínicos |
 | `forms.js` | 0 | Cópia de `packages/forms` (questionários) |
+| `catalogs.js` | 0 | Cópia de `packages/catalogs` (planos, IA, termos, avisos, motivos de atenção, materno-infantil, triagens): `pnpm --filter @rafanutri/catalogs sync` |
 
 Detalhes do banco, das permissões e de como aplicar migrações: [db/README.md](db/README.md).
 

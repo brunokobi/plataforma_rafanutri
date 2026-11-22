@@ -16,6 +16,7 @@
 ## Pesquisa
 - [Benchmark clínico](pesquisa/benchmark-clinico.md): concorrentes, diferenciais e lacunas incorporadas ao plano.
 - [Descoberta da UAN](pesquisa/uan-discovery.md): levantamento do BPF Check e o que foi reaproveitado (RN-120).
+- [Gateways de cobrança](pesquisa/cobranca-gateways.md): avaliação da Cobre Fácil (assinatura da plataforma e cobrança do paciente pelo nutricionista) e alternativas (Asaas, Mercado Pago, Efí).
 
 ## Técnica
 - [03 — Arquitetura](03-arquitetura.md): Directus + extensão + Postgres, web Next.js, Telegram/Resend, OpenRouter, Coolify; só produção.
