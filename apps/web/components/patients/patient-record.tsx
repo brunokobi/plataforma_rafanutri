@@ -9,6 +9,8 @@ import { formatPhoneBR } from '@/components/clinical/patients-list';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { PatientAlerts } from '@/components/patients/patient-alerts';
+import { PatientDashboard } from '@/components/patients/patient-dashboard';
+import type { PatientDashboard as PatientDashboardData } from '@/lib/clinical-dashboard/types';
 import type { HealthAlerts } from '@/lib/anamneses/alerts';
 import { localTime, MODE_LABEL, TYPE_LABEL, type Appointment } from '@/lib/appointments/schema';
 import { setPatientStatus } from '@/lib/patients/actions';
@@ -199,9 +201,12 @@ export function PatientRecord({
   publishedPlan = null,
   nextAppointment = null,
   alerts = null,
+  dashboard = null,
 }: {
   patient: Patient;
   activeLimitReached: boolean;
+  /** Painel do paciente (números, evolução e histórico). Sem ele, a aba mostra os cartões simples. */
+  dashboard?: PatientDashboardData | null;
   latestAssessment?: Assessment | null;
   previousAssessment?: Assessment | null;
   publishedPlan?: MealPlanSummary | null;
@@ -216,6 +221,7 @@ export function PatientRecord({
   return (
     <div className="space-y-6">
       <PatientHeader patient={patient} activeLimitReached={activeLimitReached} active="resumo" alerts={alerts} />
+      {dashboard && <PatientDashboard patientId={patient.id} data={dashboard} />}
       <div className="grid gap-5 lg:grid-cols-3">
         <Card title="Dados pessoais" icon={<CalendarDays className="size-5" />} className="lg:col-span-2">
           <dl className="divide-y divide-border">
@@ -275,6 +281,7 @@ export function PatientRecord({
           </dl>
         </Card>
 
+        {!dashboard && (<>
         <Card title="Avaliações" icon={<Ruler className="size-5" />}>
           {latestAssessment ? (
             <>
@@ -341,6 +348,7 @@ export function PatientRecord({
             {publishedPlan ? 'Ver planos e versões' : 'Criar ou continuar um plano'}
           </Link>
         </Card>
+        </>)}
       </div>
     </div>
   );

@@ -19,6 +19,7 @@ import { getUserPlan } from '@/lib/modules/user-plan';
 import { extractHealthAlerts } from '@/lib/anamneses/alerts';
 import { listAnamneses } from '@/lib/anamneses/repository';
 import { getNextAppointment } from '@/lib/appointments/repository';
+import { getPatientDashboard } from '@/lib/clinical-dashboard/actions';
 import { listAssessments } from '@/lib/assessments/repository';
 import { listMealPlans } from '@/lib/meal-plans/repository';
 import { getAppAccess, getShareConfig } from '@/lib/patient-area/actions';
@@ -39,7 +40,7 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
   if (target) redirect(target);
 
   const organization = organizations?.find((o) => o.role === 'owner' || o.role === 'nutritionist') ?? null;
-  const [patient, all, assessments, plans, anamneses, nextAppointment, appAccess, patientRecipes, library, shareConfig, patientPackages, packageCatalog, contactPrefs] = await Promise.all([
+  const [patient, all, assessments, plans, anamneses, nextAppointment, appAccess, patientRecipes, library, shareConfig, patientPackages, packageCatalog, contactPrefs, dashboard] = await Promise.all([
     getPatient(id),
     organization ? listPatients(organization.id) : null,
     listAssessments(id),
@@ -53,6 +54,7 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
     listPatientPackages(id),
     listPackages(),
     getPatientContactPrefs(id),
+    getPatientDashboard(id),
   ]);
   if (patient === undefined) notFound();
 
@@ -74,6 +76,7 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
             nextAppointment={nextAppointment}
             alerts={extractHealthAlerts(anamneses)}
             publishedPlan={Array.isArray(plans) ? (plans.find((p) => p.status === 'published') ?? null) : null}
+            dashboard={dashboard}
           />
         )}
         {patient && (
