@@ -48,9 +48,10 @@ export function ModuleCard({ view }: { view: ModuleAccessView }) {
       data-testid={`module-${module.code}`}
       data-status={view.status}
       data-module-scope={locked ? undefined : THEME_OF_MODULE[module.code]}
+      style={locked ? undefined : { borderTopColor: 'var(--primary)' }}
       className={cn(
         'flex h-full flex-col rounded-2xl border bg-card p-5 transition-shadow',
-        !locked && 'border-t-4 border-t-primary',
+        !locked && 'border-t-4',
         locked ? 'border-dashed border-border bg-card/60' : 'border-border hover:shadow-lg hover:shadow-primary/5',
       )}
     >
