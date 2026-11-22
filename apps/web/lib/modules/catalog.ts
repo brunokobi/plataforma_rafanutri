@@ -84,10 +84,11 @@ export const MODULES: readonly ModuleDefinition[] = [
   {
     code: 'public_health',
     name: 'Saúde pública',
-    summary: 'Triagem e acompanhamento de grupos populacionais.',
-    includes: ['Triagens NRS-2002, MNA e MUST', 'Programas e grupos', 'Indicadores coletivos', 'Relatórios por território'],
+    summary: 'Triagem nutricional e acompanhamento de grupos populacionais.',
+    includes: ['Triagens NRS-2002, MUST e ASG', 'Painel de pacientes em risco', 'Programas e grupos (em breve)', 'Indicadores e relatórios (em breve)'],
     icon: 'landmark',
     phase: 'Fase 6',
-    availability: 'building',
+    availability: 'available',
+    href: '/app/saude-publica',
   },
 ];

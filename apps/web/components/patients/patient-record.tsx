@@ -73,7 +73,7 @@ export function showsMaternal(patient: Pick<Patient, 'sex' | 'birth_date'>): boo
   return Date.now() - Date.parse(`${patient.birth_date}T12:00:00Z`) <= 19 * 365.25 * 864e5;
 }
 
-export function PatientHeader({ patient, activeLimitReached, active, alerts = null }: { patient: Patient; activeLimitReached: boolean; active: 'resumo' | 'prontuario' | 'avaliacoes' | 'planos' | 'anamneses' | 'recomendacoes' | 'documentos' | 'materno'; alerts?: HealthAlerts | null }) {
+export function PatientHeader({ patient, activeLimitReached, active, alerts = null }: { patient: Patient; activeLimitReached: boolean; active: 'resumo' | 'prontuario' | 'avaliacoes' | 'planos' | 'anamneses' | 'recomendacoes' | 'documentos' | 'materno' | 'triagens'; alerts?: HealthAlerts | null }) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [feedback, setFeedback] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
@@ -174,6 +174,7 @@ export function PatientHeader({ patient, activeLimitReached, active, alerts = nu
             ['recomendacoes', 'Recomendações', `/app/pacientes/${patient.id}/recomendacoes`],
             ['documentos', 'Documentos', `/app/pacientes/${patient.id}/documentos`],
             ...(showsMaternal(patient) ? ([['materno', 'Materno-infantil', `/app/pacientes/${patient.id}/materno-infantil`]] as const) : []),
+            ['triagens', 'Triagens', `/app/pacientes/${patient.id}/triagens`],
           ] as const
         ).map(([key, label, href]) => (
           <Link

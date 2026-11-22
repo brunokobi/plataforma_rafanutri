@@ -3,13 +3,13 @@
 export type NavIcon =
   | 'home' | 'dashboard' | 'patients' | 'calendar' | 'sparkles' | 'funnel' | 'wallet' | 'chef'
   | 'templates' | 'apple' | 'recipes' | 'questionnaires' | 'guidelines' | 'building' | 'bell' | 'crown'
-  | 'units' | 'sheet' | 'check' | 'network' | 'box' | 'truck' | 'rules' | 'upload';
+  | 'units' | 'sheet' | 'check' | 'network' | 'box' | 'truck' | 'rules' | 'upload' | 'landmark';
 
 export type NavLink = { href: string; label: string; icon: NavIcon };
 export type NavGroup = { title: string | null; links: NavLink[] };
 
 /** Grupos do menu. `uan`: o consultório tem o módulo UAN (mostra o atalho na Gestão). */
-export function navModel(pathname: string, opts: { homeHref?: string; patientsHref?: string; uan?: boolean } = {}): NavGroup[] {
+export function navModel(pathname: string, opts: { homeHref?: string; patientsHref?: string; uan?: boolean; publicHealth?: boolean } = {}): NavGroup[] {
   const home = opts.homeHref ?? '/app';
   const account: NavGroup = {
     title: 'Conta',
@@ -58,6 +58,7 @@ export function navModel(pathname: string, opts: { homeHref?: string; patientsHr
         { href: '/app/crm', label: 'CRM', icon: 'funnel' },
         { href: '/app/financeiro', label: 'Financeiro', icon: 'wallet' },
         ...(opts.uan ? [{ href: '/app/uan', label: 'UAN e Qualidade', icon: 'chef' as const }] : []),
+        ...(opts.publicHealth ? [{ href: '/app/saude-publica', label: 'Saúde pública', icon: 'landmark' as const }] : []),
       ],
     },
     {

@@ -1,7 +1,7 @@
 'use client';
 
 import {
-  Apple, Bell, BookOpen, Box, Building2, CalendarDays, ChefHat, ClipboardCheck, ClipboardList, Crown, FileSpreadsheet, Filter, Home,
+  Apple, Bell, Landmark, BookOpen, Box, Building2, CalendarDays, ChefHat, ClipboardCheck, ClipboardList, Crown, FileSpreadsheet, Filter, Home,
   LayoutGrid, ListChecks, LogOut, Menu, Network, Salad, Search, Sparkles, Truck, Upload, Users, Wallet, Warehouse, type LucideIcon,
 } from 'lucide-react';
 import Form from 'next/form';
@@ -20,7 +20,7 @@ const ICONS: Record<NavIcon, LucideIcon> = {
   home: Home, dashboard: LayoutGrid, patients: Users, calendar: CalendarDays, sparkles: Sparkles, funnel: Filter, wallet: Wallet,
   chef: ChefHat, templates: ClipboardList, apple: Apple, recipes: Salad, questionnaires: ListChecks, guidelines: BookOpen,
   building: Building2, bell: Bell, crown: Crown, units: Warehouse, sheet: FileSpreadsheet, check: ClipboardCheck, network: Network,
-  box: Box, truck: Truck, rules: ClipboardList, upload: Upload,
+  box: Box, truck: Truck, rules: ClipboardList, upload: Upload, landmark: Landmark,
 };
 
 export interface SidebarProps {
@@ -29,12 +29,13 @@ export interface SidebarProps {
   org: { name: string; initials: string; planName: string } | null;
   user: { name: string; initial: string; roleLabel: string } | null;
   uan: boolean;
+  publicHealth?: boolean;
   withSignOut: boolean;
 }
 
-function SidebarBody({ homeHref = '/app', patientsHref = '/app/pacientes', org, user, uan, withSignOut, onNavigate }: SidebarProps & { onNavigate?: () => void }) {
+function SidebarBody({ homeHref = '/app', patientsHref = '/app/pacientes', org, user, uan, publicHealth = false, withSignOut, onNavigate }: SidebarProps & { onNavigate?: () => void }) {
   const pathname = usePathname() ?? '';
-  const groups = navModel(pathname, { homeHref, patientsHref, uan });
+  const groups = navModel(pathname, { homeHref, patientsHref, uan, publicHealth });
   const active = activeHref(pathname, groups.flatMap((g) => g.links.map((l) => l.href)));
   const searchRef = useRef<HTMLInputElement>(null);
   const inUan = pathname.startsWith('/app/uan');

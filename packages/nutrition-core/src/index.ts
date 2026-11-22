@@ -19,3 +19,4 @@ export * from './labeling';
 export * from './menurules';
 export * from './pregnancy';
 // Crescimento (OMS): importe de '@rafanutri/nutrition-core/growth' (tabelas grandes, fora do índice).
+export * from './screening';

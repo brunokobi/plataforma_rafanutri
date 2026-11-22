@@ -10,6 +10,7 @@ import { validateDocumentInput } from './documents.js';
 import { validateLead } from './crm.js';
 import { isOfferedSlot, localDateOf, publicSlots, validateBooking } from './booking.js';
 import { setupNotifications } from './notify.js';
+import { setupPublicHealth } from './public-health.js';
 import { setupSubscriptions } from './subscriptions.js';
 import { setupMaternal } from './maternal.js';
 import { setupAI } from './ai.js';
@@ -6594,6 +6595,9 @@ export default {
 
     // ── Materno-infantil: curvas da OMS e gestação (0062) ─────────────────────────────────────
     setupMaternal({ router, database, logger, notifier, h: { requireUser, bad, conflict, isUuid, clinicalOrg, withActor } });
+
+    // ── Saúde pública: triagens nutricionais (0066) ───────────────────────────────────────────
+    setupPublicHealth({ router, database, logger, h: { requireUser, bad, conflict, isUuid, clinicalOrg, withActor } });
 
     // ── Assistente de IA, só modelos gratuitos do OpenRouter (0063) ───────────────────────────
     setupAI({ router, database, logger, h: { requireUser, bad, isUuid } });
