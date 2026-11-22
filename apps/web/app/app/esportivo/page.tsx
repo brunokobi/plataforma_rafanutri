@@ -53,7 +53,7 @@ export default async function SportHome() {
           <>
             <dl className="grid grid-cols-2 gap-3 lg:grid-cols-4">
               <Kpi icon={<Trophy className="size-4" />} label="Atletas ativos" value={athletes.length} />
-              <Kpi icon={<Dumbbell className="size-4" />} label="Hipertrofia" value={byGoal(/hipertrofia|massa/i)} />
+              <Kpi icon={<Dumbbell className="size-4" />} label="Hipertrofia" value={byGoal(/hipertrofia|ganho de massa/i)} />
               <Kpi icon={<Timer className="size-4" />} label="Endurance" value={byGoal(/corrida|maratona|triatl|ciclis|nata/i)} />
               <Kpi icon={<Flame className="size-4" />} label="Competição" value={byGoal(/competi|atleta/i)} />
             </dl>

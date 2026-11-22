@@ -26,6 +26,7 @@ describe('tema por módulo', () => {
     expect(isAthlete('Emagrecer 5 kg')).toBe(false);
     expect(isAthlete('Controle da natalidade')).toBe(false);
     expect(isAthlete(null)).toBe(false);
+    expect(isAthlete('Manutenção de massa muscular')).toBe(false);
     expect(patientTheme({ objective: 'treino de força', birth_date: null }, 30, 'resumo')).toBe('sport');
     expect(patientTheme({ objective: 'treino de força', birth_date: null }, 8, 'resumo')).toBe('maternal');
     expect(patientTheme({ objective: null, birth_date: null }, 8, 'materno')).toBeNull();

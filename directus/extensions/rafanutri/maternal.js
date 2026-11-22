@@ -217,7 +217,7 @@ export function setupMaternal({ router, database, logger, h, notifier = null }) 
         .where({ 'l.organization_id': org, 'l.status': 'active', 'p.status': 'active' }).orderBy('l.started_on', 'desc')
         .select('p.id', 'p.full_name', 'l.started_on', 'l.feeding_type', 'b.full_name as baby_name'),
       database('feeding_intro_progress as f').join('patients as p', 'p.id', 'f.patient_id')
-        .where('f.organization_id', org).whereIn('f.reaction', ['moderate', 'severe']).whereRaw("coalesce(f.date_updated, f.date_created) > now() - interval '60 days'")
+        .where({ 'f.organization_id': org, 'p.status': 'active' }).whereIn('f.reaction', ['moderate', 'severe']).whereRaw("coalesce(f.date_updated, f.date_created) > now() - interval '60 days'")
         .orderByRaw('coalesce(f.date_updated, f.date_created) desc').limit(50)
         .select('p.id', 'p.full_name', 'f.item', 'f.reaction', 'f.introduced_on', 'f.by_guardian'),
     ]);

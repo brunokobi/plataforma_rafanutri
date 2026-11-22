@@ -32,7 +32,7 @@ export const THEME_OF_MODULE: Record<string, ModuleTheme | undefined> = {
 };
 
 /** Objetivo com cara de esporte: treino, competição, modalidade ou composição corporal para desempenho. */
-const SPORT = /\b(atleta|esport\w*|desempenho|performance|hipertrofia|treino|treinos|competi\w*|maratona|corrida|corredor\w*|triatl\w*|ciclis\w*|nata[cç][aã]o|nadador\w*|futebol|crossfit|muscula\w*|fisiculturis\w*|lutador\w*|jiu|bodybuilding|ganho de massa|massa muscular|pr[ée]-treino|p[óo]s-treino)\b/i;
+const SPORT = /\b(atleta|esport\w*|desempenho|performance|hipertrofia|treino|treinos|competi\w*|maratona|corrida|corredor\w*|triatl\w*|ciclis\w*|nata[cç][aã]o|nadador\w*|futebol|crossfit|muscula\w*|fisiculturis\w*|lutador\w*|jiu|bodybuilding|ganho de massa|pr[ée]-treino|p[óo]s-treino)\b/i;
 export function isAthlete(objective: string | null | undefined): boolean {
   return Boolean(objective && SPORT.test(objective.normalize('NFC')));
 }
