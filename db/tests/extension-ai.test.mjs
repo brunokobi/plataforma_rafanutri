@@ -34,3 +34,9 @@ test('mensagens por tipo', () => {
   assert.ok(buildMessages('xpto', {}).error);
   assert.equal(cleanAnswer('<think>hmm</think>\nResposta'), 'Resposta');
 });
+
+test('nomes com acento também saem (fronteira Unicode)', () => {
+  assert.equal(scrub('Ângela e Ítalo vieram; a mãe Érica ligou.', ['Ângela Souza', 'Ítalo', 'Érica']), '[nome] e [nome] vieram; a mãe [nome] ligou.');
+  // Não troca pedaço de outra palavra
+  assert.equal(scrub('Analisar a dieta de Ana', ['Ana']), 'Analisar a dieta de [nome]');
+});

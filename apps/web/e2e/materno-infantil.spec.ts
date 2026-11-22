@@ -109,6 +109,15 @@ test('materno-infantil: responsável, app da família e introdução alimentar',
       await page.goto(`${patientUrl}/materno-infantil`);
       await expect(page.getByRole('alert').filter({ hasText: /Amendoim: reação moderada .*registrada pelo responsável/ })).toBeVisible();
     });
+
+    await test.step('consentimento retirado: o responsável perde o app do menor', async () => {
+      await page.goto(patientUrl);
+      const guardians = page.getByRole('region', { name: 'Responsáveis legais' });
+      await guardians.getByRole('button', { name: 'Retirar consentimento' }).click();
+      await expect(guardians.getByText('Sem consentimento')).toBeVisible();
+      await pp.goto('/p');
+      await expect(pp.getByText(/não está ligada a nenhum nutricionista/)).toBeVisible();
+    });
     await ctx.close();
   } finally {
     if (patientUrl) {

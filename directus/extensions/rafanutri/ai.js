@@ -78,12 +78,14 @@ export function setupAI({ router, database, logger, h }) {
   async function patientInput(orgId, patientId) {
     const p = await database('patients').where({ id: patientId, organization_id: orgId }).first('id', 'full_name', 'birth_date', 'sex', 'objective');
     if (!p) return null;
-    const [assessment, anamnesis, pregnancy] = await Promise.all([
+    const [assessment, anamnesis, pregnancy, guardians] = await Promise.all([
       database('anthropometric_assessments').where('patient_id', p.id).whereNotNull('weight_kg').orderBy('assessed_at', 'desc').first('weight_kg', 'height_cm'),
       database('anamneses').where('patient_id', p.id).whereIn('status', ['answered', 'reviewed']).orderBy('answered_at', 'desc').first('schema_snapshot', 'answers'),
       database('pregnancies').where({ patient_id: p.id, status: 'active' }).first('lmp_date'),
+      database('patient_guardians').where('patient_id', p.id).pluck('full_name'),
     ]);
-    const names = [p.full_name].filter(Boolean);
+    // Nomes que não podem sair: o do paciente e os dos responsáveis
+    const names = [p.full_name, ...guardians].filter(Boolean);
     const ageYears = p.birth_date ? (Date.now() - new Date(p.birth_date).getTime()) / (365.25 * 864e5) : null;
     const pregnancyWeeks = pregnancy ? (Date.now() - new Date(pregnancy.lmp_date).getTime()) / (7 * 864e5) : null;
     return {

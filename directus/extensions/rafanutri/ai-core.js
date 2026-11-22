@@ -37,7 +37,8 @@ export function scrub(text, names = []) {
   let s = String(text ?? '');
   s = s.replace(CPF, '[CPF]').replace(EMAIL, '[e-mail]').replace(PHONE, '[telefone]').replace(DATE, '[data]');
   for (const n of names.flatMap((x) => String(x ?? '').split(/\s+/)).filter((w) => w.length >= 3)) {
-    s = s.replace(new RegExp(`\\b${n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi'), '[nome]');
+    // Fronteira Unicode: \b não reconhece letras acentuadas (Ângela, Érica, Ítalo)
+    s = s.replace(new RegExp(`(?<![\\p{L}\\p{N}])${n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\p{L}\\p{N}])`, 'giu'), '[nome]');
   }
   return s;
 }

@@ -372,6 +372,19 @@ export function setupMaternal({ router, database, logger, h, notifier = null }) 
     return { user, org, patient };
   }
 
+  /**
+   * Quem deixa de ser responsável (removido ou sem consentimento) perde o app do menor: desliga a conta que entrou
+   * pelo convite dele e cancela os convites pendentes. Na mesma transação da mudança.
+   */
+  async function dropGuardianAccess(trx, patientId, guardianId) {
+    const used = await trx('patient_app_invites').where({ patient_id: patientId, guardian_id: guardianId }).whereNotNull('used_by').pluck('used_by');
+    await trx('patient_app_invites').where({ patient_id: patientId, guardian_id: guardianId }).whereNull('used_at').whereNull('revoked_at').update({ revoked_at: trx.fn.now() });
+    if (used.length) {
+      await trx.raw("select set_config('rafanutri.patient_link', 'on', true)");
+      await trx('patients').where('id', patientId).whereIn('app_user_id', used).update({ app_user_id: null, app_activated_at: null });
+    }
+  }
+
   router.get('/patients/:id/guardians', async (req, res) => {
     const a = await guardianAccess(req, res);
     if (!a) return;
@@ -407,7 +420,10 @@ export function setupMaternal({ router, database, logger, h, notifier = null }) 
     if (v.consent_method) Object.assign(v, { consent_at: new Date(), consent_recorded_by: a.user });
     if (!Object.keys(v).length) return bad(res, { full_name: 'Nada para salvar.' });
     try {
-      await withActor(a.user, (trx) => trx('patient_guardians').where('id', own.id).update(v));
+      await withActor(a.user, async (trx) => {
+        await trx('patient_guardians').where('id', own.id).update(v);
+        if (req.body?.consent === null) await dropGuardianAccess(trx, a.patient.id, own.id);
+      });
       res.json({ data: { ok: true } });
     } catch (error) {
       fail(res, error, 'salvar responsável');
@@ -418,7 +434,12 @@ export function setupMaternal({ router, database, logger, h, notifier = null }) 
     const a = await guardianAccess(req, res);
     if (!a) return;
     if (!isUuid(req.params.gid)) return notFound(res);
-    const n = await withActor(a.user, (trx) => trx('patient_guardians').where({ id: req.params.gid, patient_id: a.patient.id }).del());
+    const n = await withActor(a.user, async (trx) => {
+      const g = await trx('patient_guardians').where({ id: req.params.gid, patient_id: a.patient.id }).first('id');
+      if (!g) return 0;
+      await dropGuardianAccess(trx, a.patient.id, g.id);
+      return trx('patient_guardians').where('id', g.id).del();
+    });
     if (!n) return notFound(res);
     res.json({ data: { ok: true } });
   });
