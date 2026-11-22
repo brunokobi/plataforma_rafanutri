@@ -60,7 +60,7 @@ export function ModuleCard({ view }: { view: ModuleAccessView }) {
         >
           <Icon className="size-5" aria-hidden="true" />
         </span>
-        <span className="text-xs font-medium text-muted-foreground">{module.phase}</span>
+        {module.availability === 'building' && <span className="text-xs font-medium text-muted-foreground">Em breve</span>}
       </div>
 
       <h3 className="mt-4 text-lg font-semibold">{module.name}</h3>
@@ -96,7 +96,7 @@ export function ModuleCard({ view }: { view: ModuleAccessView }) {
                 </Link>
               </Button>
             )}
-            <p className="text-sm font-medium text-primary">Chega na {module.phase}</p>
+            <p className="text-sm font-medium text-primary">Em breve</p>
           </div>
         ) : view.status === 'contract' ? (
           <Button asChild variant="outline" className="w-full">

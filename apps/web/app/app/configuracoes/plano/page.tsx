@@ -75,7 +75,7 @@ export default async function PlanPage() {
               <li key={m.code}>
                 <span className="font-medium">{m.name}</span>
                 {plan.grants[m.code].note ? <span className="text-muted-foreground"> · {plan.grants[m.code].note}</span> : null}
-                {m.phase !== 'Fase 1' && <span className="text-muted-foreground"> · em construção ({m.phase})</span>}
+                {m.availability === 'building' && <span className="text-muted-foreground"> · em construção</span>}
               </li>
             ))}
           </ul>
