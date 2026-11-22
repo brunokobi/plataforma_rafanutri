@@ -7,7 +7,7 @@
 // o link de cancelar e-mails).
 
 import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
-import { buildMessage, isImportant, isStop, isTelegramGone, KINDS, parseStart, pickChannel, plainBody, reminderWindows, telegramHtml, validateSettings } from './notifications.js';
+import { buildMessage, isImportant, isStop, isTelegramGone, KINDS, parseStart, pickChannel, plainBody, reminderWindows, telegramHtml, validateSettings, escapeHtml } from './notifications.js';
 
 const MAX_ATTEMPTS = 5;
 const RECENT = "interval '30 minutes'";
@@ -127,7 +127,8 @@ export function setupNotifications({ router, database, logger, services, getSche
       logger.error({ err: error?.message }, 'rafanutri: falha no webhook do Telegram');
     }
   });
-  const escape = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  // Mesmo escape do resto dos avisos (inclui aspas)
+  const escape = escapeHtml;
 
   // ── Cancelar e-mails (link no rodapé) ─────────────────────────────────────────────────────
   const unsubSig = (patientId) => createHmac('sha256', `${SECRET}:unsubscribe`).update(patientId).digest('base64url').slice(0, 32);

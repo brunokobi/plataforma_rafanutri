@@ -1,9 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { cookies } from 'next/headers';
-import { ACCESS_COOKIE } from '@/lib/auth/cookies';
-import { env } from '@/lib/env';
+import { call } from '@/lib/directus/rafanutri';
 
 export type PaidPlan = 'essential' | 'professional' | 'clinic';
 
@@ -14,17 +12,6 @@ export interface PlanUsage {
   waitlist: { desired_plan: PaidPlan | null; date_created: string } | null;
 }
 
-async function call(path: string, method: string, body?: unknown) {
-  const t = (await cookies()).get(ACCESS_COOKIE)?.value;
-  if (!t) return { status: 401, json: null as null | { data?: unknown; errors?: Array<{ message: string }> } };
-  const res = await fetch(`${env.DIRECTUS_URL}/rafanutri${path}`, {
-    method,
-    headers: { Authorization: `Bearer ${t}`, 'Content-Type': 'application/json' },
-    body: body === undefined ? undefined : JSON.stringify(body),
-    cache: 'no-store',
-  });
-  return { status: res.status, json: await res.json().catch(() => null) };
-}
 
 /** Plano, uso e interesse no plano pago do consultório do usuário. Null se falhar. */
 export async function getPlanUsage(): Promise<PlanUsage | null> {

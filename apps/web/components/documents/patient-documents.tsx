@@ -37,7 +37,7 @@ export function PatientDocuments({ patientId, patientName, list, templates, arch
       </div>
       <p className="text-sm text-muted-foreground">Pedido de exames, prescrição de suplementos, declaração de comparecimento e orientações, em PDF com a sua marca e espaço para assinatura. Rascunhos ficam só com você; publicados aparecem em &quot;Documentos&quot; na área do paciente.</p>
       {archived && <p className="text-sm text-muted-foreground">Paciente arquivado: reative para criar documentos.</p>}
-      {feedback && <p role="status" className={feedback.ok ? 'text-sm text-muted-foreground' : 'text-sm text-destructive'}>{feedback.text}</p>}
+      {feedback && <p role={feedback.ok ? 'status' : 'alert'} className={feedback.ok ? 'text-sm text-muted-foreground' : 'text-sm text-destructive'}>{feedback.text}</p>}
 
       {mode === 'new' && (
         <DocumentForm patientName={patientName} templates={templates} pending={pending} onCancel={() => setMode('none')}

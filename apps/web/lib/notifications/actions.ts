@@ -1,25 +1,12 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { cookies } from 'next/headers';
-import { ACCESS_COOKIE } from '@/lib/auth/cookies';
-import { env } from '@/lib/env';
 import type { ContactPrefs, NotificationLogItem, NotificationOverview, NotificationSettings, Result } from './types';
+import { call } from '@/lib/directus/rafanutri';
+import { isUuid as isId } from '@/lib/validation/ids';
 
 type Json = null | { data?: unknown; errors?: Array<{ message: string; extensions?: { code?: string; fields?: Record<string, string> } }> };
 
-async function call(path: string, method: string, body?: unknown, auth = true): Promise<{ status: number; json: Json }> {
-  const t = auth ? (await cookies()).get(ACCESS_COOKIE)?.value : undefined;
-  if (auth && !t) return { status: 401, json: null };
-  const res = await fetch(`${env.DIRECTUS_URL}/rafanutri${path}`, {
-    method,
-    headers: { 'Content-Type': 'application/json', ...(t ? { Authorization: `Bearer ${t}` } : {}) },
-    body: body === undefined ? undefined : JSON.stringify(body),
-    cache: 'no-store',
-  });
-  return { status: res.status, json: await res.json().catch(() => null) };
-}
-const isId = (id: unknown): id is string => typeof id === 'string' && /^[0-9a-f-]{36}$/i.test(id);
 const errorOf = (r: { status: number; json: Json }, fallback: string): Result<never> => {
   if (r.status === 401) return { ok: false, message: 'Sua sessão expirou. Entre novamente.' };
   const e = r.json?.errors?.[0];

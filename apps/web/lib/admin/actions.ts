@@ -1,9 +1,8 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { cookies } from 'next/headers';
-import { ACCESS_COOKIE } from '@/lib/auth/cookies';
-import { env } from '@/lib/env';
+import { call } from '@/lib/directus/rafanutri';
+import { isUuid } from '@/lib/validation/ids';
 
 export interface AdminOrg { id: string; name: string; type: string; modules: string[]; created_at: string; owner_email: string | null; active_units: number; contract_state: 'active' | 'read_only' | 'ended' | 'none' | null; unit_limit: number | null }
 export interface AdminOrgDetail {
@@ -14,19 +13,6 @@ export interface AdminOrgDetail {
   contracts: Array<{ id: string; plan: string; units_contracted: number; monthly_price_cents: number; starts_at: string; ends_at: string | null; billing_method: string; notes: string | null; created_at: string }>;
   invoices: Array<{ id: string; contract_id: string; period_start: string; period_end: string; amount_cents: number; due_on: string; status: string; paid_at: string | null; payment_url: string | null }>;
 }
-type Json = { data?: unknown; errors?: Array<{ message: string; extensions?: { fields?: Record<string, string> } }> } | null;
-async function call(path: string, method = 'GET', body?: unknown): Promise<{ status: number; json: Json }> {
-  const t = (await cookies()).get(ACCESS_COOKIE)?.value;
-  if (!t) return { status: 401, json: null };
-  const res = await fetch(`${env.DIRECTUS_URL}/rafanutri${path}`, {
-    method,
-    headers: { Authorization: `Bearer ${t}`, ...(body === undefined ? {} : { 'Content-Type': 'application/json' }) },
-    body: body === undefined ? undefined : JSON.stringify(body),
-    cache: 'no-store',
-  });
-  return { status: res.status, json: (await res.json().catch(() => null)) as Json };
-}
-const isUuid = (id: unknown): id is string => typeof id === 'string' && /^[0-9a-f-]{36}$/i.test(id);
 export type Result = { ok: true } | { ok: false; message: string };
 async function send(path: string, method: string, body: unknown, ok: number, orgId: string): Promise<Result> {
   try {

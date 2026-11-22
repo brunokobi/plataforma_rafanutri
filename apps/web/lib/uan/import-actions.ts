@@ -5,6 +5,7 @@ import { cookies } from 'next/headers';
 import { ACCESS_COOKIE } from '@/lib/auth/cookies';
 import { env } from '@/lib/env';
 import type { IngredientImport, SheetImport, SupplierImport } from '@/lib/uan/import';
+import { isUuid } from '@/lib/validation/ids';
 
 export interface ImportResult { line: number | null; status: 'created' | 'skipped' | 'error'; message?: string; food?: string | null }
 type Out = { ok: true; results: ImportResult[] } | { ok: false; message: string };
@@ -15,7 +16,6 @@ async function post(path: string, body: unknown): Promise<{ status: number; json
   const res = await fetch(`${env.DIRECTUS_URL}/rafanutri${path}`, { method: 'POST', headers: { Authorization: `Bearer ${t}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body), cache: 'no-store' });
   return { status: res.status, json: await res.json().catch(() => null) };
 }
-const isUuid = (id: unknown): id is string => typeof id === 'string' && /^[0-9a-f-]{36}$/i.test(id);
 
 async function run(path: string, body: unknown, revalidate: string): Promise<Out> {
   try {

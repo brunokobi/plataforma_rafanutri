@@ -30,7 +30,7 @@ export function amountText(grams: number, measures: Array<{ label: string; grams
 export function buildPatientPlanView(p: PatientPlanPayload): PatientPlanView {
   const quantitative = p.plan.mode !== 'qualitative';
   const food = (id: string) => p.foods[id];
-  const share = p.share ?? { show_kcal: false, show_macros: false, show_weight_history: false };
+  const share = p.share ?? { show_kcal: false, show_macros: false, show_weight_history: false, show_maternal: false };
   const numbers = quantitative && (share.show_kcal || share.show_macros);
   const sum = (code: string, items: Array<{ foodId: string; quantityG: number }>) =>
     items.reduce((t, i) => t + ((food(i.foodId)?.per100g?.[code] ?? 0) * i.quantityG) / 100, 0);

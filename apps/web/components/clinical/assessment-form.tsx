@@ -180,7 +180,7 @@ export function AssessmentForm({ sex, ageYears, defaults = {}, history, previous
           </Button>
           {!onSave && saveDisabledReason && <p className="text-xs text-muted-foreground">{saveDisabledReason}</p>}
           {feedback && (
-            <p role="status" className={cn('text-sm', feedback.kind === 'ok' ? 'text-primary' : 'text-destructive')}>{feedback.text}</p>
+            <p role={feedback.kind === 'ok' ? 'status' : 'alert'} className={cn('text-sm', feedback.kind === 'ok' ? 'text-primary' : 'text-destructive')}>{feedback.text}</p>
           )}
         </div>
       </form>

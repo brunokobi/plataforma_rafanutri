@@ -1,27 +1,14 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { cookies } from 'next/headers';
-import { ACCESS_COOKIE } from '@/lib/auth/cookies';
-import { env } from '@/lib/env';
 import type { PatientRecipeDetail, PatientRecipeRow, RecipeSummary, VisibleRecipe } from './types';
+import { call } from '@/lib/directus/rafanutri';
+import { isUuid } from '@/lib/validation/ids';
 
 type Json = null | { data?: unknown; errors?: Array<{ message: string; extensions?: { fields?: Record<string, string> } }> };
 export type RecipeActionResult = { ok: true } | { ok: false; message: string };
 
-async function call(path: string, method = 'GET', body?: unknown): Promise<{ status: number; json: Json }> {
-  const t = (await cookies()).get(ACCESS_COOKIE)?.value;
-  if (!t) return { status: 401, json: null };
-  const res = await fetch(`${env.DIRECTUS_URL}/rafanutri${path}`, {
-    method,
-    headers: { Authorization: `Bearer ${t}`, ...(body === undefined ? {} : { 'Content-Type': 'application/json' }) },
-    body: body === undefined ? undefined : JSON.stringify(body),
-    cache: 'no-store',
-  });
-  return { status: res.status, json: await res.json().catch(() => null) };
-}
 const isFoodId = (id: unknown): id is string => typeof id === 'string' && /^\d+$/.test(id);
-const isUuid = (id: unknown): id is string => typeof id === 'string' && /^[0-9a-f-]{36}$/i.test(id);
 const msg = (j: Json, fallback: string) => j?.errors?.[0]?.extensions?.fields?.image ?? j?.errors?.[0]?.message ?? fallback;
 
 // ── Nutricionista ─────────────────────────────────────────────────────────

@@ -46,7 +46,7 @@ export function PatientPackages({ patientId, list, catalog, archived }: { patien
       {catalog !== null && active.length === 0 && (
         <p className="text-sm text-muted-foreground">Nenhum pacote no catálogo. <Link href="/app/financeiro/pacotes" className="font-medium text-primary hover:underline">Criar pacote</Link></p>
       )}
-      {feedback && <p role="status" className={feedback.ok ? 'text-sm text-muted-foreground' : 'text-sm text-destructive'}>{feedback.text}</p>}
+      {feedback && <p role={feedback.ok ? 'status' : 'alert'} className={feedback.ok ? 'text-sm text-muted-foreground' : 'text-sm text-destructive'}>{feedback.text}</p>}
 
       {selling && (
         <form aria-label="Vender pacote" className="space-y-3 rounded-xl border border-border p-4"

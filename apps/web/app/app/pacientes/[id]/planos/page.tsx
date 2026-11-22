@@ -30,10 +30,10 @@ export default async function PatientPlansPage({ params }: { params: Promise<{ i
   if (target) redirect(target);
   const organization = organizations?.find((o) => o.role === 'owner' || o.role === 'nutritionist') ?? null;
 
-  const [patient, all, plans, templates] = await Promise.all([getPatient(id), organization ? listPatients(organization.id) : null, listMealPlans(id), listPlanTemplates()]);
+  const [patient, all, plans, templates, anamneses] = await Promise.all([getPatient(id), organization ? listPatients(organization.id) : null, listMealPlans(id), listPlanTemplates(), listAnamneses(id)]);
   const templateOptions = Array.isArray(templates) ? templates.map((t) => ({ id: t.id, name: t.name, energy_kcal: t.energy_kcal, own: Boolean(t.organization_id) })) : [];
   if (patient === undefined) notFound();
-  const alerts = extractHealthAlerts(await listAnamneses(id));
+  const alerts = extractHealthAlerts(anamneses);
   const limit = getPlan(getUserPlan(organizations)).maxActivePatients;
   const activeLimitReached = limit !== null && (all ?? []).filter((p) => p.status === 'active').length >= limit;
 

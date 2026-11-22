@@ -49,7 +49,7 @@ export function PatientShareSettings({ patientId, config }: { patientId: string;
         )}
         <div className="flex flex-wrap items-center gap-3 pt-1">
           <Button type="submit" size="sm" disabled={pending}>{pending && <Loader2 className="size-4 animate-spin" />} Salvar</Button>
-          {message && <p role="status" className={message.ok ? 'text-sm text-muted-foreground' : 'text-sm text-destructive'}>{message.text}</p>}
+          {message && <p role={message.ok ? 'status' : 'alert'} className={message.ok ? 'text-sm text-muted-foreground' : 'text-sm text-destructive'}>{message.text}</p>}
         </div>
       </form>
     </section>

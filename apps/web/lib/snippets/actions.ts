@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 import { ACCESS_COOKIE } from '@/lib/auth/cookies';
 import { env } from '@/lib/env';
+import { isUuid as isId } from '@/lib/validation/ids';
 
 export interface Snippet {
   id: string;
@@ -38,7 +39,6 @@ export async function listSnippets(): Promise<Snippet[] | null> {
   }
 }
 
-const isId = (id: unknown): id is string => typeof id === 'string' && /^[0-9a-f-]{36}$/i.test(id);
 
 export async function saveSnippet(input: { category: string; title: string; body: string }, id?: string): Promise<SnippetResult> {
   if (id !== undefined && !isId(id)) return { ok: false, message: 'Pedido inválido.' };

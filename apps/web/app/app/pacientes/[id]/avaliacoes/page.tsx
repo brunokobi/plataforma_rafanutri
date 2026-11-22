@@ -29,9 +29,9 @@ export default async function PatientAssessmentsPage({ params }: { params: Promi
   if (target) redirect(target);
   const organization = organizations?.find((o) => o.role === 'owner' || o.role === 'nutritionist') ?? null;
 
-  const [patient, all, assessments] = await Promise.all([getPatient(id), organization ? listPatients(organization.id) : null, listAssessments(id)]);
+  const [patient, all, assessments, anamneses] = await Promise.all([getPatient(id), organization ? listPatients(organization.id) : null, listAssessments(id), listAnamneses(id)]);
   if (patient === undefined) notFound();
-  const alerts = extractHealthAlerts(await listAnamneses(id));
+  const alerts = extractHealthAlerts(anamneses);
   const limit = getPlan(getUserPlan(organizations)).maxActivePatients;
   const activeLimitReached = limit !== null && (all ?? []).filter((p) => p.status === 'active').length >= limit;
 

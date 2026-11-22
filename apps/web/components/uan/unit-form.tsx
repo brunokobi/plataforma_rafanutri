@@ -121,7 +121,7 @@ export function UnitForm({
       )}
 
       {status && (
-        <p role="status" className={cn('text-sm', status.kind === 'ok' ? 'text-primary' : 'text-destructive')}>{status.text}</p>
+        <p role={status.kind === 'ok' ? 'status' : 'alert'} className={cn('text-sm', status.kind === 'ok' ? 'text-primary' : 'text-destructive')}>{status.text}</p>
       )}
       <div className="flex gap-2">
         <Button type="submit" disabled={pending}>

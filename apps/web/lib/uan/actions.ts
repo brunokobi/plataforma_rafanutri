@@ -4,25 +4,15 @@ import { login } from '@directus/sdk';
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { ACCESS_COOKIE, sessionCookies } from '@/lib/auth/cookies';
+import { sessionCookies } from '@/lib/auth/cookies';
 import { directus } from '@/lib/auth/directus';
 import { env } from '@/lib/env';
 import { validateStaffSignup, type ProductionUnit, type UanOrganization, type UnitDetail, type UnitInput, type UnitInvitePreview, type UnitRole } from '@/lib/uan/types';
+import { call } from '@/lib/directus/rafanutri';
+import { isUuid } from '@/lib/validation/ids';
 
 type Json = { data?: unknown; errors?: Array<{ message: string; extensions?: { code?: string; fields?: Record<string, string> } }> } | null;
 
-async function call(path: string, method = 'GET', body?: unknown, auth = true): Promise<{ status: number; json: Json }> {
-  const t = auth ? (await cookies()).get(ACCESS_COOKIE)?.value : undefined;
-  if (auth && !t) return { status: 401, json: null };
-  const res = await fetch(`${env.DIRECTUS_URL}/rafanutri${path}`, {
-    method,
-    headers: { ...(t ? { Authorization: `Bearer ${t}` } : {}), ...(body === undefined ? {} : { 'Content-Type': 'application/json' }) },
-    body: body === undefined ? undefined : JSON.stringify(body),
-    cache: 'no-store',
-  });
-  return { status: res.status, json: (await res.json().catch(() => null)) as Json };
-}
-const isUuid = (id: unknown): id is string => typeof id === 'string' && /^[0-9a-f-]{36}$/i.test(id);
 const isToken = (t: unknown): t is string => typeof t === 'string' && /^[A-Za-z0-9_-]{43}$/.test(t);
 const ROLES: UnitRole[] = ['technical_lead', 'manager', 'cook', 'stock_keeper', 'auditor'];
 const errMsg = (r: { json: Json }, fallback: string) => r.json?.errors?.[0]?.message ?? fallback;

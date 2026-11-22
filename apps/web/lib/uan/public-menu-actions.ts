@@ -5,6 +5,7 @@ import { cookies, headers } from 'next/headers';
 import { ACCESS_COOKIE } from '@/lib/auth/cookies';
 import { env } from '@/lib/env';
 import type { PublicMenu, PublicMenuSettings, SurveyQuestion } from '@/lib/uan/public-menu';
+import { isUuid } from '@/lib/validation/ids';
 
 type Json = { data?: unknown; errors?: Array<{ message: string; extensions?: { fields?: Record<string, string> } }> } | null;
 async function call(path: string, method = 'GET', body?: unknown, auth = true, extra: Record<string, string> = {}): Promise<{ status: number; json: Json }> {
@@ -18,7 +19,6 @@ async function call(path: string, method = 'GET', body?: unknown, auth = true, e
   });
   return { status: res.status, json: (await res.json().catch(() => null)) as Json };
 }
-const isUuid = (id: unknown): id is string => typeof id === 'string' && /^[0-9a-f-]{36}$/i.test(id);
 const isToken = (t: unknown): t is string => typeof t === 'string' && /^[A-Za-z0-9_-]{22,64}$/.test(t);
 const isDate = (d: unknown): d is string => typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d);
 export type Result = { ok: true; token?: string | null } | { ok: false; message: string };

@@ -43,7 +43,7 @@ export function PatientRecommendations({ patientId, list, snippets, archived }: 
       </div>
       <p className="text-sm text-muted-foreground">Rascunhos ficam só com você. Publicadas aparecem na área do paciente, com as fixadas no topo; você vê quando ele leu.</p>
       {archived && <p className="text-sm text-muted-foreground">Paciente arquivado: reative para criar recomendações.</p>}
-      {feedback && <p role="status" className={feedback.ok ? 'text-sm text-muted-foreground' : 'text-sm text-destructive'}>{feedback.text}</p>}
+      {feedback && <p role={feedback.ok ? 'status' : 'alert'} className={feedback.ok ? 'text-sm text-muted-foreground' : 'text-sm text-destructive'}>{feedback.text}</p>}
 
       {mode === 'new' && (
         <RecommendationForm pending={pending} onCancel={() => setMode('none')}

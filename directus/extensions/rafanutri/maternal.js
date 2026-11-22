@@ -35,8 +35,8 @@ export function validatePregnancy(b, { partial = false } = {}) {
   if (!partial || b?.lmp_date !== undefined) {
     const d = typeof b?.lmp_date === 'string' && ISO.test(b.lmp_date) ? b.lmp_date : null;
     const max = today();
-    const min = new Date(Date.now() - 320 * 864e5).toISOString().slice(0, 10);
-    if (!d || d > max || d < min) errors.lmp_date = 'Data da última menstruação nas últimas 45 semanas.';
+    const min = new Date(Date.now() - 44 * 7 * 864e5).toISOString().slice(0, 10); // 44 semanas, como o nutrition-core
+    if (!d || d > max || d < min) errors.lmp_date = 'Data da última menstruação nas últimas 44 semanas.';
     else out.lmp_date = d;
   }
   if (!partial || b?.pre_pregnancy_weight_kg !== undefined) {
@@ -91,7 +91,7 @@ export function validateLactation(b, { partial = false } = {}) {
     else out.feeding_type = b.feeding_type;
   }
   if (b?.baby_patient_id !== undefined) {
-    if (b.baby_patient_id !== null && !(typeof b.baby_patient_id === 'string' && /^[0-9a-f-]{36}$/i.test(b.baby_patient_id))) errors.baby_patient_id = 'Bebê inválido.';
+    if (b.baby_patient_id !== null && !(typeof b.baby_patient_id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(b.baby_patient_id))) errors.baby_patient_id = 'Bebê inválido.';
     else out.baby_patient_id = b.baby_patient_id;
   }
   if (b?.notes !== undefined) out.notes = text(b.notes, 1000);

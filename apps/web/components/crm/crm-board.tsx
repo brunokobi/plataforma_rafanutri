@@ -63,7 +63,7 @@ export function CrmBoard({ board }: { board: Board }) {
         setFeedback(r.ok ? { ok: true, text: `Lead ${v.full_name} cadastrado.` } : { ok: false, text: r.message });
         if (r.ok) { setAdding(false); router.refresh(); }
       })} />}
-      {feedback && <p role="status" className={feedback.ok ? 'text-sm text-muted-foreground' : 'text-sm text-destructive'}>{feedback.text}</p>}
+      {feedback && <p role={feedback.ok ? 'status' : 'alert'} className={feedback.ok ? 'text-sm text-muted-foreground' : 'text-sm text-destructive'}>{feedback.text}</p>}
 
       <div className="grid gap-4 overflow-x-auto pb-2 md:grid-cols-3 xl:grid-cols-7">
         {LEAD_COLUMNS.map((col) => (

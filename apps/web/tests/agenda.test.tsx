@@ -114,7 +114,7 @@ describe('AgendaWeek', () => {
     expect(setAppointmentStatus).toHaveBeenCalledWith('a', 'confirmed');
     setAppointmentStatus.mockResolvedValueOnce({ ok: false, message: 'Você não tem permissão para alterar a agenda deste consultório.' });
     await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Cancelar' })));
-    expect(screen.getByRole('status').textContent).toMatch(/não tem permissão/);
+    expect(screen.getByRole('alert').textContent).toMatch(/não tem permissão/);
   });
 
   it('remarca mantendo a duração', async () => {

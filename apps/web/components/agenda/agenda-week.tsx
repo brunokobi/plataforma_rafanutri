@@ -258,7 +258,7 @@ export function AgendaWeek({
         <p role="status" className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="size-4 animate-spin" /> Remarcando…</p>
       )}
       {message && !moving && (
-        <p role="status" className={cn('text-sm', message.kind === 'ok' ? 'text-primary' : 'text-destructive')}>{message.text}</p>
+        <p role={message.kind === 'ok' ? 'status' : 'alert'} className={cn('text-sm', message.kind === 'ok' ? 'text-primary' : 'text-destructive')}>{message.text}</p>
       )}
 
       {appointments === null ? (

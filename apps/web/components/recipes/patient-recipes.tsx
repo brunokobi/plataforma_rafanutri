@@ -79,7 +79,7 @@ export function PatientRecipes({ patientId, rows, library, hasAppAccess }: { pat
           <Button type="submit" disabled={pending || !recipeId}>{pending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />} Enviar</Button>
         </form>
       )}
-      {message && <p role="status" className={`mt-3 text-sm ${message.ok ? 'text-muted-foreground' : 'text-destructive'}`}>{message.text}</p>}
+      {message && <p role={message.ok ? 'status' : 'alert'} className={`mt-3 text-sm ${message.ok ? 'text-muted-foreground' : 'text-destructive'}`}>{message.text}</p>}
     </section>
   );
 }

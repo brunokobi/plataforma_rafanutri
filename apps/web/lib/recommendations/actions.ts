@@ -1,25 +1,12 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { cookies } from 'next/headers';
-import { ACCESS_COOKIE } from '@/lib/auth/cookies';
-import { env } from '@/lib/env';
 import type { PatientRecommendation, Recommendation, RecommendationInput, RecommendationResult, RecommendationStatus } from './types';
+import { call } from '@/lib/directus/rafanutri';
+import { isUuid } from '@/lib/validation/ids';
 
 type Json = null | { data?: unknown; errors?: Array<{ message: string; extensions?: { fields?: Record<string, string> } }> };
 
-async function call(path: string, method = 'GET', body?: unknown): Promise<{ status: number; json: Json }> {
-  const t = (await cookies()).get(ACCESS_COOKIE)?.value;
-  if (!t) return { status: 401, json: null };
-  const res = await fetch(`${env.DIRECTUS_URL}/rafanutri${path}`, {
-    method,
-    headers: { Authorization: `Bearer ${t}`, ...(body === undefined ? {} : { 'Content-Type': 'application/json' }) },
-    body: body === undefined ? undefined : JSON.stringify(body),
-    cache: 'no-store',
-  });
-  return { status: res.status, json: await res.json().catch(() => null) };
-}
-const isUuid = (id: unknown): id is string => typeof id === 'string' && /^[0-9a-f-]{36}$/i.test(id);
 function fail(r: { status: number; json: Json }, fallback: string): RecommendationResult {
   if (r.status === 401) return { ok: false, message: 'Sua sessão expirou. Entre novamente.' };
   if (r.status === 400) return { ok: false, message: r.json?.errors?.[0]?.message ?? 'Revise os campos.', fields: r.json?.errors?.[0]?.extensions?.fields };

@@ -84,7 +84,7 @@ export function PublicProfileForm({ orgId, data, siteUrl }: { orgId: string; dat
           <div className="space-y-1.5"><Label htmlFor="pp-ahead">Até (dias)</Label><Input id="pp-ahead" type="number" min={1} max={90} value={v.max_days_ahead} onChange={(e) => set('max_days_ahead', Number(e.target.value))} /></div>
         </div>
       </section>
-      {feedback && <p role="status" className={feedback.ok ? 'text-sm text-muted-foreground' : 'text-sm text-destructive'}>{feedback.text}</p>}
+      {feedback && <p role={feedback.ok ? 'status' : 'alert'} className={feedback.ok ? 'text-sm text-muted-foreground' : 'text-sm text-destructive'}>{feedback.text}</p>}
       <Button type="submit" disabled={pending}>{pending && <Loader2 className="size-4 animate-spin" />} Salvar página</Button>
     </form>
   );

@@ -46,9 +46,9 @@ export default async function MaternalPage({ params, searchParams }: { params: P
   if (target) redirect(target);
   const organization = organizations?.find((o) => o.role === 'owner' || o.role === 'nutritionist') ?? null;
 
-  const [patient, all, data] = await Promise.all([getPatient(id), organization ? listPatients(organization.id) : null, getMaternalData(id)]);
+  const [patient, all, data, anamneses] = await Promise.all([getPatient(id), organization ? listPatients(organization.id) : null, getMaternalData(id), listAnamneses(id)]);
   if (patient === undefined || data === undefined) notFound();
-  const alerts = extractHealthAlerts(await listAnamneses(id));
+  const alerts = extractHealthAlerts(anamneses);
   const limit = getPlan(getUserPlan(organizations)).maxActivePatients;
   const activeLimitReached = limit !== null && (all ?? []).filter((p) => p.status === 'active').length >= limit;
   const sp = await searchParams;

@@ -1,24 +1,10 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { cookies } from 'next/headers';
-import { ACCESS_COOKIE } from '@/lib/auth/cookies';
-import { env } from '@/lib/env';
 import type { DocDetail, UnitDocuments, UnitTrainings } from '@/lib/uan/documents';
+import { call } from '@/lib/directus/rafanutri';
+import { isUuid } from '@/lib/validation/ids';
 
-type Json = { data?: unknown; errors?: Array<{ message: string; extensions?: { fields?: Record<string, string> } }> } | null;
-async function call(path: string, method = 'GET', body?: unknown): Promise<{ status: number; json: Json }> {
-  const t = (await cookies()).get(ACCESS_COOKIE)?.value;
-  if (!t) return { status: 401, json: null };
-  const res = await fetch(`${env.DIRECTUS_URL}/rafanutri${path}`, {
-    method,
-    headers: { Authorization: `Bearer ${t}`, ...(body === undefined ? {} : { 'Content-Type': 'application/json' }) },
-    body: body === undefined ? undefined : JSON.stringify(body),
-    cache: 'no-store',
-  });
-  return { status: res.status, json: (await res.json().catch(() => null)) as Json };
-}
-const isUuid = (id: unknown): id is string => typeof id === 'string' && /^[0-9a-f-]{36}$/i.test(id);
 export type Result = { ok: true; id?: string } | { ok: false; message: string };
 async function get<T>(path: string): Promise<T | null | undefined> {
   try {

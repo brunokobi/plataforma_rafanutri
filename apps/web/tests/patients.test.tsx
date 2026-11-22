@@ -93,7 +93,7 @@ describe('PatientsList', () => {
     render(<PatientsList patients={[patient('1', 'Márcia Lima')]} limit={20} planName="Gratuito" demoHref="/x" />);
     await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Arquivar Márcia Lima' })));
     expect(setPatientStatus).toHaveBeenCalledWith('1', 'archived');
-    expect(screen.getByRole('status').textContent).toBe('Você não tem permissão.');
+    expect(screen.getByRole('alert').textContent).toBe('Você não tem permissão.');
   });
 
   it('avisa quando não consegue carregar', () => {

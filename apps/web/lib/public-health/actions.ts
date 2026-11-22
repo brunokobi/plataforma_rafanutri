@@ -1,26 +1,12 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { cookies } from 'next/headers';
 import { SCREENING_TOOLS, type ScreeningCode } from '@rafanutri/nutrition-core';
-import { ACCESS_COOKIE } from '@/lib/auth/cookies';
-import { env } from '@/lib/env';
 import type { Overview, ScreeningData } from './types';
+import { call } from '@/lib/directus/rafanutri';
+import { isUuid as isId } from '@/lib/validation/ids';
 
-type Json = null | { data?: unknown; errors?: Array<{ message: string; extensions?: { fields?: Record<string, string> } }> };
-const isId = (id: unknown): id is string => typeof id === 'string' && /^[0-9a-f-]{36}$/i.test(id);
 
-async function call(path: string, method: string, body?: unknown): Promise<{ status: number; json: Json }> {
-  const t = (await cookies()).get(ACCESS_COOKIE)?.value;
-  if (!t) return { status: 401, json: null };
-  const res = await fetch(`${env.DIRECTUS_URL}/rafanutri${path}`, {
-    method,
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${t}` },
-    body: body === undefined ? undefined : JSON.stringify(body),
-    cache: 'no-store',
-  });
-  return { status: res.status, json: await res.json().catch(() => null) };
-}
 
 /** Triagens do paciente e dados de apoio. undefined: paciente não existe; null: falha. */
 export async function getScreenings(patientId: string): Promise<ScreeningData | null | undefined> {

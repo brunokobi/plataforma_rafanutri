@@ -138,7 +138,7 @@ export function toFormValues(p: Patient): PatientFormInput {
   };
 }
 
-export const isUuid = (v: unknown): v is string => typeof v === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
+export { isUuid } from '@/lib/validation/ids';
 
 /** Nome comparável: sem acento, minúsculo, espaços simples (como o search_name do banco). */
 export function comparableName(name: string): string {

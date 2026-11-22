@@ -4,8 +4,8 @@ import { cookies } from 'next/headers';
 import { ACCESS_COOKIE } from '@/lib/auth/cookies';
 import { env } from '@/lib/env';
 import type { CostsData } from '@/lib/uan/costs';
+import { isUuid } from '@/lib/validation/ids';
 
-const isUuid = (id: unknown): id is string => typeof id === 'string' && /^[0-9a-f-]{36}$/i.test(id);
 const isDate = (d: unknown): d is string => typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d);
 
 /** Dados do painel de custos; undefined = sem acesso; null = falha (ou período inválido). */

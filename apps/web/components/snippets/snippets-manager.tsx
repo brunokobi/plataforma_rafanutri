@@ -88,7 +88,7 @@ export function SnippetsManager({ snippets }: { snippets: Snippet[] }) {
         <Button type="button" onClick={() => setEditing('new')} disabled={editing !== null}><Plus className="size-4" /> Nova orientação</Button>
       </div>
       {editing === 'new' && <SnippetForm categories={categories} onDone={done} onCancel={() => setEditing(null)} />}
-      {message && <p role="status" className="text-sm text-destructive">{message}</p>}
+      {message && <p role="alert" className="text-sm text-destructive">{message}</p>}
       {snippets.length === 0 ? (
         <p className="rounded-2xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
           Nenhuma orientação ainda. Crie textos que você repete nos planos (hidratação, mastigação, intestino, treino…) e insira no editor de plano com um clique ou digitando /.

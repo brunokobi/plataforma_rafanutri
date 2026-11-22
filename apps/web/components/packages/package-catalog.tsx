@@ -30,7 +30,7 @@ export function PackageCatalog({ list, canEdit }: { list: ServicePackage[]; canE
       </div>
       <p className="text-sm text-muted-foreground">Venda na ficha do paciente. Cada consulta concluída usa uma sessão do pacote ativo; desfazer a conclusão devolve a sessão.</p>
       {!canEdit && <p className="text-sm text-muted-foreground">Só owner ou nutricionista cria e altera pacotes.</p>}
-      {feedback && <p role="status" className={feedback.ok ? 'text-sm text-muted-foreground' : 'text-sm text-destructive'}>{feedback.text}</p>}
+      {feedback && <p role={feedback.ok ? 'status' : 'alert'} className={feedback.ok ? 'text-sm text-muted-foreground' : 'text-sm text-destructive'}>{feedback.text}</p>}
       {mode === 'new' && <PackageForm pending={pending} onCancel={() => setMode('none')} onSubmit={(v) => run(() => savePackage(null, v), 'Pacote criado.')} />}
       {typeof mode === 'object' && <PackageForm initial={mode.edit} pending={pending} onCancel={() => setMode('none')} onSubmit={(v) => run(() => savePackage(mode.edit.id, v), 'Pacote atualizado.')} />}
       {list.length === 0 ? (

@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 import { ACCESS_COOKIE } from '@/lib/auth/cookies';
 import { env } from '@/lib/env';
+import { isUuid } from '@/lib/validation/ids';
 
 export type PracticeResult = { ok: true } | { ok: false; message: string };
 
@@ -20,7 +21,6 @@ async function call(path: string, method: string, body?: unknown): Promise<{ sta
   const e = json?.errors?.[0];
   return { status: res.status, message: e ? (Object.values(e.extensions?.fields ?? {})[0] ?? e.message) : null };
 }
-const isUuid = (id: unknown): id is string => typeof id === 'string' && /^[0-9a-f-]{36}$/i.test(id);
 
 async function run(path: string, method: string, body: unknown, fallback: string): Promise<PracticeResult> {
   try {

@@ -4,6 +4,7 @@ import { cookies } from 'next/headers';
 import { ACCESS_COOKIE } from '@/lib/auth/cookies';
 import { env } from '@/lib/env';
 import type { MonthlyReport, NetworkData } from '@/lib/uan/network';
+import { isUuid } from '@/lib/validation/ids';
 
 async function get<T>(path: string): Promise<T | null | undefined> {
   const t = (await cookies()).get(ACCESS_COOKIE)?.value;
@@ -16,7 +17,6 @@ async function get<T>(path: string): Promise<T | null | undefined> {
     return null;
   }
 }
-const isUuid = (id: unknown): id is string => typeof id === 'string' && /^[0-9a-f-]{36}$/i.test(id);
 const monthQ = (m?: string) => (m && /^\d{4}-\d{2}$/.test(m) ? `?month=${m}` : '');
 
 export async function getNetwork(orgId: string, month?: string) {

@@ -85,7 +85,7 @@ export function FinanceView({ month, list, summary, categories: initialCategorie
 
       {summary && <section className="rounded-2xl border border-border bg-card p-5"><CashFlowChart months={summary.months} /></section>}
 
-      {feedback && <p role="status" className={feedback.ok ? 'text-sm text-muted-foreground' : 'text-sm text-destructive'}>{feedback.text}</p>}
+      {feedback && <p role={feedback.ok ? 'status' : 'alert'} className={feedback.ok ? 'text-sm text-muted-foreground' : 'text-sm text-destructive'}>{feedback.text}</p>}
 
       {mode === 'new' && (
         <TransactionForm categories={categories} patients={patients} today={list.today} pending={pending} prefill={prefill && !prefill.existing ? prefill : null}

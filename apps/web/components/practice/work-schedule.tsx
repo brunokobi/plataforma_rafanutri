@@ -74,7 +74,7 @@ export function WorkScheduleForm({ orgId, initial, canEdit }: { orgId: string; i
           </Button>
         )}
         {feedback && (
-          <p role="status" className={feedback.ok ? 'text-sm text-primary' : 'text-sm text-destructive'}>{feedback.text}</p>
+          <p role={feedback.ok ? 'status' : 'alert'} className={feedback.ok ? 'text-sm text-primary' : 'text-sm text-destructive'}>{feedback.text}</p>
         )}
       </form>
     </section>

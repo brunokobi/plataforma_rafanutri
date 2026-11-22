@@ -139,7 +139,7 @@ export function PatientsList({ patients, limit, planName, demoHref, initialQuery
       )}
 
       {feedback && (
-        <p role="status" className={cn('text-sm', feedback.kind === 'ok' ? 'text-primary' : 'text-destructive')}>
+        <p role={feedback.kind === 'ok' ? 'status' : 'alert'} className={cn('text-sm', feedback.kind === 'ok' ? 'text-primary' : 'text-destructive')}>
           {feedback.text}
         </p>
       )}

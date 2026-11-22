@@ -263,7 +263,7 @@ export function TemplateEditor({ id, initial }: { id: string; initial: { name: s
         </div>
       </div>
 
-      {message && <p role="status" className={cn('text-sm', message.kind === 'ok' ? 'text-primary' : 'text-destructive')}>{message.text}</p>}
+      {message && <p role={message.kind === 'ok' ? 'status' : 'alert'} className={cn('text-sm', message.kind === 'ok' ? 'text-primary' : 'text-destructive')}>{message.text}</p>}
       {problems.length > 0 && (
         <Alert variant="destructive">
           <AlertCircle />

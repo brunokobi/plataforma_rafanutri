@@ -106,6 +106,13 @@
   .dark {
     color-scheme: dark;
   }
+  /* Foco visível em selects e textareas nativos (vários formulários usam o elemento puro, sem o componente de UI) */
+  select:focus-visible,
+  textarea:focus-visible {
+    outline: none;
+    border-color: var(--ring);
+    box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring) 50%, transparent);
+  }
   select option,
   select optgroup {
     background-color: var(--popover);

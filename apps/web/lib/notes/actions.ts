@@ -1,26 +1,13 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { cookies } from 'next/headers';
-import { ACCESS_COOKIE } from '@/lib/auth/cookies';
-import { env } from '@/lib/env';
 import type { ClinicalNote, NoteResult } from './schema';
+import { call } from '@/lib/directus/rafanutri';
+import { isUuid as isId } from '@/lib/validation/ids';
 
 type Json = null | { data?: unknown; errors?: Array<{ message: string; extensions?: { code?: string; fields?: Record<string, string> } }> };
 
-async function call(path: string, method: string, body?: unknown): Promise<{ status: number; json: Json }> {
-  const t = (await cookies()).get(ACCESS_COOKIE)?.value;
-  if (!t) return { status: 401, json: null };
-  const res = await fetch(`${env.DIRECTUS_URL}/rafanutri${path}`, {
-    method,
-    headers: { Authorization: `Bearer ${t}`, 'Content-Type': 'application/json' },
-    body: body === undefined ? undefined : JSON.stringify(body),
-    cache: 'no-store',
-  });
-  return { status: res.status, json: res.status === 204 ? null : await res.json().catch(() => null) };
-}
 
-const isId = (id: unknown): id is string => typeof id === 'string' && /^[0-9a-f-]{36}$/i.test(id);
 
 function result(r: { status: number; json: Json }, patientId: string): NoteResult {
   if (r.status >= 200 && r.status < 300) {

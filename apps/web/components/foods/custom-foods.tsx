@@ -71,7 +71,7 @@ export function CustomFoods({ foods }: { foods: CustomFood[] }) {
       {form === 'new-food' && <CustomFoodForm onDone={done} onCancel={() => setForm(null)} />}
       {form === 'new-recipe' && <RecipeForm onDone={done} onCancel={() => setForm(null)} />}
       {form && typeof form === 'object' && <CustomFoodForm initial={form.edit} onDone={done} onCancel={() => setForm(null)} />}
-      {message && <p role="status" className={cn('text-sm', message.kind === 'ok' ? 'text-primary' : 'text-destructive')}>{message.text}</p>}
+      {message && <p role={message.kind === 'ok' ? 'status' : 'alert'} className={cn('text-sm', message.kind === 'ok' ? 'text-primary' : 'text-destructive')}>{message.text}</p>}
 
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative max-w-md flex-1">

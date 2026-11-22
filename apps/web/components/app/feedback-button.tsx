@@ -80,7 +80,7 @@ export function FeedbackButton({ variant = 'header' }: { variant?: 'header' | 's
             <p className="text-xs text-muted-foreground">Enviamos junto só o endereço desta tela ({pathname}).</p>
           </div>
           {status && (
-            <p role="status" className={cn('text-sm', status.kind === 'ok' ? 'text-primary' : 'text-destructive')}>{status.text}</p>
+            <p role={status.kind === 'ok' ? 'status' : 'alert'} className={cn('text-sm', status.kind === 'ok' ? 'text-primary' : 'text-destructive')}>{status.text}</p>
           )}
           <Button type="submit" disabled={pending}>
             {pending && <Loader2 className="size-4 animate-spin" />} Enviar

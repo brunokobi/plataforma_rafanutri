@@ -146,7 +146,7 @@ export function PatientAnamneses({
       </section>
 
       {message && (
-        <p role="status" className={cn('text-sm', message.kind === 'ok' ? 'text-primary' : 'text-destructive')}>{message.text}</p>
+        <p role={message.kind === 'ok' ? 'status' : 'alert'} className={cn('text-sm', message.kind === 'ok' ? 'text-primary' : 'text-destructive')}>{message.text}</p>
       )}
 
       <section aria-labelledby="anamneses-enviadas">

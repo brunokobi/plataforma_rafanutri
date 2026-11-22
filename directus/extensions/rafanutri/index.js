@@ -843,7 +843,7 @@ export default {
     const PP_FIELDS = ['id', 'name', 'sessions_total', 'sessions_used', 'price_cents', database.raw('sold_at::text as sold_at'), database.raw('expires_at::text as expires_at'), 'status', 'package_id'];
     const ppOut = (p) => ({ ...p, price_cents: Number(p.price_cents) });
     const clinical = (m) => m.role === 'owner' || m.role === 'nutritionist';
-    const forbidClinical = (res) => res.status(403).json({ errors: [{ message: 'Só owner ou nutricionista gerencia pacotes.', extensions: { code: 'FORBIDDEN' } }] });
+    const forbidClinical = (res) => res.status(403).json({ errors: [{ message: 'Só owner ou nutricionista do consultório pode fazer isso.', extensions: { code: 'FORBIDDEN' } }] });
 
     router.get('/packages', async (req, res) => {
       const m = await finMember(req, res);
@@ -1097,7 +1097,7 @@ export default {
       if (!m) return;
       if (!clinical(m)) return forbidClinical(res);
       const p = await memberPatient(m, req.params.id);
-      if (!p) return leadNotFound(res);
+      if (!p) return res.status(404).json({ errors: [{ message: 'Paciente não encontrado.', extensions: { code: 'NOT_FOUND' } }] });
       const days = Number(req.body?.days);
       if (!Number.isInteger(days) || days < 7 || days > 365) return bad(res, { days: 'De 7 a 365 dias.' });
       await withActor(m.user, (trx) => trx('patients').where('id', p.id).update({ return_interval_days: days }));
@@ -1771,8 +1771,8 @@ export default {
       if (!user) return next();
       try {
         let orgIds;
-        const unit = req.path.match(/^\/uan\/units\/([0-9a-f-]{36})/i);
-        const org = req.path.match(/^\/uan\/organizations\/([0-9a-f-]{36})/i);
+        const unit = req.path.match(/^\/uan\/units\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i);
+        const org = req.path.match(/^\/uan\/organizations\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i);
         if (unit) orgIds = (await database('production_units').where('id', unit[1]).pluck('organization_id'));
         else if (org) orgIds = [org[1]];
         else orgIds = (await uanOrgs(user)).map((o) => o.id);
@@ -5237,7 +5237,7 @@ export default {
       const today = localToday();
       const day = isIsoDate(b.served_on) ? b.served_on : today;
       if (day > today || Date.parse(`${today}T12:00:00Z`) - Date.parse(`${day}T12:00:00Z`) > 2 * 86400e3) return bad(res, { served_on: 'Avalie a refeição de hoje ou de até dois dias atrás.' });
-      if (typeof b.device_id !== 'string' || !/^[0-9a-f-]{36}$/i.test(b.device_id)) return bad(res, { device_id: 'Aparelho inválido.' });
+      if (typeof b.device_id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(b.device_id)) return bad(res, { device_id: 'Aparelho inválido.' });
       let sheet = null;
       if (b.sheet_root_id) {
         if (!isUuid(b.sheet_root_id)) return bad(res, { sheet_root_id: 'Prato inválido.' });

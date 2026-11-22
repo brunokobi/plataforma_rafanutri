@@ -25,7 +25,7 @@ export function BookingRequests({ list }: { list: BookingRequest[] }) {
   return (
     <section aria-labelledby="pedidos-online" className="mt-6 space-y-3 rounded-2xl border border-primary/40 bg-primary/5 p-4">
       <h2 id="pedidos-online" className="flex items-center gap-2 font-semibold"><Globe className="size-4" aria-hidden="true" /> Pedidos de agendamento online ({list.length})</h2>
-      {feedback && <p role="status" className={feedback.ok ? 'text-sm text-muted-foreground' : 'text-sm text-destructive'}>{feedback.text}</p>}
+      {feedback && <p role={feedback.ok ? 'status' : 'alert'} className={feedback.ok ? 'text-sm text-muted-foreground' : 'text-sm text-destructive'}>{feedback.text}</p>}
       <ul className="space-y-2" aria-label="Pedidos de agendamento">
         {list.map((r) => (
           <li key={r.id} className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card p-3 text-sm">

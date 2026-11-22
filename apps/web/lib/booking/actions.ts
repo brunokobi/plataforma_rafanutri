@@ -1,26 +1,13 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { cookies } from 'next/headers';
-import { ACCESS_COOKIE } from '@/lib/auth/cookies';
-import { env } from '@/lib/env';
 import type { BookingInput, BookingRequest, BookingResult, PublicPractice, PublicProfileConfig, PublicProfileData, PublicSlots } from './types';
+import { call } from '@/lib/directus/rafanutri';
+import { isUuid } from '@/lib/validation/ids';
 
 type Json = null | { data?: unknown; errors?: Array<{ message: string; extensions?: { fields?: Record<string, string> } }> };
 const isSlug = (s: unknown): s is string => typeof s === 'string' && /^[a-z0-9-]{1,80}$/.test(s);
-const isUuid = (id: unknown): id is string => typeof id === 'string' && /^[0-9a-f-]{36}$/i.test(id);
 
-async function call(path: string, method = 'GET', body?: unknown, auth = true): Promise<{ status: number; json: Json }> {
-  const t = auth ? (await cookies()).get(ACCESS_COOKIE)?.value : undefined;
-  if (auth && !t) return { status: 401, json: null };
-  const res = await fetch(`${env.DIRECTUS_URL}/rafanutri${path}`, {
-    method,
-    headers: { ...(t ? { Authorization: `Bearer ${t}` } : {}), ...(body === undefined ? {} : { 'Content-Type': 'application/json' }) },
-    body: body === undefined ? undefined : JSON.stringify(body),
-    cache: 'no-store',
-  });
-  return { status: res.status, json: await res.json().catch(() => null) };
-}
 const errOf = (j: Json, fallback: string) => {
   const e = j?.errors?.[0];
   return { message: e?.message ?? fallback, fields: e?.extensions?.fields };
