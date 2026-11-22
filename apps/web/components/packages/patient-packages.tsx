@@ -10,8 +10,8 @@ import { formatCents } from '@/lib/finance/money';
 import { PAYMENT_LABEL, type PaymentMethod } from '@/lib/finance/types';
 import { cancelPatientPackage, sellPackage } from '@/lib/packages/actions';
 import { PACKAGE_STATUS_LABEL, type PackageResult, type PatientPackage, type ServicePackage } from '@/lib/packages/types';
+import { isoToBR as br } from '@/lib/format/date';
 
-const br = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}`;
 const todayISO = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
 
 /** RN-054 — Pacotes do paciente: vender (à vista ou parcelado) e acompanhar as sessões. */

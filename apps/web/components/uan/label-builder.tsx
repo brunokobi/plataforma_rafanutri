@@ -10,10 +10,10 @@ import { Label } from '@/components/ui/label';
 import { archiveLabel, issueLabel } from '@/lib/uan/label-actions';
 import { buildLabel, labelPer100, labelSvg, type LabelLayout, type LabelRecord, type SheetLabels } from '@/lib/uan/labels';
 import { buildInputs, calculate, sheetAllergens, type SheetDetail } from '@/lib/uan/techsheets';
+import { slugify as slug } from '@/lib/format/text';
 
 const SELECT = 'h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs';
 const parse = (v: string) => (v.trim() === '' ? null : Number(v.replace(',', '.')));
-const slug = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '').toLowerCase();
 
 function download(name: string, blob: Blob) {
   const a = document.createElement('a');

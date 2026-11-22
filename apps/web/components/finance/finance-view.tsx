@@ -14,8 +14,8 @@ import {
 } from '@/lib/finance/types';
 import { cn } from '@/lib/utils';
 import { CashFlowChart } from './cash-flow-chart';
+import { isoToBR as dateBR } from '@/lib/format/date';
 
-const dateBR = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}`;
 const inputOf = (t: Transaction): TransactionInput => ({
   kind: t.kind, category_id: t.category_id, description: t.description, amount_cents: t.amount_cents, due_date: t.due_date, status: t.status,
   paid_at: t.paid_at, payment_method: t.payment_method, patient_id: t.patient_id, appointment_id: t.appointment_id, notes: t.notes,

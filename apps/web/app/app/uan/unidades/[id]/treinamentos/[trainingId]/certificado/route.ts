@@ -3,9 +3,9 @@ import { createElement } from 'react';
 import { TrainingCertificatePdf } from '@/components/pdf/uan-certificate';
 import { getUanContext } from '@/lib/uan/actions';
 import { getTrainings } from '@/lib/uan/document-actions';
+import { slugify as slug } from '@/lib/format/text';
 
 export const dynamic = 'force-dynamic';
-const slug = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '').toLowerCase();
 
 /** RN-159 — Certificados do treinamento em PDF (uma página por participante). */
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string; trainingId: string }> }) {

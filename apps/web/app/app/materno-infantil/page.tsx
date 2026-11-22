@@ -14,11 +14,11 @@ import type { FeedingType } from '@/lib/maternal/types';
 import { ageLabel, weeksLabel } from '@/lib/maternal/view';
 import { dueDate, gestationalWeeks } from '@rafanutri/nutrition-core';
 import { ageInDays } from '@rafanutri/nutrition-core/growth';
+import { isoToBR as dateBR } from '@/lib/format/date';
 
 export const metadata: Metadata = { title: 'Materno-infantil', robots: { index: false } };
 export const dynamic = 'force-dynamic';
 
-const dateBR = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}`;
 const tab = (id: string) => `/app/pacientes/${id}/materno-infantil`;
 
 function Kpi({ icon, label, value }: { icon: ReactNode; label: string; value: number }) {

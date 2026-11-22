@@ -1,4 +1,5 @@
 import type { ModuleCode } from './catalog';
+import { formatCents } from '@/lib/finance/money';
 
 export type PlanCode = 'free' | 'essential' | 'professional' | 'clinic' | 'enterprise_uan';
 
@@ -124,7 +125,7 @@ export const PLANS: readonly PlanDefinition[] = [
 /** Desconto do plano anual (12 meses pelo preço de 6). */
 export const ANNUAL_DISCOUNT = 0.5;
 
-const brl = (cents: number) => (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }).replace(/\u00a0/g, ' ');
+const brl = formatCents;
 
 /** Preço para a tela, no ciclo pedido: "R$ 49,90/mês", "R$ 299,40/ano", "Grátis" ou "Sob proposta". */
 export function planPrice(p: PlanDefinition, cycle: 'monthly' | 'annual' = 'monthly'): { main: string; note: string | null } {

@@ -1,3 +1,5 @@
+import { isoToBR } from '@/lib/format/date';
+import { formatCents } from '@/lib/finance/money';
 // Assinatura da plataforma por Pix (0059).
 
 export type PaidPlan = 'essential' | 'professional' | 'clinic';
@@ -64,6 +66,7 @@ export const PLAN_HIGHLIGHTS: Record<string, string[]> = {
 };
 
 /** "R$ 49,90". */
-export const brl = (cents: number) => (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+/** "R$ 1.234,56" (mesmo formato do financeiro: lib/finance/money.ts). */
+export const brl = (cents: number) => formatCents(cents);
 /** "25/11/2026" a partir de AAAA-MM-DD. */
-export const dateBR = (iso: string | null) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}` : '—');
+export const dateBR = (iso: string | null) => (iso ? isoToBR(iso) : '—');

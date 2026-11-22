@@ -27,6 +27,7 @@ import { isUuid } from '@/lib/patients/schema';
 import { ageInDays } from '@rafanutri/nutrition-core/growth';
 import { ENERGY_ADDITION_REFERENCE, GAIN_STATUS_LABEL, lactationEnergyAddition, pregnancyEnergyAddition } from '@rafanutri/nutrition-core';
 import { pickClinicalOrg } from '@/lib/auth/clinical-org';
+import { isoToBR as dateBR } from '@/lib/format/date';
 
 export const metadata: Metadata = { title: 'Materno-infantil', robots: { index: false } };
 export const dynamic = 'force-dynamic';
@@ -34,7 +35,6 @@ export const dynamic = 'force-dynamic';
 const LEVEL_TONE = { ok: 'text-primary', attention: 'text-amber-600 dark:text-amber-400', alert: 'text-destructive' } as const;
 const STATUS_TONE = { adequate: 'text-primary', below: 'text-amber-600 dark:text-amber-400', above: 'text-amber-600 dark:text-amber-400' } as const;
 const fmt = (n: number, d = 1) => n.toLocaleString('pt-BR', { maximumFractionDigits: d });
-const dateBR = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}`;
 const signed = (n: number) => `${n > 0 ? '+' : ''}${fmt(n, 2)}`;
 
 export default async function MaternalPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ curva?: string }> }) {

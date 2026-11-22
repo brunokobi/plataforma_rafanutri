@@ -1,5 +1,6 @@
 // U2a — Insumos, fornecedores e preços: tipos, rótulos e regras puras (as do banco ficam em 0042).
 import { pricePerKgCents, type PurchaseUnit } from '@rafanutri/nutrition-core';
+import { formatCents } from '@/lib/finance/money';
 
 export type IngredientCategory = 'produce' | 'meat' | 'dairy' | 'grains' | 'bakery' | 'beverages' | 'frozen' | 'grocery' | 'cleaning' | 'disposables' | 'other';
 export type Storage = 'ambient' | 'chilled' | 'frozen';
@@ -55,7 +56,8 @@ export interface IngredientDetail {
 export interface Supplier { id: string; organization_id: string; name: string; cnpj: string | null; contact_name: string | null; phone: string | null; email: string | null; notes: string | null; active: boolean; ingredient_count?: number }
 export interface SupplierList { organization: { id: string; name: string }; can_manage: boolean; items: Supplier[] }
 
-export const brl = (cents: number) => (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+/** "R$ 1.234,56" (mesmo formato do financeiro: lib/finance/money.ts). */
+export const brl = (cents: number) => formatCents(cents);
 
 /** Preço por kg do insumo (null se a unidade não tiver peso definido). */
 export function perKg(ing: Pick<Ingredient, 'purchase_unit' | 'density_g_ml' | 'unit_weight_g' | 'pack_grams'>, priceCents: number): number | null {

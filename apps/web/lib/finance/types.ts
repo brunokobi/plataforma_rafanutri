@@ -1,3 +1,4 @@
+import { isoToBR } from '@/lib/format/date';
 export type TxKind = 'income' | 'expense';
 export type TxStatus = 'open' | 'paid' | 'cancelled';
 export type PaymentMethod = 'pix' | 'cash' | 'debit' | 'credit' | 'transfer' | 'boleto' | 'other';
@@ -127,7 +128,7 @@ export function transactionsCsv(list: Transaction[]): string {
     const v = safe(raw);
     return /[";\n\r]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
   };
-  const br = (iso: string | null) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}` : '');
+  const br = (iso: string | null) => (iso ? isoToBR(iso) : '');
   const head = ['Tipo', 'Categoria', 'Descrição', 'Paciente', 'Valor (R$)', 'Vencimento', 'Situação', 'Pago em', 'Forma de pagamento', 'Observação'];
   const rows = list.map((t) => [
     KIND_LABEL[t.kind], t.category_name, t.description, t.patient_name ?? '',

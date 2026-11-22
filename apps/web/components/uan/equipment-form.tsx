@@ -8,10 +8,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { createEquipment, updateEquipment } from '@/lib/uan/temperature-actions';
 import { EQUIPMENT_DEFAULT_LIMITS, EQUIPMENT_KIND_LABEL, parseTemp, type Equipment, type EquipmentKind } from '@/lib/uan/temperatures';
+import { toInputDecimal as txt } from '@/lib/format/number';
 
 const SELECT = 'h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50';
 const KINDS = Object.keys(EQUIPMENT_KIND_LABEL) as EquipmentKind[];
-const txt = (n: number | null) => (n === null ? '' : String(n).replace('.', ','));
 
 /** Cadastro ou edição de equipamento; ao trocar o tipo, sugere os limites padrão. */
 export function EquipmentForm({ unitId, equipment, onDone }: { unitId: string; equipment?: Equipment; onDone?: () => void }) {

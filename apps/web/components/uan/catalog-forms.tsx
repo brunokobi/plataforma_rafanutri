@@ -8,10 +8,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { addPrice, saveIngredient, saveSupplier, searchUanFoods, type IngredientInput, type SupplierInput } from '@/lib/uan/catalog-actions';
 import { ALLERGEN_LABEL, CATEGORY_LABEL, STORAGE_LABEL, UNIT_LABEL, type Allergen, type Ingredient, type IngredientCategory, type Storage, type Supplier } from '@/lib/uan/catalog';
+import { toInputDecimal as txt } from '@/lib/format/number';
 
 const SELECT = 'h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50';
 const TEXTAREA = 'min-h-16 w-full rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 md:text-sm';
-const txt = (n: number | null | undefined) => (n === null || n === undefined ? '' : String(n).replace('.', ','));
 type Err = { message: string; fields?: Record<string, string> } | null;
 
 /** Busca na base pública (TACO/TBCA) para ligar o insumo aos nutrientes. */

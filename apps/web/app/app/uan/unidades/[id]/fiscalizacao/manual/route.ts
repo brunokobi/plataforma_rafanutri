@@ -6,10 +6,10 @@ import { getCurrentUser } from '@/lib/auth/session';
 import { localToday } from '@/lib/uan/costs';
 import { manualIncludes } from '@/lib/uan/legal';
 import { getManual, registerExport } from '@/lib/uan/legal-actions';
+import { slugify as slug } from '@/lib/format/text';
 
 export const dynamic = 'force-dynamic';
 
-const slug = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '').toLowerCase();
 
 /** RN-157 — Emite o Manual de Boas Práticas em PDF (nova edição registrada com o hash do arquivo).
     `?previa=1` gera sem registrar (marcado como prévia). */

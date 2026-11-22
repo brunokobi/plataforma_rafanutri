@@ -11,10 +11,10 @@ import { copyProfile, createProfile, createRule, deactivateRule, saveProfile } f
 import { fmtTarget, RULE_KIND_LABEL, ruleText, SEGMENT_LABEL, TARGET_KEYS, TARGET_LABEL, type DinerProfile, type MenuPlanningOrg, type Segment } from '@/lib/uan/menu-planning';
 import { SERVICE_LABEL, SERVICES, SLOT_LABEL, SLOTS } from '@/lib/uan/menus';
 import { SHEET_CATEGORY_LABEL, type SheetCategory } from '@/lib/uan/techsheets';
+import { toInputDecimal as txt } from '@/lib/format/number';
 
 const SELECT = 'h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs';
 type Msg = { text: string; error?: boolean } | null;
-const txt = (n: number | undefined) => (n === undefined ? '' : String(n).replace('.', ','));
 
 function ProfileForm({ p, onDone }: { p: DinerProfile; onDone: () => void }) {
   const router = useRouter();

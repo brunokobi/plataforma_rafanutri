@@ -8,9 +8,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { saveTemplate } from '@/lib/uan/checklist-actions';
 import { CATEGORY_LABEL, FREQUENCY_LABEL, validateTemplateItems, type ChecklistCategory, type Frequency, type TemplateDetail, type TemplateItemInput } from '@/lib/uan/checklists';
+import { toInputDecimal as txt } from '@/lib/format/number';
 
 const SELECT = 'h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50';
-const txt = (n: number | null) => (n === null ? '' : String(n).replace('.', ','));
 const blank = (section: string): TemplateItemInput => ({ section, prompt: '', help: '', kind: 'compliance', unit: '', min_value: '', max_value: '', critical: false });
 
 /** Editor de modelo da empresa: dados gerais e itens (adicionar, mover, apagar, crítico, valor medido). */

@@ -24,10 +24,10 @@ import {
   type SheetDetail,
   type SheetGraph,
 } from '@/lib/uan/techsheets';
+import { toInputDecimal as txt } from '@/lib/format/number';
 
 const SELECT = 'h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50';
 const TEXTAREA = 'min-h-16 w-full rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 md:text-sm';
-const txt = (n: number | null | undefined) => (n === null || n === undefined ? '' : String(n).replace('.', ','));
 const fmt = (n: number, d = 1) => n.toLocaleString('pt-BR', { maximumFractionDigits: d });
 const num = (s: string) => {
   const n = Number(s.replace(',', '.'));

@@ -15,12 +15,12 @@ import { ageLabel, CHILD_MAX_DAYS, childView, CURVE_LABEL, pregnancyView, weeksL
 import { getPatientArea } from '@/lib/patient-area/actions';
 import { patientContextId, pickRecord } from '@/lib/patient-area/context';
 import { ageInDays } from '@rafanutri/nutrition-core/growth';
+import { isoToBR as dateBR } from '@/lib/format/date';
 
 export const metadata: Metadata = { title: 'Acompanhamento', robots: { index: false } };
 export const dynamic = 'force-dynamic';
 
 const fmt = (n: number, d = 1) => n.toLocaleString('pt-BR', { maximumFractionDigits: d });
-const dateBR = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}`;
 const TONE = { ok: 'text-primary', attention: 'text-amber-600 dark:text-amber-400', alert: 'text-destructive' } as const;
 /** Gestação: frases simples para o app (sem termos técnicos). */
 const GAIN_SIMPLE = { adequate: 'dentro do esperado', below: 'abaixo do esperado', above: 'acima do esperado' } as const;

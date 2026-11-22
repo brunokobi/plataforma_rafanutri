@@ -2,9 +2,9 @@ import { CalendarPlus, MessageCircle } from 'lucide-react';
 import Link from 'next/link';
 import { dueLabel, daysUntil, returnReminderLink, type Returns } from '@/lib/crm/types';
 import { cn } from '@/lib/utils';
+import { isoToBR as br } from '@/lib/format/date';
 
 const WINDOWS = [['', 'Vencidos e próximos 30 dias'], ['overdue', 'Vencidos'], ['7', 'Próximos 7 dias'], ['30', 'Próximos 30 dias']] as const;
-const br = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}`;
 
 /** RN-056 — Retornos: pacientes sem consulta marcada, pela data prevista (última consulta + intervalo de retorno). */
 export function CrmReturns({ data, window, practice }: { data: Returns; window: string; practice: string }) {

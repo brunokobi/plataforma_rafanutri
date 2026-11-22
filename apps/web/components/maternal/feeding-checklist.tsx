@@ -10,9 +10,9 @@ import { Label } from '@/components/ui/label';
 import { deleteFeeding, saveFeeding, saveMyFeeding } from '@/lib/maternal/actions';
 import { isSeriousReaction, REACTION_LABEL, type ChecklistItem } from '@/lib/maternal/feeding';
 import type { FeedingKind, Reaction } from '@/lib/maternal/types';
+import { isoToBR as dateBR } from '@/lib/format/date';
 
 const today = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
-const dateBR = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}`;
 
 /** Quem grava: o nutricionista (ficha) ou o responsável (app do paciente). */
 export type FeedingMode = { kind: 'pro'; patientId: string } | { kind: 'app'; recordId: string };

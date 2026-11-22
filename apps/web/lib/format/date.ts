@@ -12,3 +12,6 @@ export function dateBR(iso: string, opts: Intl.DateTimeFormatOptions = { day: '2
 export function todaySP(now: Date = new Date()): string {
   return now.toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
 }
+
+/** "2026-11-22" (ou ISO com hora) → "22/11/2026", sem fuso: só a parte da data. */
+export const isoToBR = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}`;
