@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { brl, dateBR, type Billing } from '@/lib/billing/types';
 
@@ -31,9 +31,12 @@ describe('assinatura por Pix', () => {
   it('owner assina e vai para a fatura', async () => {
     const { SubscriptionPanel } = await import('@/components/billing/subscription-panel');
     render(<SubscriptionPanel billing={base} />);
-    expect(screen.getByText('Essencial')).toBeTruthy();
-    expect(screen.getByText('Agenda, avisos no Telegram e financeiro')).toBeTruthy();
-    await act(async () => fireEvent.click(screen.getAllByRole('button', { name: 'Assinar com Pix' })[0]!));
+    // Tabela de comparação: planos nas colunas, módulos nas linhas, ações no rodapé
+    const table = screen.getByRole('table', { name: /Comparação de preços, limites e módulos/ });
+    expect(within(table).getByRole('columnheader', { name: /Gratuito/ })).toBeTruthy();
+    expect(within(table).getByRole('columnheader', { name: /Essencial/ })).toBeTruthy();
+    expect(within(table).getByRole('rowheader', { name: 'Pacientes ativos' })).toBeTruthy();
+    await act(async () => fireEvent.click(screen.getAllByRole('button', { name: 'Assinar' })[0]!));
     expect(subscribe).toHaveBeenCalledWith('essential', 'monthly');
     expect(push).toHaveBeenCalledWith('/app/configuracoes/plano/fatura/inv-1');
   });
@@ -46,7 +49,8 @@ describe('assinatura por Pix', () => {
       invoices: [{ id: 'i2', plan: 'essential', billing_cycle: 'monthly', amount_cents: 4990, period_start: '2026-12-21', period_end: '2027-01-20', due_on: '2026-12-20', status: 'open', txid: 'RNX', reported_paid_at: null, paid_at: null }],
     }} />);
     expect(screen.getByRole('button', { name: 'Plano atual' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Trocar para este' })).toBeTruthy();
+    expect(screen.getAllByRole('button', { name: 'Trocar' }).length).toBeGreaterThan(0);
+    expect(screen.getByRole('button', { name: 'Voltar ao Gratuito' })).toBeTruthy();
     expect(screen.getByText(/Fatura em aberto/)).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Pagar com Pix' }).getAttribute('href')).toBe('/app/configuracoes/plano/fatura/i2');
   });
@@ -54,7 +58,7 @@ describe('assinatura por Pix', () => {
   it('quem não é owner só vê', async () => {
     const { SubscriptionPanel } = await import('@/components/billing/subscription-panel');
     render(<SubscriptionPanel billing={{ ...base, role: 'nutritionist' }} />);
-    expect(screen.queryByRole('button', { name: 'Assinar com Pix' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Assinar' })).toBeNull();
     expect(screen.getByText(/Só o responsável/)).toBeTruthy();
   });
 
@@ -69,11 +73,11 @@ describe('plano anual', () => {
   it('mostra o preço anual com 50% de desconto e assina no ciclo anual', async () => {
     const { SubscriptionPanel } = await import('@/components/billing/subscription-panel');
     render(<SubscriptionPanel billing={base} />);
-    expect(screen.getByText('R$ 49,90')).toBeTruthy();
+    expect(screen.getByText('R$ 49,90/mês')).toBeTruthy();
     fireEvent.click(screen.getByRole('radio', { name: /Anual/ }));
-    expect(screen.getByText('R$ 299,40')).toBeTruthy();
+    expect(screen.getByText('R$ 299,40/ano')).toBeTruthy();
     expect(screen.getByText(/equivale a R\$ 24,95\/mês/)).toBeTruthy();
-    await act(async () => fireEvent.click(screen.getAllByRole('button', { name: /Assinar o anual com Pix/ })[0]!));
+    await act(async () => fireEvent.click(screen.getAllByRole('button', { name: 'Assinar o anual' })[0]!));
     expect(subscribe).toHaveBeenLastCalledWith('essential', 'annual');
   });
 });

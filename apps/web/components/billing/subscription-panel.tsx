@@ -5,9 +5,11 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 import { Badge } from '@/components/ui/badge';
+import { PlansComparison } from '@/components/app/plans-comparison';
 import { Button } from '@/components/ui/button';
+import type { PlanCode } from '@/lib/modules/plans';
 import { cancelSubscription, resumeSubscription, subscribe } from '@/lib/billing/actions';
-import { brl, CYCLE_LABEL, dateBR, INVOICE_STATUS_LABEL, PLAN_HIGHLIGHTS, SUB_STATUS_LABEL, type Billing, type BillingCycle } from '@/lib/billing/types';
+import { brl, CYCLE_LABEL, dateBR, INVOICE_STATUS_LABEL, SUB_STATUS_LABEL, type Billing, type BillingCycle } from '@/lib/billing/types';
 
 /** Assinatura por Pix em "Meu plano": planos à venda, situação, faturas, trocar e cancelar. */
 export function SubscriptionPanel({ billing }: { billing: Billing }) {
@@ -85,58 +87,30 @@ export function SubscriptionPanel({ billing }: { billing: Billing }) {
             </button>
           ))}
         </div>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <div className={`flex flex-col gap-2 rounded-xl border p-4 ${billing.current_plan === 'free' && !active ? 'border-primary' : 'border-border'}`}>
-            <p className="font-semibold">Gratuito</p>
-            <div>
-              <p className="font-display text-2xl font-semibold">R$ 0</p>
-              <p className="text-xs text-muted-foreground">para sempre, sem cartão</p>
-            </div>
-            <p className="text-xs text-muted-foreground">Até 20 pacientes ativos · 1 profissional</p>
-            <ul className="list-disc space-y-0.5 pl-4 text-sm">
-              {PLAN_HIGHLIGHTS.free?.map((h) => <li key={h}>{h}</li>)}
-            </ul>
-            {billing.current_plan === 'free' && !active ? (
-              <Button type="button" size="sm" className="mt-auto" variant="outline" disabled>Plano atual</Button>
-            ) : owner && active && !sub?.cancel_at_period_end ? (
-              <Button type="button" size="sm" className="mt-auto" variant="outline" disabled={pending} onClick={cancel}>Voltar ao Gratuito</Button>
-            ) : null}
-          </div>
-          {billing.plans.filter((p) => cycle === 'monthly' || (p.annual_price_cents ?? 0) >= 100).map((p) => {
-            const current = active && sub?.plan === p.code && sub?.billing_cycle === cycle;
-            const next = active && (sub?.next_plan ?? sub?.plan) === p.code && (sub?.next_billing_cycle ?? sub?.billing_cycle) === cycle && (sub?.next_plan !== null || sub?.next_billing_cycle !== null) && !current;
+        <PlansComparison
+          currentPlan={(active && sub ? sub.plan : billing.current_plan) as PlanCode}
+          codes={['free', 'essential', 'professional', 'clinic']}
+          cycle={cycle}
+          footer={(code) => {
+            if (code === 'free') {
+              if (billing.current_plan === 'free' && !active) return <span className="text-xs font-medium text-primary">Plano atual</span>;
+              return owner && active && !sub?.cancel_at_period_end
+                ? <Button type="button" size="sm" variant="outline" disabled={pending} onClick={cancel}>Voltar ao Gratuito</Button>
+                : null;
+            }
+            const p = billing.plans.find((x) => x.code === code);
+            if (!p || (cycle === 'annual' && !((p.annual_price_cents ?? 0) >= 100))) return <span className="text-xs text-muted-foreground">Indisponível</span>;
+            const current = active && sub?.plan === code && sub?.billing_cycle === cycle;
+            const scheduled = active && !current && (sub?.next_plan ?? sub?.plan) === code && (sub?.next_billing_cycle ?? sub?.billing_cycle) === cycle && (sub?.next_plan !== null || sub?.next_billing_cycle !== null);
+            if (!owner) return current ? <span className="text-xs font-medium text-primary">Plano atual</span> : null;
             return (
-              <div key={p.code} className={`flex flex-col gap-2 rounded-xl border p-4 ${current ? 'border-primary' : 'border-border'}`}>
-                <p className="font-semibold">{p.name}</p>
-                {cycle === 'annual' && p.annual_price_cents ? (
-                  <div>
-                    <p className="font-display text-2xl font-semibold">{brl(p.annual_price_cents)}<span className="text-sm font-normal text-muted-foreground">/ano</span></p>
-                    <p className="text-xs text-muted-foreground">equivale a {brl(Math.round(p.annual_price_cents / 12))}/mês · <span className="line-through">{brl(p.price_cents * 12)}</span></p>
-                  </div>
-                ) : (
-                  <div>
-                    <p className="font-display text-2xl font-semibold">{brl(p.price_cents)}<span className="text-sm font-normal text-muted-foreground">/mês</span></p>
-                    {p.annual_price_cents ? <p className="text-xs text-muted-foreground">ou {brl(p.annual_price_cents)}/ano no anual</p> : null}
-                  </div>
-                )}
-                <p className="text-xs text-muted-foreground">
-                  {p.max_active_patients === null ? 'Pacientes ativos sem limite' : `Até ${p.max_active_patients} pacientes ativos`} · {p.max_members === null ? 'equipe sem limite' : p.max_members === 1 ? '1 profissional' : `até ${p.max_members} profissionais`} · sem anúncios
-                </p>
-                {(PLAN_HIGHLIGHTS[p.code]?.length ?? 0) > 0 && (
-                  <ul className="list-disc space-y-0.5 pl-4 text-sm">
-                    {PLAN_HIGHLIGHTS[p.code]?.map((h) => <li key={h}>{h}</li>)}
-                  </ul>
-                )}
-                {owner && (
-                  <Button type="button" size="sm" className="mt-auto" variant={current ? 'outline' : 'default'} disabled={pending || current || next} onClick={() => choose(p.code)}>
-                    {pending && <Loader2 className="size-4 animate-spin" />}
-                    {current ? 'Plano atual' : next ? 'Agendado' : active ? 'Trocar para este' : `Assinar ${cycle === 'annual' ? 'o anual' : ''} com Pix`.replace('  ', ' ')}
-                  </Button>
-                )}
-              </div>
+              <Button type="button" size="sm" variant={current ? 'outline' : 'default'} disabled={pending || current || scheduled} onClick={() => choose(code)}>
+                {pending && <Loader2 className="size-4 animate-spin" />}
+                {current ? 'Plano atual' : scheduled ? 'Agendado' : active ? 'Trocar' : cycle === 'annual' ? 'Assinar o anual' : 'Assinar'}
+              </Button>
             );
-          })}
-        </div>
+          }}
+        />
         </>
       )}
       {!owner && <p className="text-sm text-muted-foreground">Só o responsável (owner) do consultório assina ou cancela.</p>}
