@@ -2,6 +2,7 @@
 // Pix direto na chave da Rafanutri; o consultório avisa "já paguei" e o admin confirma. Avisos de cobrança
 // pelo Telegram (quem ligou) ou e-mail, pelo mesmo motor dos avisos (notify.js).
 import { addDays, annualPeriod, brl, cycleOf, dateBR, monthlyPeriod, newTxid, parsePrice, pixPayload, validateBillingSettings } from './billing.js';
+import { buildLinkBody, confirmsInvoice, extractCheckoutUrl, infinitePayClient, paymentRef, sameToken, webhookToken } from './infinitepay.js';
 
 const PAID = ['essential', 'professional', 'clinic'];
 const RENEW_DAYS = 7;          // a fatura do mês seguinte sai 7 dias antes do fim do período
@@ -29,7 +30,7 @@ export function setupSubscriptions({ router, database, logger, h, notifier }) {
   };
   const invoiceOut = (i) => i && ({ ...i, period_start: iso(i.period_start), period_end: iso(i.period_end), due_on: iso(i.due_on) });
   const subOut = (s) => s && ({ ...s, current_period_end: iso(s.current_period_end) });
-  const INV_FIELDS = ['id', 'plan', 'billing_cycle', 'amount_cents', 'period_start', 'period_end', 'due_on', 'status', 'txid', 'pix_payload', 'reported_paid_at', 'paid_at', 'created_at'];
+  const INV_FIELDS = ['id', 'plan', 'billing_cycle', 'amount_cents', 'period_start', 'period_end', 'due_on', 'status', 'txid', 'pix_payload', 'checkout_url', 'reported_paid_at', 'paid_at', 'created_at'];
   const planName = async (code, trx = database) => (await trx('plans').where('code', code).first('name'))?.name ?? code;
   const invoiceLink = (id) => `${SITE}/app/configuracoes/plano/fatura/${id}`;
 
@@ -48,6 +49,60 @@ export function setupSubscriptions({ router, database, logger, h, notifier }) {
     const payload = pixPayload({ key: cfg.pix_key, name: cfg.receiver_name, city: cfg.receiver_city, amountCents: amount, txid });
     const [row] = await trx('subscription_invoices').insert({ organization_id: orgId, plan, billing_cycle: cycle, amount_cents: amount, period_start, period_end, due_on: due, txid, pix_payload: payload }).returning(INV_FIELDS);
     return invoiceOut(row);
+  }
+
+  // ── InfinitePay: link de pagamento por fatura e confirmação automática ────────────────────
+  const ip = infinitePayClient({ apiKey: process.env.INFINITEPAY_API_KEY || '' });
+  const API = (process.env.PUBLIC_URL || '').replace(/\/$/, '');
+  const IP_TOKEN = webhookToken(process.env.SECRET || '');
+  const ipHandle = async () => (await database('platform_billing').first('infinitepay_handle'))?.infinitepay_handle ?? null;
+
+  /** Cria o link da InfinitePay para a fatura e guarda na fatura. Falha não impede o Pix estático. */
+  async function attachCheckout(inv) {
+    try {
+      const handle = await ipHandle();
+      if (!handle || !inv) return null;
+      const owner = await database('organization_members as m').join('directus_users as u', 'u.id', 'm.user_id')
+        .where({ 'm.organization_id': inv.organization_id, 'm.role': 'owner' }).first('u.email', 'u.first_name', 'u.last_name');
+      const body = buildLinkBody({
+        handle, invoice: inv,
+        description: `Rafanutri: plano ${await planName(inv.plan)} ${inv.billing_cycle === 'annual' ? 'anual' : 'mensal'} (${dateBR(inv.period_start)} a ${dateBR(inv.period_end)})`,
+        redirectUrl: invoiceLink(inv.id),
+        webhookUrl: API && IP_TOKEN ? `${API}/rafanutri/public/billing/infinitepay/${IP_TOKEN}` : null,
+        customer: owner ? { name: [owner.first_name, owner.last_name].filter(Boolean).join(' ') || null, email: owner.email } : null,
+        withApiKey: ip.withApiKey,
+        validUntil: ip.withApiKey ? `${addDays(iso(inv.due_on), 30)}T23:59:59-03:00` : null,
+      });
+      const r = await ip.createLink(body);
+      const url = extractCheckoutUrl(r.json);
+      if (!url) {
+        logger.warn(`billing: InfinitePay não devolveu link (${r.status}; campos: ${Object.keys(r.json ?? {}).join(',')})`);
+        return null;
+      }
+      await billingTx(SYSTEM, (trx) => trx('subscription_invoices').where({ id: inv.id, status: 'open' }).update({ checkout_url: url, gateway: 'infinitepay' }));
+      return url;
+    } catch (error) {
+      logger.warn(`billing: falha ao criar link da InfinitePay: ${error?.message}`);
+      return null;
+    }
+  }
+
+  /**
+   * Confirma a fatura pela InfinitePay: o aviso não tem assinatura, então sempre reconsulta /payment_check e só
+   * libera se pago e com o valor da fatura. Mesma rotina da confirmação do admin.
+   */
+  async function confirmByInfinitePay(ref) {
+    if (!ref.order_nsu || !isUuid(ref.order_nsu) || !ref.transaction_nsu || !ref.slug) return { state: 'invalid' };
+    const handle = await ipHandle();
+    if (!handle) return { state: 'off' };
+    const inv = await database('subscription_invoices').where('id', ref.order_nsu).first(INV_FIELDS.concat('organization_id'));
+    if (!inv) return { state: 'missing' };
+    if (inv.status !== 'open') return { state: inv.status };
+    const check = await ip.paymentCheck({ handle, order_nsu: ref.order_nsu, transaction_nsu: ref.transaction_nsu, slug: ref.slug });
+    if (!confirmsInvoice(check.json, inv)) return { state: 'unpaid' };
+    const out = await billingTx(SYSTEM, (trx) => markPaid(trx, inv.id, { by: null, gatewayId: ref.transaction_nsu }));
+    if (out.inv) await notifyConfirmed(out);
+    return out.inv ? { state: 'paid', until: out.until } : out;
   }
 
   const invoiceCtx = async (inv, extra = {}) => ({
@@ -125,6 +180,7 @@ export function setupSubscriptions({ router, database, logger, h, notifier }) {
         return { invoice: inv };
       });
       if (out.invoice) {
+        await attachCheckout({ ...out.invoice, organization_id: o.org });
         await notifier.notifyOwners({ orgId: o.org, kind: 'invoice_created', dedupe: `inv:${out.invoice.id}`, ctx: await invoiceCtx(out.invoice) });
         notifier.tick();
       }
@@ -195,7 +251,7 @@ export function setupSubscriptions({ router, database, logger, h, notifier }) {
     const user = await requireAdmin(req, res);
     if (!user) return;
     const [cfg, plans, invoices, subs] = await Promise.all([
-      database('platform_billing').first('pix_key', 'receiver_name', 'receiver_city', 'notify_email', 'grace_days', 'updated_at'),
+      database('platform_billing').first('pix_key', 'receiver_name', 'receiver_city', 'notify_email', 'grace_days', 'infinitepay_handle', 'updated_at'),
       database('plans').whereIn('code', PAID).orderBy('price_cents').select('code', 'name', 'price_cents', 'annual_price_cents', 'sellable', 'max_active_patients', 'max_members'),
       database('subscription_invoices as i').join('organizations as o', 'o.id', 'i.organization_id')
         .where('i.status', 'open').orWhere((q) => q.where('i.status', 'paid').whereRaw("i.paid_at > now() - interval '30 days'"))
@@ -232,6 +288,59 @@ export function setupSubscriptions({ router, database, logger, h, notifier }) {
     res.json({ data: { code: req.params.code, price_cents: price, annual_price_cents: price >= 100 ? annual : null, sellable } });
   });
 
+  /** Fatura paga, assinatura ativa até o fim do período da fatura e plano liberado (admin ou InfinitePay). */
+  async function markPaid(trx, invoiceId, { by = null, paidAt = null, gatewayId = null } = {}) {
+    const inv = await trx('subscription_invoices').where('id', invoiceId).forUpdate().first(INV_FIELDS.concat('organization_id'));
+    if (!inv) return { missing: true };
+    if (inv.status !== 'open') return { state: inv.status };
+    await trx('subscription_invoices').where('id', inv.id).update({ status: 'paid', paid_at: paidAt ?? trx.fn.now(), confirmed_by: by, ...(gatewayId ? { gateway: 'infinitepay', gateway_id: gatewayId } : {}) });
+    const sub = await trx('subscriptions').where('organization_id', inv.organization_id).forUpdate().first();
+    const end = iso(inv.period_end);
+    const until = sub?.current_period_end && iso(sub.current_period_end) > end ? iso(sub.current_period_end) : end;
+    const patch = {
+      status: 'active', plan: inv.plan, billing_cycle: inv.billing_cycle, current_period_end: until,
+      next_plan: sub?.next_plan === inv.plan ? null : sub?.next_plan ?? null,
+      next_billing_cycle: sub?.next_billing_cycle === inv.billing_cycle ? null : sub?.next_billing_cycle ?? null,
+    };
+    if (sub) await trx('subscriptions').where('organization_id', inv.organization_id).update(patch);
+    else await trx('subscriptions').insert({ organization_id: inv.organization_id, ...patch });
+    await trx('organizations').where('id', inv.organization_id).update({ plan: inv.plan });
+    return { inv: invoiceOut(inv), until };
+  }
+
+  async function notifyConfirmed(out) {
+    await notifier.notifyOwners({ orgId: out.inv.organization_id, kind: 'payment_confirmed', dedupe: `inv-ok:${out.inv.id}`, ctx: await invoiceCtx(out.inv, { until: dateBR(out.until), link: `${SITE}/app/configuracoes/plano` }) });
+    notifier.tick();
+  }
+
+  // Aviso da InfinitePay (sem login): responde logo e confere o pagamento por /payment_check.
+  router.post('/public/billing/infinitepay/:token', async (req, res) => {
+    if (!IP_TOKEN || !sameToken(req.params.token, IP_TOKEN)) return res.status(404).json({ errors: [{ message: 'Não encontrado.', extensions: { code: 'NOT_FOUND' } }] });
+    const ref = paymentRef(req.body);
+    res.json({ data: { ok: true } });
+    confirmByInfinitePay(ref).then((r) => {
+      if (r.state !== 'paid' && r.state !== 'paid_already') logger.info(`billing: aviso da InfinitePay sem confirmação (${r.state})`);
+    }).catch((error) => logger.error(`billing: falha ao conferir aviso da InfinitePay: ${error?.message}`));
+  });
+
+  // Volta do pagamento (redirect_url): confere na hora, sem esperar o aviso.
+  router.post('/billing/invoices/:id/check', async (req, res) => {
+    const user = requireUser(req, res);
+    if (!user) return;
+    const m = await memberOrg(user);
+    if (!m || !isUuid(req.params.id)) return notFound(res);
+    const own = await database('subscription_invoices').where({ id: req.params.id, organization_id: m.id }).first('id', 'status');
+    if (!own) return notFound(res);
+    if (own.status !== 'open') return res.json({ data: { status: own.status } });
+    try {
+      const r = await confirmByInfinitePay({ ...paymentRef(req.body), order_nsu: own.id });
+      res.json({ data: { status: r.state === 'paid' ? 'paid' : own.status, result: r.state, until: r.until ?? null } });
+    } catch (error) {
+      logger.error(`billing: falha ao conferir pagamento: ${error?.message}`);
+      res.status(503).json({ errors: [{ message: 'Não foi possível conferir o pagamento agora. Ele será confirmado pelo aviso da InfinitePay.', extensions: { code: 'GATEWAY_UNAVAILABLE' } }] });
+    }
+  });
+
   // Confirmar pagamento: fatura paga, assinatura ativa até o fim do período da fatura, plano liberado.
   router.post('/admin/billing/invoices/:id/confirm', async (req, res) => {
     const user = await requireAdmin(req, res);
@@ -239,28 +348,10 @@ export function setupSubscriptions({ router, database, logger, h, notifier }) {
     if (!isUuid(req.params.id)) return notFound(res);
     const paidOn = typeof req.body?.paid_on === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(req.body.paid_on) ? `${req.body.paid_on}T12:00:00-03:00` : null;
     try {
-      const out = await billingTx(user, async (trx) => {
-        const inv = await trx('subscription_invoices').where('id', req.params.id).forUpdate().first(INV_FIELDS.concat('organization_id'));
-        if (!inv) return { missing: true };
-        if (inv.status !== 'open') return { state: inv.status };
-        await trx('subscription_invoices').where('id', inv.id).update({ status: 'paid', paid_at: paidOn ?? trx.fn.now(), confirmed_by: user });
-        const sub = await trx('subscriptions').where('organization_id', inv.organization_id).forUpdate().first();
-        const end = iso(inv.period_end);
-        const until = sub?.current_period_end && iso(sub.current_period_end) > end ? iso(sub.current_period_end) : end;
-        const patch = {
-          status: 'active', plan: inv.plan, billing_cycle: inv.billing_cycle, current_period_end: until,
-          next_plan: sub?.next_plan === inv.plan ? null : sub?.next_plan ?? null,
-          next_billing_cycle: sub?.next_billing_cycle === inv.billing_cycle ? null : sub?.next_billing_cycle ?? null,
-        };
-        if (sub) await trx('subscriptions').where('organization_id', inv.organization_id).update(patch);
-        else await trx('subscriptions').insert({ organization_id: inv.organization_id, ...patch });
-        await trx('organizations').where('id', inv.organization_id).update({ plan: inv.plan });
-        return { inv: invoiceOut(inv), until };
-      });
+      const out = await billingTx(user, (trx) => markPaid(trx, req.params.id, { by: user, paidAt: paidOn }));
       if (out.missing) return notFound(res);
       if (out.state) return conflict(res, out.state === 'paid' ? 'Esta fatura já foi confirmada.' : 'Esta fatura foi cancelada.');
-      await notifier.notifyOwners({ orgId: out.inv.organization_id, kind: 'payment_confirmed', dedupe: `inv-ok:${out.inv.id}`, ctx: await invoiceCtx(out.inv, { until: dateBR(out.until), link: `${SITE}/app/configuracoes/plano` }) });
-      notifier.tick();
+      await notifyConfirmed(out);
       res.json({ data: { ok: true, until: out.until } });
     } catch (error) {
       fail(res, error, 'confirmar pagamento');
@@ -299,6 +390,7 @@ export function setupSubscriptions({ router, database, logger, h, notifier }) {
           if (error?.code !== '23505') logger.error({ err: error?.message }, 'rafanutri: falha ao gerar fatura de renovação');
           return null;
         });
+        if (inv) await attachCheckout({ ...inv, organization_id: s.organization_id });
         if (inv) await notifier.notifyOwners({ orgId: s.organization_id, kind: 'invoice_created', dedupe: `inv:${inv.id}`, ctx: await invoiceCtx(inv) });
       }
     }

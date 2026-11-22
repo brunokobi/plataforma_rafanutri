@@ -100,8 +100,12 @@ export function validateBillingSettings(b) {
   if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) errors.notify_email = 'E-mail inválido.';
   const grace = Number(b?.grace_days ?? 7);
   if (!Number.isInteger(grace) || grace < 0 || grace > 30) errors.grace_days = 'Carência de 0 a 30 dias.';
+  // InfiniteTag (opcional): liga a cobrança pela InfinitePay; vazia desliga
+  const rawHandle = typeof b?.infinitepay_handle === 'string' ? b.infinitepay_handle.trim().replace(/^\$/, '').toLowerCase() : '';
+  const handle = rawHandle && /^[a-z0-9][a-z0-9_.-]{1,39}$/.test(rawHandle) ? rawHandle : null;
+  if (rawHandle && !handle) errors.infinitepay_handle = 'InfiniteTag inválida (sem o $, só letras, números, ponto, hífen e sublinhado).';
   if (Object.keys(errors).length) return { errors };
-  return { value: { pix_key: key.key, receiver_name: name, receiver_city: city, notify_email: email, grace_days: grace } };
+  return { value: { pix_key: key.key, receiver_name: name, receiver_city: city, notify_email: email, grace_days: grace, infinitepay_handle: handle } };
 }
 
 /** Preço do plano digitado pelo admin ("49,90" ou 4990 centavos). */

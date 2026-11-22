@@ -37,6 +37,11 @@ export async function getBilling(): Promise<Billing | null> {
 export async function getInvoice(id: string): Promise<InvoiceDetail | null> {
   return isId(id) ? get<InvoiceDetail>(`/billing/invoices/${id}`) : null;
 }
+/** Na volta da InfinitePay: confere o pagamento na hora (o servidor reconsulta a InfinitePay antes de liberar). */
+export async function checkInvoicePayment(id: string, ref: { slug?: string; transaction_nsu?: string }): Promise<Result<{ status: string; result?: string; until?: string | null }>> {
+  if (!isId(id)) return { ok: false, message: 'Pedido inválido.' };
+  return send(`/billing/invoices/${id}/check`, 'POST', { slug: ref.slug ?? null, transaction_nsu: ref.transaction_nsu ?? null }, 'Não foi possível conferir o pagamento agora.', [`/app/configuracoes/plano/fatura/${id}`, '/app/configuracoes/plano']);
+}
 export async function subscribe(plan: string, cycle: 'monthly' | 'annual' = 'monthly'): Promise<Result<{ invoice?: { id: string }; scheduled?: boolean; from?: string }>> {
   return send('/billing/subscribe', 'POST', { plan, cycle: cycle === 'annual' ? 'annual' : 'monthly' }, 'Não foi possível assinar agora.', ['/app/configuracoes/plano']);
 }
@@ -66,7 +71,7 @@ export async function unlinkMyAccountTelegram(): Promise<Result> {
 export async function getAdminBilling(): Promise<AdminBilling | null> {
   return get<AdminBilling>('/admin/billing');
 }
-export async function saveBillingSettings(v: { pix_key: string; receiver_name: string; receiver_city: string; notify_email: string; grace_days: number }): Promise<Result> {
+export async function saveBillingSettings(v: { pix_key: string; receiver_name: string; receiver_city: string; notify_email: string; grace_days: number; infinitepay_handle?: string }): Promise<Result> {
   return send('/admin/billing/settings', 'PUT', v, 'Não foi possível salvar agora.', ['/app/admin/assinaturas']);
 }
 export async function savePlanPrice(code: string, price: string, sellable: boolean): Promise<Result> {

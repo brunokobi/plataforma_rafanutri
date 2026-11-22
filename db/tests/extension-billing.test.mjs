@@ -59,7 +59,10 @@ test('valores e datas', () => {
 
 test('configuração de cobrança', () => {
   const ok = validateBillingSettings({ pix_key: '11.222.333/0001-81', receiver_name: 'Rafanutri Tecnologia Ltda', receiver_city: 'Belo Horizonte', notify_email: 'Fin@x.com', grace_days: 5 });
-  assert.deepEqual(ok.value, { pix_key: '11222333000181', receiver_name: 'RAFANUTRI TECNOLOGIA LTDA', receiver_city: 'BELO HORIZONTE', notify_email: 'fin@x.com', grace_days: 5 });
+  assert.deepEqual(ok.value, { pix_key: '11222333000181', receiver_name: 'RAFANUTRI TECNOLOGIA LTDA', receiver_city: 'BELO HORIZONTE', notify_email: 'fin@x.com', grace_days: 5, infinitepay_handle: null });
+  // InfiniteTag opcional: com $ e maiúsculas vira a forma da API; inválida dá erro
+  assert.equal(validateBillingSettings({ pix_key: '11.222.333/0001-81', receiver_name: 'Rafa', receiver_city: 'BH', infinitepay_handle: '$Rafa_Pay' }).value.infinitepay_handle, 'rafa_pay');
+  assert.ok(validateBillingSettings({ pix_key: '11.222.333/0001-81', receiver_name: 'Rafa', receiver_city: 'BH', infinitepay_handle: 'com espaço' }).errors.infinitepay_handle);
   const bad = validateBillingSettings({ pix_key: 'x', receiver_name: '', receiver_city: '', grace_days: 40 });
   assert.deepEqual(Object.keys(bad.errors).sort(), ['grace_days', 'pix_key', 'receiver_city', 'receiver_name']);
 });

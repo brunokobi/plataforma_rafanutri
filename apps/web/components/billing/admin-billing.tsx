@@ -19,7 +19,7 @@ export function AdminBillingView({ data }: { data: AdminBilling }) {
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const s = data.settings;
-  const [cfg, setCfg] = useState({ pix_key: s?.pix_key ?? '', receiver_name: s?.receiver_name ?? '', receiver_city: s?.receiver_city ?? '', notify_email: s?.notify_email ?? '', grace_days: s?.grace_days ?? 7 });
+  const [cfg, setCfg] = useState({ pix_key: s?.pix_key ?? '', receiver_name: s?.receiver_name ?? '', receiver_city: s?.receiver_city ?? '', notify_email: s?.notify_email ?? '', grace_days: s?.grace_days ?? 7, infinitepay_handle: s?.infinitepay_handle ?? '' });
   const [prices, setPrices] = useState<Record<string, { price: string; sellable: boolean }>>(Object.fromEntries(data.plans.map((p) => [p.code, { price: (p.price_cents / 100).toFixed(2).replace('.', ','), sellable: p.sellable }])));
   const setPrice = (code: string, patch: Partial<{ price: string; sellable: boolean }>) => setPrices((all) => ({ ...all, [code]: { price: patch.price ?? all[code]?.price ?? '', sellable: patch.sellable ?? all[code]?.sellable ?? false } }));
   const run = (fn: () => Promise<{ ok: boolean; message?: string; fields?: Record<string, string> }>, okText: string) => {
@@ -69,6 +69,7 @@ export function AdminBillingView({ data }: { data: AdminBilling }) {
             ['receiver_name', 'Nome do recebedor (como no banco, até 25 letras)'],
             ['receiver_city', 'Cidade do recebedor'],
             ['notify_email', 'E-mail que recebe os avisos de Pix informado (opcional)'],
+            ['infinitepay_handle', 'InfiniteTag da InfinitePay, sem o $ (opcional: liga o pagamento com confirmação automática)'],
           ] as const).map(([k, label]) => (
             <div key={k} className="space-y-1.5">
               <Label htmlFor={k}>{label}</Label>

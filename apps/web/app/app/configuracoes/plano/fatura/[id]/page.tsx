@@ -3,7 +3,9 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import QRCode from 'qrcode';
 import { AppHeader } from '@/components/app/app-header';
+import { GatewayReturn } from '@/components/billing/gateway-return';
 import { PixPayment } from '@/components/billing/pix-payment';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { getCurrentUser } from '@/lib/auth/session';
 import { getInvoice } from '@/lib/billing/actions';
@@ -13,8 +15,9 @@ export const metadata: Metadata = { title: 'Fatura', robots: { index: false } };
 export const dynamic = 'force-dynamic';
 
 /** Fatura da assinatura: QR code do Pix, copia e cola e "Já paguei". */
-export default async function InvoicePage({ params }: { params: Promise<{ id: string }> }) {
+export default async function InvoicePage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ slug?: string; transaction_nsu?: string }> }) {
   const { id } = await params;
+  const sp = await searchParams;
   const user = await getCurrentUser();
   if (!user) redirect(`/login?next=/app/configuracoes/plano/fatura/${encodeURIComponent(id)}`);
   const inv = await getInvoice(id);
@@ -35,9 +38,19 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
           <div className="col-span-2"><dt className="text-muted-foreground">Período</dt><dd className="font-medium">{dateBR(inv.period_start)} a {dateBR(inv.period_end)}</dd></div>
           <div className="col-span-2 sm:col-span-4"><dt className="text-muted-foreground">Identificador</dt><dd className="font-mono text-xs">{inv.txid}</dd></div>
         </dl>
+        {typeof sp.slug === 'string' && typeof sp.transaction_nsu === 'string' && inv.status === 'open' && (
+          <GatewayReturn invoiceId={inv.id} slug={sp.slug.slice(0, 120)} transactionNsu={sp.transaction_nsu.slice(0, 120)} />
+        )}
+        {inv.status === 'open' && inv.checkout_url && (
+          <section aria-labelledby="pagar-ip" className="space-y-3 rounded-2xl border border-primary/40 bg-primary/5 p-5">
+            <h2 id="pagar-ip" className="font-semibold">Pagar agora (Pix ou cartão)</h2>
+            <p className="text-sm text-muted-foreground">Pagamento pela InfinitePay. O plano é liberado sozinho assim que o pagamento é confirmado, sem precisar avisar.</p>
+            <Button asChild className="h-11"><a href={inv.checkout_url} rel="noopener noreferrer">Pagar {brl(inv.amount_cents)}</a></Button>
+          </section>
+        )}
         {inv.status === 'open' && qr && (
           <section aria-labelledby="pagar" className="space-y-4 rounded-2xl border border-border bg-card p-5">
-            <h2 id="pagar" className="font-semibold">Pagar com Pix</h2>
+            <h2 id="pagar" className="font-semibold">{inv.checkout_url ? 'Ou pague pelo Pix direto (confirmação manual)' : 'Pagar com Pix'}</h2>
             <ol className="list-decimal space-y-1 pl-5 text-sm text-muted-foreground">
               <li>Abra o app do seu banco e escolha Pix → ler QR code (ou Pix copia e cola).</li>
               <li>Confira o valor ({brl(inv.amount_cents)}){inv.receiver_name ? ` e o recebedor (${inv.receiver_name})` : ''} e conclua.</li>

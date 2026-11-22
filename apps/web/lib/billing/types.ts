@@ -34,6 +34,8 @@ export interface Invoice {
   due_on: string;
   status: InvoiceStatus;
   txid: string;
+  /** Link de pagamento da InfinitePay (Pix grátis ou cartão), quando a cobrança automática está ligada. */
+  checkout_url?: string | null;
   reported_paid_at: string | null;
   paid_at: string | null;
 }
@@ -50,7 +52,7 @@ export interface Billing {
 }
 
 export interface AdminBilling {
-  settings: { pix_key: string | null; receiver_name: string | null; receiver_city: string | null; notify_email: string | null; grace_days: number } | null;
+  settings: { pix_key: string | null; receiver_name: string | null; receiver_city: string | null; notify_email: string | null; grace_days: number; infinitepay_handle: string | null } | null;
   plans: Array<SellablePlan & { sellable: boolean }>;
   invoices: Array<Invoice & { organization_id: string; organization_name: string; owner_email: string | null }>;
   subscriptions: Array<Subscription & { organization_id: string; organization_name: string }>;
