@@ -220,6 +220,8 @@ export interface MealPlanEditorProps {
   onSave?: (content: PlanContent) => Promise<EditorResult>;
   onPublish?: (content: PlanContent) => Promise<EditorResult>;
   pdfFileName?: string;
+  /** RN-113 — Adicional energético da gestação ou da lactação (sugerido no ajuste). */
+  energyAddition?: { kcal: number; label: string; reference: string; prefill?: boolean } | null;
 }
 
 export function MealPlanEditor({
@@ -238,6 +240,7 @@ export function MealPlanEditor({
   onSave,
   onPublish,
   pdfFileName = 'plano-alimentar.pdf',
+  energyAddition = null,
 }: MealPlanEditorProps) {
   const p = patient ?? DEMO_EDITOR_PATIENT;
   const t0: PlanTargets = { ...(patient ? DEFAULT_TARGETS : DEMO_TARGETS), ...initialTargets };
@@ -271,7 +274,7 @@ export function MealPlanEditor({
   const [mode, setMode] = useState<'quantitative' | 'qualitative'>(initialMode);
   const [formula, setFormula] = useState<FormulaKey>(t0.formula);
   const [activity, setActivity] = useState(t0.activity);
-  const [adjustment, setAdjustment] = useState(t0.adjustment);
+  const [adjustment, setAdjustment] = useState(energyAddition?.prefill && !readOnly ? energyAddition.kcal : t0.adjustment);
   const [proteinPerKg, setProteinPerKg] = useState(t0.proteinPerKg);
   const [lipidPct, setLipidPct] = useState(t0.lipidPct);
   const [manualKcal, setManualKcal] = useState(t0.manualKcal);
@@ -677,6 +680,16 @@ export function MealPlanEditor({
                 <Input id="lip" type="number" step={1} min={10} max={45} value={lipidPct} onChange={(e) => setLipidPct(Number(e.target.value) || 0)} className="h-9 tabular-nums" />
               </div>
             </fieldset>
+            {energyAddition && (
+              <div className="mt-3 rounded-md bg-primary/5 p-2 text-xs">
+                <p>
+                  <span className="font-medium">{energyAddition.label}:</span> adicional de {energyAddition.kcal > 0 ? `+${energyAddition.kcal}` : '0'} kcal/dia ({energyAddition.reference}).
+                </p>
+                {!readOnly && energyAddition.kcal > 0 && adjustment !== energyAddition.kcal && (
+                  <Button type="button" variant="link" size="sm" className="h-auto p-0 text-xs" onClick={() => setAdjustment(energyAddition.kcal)}>Usar +{energyAddition.kcal} kcal no ajuste</Button>
+                )}
+              </div>
+            )}
             {ree === null && (
               <div className="mt-3 space-y-1.5">
                 <Label htmlFor="manual-kcal">Meta manual (kcal)</Label>

@@ -19,7 +19,11 @@ export const KINDS = {
   payment_reported: { label: 'Pagamento informado', important: true },
   payment_confirmed: { label: 'Pagamento confirmado', important: true },
   subscription_ended: { label: 'Assinatura encerrada', important: true },
+  feeding_reaction: { label: 'Reação na introdução alimentar', important: true },
 };
+
+/** Nomes dos alergênicos (apps/web/lib/maternal/feeding.ts). */
+const FEEDING_ITEM_LABEL = { egg: 'ovo', peanut: 'amendoim', cow_milk: 'leite de vaca', wheat: 'trigo', fish: 'peixe', shellfish: 'frutos do mar', soy: 'soja', tree_nuts: 'castanhas', sesame: 'gergelim' };
 
 /** O primeiro lembrete (o de mais horas de antecedência) vale e-mail; os seguintes só vão pelo Telegram. */
 export function isImportant(kind, { hour = null, hours = [] } = {}) {
@@ -94,6 +98,11 @@ export function buildMessage(kind, ctx) {
       return { subject: `Pagamento confirmado — plano ${ctx.planName}`, lines: [`Olá, ${name}!`, `Recebemos o pagamento de ${ctx.amount}. O plano ${ctx.planName} de ${practice} está ativo até ${ctx.until}.`, 'Obrigado por usar a Rafanutri!'], link: ctx.link ?? null };
     case 'subscription_ended':
       return { subject: `Assinatura encerrada — ${practice}`, lines: [`Olá, ${name}!`, `A assinatura do plano ${ctx.planName} de ${practice} terminou e o consultório voltou ao plano Gratuito. Seus dados continuam guardados.`, 'Para voltar ao plano pago, assine de novo em Meu plano.'], link: ctx.link ?? null };
+    case 'feeding_reaction': {
+      const item = FEEDING_ITEM_LABEL[ctx.item] ?? ctx.item;
+      const level = ctx.reaction === 'severe' ? 'grave' : 'moderada';
+      return { subject: `Reação ${level} na introdução alimentar — ${ctx.childName}`, lines: [`Olá, ${name}!`, `O responsável por ${ctx.childName} registrou no app uma reação ${level} a ${item}.`, 'Veja os detalhes na aba Materno-infantil da ficha e oriente a família.'], link: ctx.link ?? null };
+    }
     case 'test':
       return { subject: 'Teste de aviso da Rafanutri', lines: [`Olá, ${name}!`, `Este é um teste dos avisos de ${practice}. Se você recebeu, está tudo certo.`], link: ctx.link ?? null };
     default:

@@ -86,3 +86,25 @@ export function gainBand(cls: PrePregnancyBmiClass): Array<{ week: number; min: 
 }
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
+
+/** Referência do adicional energético (DRI de energia do IOM, 2005). */
+export const ENERGY_ADDITION_REFERENCE = 'DRI de energia (Institute of Medicine, 2005)';
+
+/**
+ * Adicional energético da gestação por semana (RN-113): 1º trimestre (até 13 semanas) 0 kcal,
+ * 2º trimestre (14 a 27) +340 kcal e 3º trimestre (28 em diante) +452 kcal por dia.
+ */
+export function pregnancyEnergyAddition(weeks: number): number {
+  if (!Number.isFinite(weeks) || weeks < 14) return 0;
+  return weeks < 28 ? 340 : 452;
+}
+
+/**
+ * Adicional energético da lactação (RN-113): +330 kcal/dia nos primeiros 6 meses e +400 kcal/dia do 7º ao 12º mês
+ * (já descontada a energia da perda de peso pós-parto). Sem aleitamento, ou depois de 12 meses, 0.
+ * Em aleitamento parcial o adicional é menor; o profissional ajusta.
+ */
+export function lactationEnergyAddition(monthsPostpartum: number, breastfeeding = true): number {
+  if (!breastfeeding || !Number.isFinite(monthsPostpartum) || monthsPostpartum < 0 || monthsPostpartum >= 12) return 0;
+  return monthsPostpartum < 6 ? 330 : 400;
+}

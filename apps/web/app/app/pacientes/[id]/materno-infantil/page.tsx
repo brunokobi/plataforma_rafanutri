@@ -3,7 +3,9 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { AppHeader } from '@/components/app/app-header';
+import { FeedingChecklist } from '@/components/maternal/feeding-checklist';
 import { FeedingGuide } from '@/components/maternal/feeding-guide';
+import { LactationActions, OpenLactationForm } from '@/components/maternal/lactation-forms';
 import { LineChart } from '@/components/maternal/line-chart';
 import { EndPregnancyForm, MeasurementForm, OpenPregnancyForm } from '@/components/maternal/maternal-forms';
 import { PatientHeader } from '@/components/patients/patient-record';
@@ -15,14 +17,15 @@ import { getMyOrganizations, landingRedirect } from '@/lib/auth/organizations';
 import { getCurrentUser } from '@/lib/auth/session';
 import { isSignupOpen } from '@/lib/flags';
 import { getMaternalData } from '@/lib/maternal/actions';
-import { OUTCOME_LABEL } from '@/lib/maternal/types';
+import { FEEDING_TYPE_LABEL, feedingChecklist, isSeriousReaction, monthsBetween, REACTION_LABEL, ALLERGENS } from '@/lib/maternal/feeding';
+import { OUTCOME_LABEL, type FeedingRecord, type Lactation, type MaternalData } from '@/lib/maternal/types';
 import { ageLabel, CHILD_MAX_DAYS, childView, CURVE_LABEL, pregnancyView, weeksLabel, type CurveIndicator } from '@/lib/maternal/view';
 import { getPlan } from '@/lib/modules/plans';
 import { getUserPlan } from '@/lib/modules/user-plan';
 import { getPatient, listPatients } from '@/lib/patients/repository';
 import { isUuid } from '@/lib/patients/schema';
 import { ageInDays } from '@rafanutri/nutrition-core/growth';
-import { GAIN_STATUS_LABEL } from '@rafanutri/nutrition-core';
+import { ENERGY_ADDITION_REFERENCE, GAIN_STATUS_LABEL, lactationEnergyAddition, pregnancyEnergyAddition } from '@rafanutri/nutrition-core';
 
 export const metadata: Metadata = { title: 'Materno-infantil', robots: { index: false } };
 export const dynamic = 'force-dynamic';
@@ -98,12 +101,15 @@ function MaternalContent({ patientId, data, indicator, today }: { patientId: str
             <ChildSection patientId={patientId} sex={sex} birthDate={birth_date!} data={data} indicator={indicator} ageDays={ageDays} />
           )}
           {ageDays < 730 && <FeedingGuide ageMonths={ageDays / 30.4375} />}
+          {data.lactations.filter((l) => l.role === 'baby').map((l) => <BabyLactation key={l.id} l={l} />)}
+          {ageDays >= 150 && ageDays < 1096 && <FeedingProgress patientId={patientId} records={data.feeding} ageMonths={ageDays / 30.4375} />}
         </section>
       )}
       {!isChild && !birth_date && (
         <Alert><AlertTriangle /><AlertDescription>Informe a data de nascimento no cadastro para usar as curvas de crescimento (crianças e adolescentes).</AlertDescription></Alert>
       )}
       {canBePregnant && <PregnancySection patientId={patientId} data={data} today={today} lastHeight={lastHeight} />}
+      {canBePregnant && <LactationSection patientId={patientId} data={data} today={today} />}
       {!isChild && !canBePregnant && birth_date && (
         <p className="text-sm text-muted-foreground">Este módulo acompanha crianças e adolescentes (até 19 anos) e gestantes.</p>
       )}
@@ -206,6 +212,12 @@ function PregnancyCard({ patientId, p, measurements, today }: { patientId: strin
         <Info label="IMC pré-gestacional" value={`${fmt(v.bmi)} · ${v.clsLabel}`} />
         <Info label="Ganho recomendado até 40 semanas" value={`${fmt(v.band.at(-1)!.min)} a ${fmt(v.band.at(-1)!.max)} kg`} />
       </div>
+      {!ended && v.weeksNow !== null && v.weeksNow <= 44 && (
+        <p className="text-sm">
+          Adicional energético nesta fase: <strong>+{pregnancyEnergyAddition(v.weeksNow)} kcal/dia</strong>{' '}
+          <span className="text-muted-foreground">({ENERGY_ADDITION_REFERENCE}; o editor de plano já sugere esse ajuste).</span>
+        </p>
+      )}
       {v.latest && (
         <Alert variant={v.latest.status === 'adequate' ? 'default' : 'destructive'}>
           {v.latest.status === 'adequate' ? <AlertCircle /> : <AlertTriangle />}
@@ -253,6 +265,92 @@ function PregnancyCard({ patientId, p, measurements, today }: { patientId: strin
         </ul>
       )}
       <EndPregnancyForm patientId={patientId} pregnancyId={p.id} active={!ended} />
+    </div>
+  );
+}
+
+type AllowedData = Extract<MaternalData, { allowed: true }>;
+const dateOrDash = (iso: string | null) => (iso ? dateBR(iso) : '—');
+
+/** RN-114 — Lactação da paciente: registro ativo (tipo, tempo pós-parto, adicional energético) e anteriores. */
+function LactationSection({ patientId, data, today }: { patientId: string; data: AllowedData; today: string }) {
+  const mine = data.lactations.filter((l) => l.role === 'mother');
+  const active = mine.find((l) => l.status === 'active');
+  const past = mine.filter((l) => l.status === 'ended');
+  const lastBirth = data.pregnancies.find((p) => p.status === 'ended' && p.outcome === 'birth')?.ended_on ?? null;
+  // Só oferece registrar quando há parto recente (até 2 anos) ou registro anterior
+  const recentBirth = lastBirth !== null && monthsBetween(lastBirth, today) <= 24;
+  if (!active && !recentBirth && mine.length === 0) return null;
+  return (
+    <section aria-labelledby="lact-title" className="space-y-4">
+      <div className="space-y-1">
+        <h2 id="lact-title" className="font-display text-2xl font-semibold">Lactação</h2>
+        <p className="text-sm text-muted-foreground">Tipo de aleitamento conforme o Ministério da Saúde. O registro aparece também na ficha do bebê, se ele for paciente.</p>
+      </div>
+      {active ? (
+        <div className="space-y-3 rounded-lg border p-4">
+          <div className="grid gap-3 sm:grid-cols-3">
+            <Info label="Início" value={dateBR(active.started_on)} />
+            <Info label="Pós-parto" value={`${fmt(Math.max(0, monthsBetween(active.started_on, today)), 1)} meses`} />
+            <Info label="Bebê" value={active.baby_name ?? 'Não cadastrado'} />
+          </div>
+          <p className="text-sm">
+            Adicional energético: <strong>+{lactationEnergyAddition(monthsBetween(active.started_on, today))} kcal/dia</strong>{' '}
+            <span className="text-muted-foreground">({ENERGY_ADDITION_REFERENCE}, aleitamento exclusivo; reduza no aleitamento parcial).</span>
+          </p>
+          <LactationActions patientId={patientId} lactationId={active.id} active type={active.feeding_type} />
+        </div>
+      ) : (
+        <OpenLactationForm patientId={patientId} defaultStart={lastBirth} babies={data.baby_candidates} />
+      )}
+      {past.length > 0 && (
+        <details className="rounded-lg border p-4">
+          <summary className="cursor-pointer text-sm font-medium">Lactações anteriores ({past.length})</summary>
+          <ul className="mt-3 space-y-3 text-sm">
+            {past.map((l) => (
+              <li key={l.id} className="space-y-1">
+                <p>{dateBR(l.started_on)} a {dateOrDash(l.ended_on)} · {FEEDING_TYPE_LABEL[l.feeding_type]}{l.baby_name ? ` · ${l.baby_name}` : ''}</p>
+                {!active && <LactationActions patientId={patientId} lactationId={l.id} active={false} type={l.feeding_type} />}
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
+    </section>
+  );
+}
+
+/** Na ficha do bebê: o aleitamento registrado na ficha da mãe. */
+function BabyLactation({ l }: { l: Lactation }) {
+  return (
+    <div className="rounded-lg border p-4 text-sm">
+      <p className="font-medium">Aleitamento</p>
+      <p className="text-muted-foreground">
+        {FEEDING_TYPE_LABEL[l.feeding_type]} desde {dateBR(l.started_on)}{l.status === 'ended' && l.ended_on ? `, até ${dateBR(l.ended_on)}` : ''} (registro na ficha de {l.mother_name}).
+      </p>
+    </div>
+  );
+}
+
+/** RN-116 — Alergênicos e texturas, com destaque para as reações moderadas e graves. */
+function FeedingProgress({ patientId, records, ageMonths }: { patientId: string; records: FeedingRecord[]; ageMonths: number }) {
+  const serious = records.filter((r) => r.kind === 'allergen' && isSeriousReaction(r.reaction));
+  const mode = { kind: 'pro' as const, patientId };
+  return (
+    <div className="space-y-4">
+      {serious.length > 0 && (
+        <Alert variant="destructive">
+          <AlertTriangle />
+          <AlertDescription>
+            {serious.map((r) => `${ALLERGENS.find((a) => a.code === r.item)?.label ?? r.item}: ${REACTION_LABEL[r.reaction].toLowerCase()} em ${dateBR(r.introduced_on)}${r.by_guardian ? ' (registrada pelo responsável)' : ''}`).join(' · ')}
+          </AlertDescription>
+        </Alert>
+      )}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <FeedingChecklist kind="allergen" title="Alergênicos" items={feedingChecklist('allergen', records, ageMonths)} mode={mode} />
+        <FeedingChecklist kind="texture" title="Texturas" items={feedingChecklist('texture', records, ageMonths)} mode={mode} />
+      </div>
+      <p className="text-xs text-muted-foreground">Oferecer os alergênicos desde o início da introdução alimentar, um de cada vez, ajuda a identificar reações (Sociedade Brasileira de Pediatria e ASBAI). O responsável também registra pelo app quando o acompanhamento está liberado em &quot;O que o paciente vê&quot;.</p>
     </div>
   );
 }

@@ -9,6 +9,7 @@ import { getCurrentUser } from '@/lib/auth/session';
 import { patientContextId, pickRecord } from '@/lib/patient-area/context';
 import { dateBR } from '@/lib/format/date';
 import { WeightChart } from '@/components/patient-area/weight-chart';
+import { getMyMaternal } from '@/lib/maternal/actions';
 import { getMyWeight, getPatientArea } from '@/lib/patient-area/actions';
 import { mealOfTheMoment } from '@/lib/patient-area/meal-now';
 
@@ -47,12 +48,17 @@ export default async function PatientHome({ searchParams }: { searchParams: Prom
   }
 
   const q = records.length > 1 ? `?c=${record.patient_id}` : '';
-  const weight = await getMyWeight(record.patient_id);
+  const [weight, maternal] = await Promise.all([getMyWeight(record.patient_id), getMyMaternal(record.patient_id)]);
   const moment = record.plan ? mealOfTheMoment(record.plan.meals, new Date()) : null;
   return (
     <PatientShell practice={record.practice} professional={record.professional} canSwitch={records.length > 1}>
       <h1 className="font-display text-2xl font-semibold tracking-tight">{record.first_name ? `Olá, ${record.first_name}!` : 'Olá!'}</h1>
       {weight?.share?.show_weight_history && weight.weight.length > 0 && <WeightChart data={weight.weight} />}
+      {maternal?.visible && (
+        <Link href={`/p/acompanhamento${q}`} className="flex min-h-11 items-center justify-between gap-3 rounded-2xl border border-border bg-card px-5 py-4 font-medium">
+          <span>Acompanhamento: crescimento, gestação e introdução alimentar</span><span aria-hidden="true">→</span>
+        </Link>
+      )}
       <Link href={`/p/recomendacoes${q}`} className="flex min-h-11 items-center justify-between gap-3 rounded-2xl border border-border bg-card px-5 py-4 font-medium">
         <span>Recomendações</span>
         {(record.recommendations_unread ?? 0) > 0 ? (

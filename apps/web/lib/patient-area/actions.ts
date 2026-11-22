@@ -39,10 +39,10 @@ export async function getAppAccess(patientId: string): Promise<AppAccess | null>
 }
 
 /** Cria o convite e devolve o link (o token só aparece agora; depois só dá para gerar outro). */
-export async function invitePatient(patientId: string, email: string, send = false): Promise<ActionResult<{ link: string; expires_at: string; sent: boolean }>> {
+export async function invitePatient(patientId: string, email: string, send = false, guardianId: string | null = null): Promise<ActionResult<{ link: string; expires_at: string; sent: boolean }>> {
   if (!isId(patientId)) return { ok: false, message: 'Pedido inválido.' };
   try {
-    const r = await call(`/patients/${patientId}/app-invite`, 'POST', { email, send });
+    const r = await call(`/patients/${patientId}/app-invite`, 'POST', { email, send, ...(guardianId && isId(guardianId) ? { guardian_id: guardianId } : {}) });
     if (r.status === 201) {
       const d = r.json?.data as { token: string; expires_at: string; sent?: boolean };
       revalidatePath(`/app/pacientes/${patientId}`);
@@ -133,7 +133,7 @@ export async function getShareConfig(patientId: string): Promise<ShareConfig | n
 export async function saveShareSettings(patientId: string, settings: ShareSettings, asDefault: boolean): Promise<ActionResult> {
   if (!isId(patientId)) return { ok: false, message: 'Pedido inválido.' };
   try {
-    const body = { show_kcal: settings.show_kcal === true, show_macros: settings.show_macros === true, show_weight_history: settings.show_weight_history === true, as_default: asDefault === true };
+    const body = { show_kcal: settings.show_kcal === true, show_macros: settings.show_macros === true, show_weight_history: settings.show_weight_history === true, show_maternal: settings.show_maternal === true, as_default: asDefault === true };
     const r = await call(`/patients/${patientId}/share`, 'PUT', body);
     if (r.status === 200) {
       revalidatePath(`/app/pacientes/${patientId}`);

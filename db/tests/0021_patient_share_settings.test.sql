@@ -17,7 +17,7 @@ begin
     values (o1.id, p1, 80, current_date - 30, '0.1.0', u1), (o1.id, p1, 78.5, current_date, '0.1.0', u1), (o1.id, p1, null, current_date - 10, '0.1.0', u1);
 
   -- Padrão: tudo desligado; histórico de peso não devolve nenhuma linha
-  assert patient_share(p1) = '{"show_kcal": false, "show_macros": false, "show_weight_history": false}'::jsonb, 'padrão desligado';
+  assert patient_share(p1) @> '{"show_kcal": false, "show_macros": false, "show_weight_history": false}'::jsonb, 'padrão desligado';
   assert (select count(*) = 0 from patient_weight_history(p1)), 'sem liberação, nenhuma linha';
 
   -- Liberado por paciente: só data e peso, sem avaliações sem peso, em ordem

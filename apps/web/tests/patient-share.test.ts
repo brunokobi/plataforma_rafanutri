@@ -20,7 +20,7 @@ const payload = (share: ShareSettings): PatientPlanPayload => ({
   },
   recipes: {},
 });
-const off = { show_kcal: false, show_macros: false, show_weight_history: false };
+const off = { show_kcal: false, show_macros: false, show_weight_history: false, show_maternal: false };
 
 describe('RN-210 — o que o paciente vê', () => {
   it('tudo desligado: sem totais e sem kcal por refeição', () => {

@@ -19,6 +19,9 @@ export interface AppAccess {
   invite: { email: string; expires_at: string; date_created: string } | null;
   patient_email: string | null;
   active: boolean;
+  /** Menor de 18 anos: o convite vai para um responsável com consentimento (RN-118). */
+  minor?: boolean;
+  guardians?: Guardian[];
 }
 
 export interface InvitePreview {
@@ -33,12 +36,15 @@ export interface InvitePreview {
 
 export type ActionResult<T = undefined> = { ok: true; data?: T } | { ok: false; message: string; field?: string };
 
+import type { Guardian } from '@/lib/maternal/types';
+
 /** O que o paciente vê (RN-210). */
-export interface ShareSettings { show_kcal: boolean; show_macros: boolean; show_weight_history: boolean }
+export interface ShareSettings { show_kcal: boolean; show_macros: boolean; show_weight_history: boolean; show_maternal: boolean }
 export const SHARE_LABEL: Record<keyof ShareSettings, string> = {
   show_kcal: 'Calorias do plano',
   show_macros: 'Macronutrientes (proteínas, carboidratos e gorduras)',
   show_weight_history: 'Histórico de peso (gráfico)',
+  show_maternal: 'Materno-infantil: curvas de crescimento, gestação, lactação e introdução alimentar',
 };
 export interface WeightPoint { date: string; weight_kg: number }
 

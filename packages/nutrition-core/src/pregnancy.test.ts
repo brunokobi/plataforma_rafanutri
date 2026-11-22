@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { assessGestationalGain, classifyPrePregnancyBmi, dueDate, gainBand, gestationalWeeks, recommendedGain } from './pregnancy';
+import { assessGestationalGain, classifyPrePregnancyBmi, dueDate, gainBand, gestationalWeeks, recommendedGain, lactationEnergyAddition, pregnancyEnergyAddition } from './pregnancy';
 
 describe('ganho de peso gestacional (curvas brasileiras)', () => {
   it('faixas nos pontos da tabela', () => {
@@ -21,5 +21,24 @@ describe('ganho de peso gestacional (curvas brasileiras)', () => {
     expect(gestationalWeeks('2026-01-01', '2026-01-15')).toBe(2);
     expect(dueDate('2026-01-01')).toBe('2026-10-08');
     expect(gainBand('normal')).toHaveLength(41);
+  });
+});
+
+describe('adicional energético (RN-113)', () => {
+  it('gestação por trimestre', () => {
+    expect(pregnancyEnergyAddition(8)).toBe(0);
+    expect(pregnancyEnergyAddition(13.9)).toBe(0);
+    expect(pregnancyEnergyAddition(14)).toBe(340);
+    expect(pregnancyEnergyAddition(27.9)).toBe(340);
+    expect(pregnancyEnergyAddition(30)).toBe(452);
+    expect(pregnancyEnergyAddition(Number.NaN)).toBe(0);
+  });
+  it('lactação por mês pós-parto', () => {
+    expect(lactationEnergyAddition(0)).toBe(330);
+    expect(lactationEnergyAddition(5.9)).toBe(330);
+    expect(lactationEnergyAddition(6)).toBe(400);
+    expect(lactationEnergyAddition(11.9)).toBe(400);
+    expect(lactationEnergyAddition(12)).toBe(0);
+    expect(lactationEnergyAddition(3, false)).toBe(0);
   });
 });

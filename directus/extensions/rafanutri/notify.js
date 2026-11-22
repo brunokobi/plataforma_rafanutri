@@ -267,7 +267,7 @@ export function setupNotifications({ router, database, logger, services, getSche
     }
   }
 
-  const LINK_LABEL = { patient_invite: 'Criar meu acesso', invoice_created: 'Pagar com Pix', invoice_due: 'Pagar com Pix', payment_reported: 'Conferir e confirmar', payment_confirmed: 'Ver meu plano', subscription_ended: 'Ver planos', test: 'Abrir a Rafanutri' };
+  const LINK_LABEL = { feeding_reaction: 'Abrir a ficha', patient_invite: 'Criar meu acesso', invoice_created: 'Pagar com Pix', invoice_due: 'Pagar com Pix', payment_reported: 'Conferir e confirmar', payment_confirmed: 'Ver meu plano', subscription_ended: 'Ver planos', test: 'Abrir a Rafanutri' };
   async function sendEmail(row) {
     const { MailService } = services;
     const mail = new MailService({ schema: await getSchema(), knex: database });

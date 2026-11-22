@@ -11,7 +11,7 @@ const KEYS = Object.keys(SHARE_LABEL) as Array<keyof ShareSettings>;
 
 /** RN-210 — O que este paciente vê na área do paciente (com padrão do consultório). */
 export function PatientShareSettings({ patientId, config }: { patientId: string; config: ShareConfig | null }) {
-  const [values, setValues] = useState<ShareSettings>(config?.effective ?? { show_kcal: false, show_macros: false, show_weight_history: false });
+  const [values, setValues] = useState<ShareSettings>({ show_kcal: false, show_macros: false, show_weight_history: false, show_maternal: false, ...config?.effective });
   const [asDefault, setAsDefault] = useState(false);
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
   const [pending, start] = useTransition();

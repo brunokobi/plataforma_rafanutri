@@ -7,6 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { GuardiansPanel } from '@/components/maternal/guardians';
+import { RELATIONSHIP_LABEL } from '@/lib/maternal/feeding';
 import { invitePatient, revokeAppAccess } from '@/lib/patient-area/actions';
 import type { AppAccess } from '@/lib/patient-area/types';
 
@@ -20,7 +22,9 @@ export function inviteWhatsappLink(phoneE164: string | null, firstName: string, 
 
 export function PatientAppAccess({ patientId, access, firstName, phone }: { patientId: string; access: AppAccess | null; firstName: string; phone: string | null }) {
   const router = useRouter();
-  const [email, setEmail] = useState(access?.invite?.email ?? access?.patient_email ?? '');
+  const consented = (access?.guardians ?? []).filter((g) => g.consent_at);
+  const [guardianId, setGuardianId] = useState(consented[0]?.id ?? '');
+  const [email, setEmail] = useState(access?.invite?.email ?? (access?.minor ? consented[0]?.email : access?.patient_email) ?? '');
   const [inviting, setInviting] = useState(false);
   const [sent, setSent] = useState<{ link: string; expires_at: string; sent: boolean } | null>(null);
   const [sendNow, setSendNow] = useState(true);
@@ -40,7 +44,7 @@ export function PatientAppAccess({ patientId, access, firstName, phone }: { pati
   const send = () => {
     setMessage(null);
     startTransition(async () => {
-      const r = await invitePatient(patientId, email, sendNow);
+      const r = await invitePatient(patientId, email, sendNow, access.minor ? guardianId || null : null);
       if (r.ok && r.data) {
         setSent(r.data);
         setInviting(false);
@@ -101,6 +105,9 @@ export function PatientAppAccess({ patientId, access, firstName, phone }: { pati
         </div>
       )}
 
+      {access.minor && !access.linked && consented.length === 0 && (
+        <p className="rounded-md bg-muted/60 p-2 text-sm">{firstName} é menor de idade: o app é liberado para um responsável. Cadastre o responsável e registre o consentimento abaixo antes de convidar.</p>
+      )}
       {access.active && inviting && (
         <form
           className="flex flex-wrap items-end gap-2"
@@ -109,8 +116,20 @@ export function PatientAppAccess({ patientId, access, firstName, phone }: { pati
             send();
           }}
         >
+          {access.minor && (
+            <div className="min-w-48 space-y-1.5">
+              <Label htmlFor="app-guardian">Responsável</Label>
+              <select
+                id="app-guardian" value={guardianId}
+                onChange={(e) => { setGuardianId(e.target.value); setEmail(consented.find((g) => g.id === e.target.value)?.email ?? ''); }}
+                className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm dark:bg-input/30"
+              >
+                {consented.map((g) => <option key={g.id} value={g.id}>{g.full_name} ({RELATIONSHIP_LABEL[g.relationship]})</option>)}
+              </select>
+            </div>
+          )}
           <div className="min-w-60 flex-1 space-y-1.5">
-            <Label htmlFor="app-email">E-mail de acesso de {firstName}</Label>
+            <Label htmlFor="app-email">{access.minor ? 'E-mail do responsável' : `E-mail de acesso de ${firstName}`}</Label>
             <Input id="app-email" type="email" autoComplete="off" value={email} onChange={(e) => setEmail(e.target.value)} required />
           </div>
           <label className="flex min-h-11 items-center gap-2 text-sm">
@@ -125,7 +144,7 @@ export function PatientAppAccess({ patientId, access, firstName, phone }: { pati
 
       {!inviting && (
         <div className="flex flex-wrap gap-2">
-          {access.active && !access.linked && (
+          {access.active && !access.linked && (!access.minor || consented.length > 0) && (
             <Button type="button" size="sm" onClick={() => setInviting(true)} disabled={pending}>
               {access.invite ? 'Gerar novo link' : 'Convidar para a área do paciente'}
             </Button>
@@ -138,6 +157,7 @@ export function PatientAppAccess({ patientId, access, firstName, phone }: { pati
           {!access.active && <p className="text-sm text-muted-foreground">Paciente arquivado não acessa a área do paciente.</p>}
         </div>
       )}
+      {access.minor && <GuardiansPanel patientId={patientId} guardians={access.guardians ?? []} />}
     </section>
   );
 }

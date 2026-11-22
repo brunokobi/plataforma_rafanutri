@@ -22,8 +22,8 @@ export default async function ChoosePractitionerPage() {
 
   return (
     <PatientShell practice={null}>
-      <h1 className="font-display text-2xl font-semibold tracking-tight">Com qual nutricionista?</h1>
-      <p className="text-muted-foreground">Você é acompanhado por mais de um nutricionista. Os planos, receitas e recomendações de cada um ficam separados.</p>
+      <h1 className="font-display text-2xl font-semibold tracking-tight">Qual acompanhamento?</h1>
+      <p className="text-muted-foreground">Sua conta tem mais de um acompanhamento (outro nutricionista ou outro filho). Os planos, receitas e recomendações de cada um ficam separados.</p>
       <ul className="space-y-3" aria-label="Seus nutricionistas">
         {records.map((r) => (
           <li key={r.patient_id}>
@@ -32,7 +32,8 @@ export default async function ChoosePractitionerPage() {
               <button type="submit" className="flex min-h-16 w-full items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3 text-left hover:border-primary/60"
                 style={r.practice.brand_color ? { borderLeft: `6px solid ${r.practice.brand_color}` } : undefined}>
                 <span className="min-w-0 flex-1">
-                  <span className="block break-words font-semibold">{r.practice.name}</span>
+                  {r.first_name && <span className="block break-words font-semibold">{r.first_name}</span>}
+                  <span className={r.first_name ? 'block break-words text-sm' : 'block break-words font-semibold'}>{r.practice.name}</span>
                   {r.professional.name && <span className="block text-sm text-muted-foreground">{r.professional.name}{r.professional.crn ? ` · ${r.professional.crn}` : ''}</span>}
                 </span>
                 {current === r.patient_id && <span className="inline-flex shrink-0 items-center gap-1 text-sm text-primary"><Check className="size-4" aria-hidden="true" /> Atual</span>}

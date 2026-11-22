@@ -15,13 +15,34 @@ import { getMyProfessionalProfile } from '@/lib/auth/profile';
 import { getCurrentUser } from '@/lib/auth/session';
 import { isSignupOpen } from '@/lib/flags';
 import { foodsByIdsRepo } from '@/lib/foods/repository';
+import { getMaternalData } from '@/lib/maternal/actions';
+import { monthsBetween } from '@/lib/maternal/feeding';
+import type { MaternalData } from '@/lib/maternal/types';
 import { getMealPlan } from '@/lib/meal-plans/repository';
+import { ENERGY_ADDITION_REFERENCE, gestationalWeeks, lactationEnergyAddition, pregnancyEnergyAddition } from '@rafanutri/nutrition-core';
 import { STATUS_LABEL, planFoodIds } from '@/lib/meal-plans/schema';
 import { getPatient } from '@/lib/patients/repository';
 import { ageInYears, isUuid } from '@/lib/patients/schema';
 
 export const metadata: Metadata = { title: 'Plano alimentar', robots: { index: false } };
 export const dynamic = 'force-dynamic';
+
+/** RN-113 — Adicional da gestação ativa ou da lactação ativa (a paciente como mãe). */
+function energyAdditionOf(data: MaternalData | null | undefined) {
+  if (!data?.allowed) return null;
+  const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
+  const preg = data.pregnancies.find((p) => p.status === 'active');
+  if (preg) {
+    const w = gestationalWeeks(preg.lmp_date, today);
+    if (w <= 44) return { kcal: pregnancyEnergyAddition(w), label: `Gestante, ${Math.floor(w)} semanas`, reference: ENERGY_ADDITION_REFERENCE };
+  }
+  const lac = data.lactations.find((l) => l.role === 'mother' && l.status === 'active');
+  if (lac) {
+    const m = monthsBetween(lac.started_on, today);
+    return { kcal: lactationEnergyAddition(m), label: `Lactante, ${Math.floor(Math.max(0, m))} meses pós-parto`, reference: ENERGY_ADDITION_REFERENCE };
+  }
+  return null;
+}
 
 const slug = (s: string) => s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 
@@ -43,6 +64,9 @@ export default async function PatientPlanPage({ params }: { params: Promise<{ id
   const foods = !failed ? await foodsByIdsRepo(planFoodIds(plan.meals)) : null;
   const lastWithWeight = Array.isArray(assessments) ? assessments.find((a) => a.weight_kg !== null) : undefined;
   const lastWithHeight = Array.isArray(assessments) ? assessments.find((a) => a.height_cm !== null) : undefined;
+  const maternal = !failed && patient.sex !== 'male' ? await getMaternalData(patient.id) : null;
+  const addition = energyAdditionOf(maternal);
+  const fresh = !failed && plan.status === 'draft' && plan.meals.every((m) => m.items.length === 0) && (plan.targets?.adjustment ?? 0) === 0;
 
   return (
     <div className="min-h-dvh">
@@ -86,6 +110,7 @@ export default async function PatientPlanPage({ params }: { params: Promise<{ id
                 phone: patient.phone,
               }}
               shareable={plan.status === 'published'}
+              energyAddition={addition ? { ...addition, prefill: fresh && addition.kcal > 0 } : null}
               practice={{
                 practiceName: organization?.name ?? 'Consultório',
                 professionalName: [user.first_name, user.last_name].filter(Boolean).join(' ') || user.email,

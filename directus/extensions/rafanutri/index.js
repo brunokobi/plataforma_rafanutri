@@ -6000,10 +6000,17 @@ export default {
     async function isProfessional(userId) {
       return Boolean(await database('organization_members').where({ user_id: userId }).first('user_id'));
     }
+    /** Menor de 18 anos pela data de nascimento (sem data, não é tratado como menor). */
+    function isMinor(birth) {
+      if (!birth) return false;
+      const b = new Date(birth instanceof Date ? birth : `${String(birth).slice(0, 10)}T12:00:00Z`);
+      const limit = new Date(b); limit.setUTCFullYear(b.getUTCFullYear() + 18);
+      return limit.getTime() > Date.now();
+    }
     async function clinicalPatient(user, id) {
       const org = await clinicalOrg(user);
       if (!org || !isUuid(id)) return null;
-      return database('patients').where({ id, organization_id: org }).first('id', 'organization_id', 'status', 'email', 'app_user_id', 'app_activated_at');
+      return database('patients').where({ id, organization_id: org }).first('id', 'organization_id', 'status', 'email', 'app_user_id', 'app_activated_at', 'birth_date');
     }
     async function pendingInvite(token, trx = database) {
       if (typeof token !== 'string' || !TOKEN_FORMAT.test(token)) return null;
@@ -6013,7 +6020,7 @@ export default {
         .whereNull('i.used_at').whereNull('i.revoked_at')
         .where('i.expires_at', '>', trx.fn.now())
         .where('p.status', 'active')
-        .first('i.id', 'i.organization_id', 'i.patient_id', 'i.email', 'i.expires_at', 'p.full_name', 'p.responsible_user_id');
+        .first('i.id', 'i.organization_id', 'i.patient_id', 'i.email', 'i.expires_at', 'i.guardian_id', 'p.full_name', 'p.responsible_user_id');
       return inv ?? null;
     }
     async function linkInvite(inv, userId) {
@@ -6021,8 +6028,13 @@ export default {
         await linkOn(trx);
         const n = await trx('patient_app_invites').where({ id: inv.id }).whereNull('used_at').whereNull('revoked_at').update({ used_at: trx.fn.now(), used_by: userId });
         if (!n) return false;
-        // Se a conta já estava ligada a outro registro deste consultório, desfaz (um registro por conta e consultório)
-        await trx('patients').where({ organization_id: inv.organization_id, app_user_id: userId }).whereNot({ id: inv.patient_id }).update({ app_user_id: null, app_activated_at: null });
+        // Se a conta já estava ligada a outro registro deste consultório, desfaz (um registro por conta e consultório).
+        // Convite ao responsável (0065) não desfaz: a mesma conta acompanha mais de um filho.
+        if (!inv.guardian_id) {
+          await trx('patients').where({ organization_id: inv.organization_id, app_user_id: userId }).whereNot({ id: inv.patient_id })
+            .whereNotExists(function () { this.select(1).from('patient_app_invites as gi').whereRaw('gi.patient_id = patients.id').whereNotNull('gi.guardian_id').where('gi.used_by', userId); })
+            .update({ app_user_id: null, app_activated_at: null });
+        }
         await trx('patients').where({ id: inv.patient_id }).update({ app_user_id: userId, app_activated_at: trx.fn.now() });
         return true;
       });
@@ -6036,17 +6048,32 @@ export default {
       const invite = await database('patient_app_invites').where({ patient_id: p.id }).whereNull('used_at').whereNull('revoked_at')
         .where('expires_at', '>', database.fn.now()).first('email', 'expires_at', 'date_created');
       const account = p.app_user_id ? await database('directus_users').where({ id: p.app_user_id }).first('email') : null;
-      res.json({ data: { linked: Boolean(p.app_user_id), email: account?.email ?? null, activated_at: p.app_activated_at, invite: invite ?? null, patient_email: p.email, active: p.status === 'active' } });
+      const minor = isMinor(p.birth_date);
+      const guardians = minor
+        ? await database('patient_guardians').where({ patient_id: p.id }).orderBy('date_created').select('id', 'full_name', 'relationship', 'email', 'phone', 'consent_at', 'consent_method', 'notes')
+        : [];
+      res.json({ data: { linked: Boolean(p.app_user_id), email: account?.email ?? null, activated_at: p.app_activated_at, invite: invite ?? null, patient_email: p.email, active: p.status === 'active', minor, guardians } });
     });
 
     router.post('/patients/:id/app-invite', async (req, res) => {
       const user = requireUser(req, res);
       if (!user) return;
-      const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
-      if (!EMAIL.test(email) || email.length > 254) return bad(res, { email: 'Informe um e-mail válido.' });
+      let email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
       const p = await clinicalPatient(user, req.params.id);
       if (!p) return res.status(404).json({ errors: [{ message: 'Paciente não encontrado.', extensions: { code: 'NOT_FOUND' } }] });
       if (p.status !== 'active') return conflict(res, 'Reative o paciente antes de convidar.');
+      // RN-118: paciente menor de 18 anos — o app é do responsável, com o consentimento registrado (LGPD, art. 14).
+      let guardianId = null;
+      if (isMinor(p.birth_date)) {
+        const g = isUuid(req.body?.guardian_id)
+          ? await database('patient_guardians').where({ id: req.body.guardian_id, patient_id: p.id }).first('id', 'email', 'consent_at')
+          : null;
+        if (!g) return conflict(res, 'Paciente menor de idade: escolha o responsável que vai usar o app (aba Materno-infantil, Responsáveis).');
+        if (!g.consent_at) return conflict(res, 'Registre o consentimento do responsável antes de liberar o app.');
+        guardianId = g.id;
+        if (!email && g.email) email = g.email;
+      }
+      if (!EMAIL.test(email) || email.length > 254) return bad(res, { email: 'Informe um e-mail válido.' });
       const existing = await database('directus_users').whereRaw('lower(email) = ?', [email]).first('id', 'role');
       if (existing && existing.role !== PATIENT_ROLE) return conflict(res, 'Este e-mail é de uma conta de profissional; use outro e-mail para o paciente.');
       const token = randomBytes(32).toString('base64url');
@@ -6054,7 +6081,7 @@ export default {
         const expires = await database.transaction(async (trx) => {
           await trx('patient_app_invites').where({ patient_id: p.id }).whereNull('used_at').whereNull('revoked_at').update({ revoked_at: trx.fn.now() });
           const [row] = await trx('patient_app_invites')
-            .insert({ organization_id: p.organization_id, patient_id: p.id, email, token_hash: hashToken(token), user_created: user })
+            .insert({ organization_id: p.organization_id, patient_id: p.id, email, token_hash: hashToken(token), user_created: user, guardian_id: guardianId })
             .returning('expires_at');
           return row.expires_at;
         });
@@ -6352,7 +6379,7 @@ export default {
     });
 
     // RN-210 — O que o paciente vê (padrão do consultório + escolha por paciente).
-    const SHARE_KEYS = ['show_kcal', 'show_macros', 'show_weight_history'];
+    const SHARE_KEYS = ['show_kcal', 'show_macros', 'show_weight_history', 'show_maternal'];
     async function shareOf(patientId) {
       const r = await database.raw('select patient_share(?) as s', [patientId]);
       const s = r.rows?.[0]?.s ?? {};
@@ -6566,7 +6593,7 @@ export default {
     setupSubscriptions({ router, database, logger, notifier, h: { requireUser, bad, conflict, isUuid, memberOrg, withActor, requireAdmin } });
 
     // ── Materno-infantil: curvas da OMS e gestação (0062) ─────────────────────────────────────
-    setupMaternal({ router, database, logger, h: { requireUser, bad, conflict, isUuid, clinicalOrg, withActor } });
+    setupMaternal({ router, database, logger, notifier, h: { requireUser, bad, conflict, isUuid, clinicalOrg, withActor } });
 
     // ── Assistente de IA, só modelos gratuitos do OpenRouter (0063) ───────────────────────────
     setupAI({ router, database, logger, h: { requireUser, bad, isUuid } });
