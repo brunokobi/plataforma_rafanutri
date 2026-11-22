@@ -43,6 +43,7 @@ db/
 │   ├── extension-finance.test.mjs     # validação dos lançamentos e meses do gráfico (node --test)
 │   ├── extension-crm.test.mjs         # telefone E.164 e validação do lead (node --test)
 │   ├── extension-booking.test.mjs     # horários livres e validação do pedido online (node --test)
+│   ├── extension-maternal.test.mjs    # validação de medidas, lactação, introdução alimentar e responsáveis (node --test)
 │   └── api-isolation.test.mjs       # RN-008/RN-213: isolamento pela API (db/scripts/isolation-test.sh roda sem token)
 ├── directus/
 │   ├── 0005_anthropometric_assessments.mjs  # registra a coleção e as permissões no Directus (token de admin)
@@ -219,6 +220,16 @@ Migração `0062_maternal.sql` (**aplicada na vpsrafa em 21/11/2026**, backup `a
 - `anthropometric_assessments` ganha `head_circumference_cm` (25 a 60) e `measured_lying` (deitado/em pé) para as curvas da OMS; as medidas do módulo entram por `POST /rafanutri/patients/:id/maternal/measurements`.
 - `pregnancies`: DUM, peso pré-gestacional, altura, situação (`active`/`ended`, com data e motivo), observações. Uma gestação ativa por paciente (índice único parcial); só paciente do consultório e não masculina; autor owner/nutricionista; não muda de consultório nem de paciente (gatilho `pregnancies_guard`); auditada. O peso ao longo das semanas vem das avaliações da paciente.
 - Endpoints em `directus/extensions/rafanutri/maternal.js`, liberados nos planos Profissional e Clínica ou com o módulo `maternal` em `organizations.modules`.
+
+### Segunda parte (0065)
+
+Migração `0065_maternal_care.sql` (**aplicada na vpsrafa em 22/11/2026**, backup `antes-0065-2026-11-22.dump`; testes em `db/tests/0065_maternal_care.test.sql` e `db/tests/extension-maternal.test.mjs`):
+
+- `lactations`: início, tipo de aleitamento, desmame e `baby_patient_id` opcional (paciente do mesmo consultório); uma ativa por paciente; auditada.
+- `feeding_intro_progress`: um registro por criança × item (`allergen` ou `texture`), com data e reação (textura não tem reação). Grava o owner/nutricionista do consultório ou a conta ligada ao paciente (`by_guardian` = true); endpoints `PUT /patients/:id/feeding/:kind/:item` e `PUT /me/patient/feeding/:kind/:item`.
+- `patient_guardians`: responsáveis e consentimento (`consent_at` e `consent_method` juntos). Convite do app de paciente menor de 18 anos exige `guardian_id` com consentimento (`patient_app_invites.guardian_id`, conferido por trigger); o índice único conta × consultório virou índice comum (um responsável, vários filhos).
+- `patient_share` ganha `show_maternal` (desligado por padrão): libera `GET /me/patient/maternal` no app.
+- Aviso `feeding_reaction` na fila: reação moderada ou grave registrada pelo responsável avisa o nutricionista do paciente (ou os owners).
 
 ## Assistente de IA (0063)
 

@@ -65,7 +65,7 @@ A Rafanutri reúne as áreas da nutrição em um só lugar: atendimento clínico
 |---|---|---|
 | **Núcleo** | Todos | Contas e equipes, pacientes, agenda, prontuário, base de alimentos (TACO/TBCA), PDFs com a marca do profissional |
 | **1. Clínico e Esportivo** | Nutricionistas de consultório, academias, estética | Anamnese por link, antropometria e composição corporal, gasto energético, plano alimentar com cálculo em tempo real e substituições |
-| **2. Materno-Infantil** | Nutrição pediátrica e gestantes | Curvas de crescimento da OMS com escore-z, ganho de peso gestacional, introdução alimentar |
+| **2. Materno-Infantil** | Nutrição pediátrica e gestantes | Curvas de crescimento da OMS com escore-z, ganho de peso gestacional, lactação, introdução alimentar, responsáveis e app da família |
 | **3. Saúde Pública** | UBS, ambulatórios, programas | Triagens (NRS-2002, MNA, MUST), grupos populacionais, relatórios |
 | **4. UAN e Qualidade** | Restaurantes, hospitais, escolas, hotéis | Ficha técnica, cardápio cíclico, compras, estoque, checklists BPF, POPs, APPCC, rotulagem |
 | **5. Gestão do consultório** | Profissionais e clínicas | Avisos e lembretes pelo Telegram (e e-mail no importante), CRM, financeiro, pacotes, conteúdo de marketing |
@@ -83,7 +83,7 @@ Detalhes e prioridades em [docs/02-modulos.md](docs/02-modulos.md).
 - **APPCC e rotulagem:** plano com árvore do Codex, PCC e PDF; rótulo nutricional da IN 75/2020 (vertical, horizontal e linear) com lupa e alergênicos.
 - **Contrato e implantação:** situação, faturas e modo leitura quando o contrato termina; administração da plataforma em `/app/admin` (contratos e faturas); importação de fornecedores, insumos e fichas por planilha ([roteiro](docs/guias/implantacao-enterprise.md)).
 
-Avisos ao paciente: Telegram para tudo (@RafanutriAvisosBot) e e-mail só no importante. **Assistente de IA** (modelos gratuitos do OpenRouter, sem dados que identifiquem o paciente) e módulo **materno-infantil** (curvas da OMS com alertas, ganho de peso na gestação pelas curvas brasileiras e introdução alimentar). Assinatura dos planos pagos por Pix (confirmação pelo admin): Essencial até 100 pacientes ativos, Profissional sem limite, Clínica com equipe. Plano Gratuito com anúncios do Google só nas telas sem dado de paciente. Depende de definição externa: cobrança no gateway, IA e a revisão da RT dos textos-base e critérios marcados "a validar". Detalhes em [docs/plano/progresso.md](docs/plano/progresso.md) e [docs/modulos/uan.md](docs/modulos/uan.md).
+Avisos ao paciente: Telegram para tudo (@RafanutriAvisosBot) e e-mail só no importante. **Assistente de IA** (modelos gratuitos do OpenRouter, sem dados que identifiquem o paciente) e módulo **materno-infantil** (curvas da OMS com alertas, ganho de peso na gestação pelas curvas brasileiras, adicional energético no plano, lactação, introdução alimentar com alergênicos e texturas, responsáveis legais com consentimento e acompanhamento no app do paciente). Assinatura dos planos pagos por Pix (confirmação pelo admin): Essencial até 100 pacientes ativos, Profissional sem limite, Clínica com equipe. Plano Gratuito com anúncios do Google só nas telas sem dado de paciente. Depende de definição externa: cobrança no gateway, IA e a revisão da RT dos textos-base e critérios marcados "a validar". Detalhes em [docs/plano/progresso.md](docs/plano/progresso.md) e [docs/modulos/uan.md](docs/modulos/uan.md).
 
 ## Estratégia de lançamento
 
