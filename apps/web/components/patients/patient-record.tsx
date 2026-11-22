@@ -70,7 +70,8 @@ export function variationText(latest: Assessment, previous: Assessment): string 
 const missing = <span className="font-normal text-muted-foreground">Não informado</span>;
 
 /** Aba materno-infantil: crianças e adolescentes (até 19 anos) e pacientes que podem estar gestantes. */
-export function showsMaternal(patient: Pick<Patient, 'sex' | 'birth_date'>): boolean {
+export function showsMaternal(patient: Pick<Patient, 'sex' | 'birth_date' | 'care_profile'>): boolean {
+  if (patient.care_profile === 'maternal') return true;
   if (patient.sex !== 'male') return true;
   if (!patient.birth_date) return false;
   return Date.now() - Date.parse(`${patient.birth_date}T12:00:00Z`) <= 19 * 365.25 * 864e5;

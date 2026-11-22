@@ -68,7 +68,7 @@ export default async function MaternalHome() {
         ) : (
           <>
             <dl className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-              <Kpi icon={<Baby className="size-4" />} label="Crianças até 10 anos" value={data.children.length} />
+              <Kpi icon={<Baby className="size-4" />} label="Crianças e acompanhados" value={data.children.length} />
               <Kpi icon={<HeartHandshake className="size-4" />} label="Gestantes" value={data.pregnancies.length} />
               <Kpi icon={<Milk className="size-4" />} label="Lactantes" value={data.lactations.length} />
               <Kpi icon={<AlertTriangle className="size-4" />} label="Reações em 60 dias" value={data.reactions.length} />
@@ -110,14 +110,14 @@ export default async function MaternalHome() {
                 ))}
               </Box>
             </div>
-            <Box title="Crianças" icon={<Sprout className="size-5" />} empty="Nenhuma criança até 10 anos entre os pacientes ativos.">
+            <Box title="Crianças e acompanhados" icon={<Sprout className="size-5" />} empty="Nenhuma criança até 10 anos entre os pacientes ativos. Marque o tipo de acompanhamento Materno-infantil no cadastro para incluir outros pacientes.">
               {data.children.map((c) => {
-                const days = ageInDays(c.birth_date, today);
+                const days = c.birth_date ? ageInDays(c.birth_date, today) : null;
                 return (
                   <li key={c.id} className="flex flex-wrap items-center gap-x-3 py-2.5 text-sm">
                     <Link href={tab(c.id)} className="font-medium text-primary hover:underline">{c.full_name}</Link>
-                    <span className="text-muted-foreground">{ageLabel(days)}</span>
-                    {days < 730 && <span className="rounded-full bg-accent px-2 py-0.5 text-xs text-accent-foreground">introdução alimentar</span>}
+                    <span className="text-muted-foreground">{days !== null ? ageLabel(days) : 'sem data de nascimento'}</span>
+                    {days !== null && days < 730 && <span className="rounded-full bg-accent px-2 py-0.5 text-xs text-accent-foreground">introdução alimentar</span>}
                   </li>
                 );
               })}

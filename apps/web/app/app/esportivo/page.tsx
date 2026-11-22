@@ -33,7 +33,8 @@ export default async function SportHome() {
   if (target) redirect(target);
   const org = organizations?.find((o) => o.role === 'owner' || o.role === 'nutritionist') ?? null;
   const patients = org ? await listPatients(org.id) : null;
-  const athletes = (patients ?? []).filter((p) => p.status === 'active' && isAthlete(p.objective));
+  // Tipo escolhido no cadastro; sem tipo, pelo objetivo
+  const athletes = (patients ?? []).filter((p) => p.status === 'active' && (p.care_profile === 'sport' || (!p.care_profile && isAthlete(p.objective))));
   const byGoal = (re: RegExp) => athletes.filter((a) => re.test(a.objective ?? '')).length;
 
   return (
@@ -61,7 +62,7 @@ export default async function SportHome() {
               <h2 id="atletas" className="font-display text-2xl font-bold uppercase tracking-tight">Atletas</h2>
               {athletes.length === 0 ? (
                 <p className="rounded-xl border border-dashed border-border p-6 text-sm text-muted-foreground">
-                  Nenhum atleta ainda. Um paciente aparece aqui quando o objetivo dele cita esporte, treino, hipertrofia, corrida, competição ou a modalidade (edite o objetivo na ficha).
+                  Nenhum atleta ainda. Um paciente aparece aqui quando o tipo de acompanhamento no cadastro é Esportivo, ou, no automático, quando o objetivo cita esporte, treino, hipertrofia, corrida, competição ou a modalidade.
                 </p>
               ) : (
                 <ul aria-label="Atletas" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

@@ -4,7 +4,7 @@ import { ACCESS_COOKIE } from '@/lib/auth/cookies';
 import { directus, directusErrorInfo } from '@/lib/auth/directus';
 import type { Patient } from './schema';
 
-const FIELDS = ['id', 'full_name', 'birth_date', 'sex', 'email', 'phone', 'objective', 'status', 'created_at', 'return_interval_days'];
+const FIELDS = ['id', 'full_name', 'birth_date', 'sex', 'email', 'phone', 'objective', 'status', 'created_at', 'return_interval_days', 'care_profile'];
 
 /**
  * Pacientes do consultório, com o token do usuário (as permissões do Directus limitam

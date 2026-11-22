@@ -46,7 +46,7 @@ describe('utilitários da ficha', () => {
   it('edição limpa campos opcionais vazios (null) e mantém o nome', () => {
     const data = patientFormSchema.parse({ full_name: 'Ana Souza', birth_date: '', email: '', phone: '', cpf: '', objective: '' });
     expect(toPatientUpdate(data)).toEqual({
-      full_name: 'Ana Souza', birth_date: null, sex: null, email: null, phone: null, cpf: null, objective: null,
+      full_name: 'Ana Souza', birth_date: null, sex: null, email: null, phone: null, cpf: null, objective: null, care_profile: null,
     });
   });
   it('converte o paciente para os valores do formulário', () => {

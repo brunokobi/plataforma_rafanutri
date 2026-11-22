@@ -209,8 +209,11 @@ export function setupMaternal({ router, database, logger, h, notifier = null }) 
     const o = await database('organizations').where('id', org).first('plan', 'modules');
     if (!(MATERNAL_PLANS.has(o?.plan) || (o?.modules ?? []).includes('maternal'))) return res.json({ data: { allowed: false } });
     const [children, pregnancies, lactations, reactions] = await Promise.all([
-      database('patients').where({ organization_id: org, status: 'active' }).whereRaw("birth_date > current_date - interval '10 years'")
-        .orderBy('birth_date', 'desc').limit(300).select('id', 'full_name', 'sex', 'birth_date'),
+      // Crianças até 10 anos e quem foi marcado como Materno-infantil no cadastro
+      database('patients').where({ organization_id: org, status: 'active' })
+        .where((q) => q.whereRaw("birth_date > current_date - interval '10 years'").orWhere('care_profile', 'maternal'))
+        .whereRaw("coalesce(care_profile, 'maternal') = 'maternal'")
+        .orderByRaw('birth_date desc nulls last').limit(300).select('id', 'full_name', 'sex', 'birth_date', 'care_profile'),
       database('pregnancies as g').join('patients as p', 'p.id', 'g.patient_id').where({ 'g.organization_id': org, 'g.status': 'active', 'p.status': 'active' })
         .orderBy('g.lmp_date').select('p.id', 'p.full_name', 'g.lmp_date'),
       database('lactations as l').join('patients as p', 'p.id', 'l.patient_id').leftJoin('patients as b', 'b.id', 'l.baby_patient_id')

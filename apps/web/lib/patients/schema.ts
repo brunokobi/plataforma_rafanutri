@@ -16,7 +16,12 @@ export interface Patient {
   organization_id?: string; // lido apenas na ficha
   updated_at?: string | null;
   return_interval_days?: number | null; // CRM: dias até o retorno previsto
+  /** Tipo de acompanhamento; nulo = automático (idade e objetivo). */
+  care_profile?: CareProfile | null;
 }
+
+export type CareProfile = 'clinical' | 'sport' | 'maternal';
+export const CARE_PROFILE_LABEL: Record<CareProfile, string> = { clinical: 'Clínico', sport: 'Esportivo', maternal: 'Materno-infantil' };
 
 const onlyDigits = (s: string) => s.replace(/\D/g, '');
 
@@ -90,13 +95,14 @@ export const patientFormSchema = z.object({
       .optional(),
   ),
   objective: z.preprocess(optional, z.string().trim().max(300, 'Use no máximo 300 caracteres.').optional()),
+  care_profile: z.preprocess(optional, z.enum(['clinical', 'sport', 'maternal'], { error: 'Escolha uma opção.' }).optional()),
 });
 
 export type PatientFormInput = z.input<typeof patientFormSchema>;
 export type PatientFormData = z.output<typeof patientFormSchema>;
 
 /** Campos opcionais que a edição pode limpar (vazio no formulário = apagar no banco). */
-const CLEARABLE = ['birth_date', 'sex', 'email', 'phone', 'cpf', 'objective'] as const;
+const CLEARABLE = ['birth_date', 'sex', 'email', 'phone', 'cpf', 'objective', 'care_profile'] as const;
 
 /** Payload de edição: campos opcionais vazios viram null para apagar o valor salvo. */
 export function toPatientUpdate(data: PatientFormData): Record<string, string | null> {
@@ -127,6 +133,7 @@ export function toFormValues(p: Patient): PatientFormInput {
     phone: p.phone ?? '',
     cpf: p.cpf ? formatCpf(p.cpf) : '',
     objective: p.objective ?? '',
+    care_profile: p.care_profile ?? undefined,
   };
 }
 

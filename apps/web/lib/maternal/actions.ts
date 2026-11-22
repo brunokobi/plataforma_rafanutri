@@ -141,7 +141,7 @@ export type MaternalOverview =
   | { allowed: false }
   | {
       allowed: true;
-      children: Array<{ id: string; full_name: string; sex: 'female' | 'male' | null; birth_date: string }>;
+      children: Array<{ id: string; full_name: string; sex: 'female' | 'male' | null; birth_date: string | null; care_profile: string | null }>;
       pregnancies: Array<{ id: string; full_name: string; lmp_date: string }>;
       lactations: Array<{ id: string; full_name: string; started_on: string; feeding_type: string; baby_name: string | null }>;
       reactions: Array<{ id: string; full_name: string; item: string; reaction: 'moderate' | 'severe'; introduced_on: string; by_guardian: boolean }>;

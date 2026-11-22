@@ -128,6 +128,20 @@ export function PatientForm({ patientId, initialValues, onDone, onCancel }: Pati
         {field('email', 'E-mail (opcional)', { type: 'email', autoComplete: 'off' })}
         {field('cpf', 'CPF (opcional)', { inputMode: 'numeric', placeholder: '000.000.000-00' })}
         <div className="sm:col-span-2">{field('objective', 'Objetivo (opcional)', { placeholder: 'Ex.: emagrecimento, hipertrofia, controle glicêmico' })}</div>
+        <div className="space-y-1.5 sm:col-span-2">
+          <Label htmlFor={`${prefix}-care`}>Tipo de acompanhamento</Label>
+          <select
+            id={`${prefix}-care`}
+            {...form.register('care_profile', { setValueAs: (v) => (v === '' ? undefined : v) })}
+            className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
+          >
+            <option value="">Automático (pela idade e pelo objetivo)</option>
+            <option value="clinical">Clínico</option>
+            <option value="sport">Esportivo (atleta ou praticante)</option>
+            <option value="maternal">Materno-infantil (criança, gestante ou lactante)</option>
+          </select>
+          <p className="text-xs text-muted-foreground">Define o visual da ficha e em qual módulo o paciente aparece (Esportivo ou Materno-infantil).</p>
+        </div>
       </div>
       <div className="flex flex-wrap justify-end gap-2">
         <Button type="button" variant="ghost" onClick={onCancel} disabled={pending}>

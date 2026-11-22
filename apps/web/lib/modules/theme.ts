@@ -41,8 +41,10 @@ export function isAthlete(objective: string | null | undefined): boolean {
  * Tema da ficha conforme o paciente: criança (até 11 anos) com o visual infantil e atleta com o esportivo.
  * Não vale nas abas que já têm o próprio módulo (Materno-infantil e Triagens).
  */
-export function patientTheme(p: { objective: string | null; birth_date: string | null }, ageYears: number | null, tab: string): ModuleTheme | null {
+export function patientTheme(p: { objective: string | null; birth_date: string | null; care_profile?: 'clinical' | 'sport' | 'maternal' | null }, ageYears: number | null, tab: string): ModuleTheme | null {
   if (tab === 'materno' || tab === 'triagens') return null;
+  // Escolhido no cadastro vence o automático (Clínico = visual padrão da ficha)
+  if (p.care_profile) return p.care_profile === 'clinical' ? null : p.care_profile;
   if (ageYears !== null && ageYears < 12) return 'maternal';
   if (isAthlete(p.objective)) return 'sport';
   return null;
