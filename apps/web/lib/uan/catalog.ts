@@ -43,7 +43,8 @@ export interface Ingredient {
   price_valid_from?: string | null;
 }
 
-export interface IngredientList { organization: { id: string; name: string }; can_manage: boolean; items: Ingredient[] }
+export type IngredientStatus = 'active' | 'inactive' | 'all';
+export interface IngredientList { organization: { id: string; name: string }; can_manage: boolean; counts?: { active: number; inactive: number }; starter_size?: number; items: Ingredient[] }
 export interface PriceRow { id: string; price_cents: number; valid_from: string; source: 'manual' | 'receiving' | 'import'; created_at: string; supplier_name: string | null; created_by_name: string | null }
 export interface IngredientDetail {
   ingredient: Ingredient;

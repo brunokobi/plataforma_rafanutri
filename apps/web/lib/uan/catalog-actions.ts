@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import type { IngredientDetail, IngredientList, SupplierList } from '@/lib/uan/catalog';
+import type { IngredientDetail, IngredientList, IngredientStatus, SupplierList } from '@/lib/uan/catalog';
 import { call } from '@/lib/directus/rafanutri';
 import { isUuid } from '@/lib/validation/ids';
 
@@ -34,11 +34,12 @@ async function send(path: string, method: string, body: unknown, fallback: strin
   }
 }
 
-export async function getIngredients(orgId: string, q = '', category = ''): Promise<IngredientList | null | undefined> {
+export async function getIngredients(orgId: string, q = '', category = '', status: IngredientStatus = 'all'): Promise<IngredientList | null | undefined> {
   if (!isUuid(orgId)) return undefined;
   const qs = new URLSearchParams();
   if (q) qs.set('q', q.slice(0, 80));
   if (category) qs.set('category', category);
+  if (status !== 'all') qs.set('status', status);
   return get<IngredientList>(`/uan/organizations/${orgId}/ingredients?${qs}`);
 }
 export async function getIngredient(id: string): Promise<IngredientDetail | null | undefined> {
@@ -74,6 +75,19 @@ export async function saveIngredient(orgId: string, id: string | null, input: In
   return id
     ? send(`/uan/ingredients/${id}`, 'PUT', input, 'Não foi possível salvar o insumo.', [`/app/uan/insumos/${id}`, '/app/uan/insumos'])
     : send(`/uan/organizations/${orgId}/ingredients`, 'POST', input, 'Não foi possível cadastrar o insumo.', ['/app/uan/insumos']);
+}
+
+/** Cadastra os insumos do catálogo básico que a empresa ainda não tem. */
+export async function addStarterIngredients(orgId: string): Promise<{ ok: true; added: number } | { ok: false; message: string }> {
+  if (!isUuid(orgId)) return { ok: false, message: 'Empresa inválida.' };
+  try {
+    const r = await call(`/uan/organizations/${orgId}/ingredients/starter`, 'POST', {});
+    if (r.status !== 201) return fail(r, 'Não foi possível adicionar o catálogo básico.') as { ok: false; message: string };
+    revalidatePath('/app/uan/insumos');
+    return { ok: true, added: (r.json?.data as { added?: number } | undefined)?.added ?? 0 };
+  } catch {
+    return { ok: false, message: FAIL };
+  }
 }
 
 export async function addPrice(ingredientId: string, input: { price: string; supplier_id: string; valid_from: string }): Promise<Result> {

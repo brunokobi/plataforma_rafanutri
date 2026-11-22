@@ -217,6 +217,7 @@ Contagem de rotas por `router.get|post|put|patch|delete(` em 22/11/2026, depois 
 | `clinical-dashboard.js` | 2 | Painéis clínicos: `/clinical/patients-dashboard` e `/patients/:id/dashboard` |
 | `ai.js` | 2 | Assistente de IA (0063): `/ai/status` e `/ai/ask` |
 | `google-auth.js` | 2 | Entrar com Google: `/public/auth/google/config` e `/public/auth/google` (troca do código, conta por e-mail e sessão aberta pelo `/auth/refresh` do próprio Directus) |
+| `ingredient-starter.js` | 0 | Catálogo básico de insumos da UAN (63 itens com unidade, armazenamento, alergênicos e FC de referência) |
 | `ai-core.js` | 0 | Regras da IA: modelos gratuitos, anonimização, cota |
 | `billing.js` | 0 | Código Pix (BR Code), períodos e valores |
 | `notifications.js` | 0 | Regras dos avisos: canal, janelas de lembrete, textos |

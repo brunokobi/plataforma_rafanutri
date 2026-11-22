@@ -1,6 +1,7 @@
 // Módulo UAN e Qualidade (Enterprise): unidades, equipe, checklists, temperaturas, não conformidades, insumos,
 // fichas técnicas, cardápios, produção, estoque, compras, documentos, APPCC, rótulos, cardápio publicado, perfis,
 // contrato, importação, painel da rede e administração dos contratos. Saiu de index.js (mesma ordem das rotas).
+import { STARTER_INGREDIENTS, missingStarter } from './ingredient-starter.js';
 import { isIsoDate } from './finance.js';
 import { parseImageDataUrl } from './foods.js';
 import { createHash, randomBytes } from 'node:crypto';
@@ -1328,11 +1329,33 @@ export function setupUan(ctx) {
       let q = database('ingredients as i').leftJoin('foods as f', 'f.id', 'i.food_id').where('i.organization_id', acc.orgId).orderBy('i.name').limit(500);
       if (typeof req.query.q === 'string' && req.query.q.trim()) q = q.whereRaw('f_unaccent(lower(i.name)) like f_unaccent(lower(?))', [`%${req.query.q.trim().slice(0, 80)}%`]);
       if (ING_CATEGORIES.has(req.query.category)) q = q.where('i.category', req.query.category);
+      // Situação: em uso (active), fora de uso (inactive) ou todos (padrão, compatível com chamadas antigas).
+      if (req.query.status === 'active') q = q.where('i.active', true);
+      else if (req.query.status === 'inactive') q = q.where('i.active', false);
+      const counts = await database('ingredients').where('organization_id', acc.orgId)
+        .select(database.raw('count(*) filter (where active)::int as active'), database.raw('count(*) filter (where not active)::int as inactive')).first();
       const rows = await q.select(...ING_FIELDS.map((f) => `i.${f}`), 'f.name as food_name',
         database.raw('(select p.price_cents from ingredient_price_at(i.id) p) as price_cents'),
         database.raw('(select p.valid_from from ingredient_price_at(i.id) p) as price_valid_from'));
       const org = await database('organizations').where('id', acc.orgId).first('id', 'name');
-      res.json({ data: { organization: org, can_manage: acc.canManage, items: rows.map((r) => ({ ...ingOut(r), price_valid_from: dateOut(r.price_valid_from) })) } });
+      res.json({ data: { organization: org, can_manage: acc.canManage, counts: { active: counts?.active ?? 0, inactive: counts?.inactive ?? 0 }, starter_size: STARTER_INGREDIENTS.length, items: rows.map((r) => ({ ...ingOut(r), price_valid_from: dateOut(r.price_valid_from) })) } });
+    });
+
+    // Catálogo básico: cadastra os insumos comuns que a empresa ainda não tem (pelo nome). Pode repetir sem duplicar.
+    router.post('/uan/organizations/:id/ingredients/starter', async (req, res) => {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const acc = await catalogAccess(user, req.params.id);
+      if (!acc) return notFoundMsg(res, 'Empresa');
+      if (!acc.canManage) return catalogForbidden(res);
+      try {
+        const existing = await database('ingredients').where('organization_id', acc.orgId).pluck('name');
+        const rows = missingStarter(existing).map((i) => ingredientBody(i)).filter((r) => r.data).map((r) => ({ ...r.data, organization_id: acc.orgId }));
+        if (rows.length) await withActor(user, (trx) => trx('ingredients').insert(rows));
+        res.status(201).json({ data: { added: rows.length, skipped: STARTER_INGREDIENTS.length - rows.length } });
+      } catch (error) {
+        catalogDbError(res, error, 'cadastrar o catálogo básico');
+      }
     });
 
     router.post('/uan/organizations/:id/ingredients', async (req, res) => {
