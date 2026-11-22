@@ -6,7 +6,9 @@ import { AccountTelegram } from '@/components/billing/account-telegram';
 import { NotificationSettingsView } from '@/components/notifications/settings-view';
 import { getMyAccountNotifications } from '@/lib/billing/actions';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { PracticeLocked } from '@/components/app/practice-locked';
 import { getMyOrganizations, landingRedirect } from '@/lib/auth/organizations';
+import { hasPracticeModule } from '@/lib/modules/practice';
 import { getCurrentUser } from '@/lib/auth/session';
 import { isSignupOpen } from '@/lib/flags';
 import { getNotificationLog, getNotificationOverview } from '@/lib/notifications/actions';
@@ -20,6 +22,7 @@ export default async function NotificationSettingsPage() {
   const organizations = await getMyOrganizations();
   const target = landingRedirect('app', organizations, isSignupOpen());
   if (target) redirect(target);
+  if (!hasPracticeModule(organizations)) return <PracticeLocked title="Avisos e lembretes" />;
   const [overview, log, mine] = await Promise.all([getNotificationOverview(), getNotificationLog(), getMyAccountNotifications()]);
   return (
     <div className="min-h-dvh">

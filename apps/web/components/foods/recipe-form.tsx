@@ -1,6 +1,6 @@
 'use client';
 
-import { recipeNutrition } from '@rafanutri/nutrition-core';
+import { recipeComposition } from '@rafanutri/nutrition-core';
 import { AlertCircle, ImagePlus, Loader2, Search, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useState, useTransition } from 'react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -16,14 +16,15 @@ import { resizeImage } from '@/lib/recipes/resize-image';
 import { DIFFICULTY_LABEL, type Difficulty } from '@/lib/recipes/types';
 
 type Line = { food: Food; quantity: string };
+/** Decimal digitado (vírgula ou ponto); vazio vira 0 e a linha fica de fora da conta (filtro > 0). */
 const toNum = (v: string) => Number(v.replace(',', '.'));
 const fmt = (n: number, d = 1) => n.toLocaleString('pt-BR', { maximumFractionDigits: d });
 
-/** Prévia da composição por 100 g (o servidor recalcula com a composição do banco ao salvar). */
+/** Prévia da composição por 100 g, com a mesma regra que o servidor usa para gravar (recipeComposition). */
 export function previewPer100g(lines: Array<{ food: Food; quantityG: number }>, yieldG: number) {
   if (!(yieldG > 0) || lines.length === 0) return null;
   try {
-    return recipeNutrition(lines.map((l) => ({ quantityG: l.quantityG, per100g: l.food.per100g })), yieldG);
+    return recipeComposition(lines.map((l) => ({ quantityG: l.quantityG, per100g: l.food.per100g })), yieldG);
   } catch {
     return null;
   }

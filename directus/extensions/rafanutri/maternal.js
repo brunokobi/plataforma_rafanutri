@@ -7,7 +7,8 @@ const ISO = /^\d{4}-\d{2}-\d{2}$/;
 
 const iso = (d) => (d instanceof Date ? d.toISOString().slice(0, 10) : d ? String(d).slice(0, 10) : null);
 const numOrNull = (v) => (v === null || v === undefined || v === '' ? null : Number(v));
-const today = () => new Date().toISOString().slice(0, 10);
+/** Hoje no horário de Brasília (não em UTC: depois das 21h seria amanhã). */
+const today = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
 
 /** Validação de uma medida (criança/adolescente ou gestante). Devolve { value } ou { errors }. */
 export function validateMeasurement(b) {
@@ -273,8 +274,10 @@ export function setupMaternal({ router, database, logger, h, notifier = null }) 
     const r = validateMeasurement(req.body);
     if (r.errors) return bad(res, r.errors);
     const v = r.value;
-    const ageYears = a.patient.birth_date ? Math.max(0, (Date.parse(`${v.assessed_at}T12:00:00Z`) - Date.parse(`${iso(a.patient.birth_date)}T12:00:00Z`)) / (365.25 * 864e5)) : null;
-    if (ageYears !== null && ageYears > 130) return bad(res, { assessed_at: 'Data anterior ao nascimento.' });
+    const rawAge = a.patient.birth_date ? (Date.parse(`${v.assessed_at}T12:00:00Z`) - Date.parse(`${iso(a.patient.birth_date)}T12:00:00Z`)) / (365.25 * 864e5) : null;
+    if (rawAge !== null && rawAge < 0) return bad(res, { assessed_at: 'Data anterior ao nascimento.' });
+    if (rawAge !== null && rawAge > 130) return bad(res, { assessed_at: 'Data inválida para a idade do paciente.' });
+    const ageYears = rawAge;
     const bmi = v.weight_kg && v.height_cm ? Math.round((v.weight_kg / (v.height_cm / 100) ** 2) * 100) / 100 : null;
     try {
       const [row] = await withActor(a.user, (trx) => trx('anthropometric_assessments').insert({

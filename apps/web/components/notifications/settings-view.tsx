@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { saveNotificationSettings, sendTestNotification } from '@/lib/notifications/actions';
 import {
-  CHANNEL_LABEL, hoursLabel, KIND_LABEL, REMINDER_HOURS, STATUS_LABEL,
+  CHANNEL_LABEL, hoursLabel, kindLabel, REMINDER_HOURS, STATUS_LABEL,
   type NotificationLogItem, type NotificationOverview, type NotificationSettings,
 } from '@/lib/notifications/types';
 
@@ -155,7 +155,7 @@ export function NotificationSettingsView({ overview, log }: { overview: Notifica
                     <tr key={n.id} className="border-b border-border/60 last:border-0">
                       <td className="py-2 pr-3 whitespace-nowrap">{when(n.sent_at ?? n.date_created)}</td>
                       <td className="py-2 pr-3">{n.patient_id ? <Link href={`/app/pacientes/${n.patient_id}`} className="hover:underline">{n.patient_name}</Link> : '—'}</td>
-                      <td className="py-2 pr-3">{KIND_LABEL[n.kind]}</td>
+                      <td className="py-2 pr-3">{kindLabel(n.kind)}</td>
                       <td className="py-2 pr-3">{CHANNEL_LABEL[n.channel]}</td>
                       <td className="py-2" title={n.last_error ?? undefined}>
                         <span className={n.status === 'failed' ? 'text-destructive' : n.status === 'sent' ? '' : 'text-muted-foreground'}>{STATUS_LABEL[n.status]}</span>

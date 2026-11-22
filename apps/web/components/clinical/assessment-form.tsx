@@ -12,7 +12,7 @@ import { PROTOCOLS, computeAssessment, protocolSites, type AssessmentInput, type
 import type { AssessmentInputData } from '@/lib/assessments/schema';
 import { demoHistory, demoPatient } from '@/lib/demo/patient';
 import { cn } from '@/lib/utils';
-import { dateBR as formatDateBR } from '@/lib/format/date';
+import { dateBR as formatDateBR, todaySP } from '@/lib/format/date';
 
 const SITE_LABELS: Record<SkinfoldSite, string> = {
   triceps: 'Tríceps', biceps: 'Bíceps', subscapular: 'Subescapular', suprailiac: 'Suprailíaca',
@@ -28,7 +28,7 @@ const WAIST_LABELS = { low: 'Sem risco aumentado', increased: 'Risco aumentado',
 
 const num = (v: string | undefined) => (v === undefined || v.trim() === '' ? null : Number(v.replace(',', '.')));
 const fmt = (v: number, d = 1) => v.toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d });
-const todayISO = () => new Date().toISOString().slice(0, 10);
+const todayISO = () => todaySP();
 
 function Result({ label, value, hint, tone = 'default' }: { label: string; value: string; hint?: string; tone?: 'default' | 'good' | 'warn' }) {
   return (

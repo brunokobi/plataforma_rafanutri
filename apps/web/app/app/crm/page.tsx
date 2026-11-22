@@ -6,7 +6,9 @@ import { CrmBoard } from '@/components/crm/crm-board';
 import { CrmMetrics } from '@/components/crm/crm-metrics';
 import { CrmReturns } from '@/components/crm/crm-returns';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { PracticeLocked } from '@/components/app/practice-locked';
 import { getMyOrganizations, landingRedirect } from '@/lib/auth/organizations';
+import { hasPracticeModule } from '@/lib/modules/practice';
 import { getCurrentUser } from '@/lib/auth/session';
 import { getBoard, getMetrics, getReturns } from '@/lib/crm/actions';
 import { isSignupOpen } from '@/lib/flags';
@@ -23,6 +25,7 @@ export default async function CrmPage({ searchParams }: { searchParams: Promise<
   const organizations = await getMyOrganizations();
   const target = landingRedirect('app', organizations, isSignupOpen());
   if (target) redirect(target);
+  if (!hasPracticeModule(organizations)) return <PracticeLocked title="CRM" />;
   const sp = await searchParams;
   const tab = TABS.some(([k]) => k === sp.aba) ? sp.aba! : 'funil';
   const window = ['overdue', '7', '30'].includes(sp.janela ?? '') ? sp.janela! : '';

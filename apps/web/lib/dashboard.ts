@@ -41,6 +41,9 @@ export function withoutReturn(
   days = 30,
 ): Array<DashPatient & { lastVisit: string; daysSince: number; interval: number }> {
   const nowMs = now.getTime();
+  // Em dias do calendário de Brasília, como o CRM e os indicadores (data da última consulta + intervalo < hoje)
+  const today = localDate(now.toISOString());
+  const dayNum = (d: string) => Math.round(Date.parse(`${d}T12:00:00Z`) / 86_400_000);
   const last = new Map<string, number>();
   const hasFuture = new Set<string>();
   for (const a of appointments) {
@@ -52,9 +55,10 @@ export function withoutReturn(
   for (const p of patients) {
     const t = last.get(p.id);
     if (p.status !== 'active' || t === undefined || hasFuture.has(p.id)) continue;
-    const daysSince = Math.floor((nowMs - t) / 86_400_000);
+    const lastVisit = localDate(new Date(t).toISOString());
+    const daysSince = dayNum(today) - dayNum(lastVisit);
     const interval = p.return_interval_days ?? days;
-    if (daysSince > interval) out.push({ ...p, lastVisit: localDate(new Date(t).toISOString()), daysSince, interval });
+    if (daysSince > interval) out.push({ ...p, lastVisit, daysSince, interval });
   }
   return out.sort((a, b) => b.daysSince - a.daysSince);
 }

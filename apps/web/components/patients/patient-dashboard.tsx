@@ -2,9 +2,11 @@ import { Activity, CalendarCheck, ClipboardList, FileText, Package, Smartphone, 
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { MetricChart } from '@/components/charts/metric-chart';
+import { dateBR } from '@/lib/format/date';
 import type { PatientDashboard as Data, TimelineEvent } from '@/lib/clinical-dashboard/types';
 
-const day = (iso: string) => new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'America/Sao_Paulo' });
+// dateBR trata data sem hora ("2026-11-11") como o próprio dia; new Date(iso) cairia no dia anterior em Brasília
+const day = (iso: string) => dateBR(iso, { day: '2-digit', month: 'short', year: 'numeric' });
 const dayTime = (iso: string) => new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' });
 const kg = (n: number) => `${n.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} kg`;
 const signedKg = (n: number) => (n === 0 ? 'estável' : `${n > 0 ? '+' : '−'}${kg(Math.abs(n))}`);

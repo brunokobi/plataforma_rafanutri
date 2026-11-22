@@ -108,6 +108,25 @@ export default {
       res.status(400).json({ errors: [{ message, extensions: { code: 'INVALID_PAYLOAD', fields: errors } }] });
     const notFound = (res) => res.status(404).json({ errors: [{ message: 'Alimento não encontrado.', extensions: { code: 'NOT_FOUND' } }] });
 
+    // ── Módulo Gestão do consultório (financeiro, CRM, pacotes, agendamento online e lembretes) ──
+    // Fora do plano Gratuito: Essencial, Profissional e Clínica, ou habilitado por contrato (organizations.modules).
+    const PRACTICE_PLANS = new Set(['essential', 'professional', 'clinic']);
+    const hasPractice = (o) => Boolean(o && (PRACTICE_PLANS.has(o.plan) || (o.modules ?? []).includes('practice')));
+    const PRACTICE_ROUTES = ['/finance', '/crm', '/packages', '/patient-packages', '/patients/:id/packages', '/booking-requests', '/notifications/settings', '/notifications/test', '/practices/:id/public-profile'];
+    router.use(PRACTICE_ROUTES, async (req, res, next) => {
+      try {
+        const user = req.accountability?.user;
+        if (!user) return next(); // a rota responde 401
+        const orgs = await database('organization_members as m').join('organizations as o', 'o.id', 'm.organization_id')
+          .where('m.user_id', user).select('o.plan', 'o.modules');
+        if (orgs.length === 0 || orgs.some(hasPractice)) return next();
+        return res.status(403).json({ errors: [{ message: 'O módulo Gestão do consultório (financeiro, CRM, pacotes, agendamento online e lembretes) faz parte dos planos Essencial, Profissional e Clínica.', extensions: { code: 'PLAN_REQUIRED' } }] });
+      } catch (error) {
+        logger.error({ err: error }, 'rafanutri: falha ao conferir o módulo Gestão');
+        return res.status(500).json({ errors: [{ message: 'Não foi possível conferir o seu plano agora.', extensions: { code: 'INTERNAL_SERVER_ERROR' } }] });
+      }
+    });
+
     async function clinicalOrg(userId, trx = database) {
       const row = await trx('organization_members as m')
         .join('organizations as o', 'o.id', 'm.organization_id')
@@ -1131,12 +1150,14 @@ export default {
     const profileOut = (p) => p && ({ ...p, price_first_cents: p.price_first_cents == null ? null : Number(p.price_first_cents), price_return_cents: p.price_return_cents == null ? null : Number(p.price_return_cents) });
     async function publicPractice(slug) {
       if (typeof slug !== 'string' || !/^[a-z0-9-]{1,80}$/.test(slug)) return null;
-      const org = await database('organizations').where('slug', slug).first('id', 'name', 'brand_color', 'logo');
+      const org = await database('organizations').where('slug', slug).first('id', 'name', 'brand_color', 'logo', 'plan', 'modules');
       if (!org) return null;
       const profile = profileOut(await database('public_profiles').where({ organization_id: org.id, enabled: true }).first(PROFILE_FIELDS));
       if (!profile) return null;
       const nutri = profile.nutritionist_id ?? (await database('organization_members').where({ organization_id: org.id, role: 'owner' }).first('user_id'))?.user_id;
-      return { org, profile: { ...profile, nutritionist_id: nutri } };
+      // Agendamento online é do módulo Gestão: no plano Gratuito a página pública fica, sem marcar horário
+      const booking = profile.booking_enabled && hasPractice(org);
+      return { org, profile: { ...profile, booking_enabled: booking, nutritionist_id: nutri } };
     }
     async function busyIntervals(orgId, nutri, from, to) {
       const a = await database('appointments').where({ organization_id: orgId, nutritionist_id: nutri }).whereIn('status', ['scheduled', 'confirmed', 'completed'])
@@ -2029,7 +2050,7 @@ export default {
       logger.error({ err: error }, `rafanutri: falha ao ${what}`);
       return res.status(500).json({ errors: [{ message: 'Não foi possível salvar agora.', extensions: { code: 'INTERNAL_SERVER_ERROR' } }] });
     };
-    const numOrNull = (v) => (v === null || v === undefined ? null : Number(v));
+    const numOrNull = (v) => (v === null || v === undefined || v === '' ? null : Number(v));
     const userName = (u) => [u?.first_name, u?.last_name].filter(Boolean).join(' ') || null;
 
     async function runAccess(user, runId) {

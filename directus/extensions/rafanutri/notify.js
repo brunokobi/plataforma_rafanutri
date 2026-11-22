@@ -12,6 +12,8 @@ import { buildMessage, isImportant, isStop, isTelegramGone, KINDS, parseStart, p
 const MAX_ATTEMPTS = 5;
 const RECENT = "interval '30 minutes'";
 const ACTIVE = ['scheduled', 'confirmed'];
+/** Consultório com o módulo Gestão (avisos de consulta e lembretes). */
+const PRACTICE_SQL = "(o.plan in ('essential', 'professional', 'clinic') or 'practice' = any(o.modules))";
 const DEFAULTS = { reminders_enabled: true, reminder_hours: [24, 2], scheduled_enabled: true, plan_enabled: true, reminder_note: null };
 const LINK_TTL_DAYS = 7;
 
@@ -214,7 +216,9 @@ export function setupNotifications({ router, database, logger, services, getSche
 
   /** Consulta marcada, remarcada e cancelada (mudanças dos últimos 30 minutos). */
   async function scanAppointments() {
+    // Avisos de consulta e lembretes são do módulo Gestão (fora do plano Gratuito)
     const rows = await database('appointments as a').join('patients as p', 'p.id', 'a.patient_id')
+      .join('organizations as o', 'o.id', 'a.organization_id').whereRaw(PRACTICE_SQL)
       .leftJoin('notification_settings as s', 's.organization_id', 'a.organization_id')
       .whereRaw(`coalesce(a.date_updated, a.date_created) > now() - ${RECENT}`)
       .where('a.starts_at', '>', database.fn.now()).where('p.status', 'active')
@@ -235,6 +239,7 @@ export function setupNotifications({ router, database, logger, services, getSche
   /** Lembretes: cada horário configurado tem a sua janela (ver reminderWindows). */
   async function scanReminders() {
     const orgs = await database('appointments as a').leftJoin('notification_settings as s', 's.organization_id', 'a.organization_id')
+      .join('organizations as o', 'o.id', 'a.organization_id').whereRaw(PRACTICE_SQL)
       .whereIn('a.status', ACTIVE).where('a.starts_at', '>', database.fn.now()).whereRaw("a.starts_at <= now() + interval '72 hours'")
       .whereRaw('coalesce(s.reminders_enabled, true)').distinct('a.organization_id');
     for (const { organization_id: orgId } of orgs) {

@@ -5,13 +5,16 @@
 const DAY = 864e5;
 const iso = (d) => (d instanceof Date ? d.toISOString().slice(0, 10) : d ? String(d).slice(0, 10) : null);
 const ts = (d) => (d ? new Date(d).getTime() : null);
+/** Data (AAAA-MM-DD) no horário de Brasília. */
+const spDate = (d) => new Date(d).toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
+const addDays = (day, k) => new Date(Date.parse(`${day}T12:00:00Z`) + k * DAY).toISOString().slice(0, 10);
 const n = (v) => (v === null || v === undefined || v === '' ? null : Number(v));
 
 /** Limites das regras de atenção (dias). */
-export const ATTENTION_RULES = { noReturnDays: 45, neverSeenGraceDays: 14, planExpiringDays: 14, noAssessmentDays: 90 };
+export const ATTENTION_RULES = { defaultReturnDays: 30, neverSeenGraceDays: 14, planExpiringDays: 14, noAssessmentDays: 90 };
 
 export const REASONS = {
-  no_return: 'Sem retorno marcado há mais de 45 dias',
+  no_return: 'Retorno atrasado (passou do intervalo de retorno) e sem consulta marcada',
   never_seen: 'Cadastrado e ainda sem consulta',
   plan_expired: 'Plano alimentar vencido',
   plan_expiring: 'Plano alimentar vence em até 14 dias',
@@ -37,11 +40,12 @@ export function attentionReasons(r, now = new Date()) {
   const last = ts(r.last_visit_at);
   const next = ts(r.next_visit_at);
   if (!next) {
-    if (last && t - last > ATTENTION_RULES.noReturnDays * DAY) out.push('no_return');
+    // Mesma regra do CRM (/crm/returns) e dos indicadores: última consulta concluída + intervalo de retorno do paciente < hoje
+    if (last && addDays(spDate(last), n(r.return_interval_days) ?? ATTENTION_RULES.defaultReturnDays) < spDate(now)) out.push('no_return');
     if (!last && ts(r.created_at) && t - ts(r.created_at) > ATTENTION_RULES.neverSeenGraceDays * DAY) out.push('never_seen');
   }
   if (r.plan_published_at) {
-    const until = r.plan_valid_until ? ts(`${iso(r.plan_valid_until)}T23:59:59Z`) : null;
+    const until = r.plan_valid_until ? ts(`${iso(r.plan_valid_until)}T23:59:59-03:00`) : null;
     if (until && until < t) out.push('plan_expired');
     else if (until && until - t <= ATTENTION_RULES.planExpiringDays * DAY) out.push('plan_expiring');
   } else if (last) {
@@ -54,7 +58,12 @@ export function attentionReasons(r, now = new Date()) {
   return out;
 }
 
-const bmiBand = (b) => (b === null ? null : b < 18.5 ? 'under' : b < 25 ? 'normal' : b < 30 ? 'over' : 'obese');
+/** IMC por faixa: OMS para adultos (20 a 59 anos) e Lipschitz para idosos (60+), como classifyBmi do nutrition-core. */
+const bmiBand = (b, age) => {
+  if (b === null) return null;
+  if (age >= 60) return b < 22 ? 'under' : b <= 27 ? 'normal' : 'over';
+  return b < 18.5 ? 'under' : b < 25 ? 'normal' : b < 30 ? 'over' : 'obese';
+};
 const ageBand = (a) => (a === null ? 'unknown' : a < 10 ? 'child' : a < 20 ? 'teen' : a < 60 ? 'adult' : 'elderly');
 
 /** Visão geral a partir das linhas por paciente (uma por paciente do consultório) e dos números de consultas. */
@@ -88,8 +97,8 @@ export function buildPatientsDashboard(rows, visits, now = new Date()) {
     ages[ageBand(age)] += 1;
     sex[r.sex === 'female' || r.sex === 'male' ? r.sex : 'unknown'] += 1;
     risk[r.risk_level ?? 'none'] += 1;
-    // Classificação do IMC por faixa da OMS só para adultos (crianças e adolescentes usam as curvas)
-    const band = age !== null && age >= 20 ? bmiBand(n(r.last_bmi)) : null;
+    // IMC só de adultos e idosos (crianças e adolescentes usam as curvas da OMS)
+    const band = age !== null && age >= 20 ? bmiBand(n(r.last_bmi), age) : null;
     if (band) bmi[band] += 1;
   }
   const attention = active
@@ -116,7 +125,7 @@ export function setupClinicalDashboard({ router, database, logger, h }) {
     try {
       const [rowsQ, visitsQ] = await Promise.all([
         database.raw(`
-          with p as (select id, full_name, sex, birth_date, created_at, status, app_user_id from patients where organization_id = :org),
+          with p as (select id, full_name, sex, birth_date, created_at, status, app_user_id, return_interval_days from patients where organization_id = :org),
           lv as (select patient_id, max(starts_at) at from appointments where organization_id = :org and status = 'completed' group by 1),
           nv as (select patient_id, min(starts_at) at from appointments where organization_id = :org and status in ('scheduled', 'confirmed') and starts_at > now() group by 1),
           pl as (select patient_id, published_at, valid_until from meal_plans where organization_id = :org and status = 'published'),

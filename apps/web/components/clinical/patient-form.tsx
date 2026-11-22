@@ -1,5 +1,6 @@
 'use client';
 
+import { todaySP } from '@/lib/format/date';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import Link from 'next/link';
@@ -110,7 +111,7 @@ export function PatientForm({ patientId, initialValues, onDone, onCancel }: Pati
       )}
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="sm:col-span-2">{field('full_name', 'Nome completo', { autoComplete: 'off', autoFocus: !editing })}</div>
-        {field('birth_date', 'Data de nascimento (opcional)', { type: 'date', max: new Date().toISOString().slice(0, 10) })}
+        {field('birth_date', 'Data de nascimento (opcional)', { type: 'date', max: todaySP() })}
         <div className="space-y-1.5">
           <Label htmlFor={`${prefix}-sex`}>Sexo (opcional)</Label>
           <select

@@ -3,7 +3,9 @@ import { redirect } from 'next/navigation';
 import { AppHeader } from '@/components/app/app-header';
 import { FinanceView } from '@/components/finance/finance-view';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { PracticeLocked } from '@/components/app/practice-locked';
 import { getMyOrganizations, landingRedirect } from '@/lib/auth/organizations';
+import { hasPracticeModule } from '@/lib/modules/practice';
 import { getCurrentUser } from '@/lib/auth/session';
 import { getAppointmentPrefill, getFinanceCategories, getFinanceSummary, getTransactions } from '@/lib/finance/actions';
 import { monthRange } from '@/lib/finance/types';
@@ -21,6 +23,7 @@ export default async function FinancePage({ searchParams }: { searchParams: Prom
   const organizations = await getMyOrganizations();
   const target = landingRedirect('app', organizations, isSignupOpen());
   if (target) redirect(target);
+  if (!hasPracticeModule(organizations)) return <PracticeLocked title="Financeiro" />;
   const sp = await searchParams;
   const month = /^\d{4}-(0[1-9]|1[0-2])$/.test(sp.mes ?? '') ? sp.mes! : thisMonth();
   const { from, to } = monthRange(month);

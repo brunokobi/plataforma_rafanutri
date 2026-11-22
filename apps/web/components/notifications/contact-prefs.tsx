@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import {
   createMyTelegramLink, createPatientTelegramLink, saveMyContactPrefs, savePatientContactPrefs, unlinkMyTelegram, unlinkPatientTelegram,
 } from '@/lib/notifications/actions';
-import { CHANNEL_LABEL, KIND_LABEL, STATUS_LABEL, type ContactPrefs } from '@/lib/notifications/types';
+import { CHANNEL_LABEL, kindLabel, STATUS_LABEL, type ContactPrefs } from '@/lib/notifications/types';
 
 const when = (iso: string) => new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' });
 
@@ -159,7 +159,7 @@ export function ContactPrefsPanel({ mode, patientId = null, context = null, pref
           <ul className="divide-y divide-border text-sm">
             {prefs.recent.map((n) => (
               <li key={n.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
-                <span>{KIND_LABEL[n.kind]} · <span className="text-muted-foreground">{CHANNEL_LABEL[n.channel]}</span></span>
+                <span>{kindLabel(n.kind)} · <span className="text-muted-foreground">{CHANNEL_LABEL[n.channel]}</span></span>
                 <span className="text-xs text-muted-foreground" title={n.last_error ?? undefined}>{STATUS_LABEL[n.status]} · {when(n.sent_at ?? n.date_created)}</span>
               </li>
             ))}

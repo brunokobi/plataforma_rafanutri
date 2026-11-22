@@ -7,3 +7,8 @@ export function dateBR(iso: string, opts: Intl.DateTimeFormatOptions = { day: '2
   const d = new Date(iso.length === 10 ? `${iso}T12:00:00Z` : iso);
   return d.toLocaleDateString('pt-BR', { ...opts, timeZone: 'America/Sao_Paulo' });
 }
+
+/** Hoje (AAAA-MM-DD) no horário de Brasília. Nunca use new Date().toISOString().slice(0, 10): depois das 21h vira amanhã. */
+export function todaySP(now: Date = new Date()): string {
+  return now.toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
+}

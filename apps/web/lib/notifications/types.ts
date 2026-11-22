@@ -7,7 +7,13 @@ export type NotificationKind =
   | 'appointment_cancelled'
   | 'plan_published'
   | 'patient_invite'
-  | 'test';
+  | 'test'
+  | 'invoice_created'
+  | 'invoice_due'
+  | 'payment_reported'
+  | 'payment_confirmed'
+  | 'subscription_ended'
+  | 'feeding_reaction';
 
 export const KIND_LABEL: Record<NotificationKind, string> = {
   appointment_reminder: 'Lembrete de consulta',
@@ -15,9 +21,18 @@ export const KIND_LABEL: Record<NotificationKind, string> = {
   appointment_changed: 'Consulta remarcada',
   appointment_cancelled: 'Consulta cancelada',
   plan_published: 'Plano novo',
-  patient_invite: 'Convite',
+  patient_invite: 'Convite da área do paciente',
   test: 'Teste',
+  invoice_created: 'Fatura da assinatura',
+  invoice_due: 'Fatura vencendo',
+  payment_reported: 'Pagamento informado',
+  payment_confirmed: 'Pagamento confirmado',
+  subscription_ended: 'Assinatura encerrada',
+  feeding_reaction: 'Reação na introdução alimentar',
 };
+
+/** Rótulo de um tipo vindo do servidor; tipo novo ainda sem rótulo aparece pelo código, nunca "undefined". */
+export const kindLabel = (k: string) => KIND_LABEL[k as NotificationKind] ?? k;
 
 export type NotificationStatus = 'queued' | 'sent' | 'failed' | 'skipped';
 export const STATUS_LABEL: Record<NotificationStatus, string> = { queued: 'Na fila', sent: 'Enviado', failed: 'Falhou', skipped: 'Não enviado' };

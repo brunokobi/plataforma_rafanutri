@@ -28,7 +28,7 @@ describe('painel geral dos pacientes', () => {
     expect(screen.getByText('50%')).toBeTruthy(); // com plano publicado
     expect(screen.getByText('8,3%')).toBeTruthy();
     const nav = screen.getByRole('navigation', { name: 'Filtrar por motivo' });
-    expect(within(nav).getByRole('link', { name: /Sem retorno 1/ }).getAttribute('href')).toBe('/app/pacientes?atencao=no_return');
+    expect(within(nav).getByRole('link', { name: /Retorno atrasado 1/ }).getAttribute('href')).toBe('/app/pacientes?atencao=no_return');
     expect(within(nav).queryByRole('link', { name: /Sem consulta/ })).toBeNull();
     const list = screen.getByRole('list', { name: 'Pacientes que precisam de atenção' });
     expect(within(list).getAllByRole('listitem')).toHaveLength(2);

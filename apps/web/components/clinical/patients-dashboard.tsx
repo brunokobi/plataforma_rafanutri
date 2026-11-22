@@ -111,7 +111,7 @@ export function PatientsDashboard({ data, reason }: { data: Data; reason: Attent
               </>
             )}
           </section>
-          <Bars title="IMC dos adultos (última avaliação)" rows={[['Baixo peso', data.bmi.under], ['Eutrofia', data.bmi.normal], ['Sobrepeso', data.bmi.over], ['Obesidade', data.bmi.obese]]} note="Classificação da OMS, 20 anos ou mais." />
+          <Bars title="IMC dos adultos (última avaliação)" rows={[['Baixo peso', data.bmi.under], ['Eutrofia', data.bmi.normal], ['Sobrepeso', data.bmi.over], ['Obesidade', data.bmi.obese]]} note="OMS de 20 a 59 anos; Lipschitz a partir de 60 (sobrepeso acima de 27)." />
         </div>
       </div>
 

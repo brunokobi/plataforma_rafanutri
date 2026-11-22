@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { todaySP } from '@/lib/format/date';
 import type { AssessmentResults, Protocol } from './compute';
 
 export interface Assessment {
@@ -17,7 +18,7 @@ export interface Assessment {
   date_created: string;
 }
 
-const todayISO = () => new Date().toISOString().slice(0, 10);
+const todayISO = () => todaySP();
 const measure = (min: number, max: number, label: string) =>
   z.number().min(min, `${label} fora da faixa.`).max(max, `${label} fora da faixa.`).nullable();
 

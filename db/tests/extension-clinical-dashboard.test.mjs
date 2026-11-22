@@ -42,6 +42,18 @@ test('visão geral: contagens, peso, IMC só de adultos, faixas e lista de aten�
   assert.equal(d.visits.completed_30d, 4);
 });
 
+test('IMC de idoso por Lipschitz', () => {
+  const old = { ...base, id: 'o', birth_date: '1950-01-01', last_bmi: 21 };
+  assert.deepEqual(buildPatientsDashboard([old], {}, now).bmi, { under: 1, normal: 0, over: 0, obese: 0 });
+  assert.deepEqual(buildPatientsDashboard([{ ...old, last_bmi: 28.5 }], {}, now).bmi, { under: 0, normal: 0, over: 1, obese: 0 });
+});
+
+test('retorno atrasado pelo intervalo do paciente', () => {
+  // Última consulta há 40 dias: atrasado com intervalo de 30, em dia com intervalo de 60
+  assert.ok(attentionReasons({ ...base, last_visit_at: daysAgo(40), return_interval_days: 30 }, now).includes('no_return'));
+  assert.ok(!attentionReasons({ ...base, last_visit_at: daysAgo(40), return_interval_days: 60 }, now).includes('no_return'));
+});
+
 test('linha do tempo: mais novo primeiro, sem datas vazias, com limite', () => {
   const t = mergeTimeline([[{ at: '2026-01-02', label: 'b' }, { at: null, label: 'x' }], [{ at: '2026-03-01', label: 'c' }, { at: '2025-12-01', label: 'a' }]], 2);
   assert.deepEqual(t.map((e) => e.label), ['c', 'b']);

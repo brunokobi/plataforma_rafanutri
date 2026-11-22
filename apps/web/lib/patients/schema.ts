@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { todaySP } from '@/lib/format/date';
 
 export type PatientStatus = 'active' | 'inactive' | 'archived';
 
@@ -58,7 +59,7 @@ export function ageInYears(birthDate: string, today = new Date()): number {
   return age;
 }
 
-const todayISO = () => new Date().toISOString().slice(0, 10);
+const todayISO = () => todaySP();
 const optional = (s: unknown) => (typeof s === 'string' && s.trim() === '' ? undefined : s);
 
 export const patientFormSchema = z.object({

@@ -4,7 +4,9 @@ import { redirect } from 'next/navigation';
 import { AppHeader } from '@/components/app/app-header';
 import { PublicProfileForm } from '@/components/booking/public-profile-form';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { PracticeLocked } from '@/components/app/practice-locked';
 import { getMyOrganizations, landingRedirect } from '@/lib/auth/organizations';
+import { hasPracticeModule } from '@/lib/modules/practice';
 import { getCurrentUser } from '@/lib/auth/session';
 import { getPublicProfileConfig } from '@/lib/booking/actions';
 import { isSignupOpen } from '@/lib/flags';
@@ -18,6 +20,7 @@ export default async function PublicProfilePage() {
   const organizations = await getMyOrganizations();
   const target = landingRedirect('app', organizations, isSignupOpen());
   if (target) redirect(target);
+  if (!hasPracticeModule(organizations)) return <PracticeLocked title="Página pública e agendamento online" />;
   const org = organizations?.[0] ?? null;
   const data = org?.role === 'owner' ? await getPublicProfileConfig(org.id) : null;
   return (

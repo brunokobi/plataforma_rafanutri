@@ -4,7 +4,9 @@ import { redirect } from 'next/navigation';
 import { AppHeader } from '@/components/app/app-header';
 import { PackageCatalog } from '@/components/packages/package-catalog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { PracticeLocked } from '@/components/app/practice-locked';
 import { getMyOrganizations, landingRedirect } from '@/lib/auth/organizations';
+import { hasPracticeModule } from '@/lib/modules/practice';
 import { getCurrentUser } from '@/lib/auth/session';
 import { isSignupOpen } from '@/lib/flags';
 import { listPackages } from '@/lib/packages/actions';
@@ -18,6 +20,7 @@ export default async function PackagesPage() {
   const organizations = await getMyOrganizations();
   const target = landingRedirect('app', organizations, isSignupOpen());
   if (target) redirect(target);
+  if (!hasPracticeModule(organizations)) return <PracticeLocked title="Pacotes" />;
   const role = organizations?.[0]?.role;
   const list = await listPackages();
   return (
