@@ -561,6 +561,15 @@ export function setupPractice(ctx) {
       return [...a, ...r].map((x) => [new Date(x.starts_at).getTime(), new Date(x.ends_at).getTime()]);
     }
 
+    // Sitemap: páginas públicas publicadas (só slug e data). Organizações de teste (slug e2e-*) ficam de fora.
+    router.get('/public/practices', async (_req, res) => {
+      const rows = await database('public_profiles as p').join('organizations as o', 'o.id', 'p.organization_id')
+        .where('p.enabled', true).whereNotNull('o.slug').whereRaw("o.slug !~ '^(e2e|teste|test)-'")
+        .orderBy('o.slug').limit(5000).select('o.slug', 'p.updated_at');
+      res.setHeader('Cache-Control', 'public, max-age=3600');
+      res.json({ data: rows.map((r) => ({ slug: r.slug, updated_at: r.updated_at ? new Date(r.updated_at).toISOString() : null })) });
+    });
+
     router.get('/public/practices/:slug', async (req, res) => {
       const p = await publicPractice(req.params.slug);
       if (!p) return pubNotFound(res);

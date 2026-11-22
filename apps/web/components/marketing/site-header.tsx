@@ -6,10 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 
 const links = [
-  { href: '#funcionalidades', label: 'Funcionalidades' },
-  { href: '#paciente', label: 'Para o paciente' },
-  { href: '#planos', label: 'Planos' },
-  { href: '#perguntas', label: 'Perguntas frequentes' },
+  { href: '/#funcionalidades', label: 'Funcionalidades' },
+  { href: '/solucoes', label: 'Soluções' },
+  { href: '/#planos', label: 'Planos' },
+  { href: '/#perguntas', label: 'Perguntas frequentes' },
 ];
 
 export function SiteHeader() {

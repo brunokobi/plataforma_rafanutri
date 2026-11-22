@@ -1,5 +1,6 @@
 import { ArrowRight, Ruler, ShieldCheck, Smartphone, Sparkles, Table2, Users } from 'lucide-react';
 import Link from 'next/link';
+import { SOLUTIONS } from '@/lib/marketing/solutions';
 import { Logo } from '@/components/brand/logo';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
@@ -91,7 +92,7 @@ export function Pricing() {
   );
 }
 
-const faq = [
+export const faq = [
   { q: 'O plano gratuito tem prazo?', a: 'Não. Você usa sem pagar com até 20 pacientes ativos. Pacientes arquivados não contam.' },
   { q: 'Preciso instalar alguma coisa?', a: 'Não. A Rafanutri funciona no navegador, no computador e no celular.' },
   { q: 'Quais tabelas de alimentos são usadas?', a: 'TACO (4ª edição), IBGE (POF 2008-2009), USDA e produtos industrializados pelo rótulo (Open Food Facts), além dos alimentos e preparações que você cadastrar.' },
@@ -144,6 +145,11 @@ export function FinalCta() {
 export function SiteFooter() {
   return (
     <footer className="border-t border-border/60">
+      <nav aria-label="Soluções" className="mx-auto max-w-6xl px-5 pt-8 text-sm text-muted-foreground">
+        <ul className="flex flex-wrap justify-center gap-x-5 gap-y-2 sm:justify-start">
+          {SOLUTIONS.map((s) => <li key={s.slug}><Link href={`/solucoes/${s.slug}`} className="hover:text-foreground">{s.name}</Link></li>)}
+        </ul>
+      </nav>
       <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-5 py-8 text-sm text-muted-foreground sm:flex-row">
         <Logo />
         <nav aria-label="Rodapé" className="flex gap-5">

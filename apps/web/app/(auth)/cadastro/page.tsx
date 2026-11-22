@@ -10,6 +10,7 @@ import { isSignupOpen } from '@/lib/flags';
 export const metadata: Metadata = {
   title: 'Criar conta grátis',
   description: 'Crie sua conta na Rafanutri: grátis até 20 pacientes, sem cartão.',
+  alternates: { canonical: '/cadastro' },
 };
 
 export const dynamic = 'force-dynamic';

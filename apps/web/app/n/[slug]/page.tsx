@@ -4,13 +4,16 @@ import { notFound } from 'next/navigation';
 import { PublicBooking } from '@/components/booking/public-booking';
 import { getPublicPractice, getPublicSlots } from '@/lib/booking/actions';
 import { formatCents } from '@/lib/finance/money';
+import { JsonLd } from '@/components/seo/json-ld';
+import { absoluteUrl, pageMetadata } from '@/lib/seo/site';
 
 export const dynamic = 'force-dynamic';
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const p = await getPublicPractice((await params).slug);
   if (!p) return { title: 'Página não encontrada', robots: { index: false } };
-  return { title: `${p.name} — agende sua consulta`, description: p.headline ?? `Nutrição com ${p.professional.name ?? p.name}.` };
+  const slug = (await params).slug;
+  return pageMetadata({ title: `${p.name} — agende sua consulta`, description: p.headline ?? `Nutrição com ${p.professional.name ?? p.name}.`, path: `/n/${slug}` });
 }
 
 const HEX = /^#[0-9a-f]{6}$/i;
@@ -26,6 +29,17 @@ export default async function PublicPracticePage({ params }: { params: Promise<{
 
   return (
     <div className="min-h-dvh bg-background">
+      <JsonLd data={{
+        '@context': 'https://schema.org',
+        '@type': 'MedicalBusiness',
+        name: p.name,
+        url: absoluteUrl(`/n/${slug}`),
+        medicalSpecialty: 'https://schema.org/DietNutrition',
+        ...(p.headline ? { description: p.headline } : {}),
+        ...(p.city ? { address: { '@type': 'PostalAddress', addressLocality: p.city, addressCountry: 'BR' } } : {}),
+        ...(p.has_logo ? { logo: absoluteUrl(`/api/publico/${slug}/logo`) } : {}),
+        ...(p.professional.name ? { employee: { '@type': 'Person', name: p.professional.name, jobTitle: 'Nutricionista' } } : {}),
+      }} />
       <div className="h-2" style={{ background: color }} />
       <main className="mx-auto max-w-3xl space-y-8 px-4 py-8">
         <header className="flex items-center gap-4">
