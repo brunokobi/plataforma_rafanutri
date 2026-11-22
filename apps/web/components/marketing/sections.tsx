@@ -1,4 +1,3 @@
-import { getPlan, type PlanCode } from '@/lib/modules/plans';
 import { ArrowRight, Ruler, ShieldCheck, Smartphone, Sparkles, Table2, Users } from 'lucide-react';
 import Link from 'next/link';
 import { Logo } from '@/components/brand/logo';
@@ -6,6 +5,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { HeroVisual } from './hero-visual';
+import { PricingCards, type PricingCard } from './pricing-cards';
 import { Reveal } from './reveal';
 
 export function Hero() {
@@ -69,7 +69,7 @@ export function TrustBar() {
 }
 
 // Preços vêm do catálogo de planos (lib/modules/plans.ts); os itens resumem as concessões de cada plano.
-const plans: Array<{ code: PlanCode; note: string; highlight?: boolean; features: string[] }> = [
+const plans: PricingCard[] = [
   { code: 'free', note: 'para sempre', highlight: true, features: ['Até 20 pacientes ativos', 'Anamnese, avaliação e plano alimentar', 'Área do paciente e PDF com a sua marca', 'Assistente de IA: 5 pedidos por dia'] },
   { code: 'essential', note: 'para quem está crescendo', features: ['Até 100 pacientes ativos', 'Financeiro, pacotes e CRM', 'Agendamento online e lembretes por Telegram e e-mail', 'Assistente de IA: 5 pedidos por dia'] },
   { code: 'professional', note: 'para consultórios com volume', features: ['Pacientes ativos sem limite', 'Tudo do Essencial', 'Assistente de IA: 200 pedidos por dia', 'Módulo materno-infantil'] },
@@ -83,35 +83,9 @@ export function Pricing() {
         <Reveal className="mx-auto max-w-2xl text-center">
           <p className="text-sm font-semibold uppercase tracking-wider text-primary">Planos</p>
           <h2 className="mt-2 font-display text-3xl font-semibold tracking-tight sm:text-4xl">Comece sem pagar nada</h2>
-          <p className="mt-4 text-muted-foreground">Quando passar de 20 pacientes, seu consultório já estará faturando.</p>
+          <p className="mt-4 text-muted-foreground">Quando passar de 20 pacientes, seu consultório já estará faturando. Pague por mês ou por ano, com 50% de desconto no anual.</p>
         </Reveal>
-        <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {plans.map((p, i) => (
-            <Reveal key={p.code} delay={i * 0.08}>
-              <article
-                className={`relative flex h-full flex-col rounded-2xl border p-7 ${
-                  p.highlight ? 'border-primary bg-card shadow-xl shadow-primary/10' : 'border-border bg-card/60'
-                }`}
-              >
-                {p.highlight && <Badge className="absolute -top-3 left-7">Comece por aqui</Badge>}
-                <h3 className="text-lg font-semibold">{getPlan(p.code).name}</h3>
-                <p className="mt-3 font-display text-3xl font-semibold">{getPlan(p.code).price}</p>
-                <p className="text-sm text-muted-foreground">{p.note}</p>
-                <ul className="mt-6 flex-1 space-y-2.5 text-sm">
-                  {p.features.map((f) => (
-                    <li key={f} className="flex gap-2">
-                      <span className="text-primary">✓</span>
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-                <Button asChild variant={p.highlight ? 'default' : 'outline'} className="mt-7 h-11">
-                  <Link href="/cadastro">{p.code === 'free' ? 'Começar grátis' : 'Começar e assinar por Pix'}</Link>
-                </Button>
-              </article>
-            </Reveal>
-          ))}
-        </div>
+        <PricingCards plans={plans} />
       </div>
     </section>
   );

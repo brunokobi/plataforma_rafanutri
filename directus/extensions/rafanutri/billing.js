@@ -76,6 +76,10 @@ export const addDays = (iso, n) => new Date(Date.parse(`${iso}T12:00:00Z`) + n *
 
 /** Período de uma fatura mensal que começa em `start`: termina no dia anterior ao mesmo dia do mês seguinte. */
 export const monthlyPeriod = (start) => ({ period_start: start, period_end: addDays(addMonths(start, 1), -1) });
+/** Período anual: 12 meses a partir de start. */
+export const annualPeriod = (start) => ({ period_start: start, period_end: addDays(addMonths(start, 12), -1) });
+/** Ciclo pedido: 'annual' ou o padrão 'monthly'. */
+export const cycleOf = (v) => (v === 'annual' ? 'annual' : 'monthly');
 
 /** "R$ 49,90". */
 export const brl = (cents) => (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });

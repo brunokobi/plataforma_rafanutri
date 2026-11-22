@@ -37,8 +37,8 @@ export async function getBilling(): Promise<Billing | null> {
 export async function getInvoice(id: string): Promise<InvoiceDetail | null> {
   return isId(id) ? get<InvoiceDetail>(`/billing/invoices/${id}`) : null;
 }
-export async function subscribe(plan: string): Promise<Result<{ invoice?: { id: string }; scheduled?: boolean; from?: string }>> {
-  return send('/billing/subscribe', 'POST', { plan }, 'Não foi possível assinar agora.', ['/app/configuracoes/plano']);
+export async function subscribe(plan: string, cycle: 'monthly' | 'annual' = 'monthly'): Promise<Result<{ invoice?: { id: string }; scheduled?: boolean; from?: string }>> {
+  return send('/billing/subscribe', 'POST', { plan, cycle: cycle === 'annual' ? 'annual' : 'monthly' }, 'Não foi possível assinar agora.', ['/app/configuracoes/plano']);
 }
 export async function reportPaid(id: string): Promise<Result> {
   if (!isId(id)) return { ok: false, message: 'Pedido inválido.' };

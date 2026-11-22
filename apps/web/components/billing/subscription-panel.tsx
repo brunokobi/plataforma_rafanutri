@@ -7,7 +7,7 @@ import { useState, useTransition } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cancelSubscription, resumeSubscription, subscribe } from '@/lib/billing/actions';
-import { brl, dateBR, INVOICE_STATUS_LABEL, PLAN_HIGHLIGHTS, SUB_STATUS_LABEL, type Billing } from '@/lib/billing/types';
+import { brl, CYCLE_LABEL, dateBR, INVOICE_STATUS_LABEL, PLAN_HIGHLIGHTS, SUB_STATUS_LABEL, type Billing, type BillingCycle } from '@/lib/billing/types';
 
 /** Assinatura por Pix em "Meu plano": planos à venda, situação, faturas, trocar e cancelar. */
 export function SubscriptionPanel({ billing }: { billing: Billing }) {
@@ -19,14 +19,15 @@ export function SubscriptionPanel({ billing }: { billing: Billing }) {
   const active = sub?.status === 'active';
   const openInvoice = billing.invoices.find((i) => i.status === 'open');
   const nameOf = (code: string | null) => billing.plans.find((p) => p.code === code)?.name ?? code ?? '';
+  const [cycle, setCycle] = useState<BillingCycle>(sub?.billing_cycle ?? 'monthly');
 
   const choose = (code: string) => {
     setMessage(null);
     startTransition(async () => {
-      const r = await subscribe(code);
+      const r = await subscribe(code, cycle);
       if (!r.ok) return setMessage({ ok: false, text: r.message });
       if (r.data?.invoice) return router.push(`/app/configuracoes/plano/fatura/${r.data.invoice.id}`);
-      setMessage({ ok: true, text: r.data?.scheduled ? `Troca agendada: o plano ${nameOf(code)} vale a partir da próxima fatura (${dateBR(r.data.from ?? null)}).` : 'Você continua no plano atual.' });
+      setMessage({ ok: true, text: r.data?.scheduled ? `Troca agendada: ${nameOf(code)} ${CYCLE_LABEL[cycle].toLowerCase()} a partir da próxima fatura (${dateBR(r.data.from ?? null)}).` : 'Você continua no plano atual.' });
       router.refresh();
     });
   };
@@ -54,11 +55,11 @@ export function SubscriptionPanel({ billing }: { billing: Billing }) {
 
       {sub && active && (
         <div className="space-y-1 text-sm">
-          <p>Plano <strong>{nameOf(sub.plan) || sub.plan}</strong>, pago até <strong>{dateBR(sub.current_period_end)}</strong>.</p>
-          {sub.next_plan && <p className="text-muted-foreground">A partir da próxima fatura: plano {nameOf(sub.next_plan)}.</p>}
+          <p>Plano <strong>{nameOf(sub.plan) || sub.plan}</strong> ({CYCLE_LABEL[sub.billing_cycle].toLowerCase()}), pago até <strong>{dateBR(sub.current_period_end)}</strong>.</p>
+          {(sub.next_plan || sub.next_billing_cycle) && <p className="text-muted-foreground">A partir da próxima fatura: plano {nameOf(sub.next_plan ?? sub.plan)}, {CYCLE_LABEL[sub.next_billing_cycle ?? sub.billing_cycle].toLowerCase()}.</p>}
           {sub.cancel_at_period_end ? (
             <p className="text-muted-foreground">Cancelamento agendado: volta ao Gratuito depois de {dateBR(sub.current_period_end)}.</p>
-          ) : <p className="text-muted-foreground">Renovação mensal: a fatura chega 7 dias antes, pelo Telegram ou e-mail.</p>}
+          ) : <p className="text-muted-foreground">Renovação {sub.billing_cycle === 'annual' ? 'anual' : 'mensal'}: a fatura chega 7 dias antes, pelo Telegram ou e-mail.</p>}
         </div>
       )}
 
@@ -75,14 +76,33 @@ export function SubscriptionPanel({ billing }: { billing: Billing }) {
       {!billing.pix_ready || billing.plans.length === 0 ? (
         <p className="text-sm text-muted-foreground">Os planos pagos abrem em breve. Registre seu interesse abaixo e avisamos.</p>
       ) : (
+        <>
+        <div role="radiogroup" aria-label="Forma de pagamento" className="flex w-fit rounded-full border border-border p-1 text-sm">
+          {(['monthly', 'annual'] as const).map((c) => (
+            <button key={c} type="button" role="radio" aria-checked={cycle === c} onClick={() => setCycle(c)}
+              className={`min-h-9 rounded-full px-4 font-medium ${cycle === c ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
+              {c === 'monthly' ? 'Mensal' : 'Anual · 50% de desconto'}
+            </button>
+          ))}
+        </div>
         <div className="grid gap-3 sm:grid-cols-3">
-          {billing.plans.map((p) => {
-            const current = active && sub?.plan === p.code;
-            const next = active && sub?.next_plan === p.code;
+          {billing.plans.filter((p) => cycle === 'monthly' || (p.annual_price_cents ?? 0) >= 100).map((p) => {
+            const current = active && sub?.plan === p.code && sub?.billing_cycle === cycle;
+            const next = active && (sub?.next_plan ?? sub?.plan) === p.code && (sub?.next_billing_cycle ?? sub?.billing_cycle) === cycle && (sub?.next_plan !== null || sub?.next_billing_cycle !== null) && !current;
             return (
               <div key={p.code} className={`flex flex-col gap-2 rounded-xl border p-4 ${current ? 'border-primary' : 'border-border'}`}>
                 <p className="font-semibold">{p.name}</p>
-                <p className="font-display text-2xl font-semibold">{brl(p.price_cents)}<span className="text-sm font-normal text-muted-foreground">/mês</span></p>
+                {cycle === 'annual' && p.annual_price_cents ? (
+                  <div>
+                    <p className="font-display text-2xl font-semibold">{brl(p.annual_price_cents)}<span className="text-sm font-normal text-muted-foreground">/ano</span></p>
+                    <p className="text-xs text-muted-foreground">equivale a {brl(Math.round(p.annual_price_cents / 12))}/mês · <span className="line-through">{brl(p.price_cents * 12)}</span></p>
+                  </div>
+                ) : (
+                  <div>
+                    <p className="font-display text-2xl font-semibold">{brl(p.price_cents)}<span className="text-sm font-normal text-muted-foreground">/mês</span></p>
+                    {p.annual_price_cents ? <p className="text-xs text-muted-foreground">ou {brl(p.annual_price_cents)}/ano no anual</p> : null}
+                  </div>
+                )}
                 <p className="text-xs text-muted-foreground">
                   {p.max_active_patients === null ? 'Pacientes ativos sem limite' : `Até ${p.max_active_patients} pacientes ativos`} · {p.max_members === null ? 'equipe sem limite' : p.max_members === 1 ? '1 profissional' : `até ${p.max_members} profissionais`} · sem anúncios
                 </p>
@@ -94,13 +114,14 @@ export function SubscriptionPanel({ billing }: { billing: Billing }) {
                 {owner && (
                   <Button type="button" size="sm" className="mt-auto" variant={current ? 'outline' : 'default'} disabled={pending || current || next} onClick={() => choose(p.code)}>
                     {pending && <Loader2 className="size-4 animate-spin" />}
-                    {current ? 'Plano atual' : next ? 'Agendado' : active ? 'Trocar para este' : 'Assinar com Pix'}
+                    {current ? 'Plano atual' : next ? 'Agendado' : active ? 'Trocar para este' : `Assinar ${cycle === 'annual' ? 'o anual' : ''} com Pix`.replace('  ', ' ')}
                   </Button>
                 )}
               </div>
             );
           })}
         </div>
+        </>
       )}
       {!owner && <p className="text-sm text-muted-foreground">Só o responsável (owner) do consultório assina ou cancela.</p>}
 
@@ -119,7 +140,7 @@ export function SubscriptionPanel({ billing }: { billing: Billing }) {
           <ul className="divide-y divide-border text-sm">
             {billing.invoices.map((i) => (
               <li key={i.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
-                <Link href={`/app/configuracoes/plano/fatura/${i.id}`} className="hover:underline">{dateBR(i.period_start)} a {dateBR(i.period_end)} · {brl(i.amount_cents)}</Link>
+                <Link href={`/app/configuracoes/plano/fatura/${i.id}`} className="hover:underline">{dateBR(i.period_start)} a {dateBR(i.period_end)} · {brl(i.amount_cents)}{i.billing_cycle === 'annual' ? ' · anual' : ''}</Link>
                 <span className={i.status === 'open' ? 'font-medium' : 'text-muted-foreground'}>{INVOICE_STATUS_LABEL[i.status]}{i.paid_at ? ` em ${new Date(i.paid_at).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })}` : ''}</span>
               </li>
             ))}

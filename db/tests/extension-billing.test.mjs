@@ -2,7 +2,7 @@
 // Uso: node --test db/tests/extension-billing.test.mjs
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { addMonths, asciiUpper, brl, crc16, dateBR, monthlyPeriod, newTxid, normalizePixKey, parsePrice, pixPayload, validateBillingSettings } from '../../directus/extensions/rafanutri/billing.js';
+import { addMonths, annualPeriod, asciiUpper, brl, crc16, cycleOf, dateBR, monthlyPeriod, newTxid, normalizePixKey, parsePrice, pixPayload, validateBillingSettings } from '../../directus/extensions/rafanutri/billing.js';
 
 test('CRC do exemplo do manual do Pix (Banco Central)', () => {
   const body = '00020126580014br.gov.bcb.pix0136123e4567-e12b-12d1-a456-4266554400005204000053039865802BR5913Fulano de Tal6008BRASILIA62070503***6304';
@@ -62,4 +62,12 @@ test('configuração de cobrança', () => {
   assert.deepEqual(ok.value, { pix_key: '11222333000181', receiver_name: 'RAFANUTRI TECNOLOGIA LTDA', receiver_city: 'BELO HORIZONTE', notify_email: 'fin@x.com', grace_days: 5 });
   const bad = validateBillingSettings({ pix_key: 'x', receiver_name: '', receiver_city: '', grace_days: 40 });
   assert.deepEqual(Object.keys(bad.errors).sort(), ['grace_days', 'pix_key', 'receiver_city', 'receiver_name']);
+});
+
+test('período anual e ciclo pedido', () => {
+  assert.deepEqual(annualPeriod('2026-11-22'), { period_start: '2026-11-22', period_end: '2027-11-21' });
+  assert.deepEqual(annualPeriod('2028-02-29'), { period_start: '2028-02-29', period_end: annualPeriod('2028-02-29').period_end });
+  assert.equal(cycleOf('annual'), 'annual');
+  assert.equal(cycleOf('weekly'), 'monthly');
+  assert.equal(cycleOf(undefined), 'monthly');
 });

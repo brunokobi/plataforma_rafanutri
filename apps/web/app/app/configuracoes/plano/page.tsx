@@ -49,7 +49,7 @@ export default async function PlanPage() {
       <main className="mx-auto max-w-4xl space-y-8 px-5 py-10">
         <div>
           <h1 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">Meu plano</h1>
-          <p className="mt-2 text-muted-foreground">Plano <strong className="text-foreground">{data?.plan.name ?? plan.name}</strong>{code === 'free' ? ', permanente e sem cartão' : ''}. Planos pagos por Pix, mês a mês, sem fidelidade.</p>
+          <p className="mt-2 text-muted-foreground">Plano <strong className="text-foreground">{data?.plan.name ?? plan.name}</strong>{code === 'free' ? ', permanente e sem cartão' : ''}. Planos pagos por Pix, por mês ou por ano (50% de desconto no anual), sem fidelidade.</p>
         </div>
         {!data ? (
           <Alert variant="destructive"><AlertCircle /><AlertDescription>Não foi possível carregar o uso do plano agora.</AlertDescription></Alert>

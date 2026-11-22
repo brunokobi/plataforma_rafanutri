@@ -8,7 +8,12 @@ export type ModuleGrant = 'included' | 'quota' | 'contract' | 'none';
 export interface PlanDefinition {
   code: PlanCode;
   name: string;
+  /** Preço mensal em texto ("R$ 49,90/mês"). */
   price: string;
+  /** Centavos por mês (null = sob proposta). */
+  monthlyCents: number | null;
+  /** Centavos por ano: 12 meses com 50% de desconto (null = sob proposta ou grátis). */
+  annualCents: number | null;
   audience: string;
   maxActivePatients: number | null;
   maxMembers: number | null;
@@ -23,6 +28,8 @@ export const PLANS: readonly PlanDefinition[] = [
     code: 'free',
     name: 'Gratuito',
     price: 'R$ 0',
+    monthlyCents: 0,
+    annualCents: null,
     audience: 'Todo nutricionista',
     maxActivePatients: 20,
     maxMembers: 1,
@@ -40,6 +47,8 @@ export const PLANS: readonly PlanDefinition[] = [
     code: 'essential',
     name: 'Essencial',
     price: 'R$ 49,90/mês',
+    monthlyCents: 4990,
+    annualCents: 29940,
     audience: 'Nutricionista autônomo',
     maxActivePatients: 100,
     maxMembers: 1,
@@ -57,6 +66,8 @@ export const PLANS: readonly PlanDefinition[] = [
     code: 'professional',
     name: 'Profissional',
     price: 'R$ 99,90/mês',
+    monthlyCents: 9990,
+    annualCents: 59940,
     audience: 'Consultório com volume',
     maxActivePatients: null,
     maxMembers: 1,
@@ -74,6 +85,8 @@ export const PLANS: readonly PlanDefinition[] = [
     code: 'clinic',
     name: 'Clínica',
     price: 'R$ 199,90/mês',
+    monthlyCents: 19990,
+    annualCents: 119940,
     audience: 'Equipes',
     maxActivePatients: null,
     maxMembers: null,
@@ -91,6 +104,8 @@ export const PLANS: readonly PlanDefinition[] = [
     code: 'enterprise_uan',
     name: 'Enterprise UAN',
     price: 'Sob consulta',
+    monthlyCents: null,
+    annualCents: null,
     audience: 'Empresas de alimentação',
     maxActivePatients: null,
     maxMembers: null,
@@ -105,6 +120,21 @@ export const PLANS: readonly PlanDefinition[] = [
     },
   },
 ];
+
+/** Desconto do plano anual (12 meses pelo preço de 6). */
+export const ANNUAL_DISCOUNT = 0.5;
+
+const brl = (cents: number) => (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }).replace(/\u00a0/g, ' ');
+
+/** Preço para a tela, no ciclo pedido: "R$ 49,90/mês", "R$ 299,40/ano", "Grátis" ou "Sob proposta". */
+export function planPrice(p: PlanDefinition, cycle: 'monthly' | 'annual' = 'monthly'): { main: string; note: string | null } {
+  if (p.monthlyCents === null) return { main: 'Sob proposta', note: 'por unidade produtora' };
+  if (p.monthlyCents === 0) return { main: 'R$ 0', note: 'para sempre' };
+  if (cycle === 'annual' && p.annualCents !== null) {
+    return { main: `${brl(p.annualCents)}/ano`, note: `equivale a ${brl(Math.round(p.annualCents / 12))}/mês · 50% de desconto` };
+  }
+  return { main: `${brl(p.monthlyCents)}/mês`, note: p.annualCents !== null ? `ou ${brl(p.annualCents)}/ano (50% de desconto)` : null };
+}
 
 export function getPlan(code: PlanCode): PlanDefinition {
   const plan = PLANS.find((p) => p.code === code);

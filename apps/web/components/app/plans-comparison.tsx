@@ -1,6 +1,6 @@
 import { Check, Minus } from 'lucide-react';
 import { MODULES } from '@/lib/modules/catalog';
-import { PLANS, type ModuleGrant, type PlanCode } from '@/lib/modules/plans';
+import { PLANS, planPrice, type ModuleGrant, type PlanCode } from '@/lib/modules/plans';
 import { cn } from '@/lib/utils';
 
 function Cell({ grant, note }: { grant: ModuleGrant; note?: string }) {
@@ -28,7 +28,7 @@ export function PlansComparison({ currentPlan }: { currentPlan: PlanCode }) {
   return (
     <div className="overflow-x-auto rounded-2xl border border-border bg-card">
       <table className="w-full min-w-[760px] border-collapse text-sm">
-        <caption className="sr-only">Comparação de módulos por plano</caption>
+        <caption className="sr-only">Comparação de preços, limites e módulos por plano</caption>
         <thead>
           <tr className="border-b border-border">
             <th scope="col" className="p-4 text-left font-semibold">Módulo</th>
@@ -39,7 +39,8 @@ export function PlansComparison({ currentPlan }: { currentPlan: PlanCode }) {
                 className={cn('p-4 text-center align-top font-semibold', p.code === currentPlan && 'bg-primary/5')}
               >
                 <span className="block">{p.name}</span>
-                <span className="block text-xs font-normal text-muted-foreground">{p.price}</span>
+                <span className="mt-1 block font-display text-base font-semibold">{planPrice(p).main}</span>
+                {planPrice(p).note && <span className="block text-xs font-normal text-muted-foreground">{planPrice(p).note}</span>}
                 {p.code === currentPlan && (
                   <span className="mt-1 inline-block rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold text-primary-foreground">
                     Seu plano
@@ -50,6 +51,22 @@ export function PlansComparison({ currentPlan }: { currentPlan: PlanCode }) {
           </tr>
         </thead>
         <tbody>
+          <tr className="border-b border-border">
+            <th scope="row" className="p-4 text-left font-medium">Pacientes ativos</th>
+            {PLANS.map((p) => (
+              <td key={p.code} className={cn('p-4 text-center font-semibold', p.code === currentPlan && 'bg-primary/5')}>
+                {p.code === 'enterprise_uan' ? <span className="text-muted-foreground">—</span> : p.maxActivePatients === null ? 'Sem limite' : `Até ${p.maxActivePatients}`}
+              </td>
+            ))}
+          </tr>
+          <tr className="border-b border-border">
+            <th scope="row" className="p-4 text-left font-medium">Profissionais na equipe</th>
+            {PLANS.map((p) => (
+              <td key={p.code} className={cn('p-4 text-center font-semibold', p.code === currentPlan && 'bg-primary/5')}>
+                {p.maxMembers === null ? 'Sem limite' : p.maxMembers === 1 ? '1' : `Até ${p.maxMembers}`}
+              </td>
+            ))}
+          </tr>
           {MODULES.map((m) => (
             <tr key={m.code} className="border-b border-border last:border-0">
               <th scope="row" className="p-4 text-left font-medium">{m.name}</th>

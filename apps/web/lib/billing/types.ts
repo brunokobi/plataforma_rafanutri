@@ -7,11 +7,16 @@ export type InvoiceStatus = 'open' | 'paid' | 'void';
 export const SUB_STATUS_LABEL: Record<SubscriptionStatus, string> = { pending: 'Aguardando o 1º pagamento', active: 'Ativa', canceled: 'Cancelada', ended: 'Encerrada' };
 export const INVOICE_STATUS_LABEL: Record<InvoiceStatus, string> = { open: 'Em aberto', paid: 'Paga', void: 'Cancelada' };
 
-export interface SellablePlan { code: PaidPlan; name: string; price_cents: number; max_active_patients: number | null; max_members: number | null }
+export type BillingCycle = 'monthly' | 'annual';
+export const CYCLE_LABEL: Record<BillingCycle, string> = { monthly: 'Mensal', annual: 'Anual' };
+
+export interface SellablePlan { code: PaidPlan; name: string; price_cents: number; annual_price_cents: number | null; max_active_patients: number | null; max_members: number | null }
 
 export interface Subscription {
   plan: PaidPlan;
   next_plan: PaidPlan | null;
+  billing_cycle: BillingCycle;
+  next_billing_cycle: BillingCycle | null;
   status: SubscriptionStatus;
   current_period_end: string | null;
   cancel_at_period_end: boolean;
@@ -20,6 +25,7 @@ export interface Subscription {
 export interface Invoice {
   id: string;
   plan: PaidPlan;
+  billing_cycle: BillingCycle;
   amount_cents: number;
   period_start: string;
   period_end: string;

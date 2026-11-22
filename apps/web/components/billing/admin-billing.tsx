@@ -100,6 +100,7 @@ export function AdminBillingView({ data }: { data: AdminBilling }) {
                 <input type="checkbox" className="size-4 accent-primary" checked={prices[p.code]?.sellable ?? false} onChange={(e) => setPrice(p.code, { sellable: e.target.checked })} /> À venda
               </label>
               <Button size="sm" variant="outline" disabled={pending} onClick={() => run(() => savePlanPrice(p.code, prices[p.code]?.price ?? '', prices[p.code]?.sellable ?? false), `Plano ${p.name} salvo.`)}>Salvar</Button>
+              <span className="text-xs text-muted-foreground">Anual: {p.annual_price_cents ? brl(p.annual_price_cents) : '—'} (12 meses com 50% de desconto, recalculado ao salvar)</span>
             </li>
           ))}
         </ul>
