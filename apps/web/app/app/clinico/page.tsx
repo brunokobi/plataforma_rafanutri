@@ -9,6 +9,7 @@ import { getCurrentUser } from '@/lib/auth/session';
 import { loadDashboard } from '@/lib/dashboard-data';
 import { isSignupOpen } from '@/lib/flags';
 import { getIndicators } from '@/lib/indicators/actions';
+import { pickClinicalOrg } from '@/lib/auth/clinical-org';
 
 export const metadata: Metadata = { title: 'Clínico', robots: { index: false } };
 
@@ -21,7 +22,7 @@ export default async function ClinicalHome({ searchParams }: { searchParams: Pro
   const target = landingRedirect('app', organizations, isSignupOpen());
   if (target) redirect(target);
 
-  const clinical = organizations?.find((o) => o.role === 'owner' || o.role === 'nutritionist') ?? null;
+  const clinical = pickClinicalOrg(organizations);
   const { nutricionista } = await searchParams;
   const [dashboard, indicators] = clinical ? await Promise.all([loadDashboard(clinical.id), getIndicators(undefined, nutricionista)]) : [null, null];
 

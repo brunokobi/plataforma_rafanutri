@@ -26,6 +26,7 @@ import { getPatient, listPatients } from '@/lib/patients/repository';
 import { isUuid } from '@/lib/patients/schema';
 import { ageInDays } from '@rafanutri/nutrition-core/growth';
 import { ENERGY_ADDITION_REFERENCE, GAIN_STATUS_LABEL, lactationEnergyAddition, pregnancyEnergyAddition } from '@rafanutri/nutrition-core';
+import { pickClinicalOrg } from '@/lib/auth/clinical-org';
 
 export const metadata: Metadata = { title: 'Materno-infantil', robots: { index: false } };
 export const dynamic = 'force-dynamic';
@@ -44,7 +45,7 @@ export default async function MaternalPage({ params, searchParams }: { params: P
   const organizations = await getMyOrganizations();
   const target = landingRedirect('app', organizations, isSignupOpen());
   if (target) redirect(target);
-  const organization = organizations?.find((o) => o.role === 'owner' || o.role === 'nutritionist') ?? null;
+  const organization = pickClinicalOrg(organizations);
 
   const [patient, all, data, anamneses] = await Promise.all([getPatient(id), organization ? listPatients(organization.id) : null, getMaternalData(id), listAnamneses(id)]);
   if (patient === undefined || data === undefined) notFound();

@@ -11,6 +11,7 @@ import { isSignupOpen } from '@/lib/flags';
 import { getPlan } from '@/lib/modules/plans';
 import { getUserPlan } from '@/lib/modules/user-plan';
 import { listPatients } from '@/lib/patients/repository';
+import { pickClinicalOrg } from '@/lib/auth/clinical-org';
 
 export const metadata: Metadata = { title: 'Pacientes', robots: { index: false } };
 export const dynamic = 'force-dynamic';
@@ -23,7 +24,7 @@ export default async function PatientsPage({ searchParams }: { searchParams: Pro
   const target = landingRedirect('app', organizations, isSignupOpen());
   if (target) redirect(target);
 
-  const organization = organizations?.find((o) => o.role === 'owner' || o.role === 'nutritionist') ?? null;
+  const organization = pickClinicalOrg(organizations);
   const plan = getPlan(getUserPlan(organizations));
   const [patients, dashboard] = organization ? await Promise.all([listPatients(organization.id), getPatientsDashboard()]) : [null, null];
   const sp = await searchParams;

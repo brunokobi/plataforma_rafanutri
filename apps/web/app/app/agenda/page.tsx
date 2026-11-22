@@ -12,6 +12,7 @@ import { getCurrentUser } from '@/lib/auth/session';
 import { isSignupOpen } from '@/lib/flags';
 import { listPatients } from '@/lib/patients/repository';
 import { isUuid } from '@/lib/patients/schema';
+import { pickClinicalOrg } from '@/lib/auth/clinical-org';
 
 export const metadata: Metadata = { title: 'Agenda', robots: { index: false } };
 
@@ -23,7 +24,7 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
   const organizations = await getMyOrganizations();
   const target = landingRedirect('app', organizations, isSignupOpen());
   if (target) redirect(target);
-  const organization = organizations?.find((o) => o.role === 'owner' || o.role === 'nutritionist') ?? null;
+  const organization = pickClinicalOrg(organizations);
 
   const todayDate = today();
   const start = weekStart(isDate(semana) ? semana : todayDate);

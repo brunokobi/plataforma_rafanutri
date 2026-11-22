@@ -9,6 +9,7 @@ import { getMyOrganizations, landingRedirect } from '@/lib/auth/organizations';
 import { getCurrentUser } from '@/lib/auth/session';
 import { isSignupOpen } from '@/lib/flags';
 import { listCustomFoods } from '@/lib/foods/custom';
+import { pickClinicalOrg } from '@/lib/auth/clinical-org';
 
 export const metadata: Metadata = { title: 'Alimentos do consultório', robots: { index: false } };
 
@@ -18,7 +19,7 @@ export default async function CustomFoodsPage() {
   const organizations = await getMyOrganizations();
   const target = landingRedirect('app', organizations, isSignupOpen());
   if (target) redirect(target);
-  const organization = organizations?.find((o) => o.role === 'owner' || o.role === 'nutritionist') ?? null;
+  const organization = pickClinicalOrg(organizations);
   const foods = organization ? await listCustomFoods(organization.id) : null;
 
   return (

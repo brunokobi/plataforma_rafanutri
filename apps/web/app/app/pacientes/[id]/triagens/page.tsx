@@ -19,6 +19,7 @@ import { CLASSIFICATION_LABEL, TOOL_LABEL } from '@/lib/public-health/types';
 import { getPatient, listPatients } from '@/lib/patients/repository';
 import { ageInYears, isUuid } from '@/lib/patients/schema';
 import { RISK_LABEL } from '@rafanutri/nutrition-core';
+import { pickClinicalOrg } from '@/lib/auth/clinical-org';
 
 export const metadata: Metadata = { title: 'Triagens', robots: { index: false } };
 export const dynamic = 'force-dynamic';
@@ -34,7 +35,7 @@ export default async function PatientScreeningsPage({ params }: { params: Promis
   const organizations = await getMyOrganizations();
   const target = landingRedirect('app', organizations, isSignupOpen());
   if (target) redirect(target);
-  const organization = organizations?.find((o) => o.role === 'owner' || o.role === 'nutritionist') ?? null;
+  const organization = pickClinicalOrg(organizations);
 
   const [patient, all, data, anamneses] = await Promise.all([getPatient(id), organization ? listPatients(organization.id) : null, getScreenings(id), listAnamneses(id)]);
   if (patient === undefined || data === undefined) notFound();

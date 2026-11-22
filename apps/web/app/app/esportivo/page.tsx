@@ -10,6 +10,7 @@ import { isSignupOpen } from '@/lib/flags';
 import { isAthlete } from '@/lib/modules/theme';
 import { listPatients } from '@/lib/patients/repository';
 import { ageInYears } from '@/lib/patients/schema';
+import { pickClinicalOrg } from '@/lib/auth/clinical-org';
 
 export const metadata: Metadata = { title: 'Esportivo', robots: { index: false } };
 export const dynamic = 'force-dynamic';
@@ -31,7 +32,7 @@ export default async function SportHome() {
   const organizations = await getMyOrganizations();
   const target = landingRedirect('app', organizations, isSignupOpen());
   if (target) redirect(target);
-  const org = organizations?.find((o) => o.role === 'owner' || o.role === 'nutritionist') ?? null;
+  const org = pickClinicalOrg(organizations);
   const patients = org ? await listPatients(org.id) : null;
   // Tipo escolhido no cadastro; sem tipo, pelo objetivo
   const athletes = (patients ?? []).filter((p) => p.status === 'active' && (p.care_profile === 'sport' || (!p.care_profile && isAthlete(p.objective))));

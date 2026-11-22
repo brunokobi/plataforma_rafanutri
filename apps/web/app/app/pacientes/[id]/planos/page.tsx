@@ -16,6 +16,7 @@ import { getPlan } from '@/lib/modules/plans';
 import { getUserPlan } from '@/lib/modules/user-plan';
 import { getPatient, listPatients } from '@/lib/patients/repository';
 import { isUuid } from '@/lib/patients/schema';
+import { pickClinicalOrg } from '@/lib/auth/clinical-org';
 
 export const metadata: Metadata = { title: 'Planos alimentares', robots: { index: false } };
 
@@ -28,7 +29,7 @@ export default async function PatientPlansPage({ params }: { params: Promise<{ i
   const organizations = await getMyOrganizations();
   const target = landingRedirect('app', organizations, isSignupOpen());
   if (target) redirect(target);
-  const organization = organizations?.find((o) => o.role === 'owner' || o.role === 'nutritionist') ?? null;
+  const organization = pickClinicalOrg(organizations);
 
   const [patient, all, plans, templates, anamneses] = await Promise.all([getPatient(id), organization ? listPatients(organization.id) : null, listMealPlans(id), listPlanTemplates(), listAnamneses(id)]);
   const templateOptions = Array.isArray(templates) ? templates.map((t) => ({ id: t.id, name: t.name, energy_kcal: t.energy_kcal, own: Boolean(t.organization_id) })) : [];

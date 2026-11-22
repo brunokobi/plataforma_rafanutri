@@ -15,6 +15,7 @@ import { getPlan } from '@/lib/modules/plans';
 import { getUserPlan } from '@/lib/modules/user-plan';
 import { getPatient, listPatients } from '@/lib/patients/repository';
 import { isUuid } from '@/lib/patients/schema';
+import { pickClinicalOrg } from '@/lib/auth/clinical-org';
 
 export const metadata: Metadata = { title: 'Avaliações', robots: { index: false } };
 
@@ -27,7 +28,7 @@ export default async function PatientAssessmentsPage({ params }: { params: Promi
   const organizations = await getMyOrganizations();
   const target = landingRedirect('app', organizations, isSignupOpen());
   if (target) redirect(target);
-  const organization = organizations?.find((o) => o.role === 'owner' || o.role === 'nutritionist') ?? null;
+  const organization = pickClinicalOrg(organizations);
 
   const [patient, all, assessments, anamneses] = await Promise.all([getPatient(id), organization ? listPatients(organization.id) : null, listAssessments(id), listAnamneses(id)]);
   if (patient === undefined) notFound();

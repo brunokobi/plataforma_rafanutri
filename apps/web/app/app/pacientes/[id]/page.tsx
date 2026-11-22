@@ -26,6 +26,7 @@ import { getAppAccess, getShareConfig } from '@/lib/patient-area/actions';
 import { getPatient, listPatients } from '@/lib/patients/repository';
 import { listPatientRecipes, listRecipes } from '@/lib/recipes/actions';
 import { isUuid } from '@/lib/patients/schema';
+import { pickClinicalOrg } from '@/lib/auth/clinical-org';
 
 export const metadata: Metadata = { title: 'Ficha do paciente', robots: { index: false } };
 
@@ -39,7 +40,7 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
   const target = landingRedirect('app', organizations, isSignupOpen());
   if (target) redirect(target);
 
-  const organization = organizations?.find((o) => o.role === 'owner' || o.role === 'nutritionist') ?? null;
+  const organization = pickClinicalOrg(organizations);
   const [patient, all, assessments, plans, anamneses, nextAppointment, appAccess, patientRecipes, library, shareConfig, patientPackages, packageCatalog, contactPrefs, dashboard] = await Promise.all([
     getPatient(id),
     organization ? listPatients(organization.id) : null,

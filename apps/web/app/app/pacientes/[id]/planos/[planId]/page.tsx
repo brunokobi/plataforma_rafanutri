@@ -23,6 +23,7 @@ import { ENERGY_ADDITION_REFERENCE, gestationalWeeks, lactationEnergyAddition, p
 import { STATUS_LABEL, planFoodIds } from '@/lib/meal-plans/schema';
 import { getPatient } from '@/lib/patients/repository';
 import { ageInYears, isUuid } from '@/lib/patients/schema';
+import { pickClinicalOrg } from '@/lib/auth/clinical-org';
 
 export const metadata: Metadata = { title: 'Plano alimentar', robots: { index: false } };
 export const dynamic = 'force-dynamic';
@@ -55,7 +56,7 @@ export default async function PatientPlanPage({ params }: { params: Promise<{ id
   const organizations = await getMyOrganizations();
   const target = landingRedirect('app', organizations, isSignupOpen());
   if (target) redirect(target);
-  const organization = organizations?.find((o) => o.role === 'owner' || o.role === 'nutritionist') ?? null;
+  const organization = pickClinicalOrg(organizations);
 
   const [patient, plan, assessments, profile, anamneses] = await Promise.all([getPatient(id), getMealPlan(id, planId), listAssessments(id), getMyProfessionalProfile(user.id), listAnamneses(id)]);
   if (patient === undefined || plan === undefined) notFound();

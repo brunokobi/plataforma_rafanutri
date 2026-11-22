@@ -11,6 +11,7 @@ import { getCurrentUser } from '@/lib/auth/session';
 import { isSignupOpen } from '@/lib/flags';
 import { listPatients } from '@/lib/patients/repository';
 import { isUuid } from '@/lib/patients/schema';
+import { pickClinicalOrg } from '@/lib/auth/clinical-org';
 
 export const metadata: Metadata = { title: 'Assistente de IA', robots: { index: false } };
 export const dynamic = 'force-dynamic';
@@ -21,7 +22,7 @@ export default async function AssistantPage({ searchParams }: { searchParams: Pr
   const organizations = await getMyOrganizations();
   const target = landingRedirect('app', organizations, isSignupOpen());
   if (target) redirect(target);
-  const organization = organizations?.find((o) => o.role === 'owner' || o.role === 'nutritionist') ?? null;
+  const organization = pickClinicalOrg(organizations);
   const [status, patients] = await Promise.all([getAiStatus(), organization ? listPatients(organization.id) : null]);
   const sp = await searchParams;
   const initial = sp.paciente && isUuid(sp.paciente) && patients?.some((p) => p.id === sp.paciente) ? sp.paciente : null;
