@@ -145,7 +145,17 @@ export function PatientAppAccess({ patientId, access, firstName, phone }: { pati
       {!inviting && (
         <div className="flex flex-wrap gap-2">
           {access.active && !access.linked && (!access.minor || consented.length > 0) && (
-            <Button type="button" size="sm" onClick={() => setInviting(true)} disabled={pending}>
+            <Button
+              type="button" size="sm" disabled={pending}
+              onClick={() => {
+                // Responsáveis podem ter sido cadastrados depois da primeira renderização
+                if (access.minor && !consented.some((g) => g.id === guardianId)) {
+                  setGuardianId(consented[0]?.id ?? '');
+                  setEmail(consented[0]?.email ?? '');
+                }
+                setInviting(true);
+              }}
+            >
               {access.invite ? 'Gerar novo link' : 'Convidar para a área do paciente'}
             </Button>
           )}

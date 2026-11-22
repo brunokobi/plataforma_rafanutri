@@ -27,7 +27,7 @@ export function GuardiansPanel({ patientId, guardians }: { patientId: string; gu
         {consented ? <Badge variant="outline"><ShieldCheck className="size-3" aria-hidden="true" /> Consentimento registrado</Badge> : <Badge variant="secondary"><ShieldAlert className="size-3" aria-hidden="true" /> Sem consentimento</Badge>}
       </div>
       <p className="text-sm text-muted-foreground">
-        Para tratar os dados de um menor, a LGPD (art. 14) pede o consentimento de ao menos um dos pais ou do responsável legal. O app do paciente é liberado para o responsável, com o convite em Ficha → Acesso ao app.
+        Para tratar os dados de um menor, a LGPD (art. 14) pede o consentimento de ao menos um dos pais ou do responsável legal. O app do paciente é liberado para um responsável com consentimento, pelo convite acima.
       </p>
       {guardians.length > 0 && <ul className="divide-y rounded-md border">{guardians.map((g) => <GuardianRow key={g.id} patientId={patientId} g={g} />)}</ul>}
       <NewGuardianForm patientId={patientId} />
