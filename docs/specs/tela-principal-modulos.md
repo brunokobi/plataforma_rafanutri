@@ -35,7 +35,7 @@ Legenda: **✓** incluso · **Cota** incluso com limite · **—** não incluso.
 | Clínico e Esportivo | ✓ (até 20 pacientes ativos) | ✓ | ✓ | ✓ | — |
 | Área do paciente | ✓ | ✓ | ✓ | ✓ | — |
 | Gestão do consultório | — | ✓ (lembretes e agendamento online) | ✓ (completo) | ✓ | — |
-| Assistente de IA | Cota (5 por dia) | Cota (5 por dia) | ✓ (até 200 por dia) | ✓ (até 200 por dia) | — |
+| Assistente de IA | Cota (5 por dia) | Cota (20 por dia) | ✓ (até 200 por dia) | ✓ (até 200 por dia) | — |
 | Materno-infantil | — | — | ✓ | ✓ | — |
 | UAN e Qualidade | — | — | — | — | ✓ |
 | Saúde pública | Contrato específico (prefeituras e programas); não é vendido por plano |

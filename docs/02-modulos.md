@@ -89,7 +89,7 @@ Plano completo do módulo em [modulos/uan.md](modulos/uan.md).
 | Pergunta livre ao assistente (sem RAG; modelos gratuitos do OpenRouter) | P1 (feito) |
 | Ideias de receitas | P2 (feito) |
 
-Regra: a IA **sugere**, o nutricionista **decide**. Nada gerado por IA chega ao paciente sem revisão do profissional. Nenhum dado que identifique o paciente vai para a IA. Cota diária: 5 pedidos no Gratuito e no Essencial, 200 no Profissional e na Clínica.
+Regra: a IA **sugere**, o nutricionista **decide**. Nada gerado por IA chega ao paciente sem revisão do profissional. Nenhum dado que identifique o paciente vai para a IA. Cota diária: 5 pedidos no Gratuito, 20 no Essencial e 200 no Profissional e na Clínica.
 
 ### App do paciente
 

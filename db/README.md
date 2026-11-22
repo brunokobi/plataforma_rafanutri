@@ -1124,6 +1124,20 @@ Migração `0069_annual_billing.sql` (**aplicada na vpsrafa em 22/11/2026**, bac
 - `subscription_invoices.billing_cycle`: a fatura anual cobre 12 meses (`annualPeriod` em `billing.js`). O `billing_guard` impede mudar o ciclo de uma fatura emitida.
 - Endpoints: `POST /rafanutri/billing/subscribe` recebe `{ plan, cycle }`; a confirmação do admin e a renovação usam o ciclo da fatura ou da assinatura.
 
+## InfinitePay na assinatura (0070)
+
+Migração `0070_infinitepay.sql` (**aplicada na vpsrafa em 22/11/2026**, backup `antes-0070-2026-11-22.dump`; testes em `db/tests/0070_infinitepay.test.sql` e `db/tests/extension-infinitepay.test.mjs`). A conta é de pessoa física, sem mensalidade, e o Pix é grátis.
+
+- `platform_billing.infinitepay_handle` guarda a InfiniteTag, sem o `$`, preenchida em Admin → Assinaturas. Com o campo vazio, a cobrança segue só com o Pix estático e a confirmação manual.
+- Ao emitir uma fatura, na assinatura ou na renovação, a extensão cria o link no Checkout Integrado (`POST https://api.checkout.infinitepay.io/links`):
+  - `order_nsu` é o id da fatura;
+  - `redirect_url` aponta para a página da fatura;
+  - `webhook_url` é `/rafanutri/public/billing/infinitepay/<token>`, com o token derivado do `SECRET`;
+  - o link fica guardado em `subscription_invoices.checkout_url`.
+- O webhook da InfinitePay não tem assinatura. Por isso, todo aviso, e também a volta da página de pagamento (`POST /rafanutri/billing/invoices/:id/check`), é **reconsultado em `/payment_check`**. A fatura só é dada como paga se `success` e `paid` vierem verdadeiros e o `amount` for igual ao da fatura. A partir daí vale a mesma rotina da confirmação do admin (`markPaid`), com `gateway = 'infinitepay'` e `gateway_id` igual ao `transaction_nsu`.
+- `INFINITEPAY_API_KEY` no `.env` do Directus é opcional. Se estiver definida, o link é de pagamento único e expira 30 dias depois do vencimento.
+- Não existe sandbox: o primeiro teste é uma compra real de R$ 1,00, estornada depois pelo app da InfinitePay.
+
 ## Catálogos compartilhados (`packages/catalogs`)
 
 Planos com Gestão, materno-infantil e pagos, cota de IA, versões dos termos, chaves do que o paciente vê, tipos de aviso e horários de lembrete, motivos de atenção do painel, alergênicos, texturas, reações, aleitamento, parentesco, consentimento e versões das triagens ficam num só arquivo: `packages/catalogs/src/catalogs.js`.

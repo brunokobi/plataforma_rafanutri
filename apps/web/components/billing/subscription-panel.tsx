@@ -85,7 +85,23 @@ export function SubscriptionPanel({ billing }: { billing: Billing }) {
             </button>
           ))}
         </div>
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className={`flex flex-col gap-2 rounded-xl border p-4 ${billing.current_plan === 'free' && !active ? 'border-primary' : 'border-border'}`}>
+            <p className="font-semibold">Gratuito</p>
+            <div>
+              <p className="font-display text-2xl font-semibold">R$ 0</p>
+              <p className="text-xs text-muted-foreground">para sempre, sem cartão</p>
+            </div>
+            <p className="text-xs text-muted-foreground">Até 20 pacientes ativos · 1 profissional</p>
+            <ul className="list-disc space-y-0.5 pl-4 text-sm">
+              {PLAN_HIGHLIGHTS.free?.map((h) => <li key={h}>{h}</li>)}
+            </ul>
+            {billing.current_plan === 'free' && !active ? (
+              <Button type="button" size="sm" className="mt-auto" variant="outline" disabled>Plano atual</Button>
+            ) : owner && active && !sub?.cancel_at_period_end ? (
+              <Button type="button" size="sm" className="mt-auto" variant="outline" disabled={pending} onClick={cancel}>Voltar ao Gratuito</Button>
+            ) : null}
+          </div>
           {billing.plans.filter((p) => cycle === 'monthly' || (p.annual_price_cents ?? 0) >= 100).map((p) => {
             const current = active && sub?.plan === p.code && sub?.billing_cycle === cycle;
             const next = active && (sub?.next_plan ?? sub?.plan) === p.code && (sub?.next_billing_cycle ?? sub?.billing_cycle) === cycle && (sub?.next_plan !== null || sub?.next_billing_cycle !== null) && !current;

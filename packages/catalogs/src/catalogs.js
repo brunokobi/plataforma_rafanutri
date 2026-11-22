@@ -11,7 +11,7 @@ export const PAID_PLANS = ['essential', 'professional', 'clinic'];
 /** Planos com o módulo materno-infantil. */
 export const MATERNAL_PLANS = ['professional', 'clinic'];
 /** Pedidos por dia ao assistente de IA. */
-export const AI_DAILY_LIMIT = { free: 5, essential: 5, professional: 200, clinic: 200, enterprise_uan: 0 };
+export const AI_DAILY_LIMIT = { free: 5, essential: 20, professional: 200, clinic: 200, enterprise_uan: 0 };
 
 // ── Documentos legais e o que o paciente vê ──────────────────────────────────────────────────
 /** Versões vigentes dos termos e da política (aceite registrado em terms_acceptances). */

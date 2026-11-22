@@ -105,7 +105,7 @@ export function setupAI({ router, database, logger, h }) {
     if (!AI_KINDS.includes(kind)) return bad(res, { kind: 'Tipo de pedido inválido.' });
     const limit = AI_DAILY_LIMIT[org.plan] ?? 0;
     if ((await usedToday(org.id)) >= limit) {
-      return res.status(429).json({ errors: [{ message: limit <= 5 ? `Você usou os ${limit} pedidos de hoje do seu plano. Nos planos Profissional e Clínica são 200 por dia.` : 'Limite de uso do dia atingido. Volte amanhã.', extensions: { code: 'AI_QUOTA' } }] });
+      return res.status(429).json({ errors: [{ message: limit <= 20 ? `Você usou os ${limit} pedidos de hoje do seu plano. Nos planos Profissional e Clínica são 200 por dia.` : 'Limite de uso do dia atingido. Volte amanhã.', extensions: { code: 'AI_QUOTA' } }] });
     }
 
     let input = { text: req.body?.text, kcal: req.body?.kcal };

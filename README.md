@@ -96,11 +96,11 @@ Detalhes e prioridades em [docs/02-modulos.md](docs/02-modulos.md).
 ### Outros módulos em produção (22/11/2026)
 
 - **Avisos ao paciente:** Telegram para tudo (@RafanutriAvisosBot) e e-mail (Resend) só no importante.
-- **Assistente de IA:** modelos gratuitos do OpenRouter, sem dados que identifiquem o paciente; cota diária de 5 pedidos (Gratuito e Essencial) ou 200 (Profissional e Clínica).
+- **Assistente de IA:** modelos gratuitos do OpenRouter, sem dados que identifiquem o paciente; cota diária de 5 pedidos (Gratuito), 20 (Essencial) ou 200 (Profissional e Clínica).
 - **Materno-infantil** (Profissional e Clínica): curvas da OMS com alertas, ganho de peso na gestação pelas curvas brasileiras, adicional energético no plano, lactação, introdução alimentar com alergênicos e texturas, responsáveis legais com consentimento e acompanhamento no app do paciente. Página de entrada `/app/materno-infantil`.
 - **Esportivo:** página `/app/esportivo` com os atletas e ficha com visual próprio. O tipo de acompanhamento do paciente (automático, clínico, esportivo ou materno-infantil) define o visual da ficha.
 - **Saúde pública** (por contrato): triagens NRS-2002, MUST e ASG na ficha e painel de pacientes em risco.
-- **Planos:** Gratuito (R$ 0, 20 pacientes ativos, com anúncios do Google só nas telas sem dado de paciente), Essencial (R$ 49,90/mês ou R$ 299,40/ano, 100), Profissional (R$ 99,90/mês ou R$ 599,40/ano, sem limite) e Clínica (R$ 199,90/mês ou R$ 1.199,40/ano, equipe sem limite). O anual tem 50% de desconto (12 meses pelo preço de 6). Pagos por Pix com confirmação do admin; módulo Gestão fora do Gratuito. Gateway de cobrança avaliado em [docs/pesquisa/cobranca-gateways.md](docs/pesquisa/cobranca-gateways.md).
+- **Planos:** Gratuito (R$ 0, 20 pacientes ativos, com anúncios do Google só nas telas sem dado de paciente), Essencial (R$ 49,90/mês ou R$ 299,40/ano, 100), Profissional (R$ 99,90/mês ou R$ 599,40/ano, sem limite) e Clínica (R$ 199,90/mês ou R$ 1.199,40/ano, equipe sem limite). O anual tem 50% de desconto (12 meses pelo preço de 6). Pagamento pela InfinitePay (Pix grátis ou cartão, plano liberado automaticamente) ou por Pix direto com confirmação do admin; módulo Gestão fora do Gratuito. Gateway de cobrança avaliado em [docs/pesquisa/cobranca-gateways.md](docs/pesquisa/cobranca-gateways.md).
 
 Depende de definição externa: gateway com baixa automática (opcional), revisão da RT dos textos-base e critérios marcados "a validar" e licença da MNA. Detalhes em [docs/plano/progresso.md](docs/plano/progresso.md) e [docs/modulos/uan.md](docs/modulos/uan.md).
 

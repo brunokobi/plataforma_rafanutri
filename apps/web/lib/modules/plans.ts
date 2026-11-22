@@ -57,7 +57,7 @@ export const PLANS: readonly PlanDefinition[] = [
       clinical: { grant: 'included', note: 'Até 100 pacientes ativos' },
       patient_area: { grant: 'included' },
       practice: { grant: 'included', note: 'Lembretes e agendamento online' },
-      ai: { grant: 'quota', note: '5 por dia' },
+      ai: { grant: 'quota', note: '20 por dia' },
       maternal: { grant: 'none' },
       uan: { grant: 'none' },
       public_health: contract,

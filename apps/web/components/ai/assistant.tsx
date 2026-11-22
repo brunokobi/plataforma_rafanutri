@@ -75,7 +75,7 @@ export function Assistant({ status, patients, initialPatient }: { status: AiStat
             {pending ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
             {pending ? 'Pensando… (pode levar até 1 minuto)' : 'Pedir ao assistente'}
           </Button>
-          <span className="text-xs text-muted-foreground">{status.limit <= 5 ? `${left} de ${status.limit} pedidos hoje` : `${used} pedidos hoje`}</span>
+          <span className="text-xs text-muted-foreground">{status.limit <= 20 ? `${left} de ${status.limit} pedidos hoje` : `${used} pedidos hoje`}</span>
         </div>
         {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
       </form>

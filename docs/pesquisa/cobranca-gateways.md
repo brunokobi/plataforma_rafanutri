@@ -1,5 +1,7 @@
 # Cobrança: avaliação da Cobre Fácil (e alternativas)
 
+> **Decisão (22/11/2026):** sem CNPJ, a assinatura passa a usar a **InfinitePay** (pessoa física, sem mensalidade, Pix grátis, Checkout Integrado com aviso de pagamento). Implementada na migração 0070 (ver db/README). Alternativas só com CPF: Mercado Pago (Pix 0,99%) e Efí Pro (Pix 1,19%). Para o nutricionista receber na própria conta com comissão da plataforma, a opção com CPF é o Mercado Pago Marketplace (OAuth), a validar.
+
 Pesquisa de 22/11/2026, só com páginas públicas (sem conta, sem dados enviados). O que não tinha fonte pública está marcado como **não confirmado**.
 
 Dois usos avaliados:

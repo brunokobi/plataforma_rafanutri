@@ -71,7 +71,7 @@ export function TrustBar() {
 // Preços vêm do catálogo de planos (lib/modules/plans.ts); os itens resumem as concessões de cada plano.
 const plans: PricingCard[] = [
   { code: 'free', note: 'para sempre', highlight: true, features: ['Até 20 pacientes ativos', 'Anamnese, avaliação e plano alimentar', 'Área do paciente e PDF com a sua marca', 'Assistente de IA: 5 pedidos por dia'] },
-  { code: 'essential', note: 'para quem está crescendo', features: ['Até 100 pacientes ativos', 'Financeiro, pacotes e CRM', 'Agendamento online e lembretes por Telegram e e-mail', 'Assistente de IA: 5 pedidos por dia'] },
+  { code: 'essential', note: 'para quem está crescendo', features: ['Até 100 pacientes ativos', 'Financeiro, pacotes e CRM', 'Agendamento online e lembretes por Telegram e e-mail', 'Assistente de IA: 20 pedidos por dia'] },
   { code: 'professional', note: 'para consultórios com volume', features: ['Pacientes ativos sem limite', 'Tudo do Essencial', 'Assistente de IA: 200 pedidos por dia', 'Módulo materno-infantil'] },
   { code: 'clinic', note: 'para equipes', features: ['Tudo do Profissional', 'Equipe sem limite, com papéis e permissões'] },
 ];
