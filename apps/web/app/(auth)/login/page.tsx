@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { LoginScreen } from '@/components/auth/login-screen';
+import { googleConfig, googleErrorMessage } from '@/lib/auth/google';
 import { safeRedirect } from '@/lib/auth/safe-redirect';
 
 export const metadata: Metadata = {
@@ -8,8 +9,8 @@ export const metadata: Metadata = {
   robots: { index: false },
 };
 
-export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
-  const { next } = await searchParams;
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string; google?: string }> }) {
+  const { next, google } = await searchParams;
   const target = next ? safeRedirect(next) : undefined;
-  return <LoginScreen next={target} />;
+  return <LoginScreen next={target} google={Boolean(await googleConfig())} googleError={googleErrorMessage(google)} />;
 }

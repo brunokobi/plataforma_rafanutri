@@ -3,6 +3,7 @@
 import { Activity, Baby, BarChart3, Check, Smartphone, Sparkles, Stethoscope, Users, UtensilsCrossed } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode } from 'react';
+import { GoogleButton, OrDivider } from '@/components/auth/google-button';
 import { LoginForm } from '@/components/auth/login-form';
 import { Logo } from '@/components/brand/logo';
 import { ThemeToggle } from '@/components/theme-toggle';
@@ -337,7 +338,7 @@ function Showcase() {
 }
 
 /** Tela de login: formulário à esquerda (nutricionista ou paciente) e vitrine das áreas à direita. */
-export function LoginScreen({ next }: { next?: string }) {
+export function LoginScreen({ next, google = false, googleError = null }: { next?: string; google?: boolean; googleError?: string | null }) {
   const [role, setRole] = useState<Role>('nutri');
   const nutri = role === 'nutri';
   const tab = (active: boolean) =>
@@ -370,7 +371,9 @@ export function LoginScreen({ next }: { next?: string }) {
               <button type="button" aria-pressed={!nutri} onClick={() => setRole('paciente')} className={tab(!nutri)}><Smartphone aria-hidden="true" /> Sou paciente</button>
             </div>
 
-            <div className="rn-rise" style={rise(240)}>
+            <div className="rn-rise flex flex-col gap-4" style={rise(240)}>
+              {googleError && <p role="alert" className="rounded-[12px] border border-destructive/40 bg-destructive/5 px-3.5 py-2.5 text-sm text-destructive">{googleError}</p>}
+              {google && <><GoogleButton next={next} /><OrDivider /></>}
               <LoginForm next={next} emailPlaceholder={nutri ? 'voce@consultorio.com.br' : 'seu@email.com'} />
             </div>
 

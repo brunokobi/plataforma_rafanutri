@@ -100,6 +100,7 @@ Detalhes e prioridades em [docs/02-modulos.md](docs/02-modulos.md).
 - **Materno-infantil** (Profissional e Clínica): curvas da OMS com alertas, ganho de peso na gestação pelas curvas brasileiras, adicional energético no plano, lactação, introdução alimentar com alergênicos e texturas, responsáveis legais com consentimento e acompanhamento no app do paciente. Página de entrada `/app/materno-infantil`.
 - **Esportivo:** página `/app/esportivo` com os atletas e ficha com visual próprio. O tipo de acompanhamento do paciente (automático, clínico, esportivo ou materno-infantil) define o visual da ficha.
 - **Saúde pública** (por contrato): triagens NRS-2002, MUST e ASG na ficha e painel de pacientes em risco.
+- **Entrar com Google:** login e cadastro pela conta Google (e-mail verificado). Liga à conta que já existe com o mesmo e-mail (nutricionista ou paciente); conta nova só pelo cadastro, que registra o aceite dos termos. Contas com verificação em duas etapas continuam entrando com senha e código.
 - **Planos:** Gratuito (R$ 0, 20 pacientes ativos, com anúncios do Google só nas telas sem dado de paciente), Essencial (R$ 49,90/mês ou R$ 299,40/ano, 100), Profissional (R$ 99,90/mês ou R$ 599,40/ano, sem limite) e Clínica (R$ 199,90/mês ou R$ 1.199,40/ano, equipe sem limite). O anual tem 50% de desconto (12 meses pelo preço de 6). Pagamento pela InfinitePay (Pix grátis ou cartão, plano liberado automaticamente) ou por Pix direto com confirmação do admin; módulo Gestão fora do Gratuito. Gateway de cobrança avaliado em [docs/pesquisa/cobranca-gateways.md](docs/pesquisa/cobranca-gateways.md).
 
 Depende de definição externa: gateway com baixa automática (opcional), revisão da RT dos textos-base e critérios marcados "a validar" e licença da MNA. Detalhes em [docs/plano/progresso.md](docs/plano/progresso.md) e [docs/modulos/uan.md](docs/modulos/uan.md).
@@ -215,6 +216,7 @@ Contagem de rotas por `router.get|post|put|patch|delete(` em 22/11/2026, depois 
 | `public-health.js` | 3 | Triagens (0066) e painel `/public-health/overview` |
 | `clinical-dashboard.js` | 2 | Painéis clínicos: `/clinical/patients-dashboard` e `/patients/:id/dashboard` |
 | `ai.js` | 2 | Assistente de IA (0063): `/ai/status` e `/ai/ask` |
+| `google-auth.js` | 2 | Entrar com Google: `/public/auth/google/config` e `/public/auth/google` (troca do código, conta por e-mail e sessão aberta pelo `/auth/refresh` do próprio Directus) |
 | `ai-core.js` | 0 | Regras da IA: modelos gratuitos, anonimização, cota |
 | `billing.js` | 0 | Código Pix (BR Code), períodos e valores |
 | `notifications.js` | 0 | Regras dos avisos: canal, janelas de lembrete, textos |
@@ -289,6 +291,7 @@ A lista completa, sem valores reais, fica nos arquivos `.env.example`. Principai
 | `TELEGRAM_BOT_TOKEN` | Directus | Bot dos avisos; sem ela o Telegram fica desligado e só o e-mail importante sai |
 | `RAFANUTRI_SITE_URL` | Directus | URL do app nos links dos avisos (padrão `https://rafanutri.brunokobi.tech`) |
 | `PUBLIC_URL` | Directus | URL da API, usada para registrar o webhook do bot |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` / `GOOGLE_REDIRECT_URIS` | Directus | Cliente OAuth do Google (tipo "Aplicativo da Web"). Retorno autorizado: `https://rafanutri.brunokobi.tech/api/auth/google/callback`, que também precisa estar cadastrado no Google Cloud. Sem as três, o botão some |
 
 Nunca versione arquivos `.env*` com valores reais.
 
@@ -310,6 +313,7 @@ A plataforma trata **dados sensíveis de saúde**. No MVP, a adequação complet
 - Isolamento por consultório (permissões do Directus + ganchos + gatilhos) com testes automatizados.
 - Auditoria de quem criou, alterou, abriu ou exportou dados clínicos e financeiros (0030).
 - Aceite registrado dos Termos e da Política de Privacidade, por versão (0057).
+- Login pelo Google com `state` e `nonce` (cookie httpOnly de 10 minutos); a chave secreta fica só no Directus e só e-mail verificado entra.
 - IA sem dados que identifiquem o paciente; nenhum texto enviado à IA é gravado.
 - Segredos fora do repositório.
 - Backup diário do banco na VPS. **Pendente:** cópia fora da VPS e teste de restauração periódico.

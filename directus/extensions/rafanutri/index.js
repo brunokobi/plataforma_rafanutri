@@ -15,6 +15,7 @@ import { setupClinicalDashboard } from './clinical-dashboard.js';
 import { setupSubscriptions } from './subscriptions.js';
 import { setupMaternal } from './maternal.js';
 import { setupAI } from './ai.js';
+import { setupGoogleAuth } from './google-auth.js';
 import { setupPatientArea } from './patient-area.js';
 import { setupPractice } from './practice.js';
 import { setupUan } from './uan.js';
@@ -45,7 +46,7 @@ const MAX_ANSWERS_BYTES = 100_000;
 
 export default {
   id: 'rafanutri',
-  handler: (router, { database, logger, services, getSchema }) => {
+  handler: (router, { database, logger, services, getSchema, env }) => {
     let notifier = null;   // avisos (notify.js), montado no fim do handler
     // Papel "Paciente" (migração 0018): conta da área do paciente.
     const PATIENT_ROLE = '5d1c7a3e-0002-4b6e-9a01-7e2a0c9a0002';
@@ -1163,5 +1164,8 @@ export default {
 
     // ── Assistente de IA, só modelos gratuitos do OpenRouter (0063) ───────────────────────────
     setupAI({ router, database, logger, h: { requireUser, bad, isUuid } });
+
+    // ── Entrar com o Google (GOOGLE_CLIENT_ID/SECRET/REDIRECT_URIS no .env) ───────────────────
+    setupGoogleAuth({ router, database, logger, services, getSchema, env: env ?? process.env, recordTerms });
   },
 };
