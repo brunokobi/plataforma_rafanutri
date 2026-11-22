@@ -25,13 +25,14 @@ O MVP roda inteiro na vpsrafa e deixa a LGPD para depois ([ADR 0004](../adr/0004
 
 | Situação | Itens |
 |---|---|
-| Adiados | RN-016 (termos e DPA), RN-021 (consentimento do paciente), RN-059 (opt-out), RN-081 (pseudonimização para a IA) |
-| Reduzidos | RN-063 (sem aprovação de templates da Meta), RN-067 e RN-089 (só documentação técnica) |
-| Trocados | WhatsApp pela Evolution API; IA pelo OpenRouter `:free`; Supabase self-hosted |
-| Mantidos mesmo no MVP | RLS (RN-008), backup externo (RN-003), segurança básica (RN-049) |
+| Adiados | RN-021 (consentimento do paciente além do aceite dos termos), RN-081 (pseudonimização formal para a IA; hoje a IA já não recebe dados que identifiquem o paciente). RN-016 (termos) e RN-059 (opt-out dos avisos) acabaram feitos |
+| Reduzidos | RN-067 e RN-089 (só documentação técnica) |
+| Cancelados | RN-063 (templates do WhatsApp), RN-050 e RN-066 (n8n) na prática |
+| Trocados | Supabase por **Directus** ([ADR 0008](../adr/0008-backend-directus.md)); WhatsApp e n8n por **Telegram e e-mail** (Resend) dentro da extensão; gateway por **Pix** com confirmação do admin; PWA por web responsiva em `/p`; IA pelo OpenRouter só com modelos gratuitos |
+| Mantidos mesmo no MVP | Isolamento por organização (RN-008), backup diário (RN-003: feito na VPS, falta a cópia externa), segurança básica (RN-049), auditoria (RN-009) |
 | Antecipados | Plano gratuito com 20 pacientes ativos e área do paciente com plano, receitas e recomendações (Fase 1B) |
 
-**Convenção de rotas:** a área do profissional usa `/[orgSlug]/...` com nomes em português (Fases 0, 1 e 1B), e a do paciente usa `/p/...`. Onde os documentos das Fases 2 a 6 citam `/app/...`, leia como `/[orgSlug]/...`.
+**Convenção de rotas:** a área do profissional usa `/app/...` com nomes em português (ex.: `/app/pacientes`), e a do paciente usa `/p/...`. Onde os documentos de fase citam `/[orgSlug]/...`, leia como `/app/...`.
 
 ## Cronograma macro (2 desenvolvedores)
 
@@ -130,7 +131,7 @@ Um item só entra no ciclo quando:
 - Funciona em telas de celular (360 px) e de computador.
 - Acessibilidade básica: navegação por teclado, contraste e rótulos nos formulários.
 - Documentação atualizada (`docs/`, README, `.env.example`).
-- Demonstrado no ambiente de staging.
+- Demonstrado em produção com o usuário de teste (não há staging).
 
 ## Fluxo de trabalho no repositório
 
@@ -140,16 +141,16 @@ Um item só entra no ciclo quando:
 | Branches de trabalho | `feat/RN-031-editor-plano`, `fix/RN-032-arredondamento`, `docs/...`, `chore/...` |
 | Commits | Conventional Commits em português: `feat(clinico): editor de plano alimentar (RN-031)` |
 | Pull requests | Um item por PR quando possível; descrição com o ID, o que mudou, como testar e prints |
-| Migrações | `supabase/migrations/<timestamp>_<nome>.sql`; nunca editar migração já aplicada em staging |
+| Migrações | `db/migrations/NNNN_nome.sql` (número sequencial de 4 dígitos, SQL idempotente); `pg_dump` antes de aplicar; nunca editar migração já aplicada em produção |
 | Versões | Tags semânticas a partir do beta (`v0.1.0` = M1) |
-| Deploy | Merge em `main` → staging automático; produção por tag com aprovação manual |
+| Deploy | Manual: deploy do web no Coolify após o push; extensão copiada para a VPS e restart do Directus; migrações com `psql` |
 
 ## Ambientes e dados
 
 | Ambiente | Uso | Dados |
 |---|---|---|
 | Local | Desenvolvimento | Seed sintético |
-| Staging | Validação e demonstração | Seed sintético; nunca dados reais |
+| Staging | Não existe | — |
 | Produção | Clientes | Dados reais; acesso restrito e auditado |
 
 ## Cerimônias (ciclos de 2 semanas)
@@ -158,7 +159,7 @@ Um item só entra no ciclo quando:
 |---|---|---|
 | Planejamento | 1 h | Escolher itens do ciclo pelo backlog |
 | Revisão de domínio | 30 min/semana | Validar fórmulas, telas e textos com a nutricionista |
-| Demonstração | 30 min | Mostrar o que foi entregue no staging |
+| Demonstração | 30 min | Mostrar o que foi entregue em produção |
 | Retrospectiva | 30 min | Ajustar o processo e a velocidade |
 
 ## Gestão de riscos transversais

@@ -2,7 +2,7 @@
 
 A plataforma é dividida em módulos por área de atuação, sobre um **núcleo comum** (contas, pacientes, agenda, documentos, IA). Cada módulo pode ser habilitado por plano.
 
-Legenda de prioridade: **P0** = MVP, **P1** = logo após o MVP, **P2** = fase posterior.
+Legenda de prioridade: **P0** = MVP, **P1** = logo após o MVP, **P2** = fase posterior. O que já está em produção fica no [progresso](plano/progresso.md); acesso por plano em [specs/tela-principal-modulos.md](specs/tela-principal-modulos.md#3-acesso-por-plano).
 
 ## Núcleo comum (Core)
 
@@ -15,9 +15,9 @@ Legenda de prioridade: **P0** = MVP, **P1** = logo após o MVP, **P2** = fase po
 | Agenda de consultas (presencial/online, retorno) | P0 |
 | Prontuário com linha do tempo de atendimentos | P0 |
 | Geração de PDF com a identidade visual do profissional | P0 |
-| Base de alimentos (TACO, TBCA e alimentos próprios) | P0 |
+| Base de alimentos (TACO, IBGE POF 2008-2009, Open Food Facts, USDA SR Legacy e alimentos próprios; TBCA fora por licença) | P0 |
 | Auditoria de acesso a dados sensíveis | P0 |
-| Notificações (e-mail, WhatsApp via n8n) | P1 |
+| Avisos ao paciente: Telegram para tudo e e-mail (Resend) no importante; WhatsApp automático descartado | P1 (feito) |
 
 ## 1. Clínico e Nutrição Esportiva — **prioridade comercial nº 1**
 
@@ -48,7 +48,7 @@ Legenda de prioridade: **P0** = MVP, **P1** = logo após o MVP, **P2** = fase po
 
 | Funcionalidade | Prioridade |
 |---|---|
-| Triagem nutricional rápida (NRS-2002, MNA, MUST) | P1 |
+| Triagem nutricional rápida (NRS-2002, MUST e ASG; MNA aguardando a licença) | P1 (feito, exceto MNA) |
 | Grupos/programas (hipertensos, diabéticos, gestantes) com indicadores coletivos | P2 |
 | Relatórios epidemiológicos por território | P2 |
 | Integração com prontuários (SUS/privados, padrões como FHIR) | P2 |
@@ -73,10 +73,10 @@ Plano completo do módulo em [modulos/uan.md](modulos/uan.md).
 
 | Funcionalidade | Prioridade |
 |---|---|
-| Lembretes automáticos de consulta e retorno (WhatsApp/e-mail) | P1 |
+| Lembretes automáticos de consulta (Telegram e e-mail; retorno pendente) | P1 |
 | CRM: funil de pacientes (lead → primeira consulta → acompanhamento → inativo) | P1 |
 | Financeiro: recebimentos, pacotes de consultas, fluxo de caixa, recibos | P1 |
-| Cobrança online (Pix/cartão via gateway) | P2 |
+| Cobrança dos pacientes online (Pix/cartão via gateway) | P2 |
 | Gerador de conteúdo educativo (posts, e-books) com a identidade visual | P2 |
 
 ## Diferenciais transversais
@@ -84,14 +84,17 @@ Plano completo do módulo em [modulos/uan.md](modulos/uan.md).
 ### Assistente de IA
 | Funcionalidade | Prioridade |
 |---|---|
-| Sugestão de plano alimentar a partir de metas, restrições e preferências (sempre revisado pelo nutricionista) | P1 |
-| Resumo da anamnese e do histórico do paciente | P1 |
-| Assistente RAG sobre diretrizes clínicas e tabelas de composição | P2 |
-| Sugestão de receitas com base no plano do paciente | P2 |
+| Sugestão de cardápio para a meta de calorias (sempre revisada pelo nutricionista) | P1 (feito) |
+| Resumo da anamnese | P1 (feito) |
+| Pergunta livre ao assistente (sem RAG; modelos gratuitos do OpenRouter) | P1 (feito) |
+| Ideias de receitas | P2 (feito) |
 
-Regra: a IA **sugere**, o nutricionista **decide**. Nada gerado por IA chega ao paciente sem revisão do profissional.
+Regra: a IA **sugere**, o nutricionista **decide**. Nada gerado por IA chega ao paciente sem revisão do profissional. Nenhum dado que identifique o paciente vai para a IA. Cota diária: 5 pedidos no Gratuito e no Essencial, 200 no Profissional e na Clínica.
 
 ### App do paciente
+
+Hoje é web responsiva em `/p` (sem PWA nem app nativo).
+
 | Funcionalidade | Prioridade |
 |---|---|
 | Ver plano alimentar do dia e substituições | P1 |

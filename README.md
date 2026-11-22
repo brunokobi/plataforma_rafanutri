@@ -3,9 +3,9 @@
 <p align="center"><strong>A plataforma de trabalho do nutricionista, do consultório à cozinha industrial.</strong></p>
 
 <p align="center">
-  <a href="docs/plano/00-visao-geral.md"><img alt="status: MVP em construção" src="https://img.shields.io/badge/status-MVP%20em%20constru%C3%A7%C3%A3o-F59E0B?style=flat-square"></a>
+  <a href="docs/plano/00-visao-geral.md"><img alt="status: MVP no ar" src="https://img.shields.io/badge/status-MVP%20no%20ar-2E7D32?style=flat-square"></a>
   <a href="docs/06-plano-implementacao.md"><img alt="roadmap: 8 fases" src="https://img.shields.io/badge/roadmap-8%20fases-2E7D32?style=flat-square"></a>
-  <a href="docs/07-backlog.md"><img alt="backlog: 204 itens" src="https://img.shields.io/badge/backlog-204%20itens-2E7D32?style=flat-square"></a>
+  <a href="docs/07-backlog.md"><img alt="backlog: 224 itens" src="https://img.shields.io/badge/backlog-224%20itens-2E7D32?style=flat-square"></a>
   <a href="docs/adr/"><img alt="ADRs: 5" src="https://img.shields.io/badge/ADRs-5-2E7D32?style=flat-square"></a>
   <img alt="docs: pt-BR" src="https://img.shields.io/badge/docs-pt--BR-009C3B?style=flat-square">
   <img alt="licença: proprietária" src="https://img.shields.io/badge/licen%C3%A7a-propriet%C3%A1ria-6B7280?style=flat-square">
@@ -17,8 +17,8 @@
   <a href="https://www.typescriptlang.org"><img alt="TypeScript: strict" src="https://img.shields.io/badge/TypeScript-strict-3178C6?style=flat-square&logo=typescript&logoColor=white"></a>
   <a href="https://tailwindcss.com"><img alt="Tailwind CSS: 4" src="https://img.shields.io/badge/Tailwind%20CSS-4-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white"></a>
   <a href="docs/adr/0008-backend-directus.md"><img alt="Directus: 12" src="https://img.shields.io/badge/Directus-12-6644FF?style=flat-square&logo=directus&logoColor=white"></a>
-  <a href="https://www.postgresql.org"><img alt="PostgreSQL: 16 + pgvector" src="https://img.shields.io/badge/PostgreSQL-16%20%2B%20pgvector-4169E1?style=flat-square&logo=postgresql&logoColor=white"></a>
-  <a href="https://n8n.io"><img alt="n8n: automações" src="https://img.shields.io/badge/n8n-automa%C3%A7%C3%B5es-EA4B71?style=flat-square&logo=n8n&logoColor=white"></a>
+  <a href="https://www.postgresql.org"><img alt="PostgreSQL: 16" src="https://img.shields.io/badge/PostgreSQL-16-4169E1?style=flat-square&logo=postgresql&logoColor=white"></a>
+  <img alt="Avisos: Telegram e e-mail" src="https://img.shields.io/badge/avisos-Telegram%20%2B%20e--mail-26A5E4?style=flat-square&logo=telegram&logoColor=white">
 </p>
 <p align="center">
   <a href="docs/adr/0004-infraestrutura-hospedagem.md"><img alt="Oracle Cloud: ARM64" src="https://img.shields.io/badge/Oracle%20Cloud-ARM64-F80000?style=flat-square"></a>
@@ -29,7 +29,17 @@
 
 A Rafanutri reúne as áreas da nutrição em um só lugar: atendimento clínico e esportivo, nutrição materno-infantil, saúde pública, Unidades de Alimentação e Nutrição (UAN) com gestão de qualidade, e gestão do negócio do nutricionista. Também traz assistentes de IA e um app para o paciente acompanhar o plano alimentar.
 
-> **Status (14/11/2026):** MVP em construção, **no ar em https://rafanutri.brunokobi.tech**. Já gravam no banco: cadastro com login automático, onboarding do consultório (plano gratuito), **pacientes** (cadastro, ficha, edição, limite de 20 ativos), **avaliações antropométricas**, **planos alimentares por paciente** (rascunho, publicação e versões), **agenda** de consultas **anamneses** com link público para o paciente responder **modelos de plano** com ajuste à meta de calorias e **alimentos e preparações do consultório**, **orientações reutilizáveis**, **prontuário com evoluções assinadas**, **convite do paciente e área do paciente com o plano alimentar completo, receitas, recomendações, PDFs dos planos, documentos clínicos com a marca (pedido de exames, prescrição, declaração) e escolha do que o paciente vê (calorias, macros, peso)**, **biblioteca de receitas com foto**, **marca do consultório (logo e cor)**, **financeiro (receitas, despesas, a receber, fluxo de 6 meses, CSV, recibo numerado em PDF e pacotes de consultas)**, **CRM (funil de leads, retornos e conversão)**, **indicadores do consultório no painel inicial**, **página pública com agendamento online**, **auditoria (quem criou, alterou, abriu ou exportou dados clínicos e financeiros)** e um **painel inicial** com o dia do nutricionista e a base de alimentos **TACO 4ª edição + IBGE (POF 2008-2009, cerca de 1.900 alimentos e preparações com medidas caseiras) + Open Food Facts (8.406 produtos do Brasil) + USDA (6.132 alimentos), cerca de 17.000 itens** usada pelo editor de plano alimentar.  Veja o [progresso](docs/plano/progresso.md).
+> **Status (22/11/2026):** MVP **no ar em https://rafanutri.brunokobi.tech**, gravando no banco. Entregue:
+>
+> - **Clínico:** pacientes com tipo de acompanhamento, agenda, anamnese por link, avaliações, plano alimentar com PDF, modelos, alimentos e preparações próprios, orientações, prontuário com evoluções assinadas, documentos clínicos e **painéis clínicos** (geral e por paciente).
+> - **Área do paciente** (web responsiva em `/p`): plano, receitas, recomendações, PDFs e documentos.
+> - **Gestão** (planos pagos): financeiro, recibos, pacotes, CRM, indicadores, página pública com agendamento online e **avisos por Telegram e e-mail**.
+> - **Assistente de IA** (OpenRouter, só modelos gratuitos) e **materno-infantil completo** (curvas da OMS, gestação, lactação, introdução alimentar, responsáveis e visão no app).
+> - **Saúde pública, bloco A:** triagens NRS-2002, MUST e ASG e painel de risco.
+> - **UAN e Qualidade** (Enterprise), **assinatura por Pix**, auditoria, aceite dos termos e **visual próprio por módulo**.
+> - Base de alimentos com cerca de 17.000 itens: TACO (597), IBGE POF 2008-2009 (1.923), Open Food Facts (8.406) e USDA SR Legacy (6.132).
+>
+> Veja o [progresso](docs/plano/progresso.md).
 
 ---
 
@@ -53,23 +63,23 @@ A Rafanutri reúne as áreas da nutrição em um só lugar: atendimento clínico
 
 ## Por que a Rafanutri
 
-> **MVP:** tudo roda na VPS existente, com WhatsApp pela Evolution API e IA pelo OpenRouter. A adequação à LGPD fica para depois do MVP ([ADR 0004](docs/adr/0004-infraestrutura-hospedagem.md)).
+> **MVP:** tudo roda na VPS existente (vpsrafa), com avisos pelo Telegram e por e-mail (Resend) e IA pelos modelos gratuitos do OpenRouter. A adequação completa à LGPD fica para depois do MVP ([ADR 0004](docs/adr/0004-infraestrutura-hospedagem.md)).
 
 - **Nutricionistas** usam várias ferramentas soltas: uma para calcular dieta, outra para agenda, WhatsApp para falar com o paciente e planilha para o financeiro. A Rafanutri junta tudo e usa IA para reduzir o tempo de montar um plano alimentar para **menos de 10 minutos**.
-- **Pacientes** recebem o plano no celular, com substituições, lista de compras e metas de hidratação.
+- **Pacientes** veem o plano no celular, com substituições, receitas, recomendações e PDFs.
 - **Empresas de alimentação** substituem papel e planilha por checklists digitais, fichas técnicas com custo e documentação de Boas Práticas pronta para a fiscalização (RDC 216/2004).
 
 ## Módulos
 
 | Módulo | Para quem | Destaques |
 |---|---|---|
-| **Núcleo** | Todos | Contas e equipes, pacientes, agenda, prontuário, base de alimentos (TACO/TBCA), PDFs com a marca do profissional |
+| **Núcleo** | Todos | Contas e equipes, pacientes, agenda, prontuário, base de alimentos (TACO, IBGE, Open Food Facts e USDA), PDFs com a marca do profissional |
 | **1. Clínico e Esportivo** | Nutricionistas de consultório, academias, estética | Anamnese por link, antropometria e composição corporal, gasto energético, plano alimentar com cálculo em tempo real e substituições |
 | **2. Materno-Infantil** | Nutrição pediátrica e gestantes | Curvas de crescimento da OMS com escore-z, ganho de peso gestacional, lactação, introdução alimentar, responsáveis e app da família |
-| **3. Saúde Pública** | UBS, ambulatórios, programas | Triagens (NRS-2002, MNA, MUST), grupos populacionais, relatórios |
+| **3. Saúde Pública** | UBS, ambulatórios, programas | Triagens (NRS-2002, MUST e ASG; MNA pendente de licença), painel de risco; depois programas, indicadores e território |
 | **4. UAN e Qualidade** | Restaurantes, hospitais, escolas, hotéis | Ficha técnica, cardápio cíclico, compras, estoque, checklists BPF, POPs, APPCC, rotulagem |
-| **5. Gestão do consultório** | Profissionais e clínicas | Avisos e lembretes pelo Telegram (e e-mail no importante), CRM, financeiro, pacotes, conteúdo de marketing |
-| **IA** | Nutricionista | Sugestão de plano, resumo de anamnese, assistente sobre diretrizes (sempre revisado pelo profissional) |
+| **5. Gestão do consultório** | Profissionais e clínicas | Avisos e lembretes pelo Telegram (e e-mail no importante), CRM, financeiro, recibos, pacotes, agendamento online. Fora do plano Gratuito |
+| **IA** | Nutricionista | Pergunta livre, ideias de receitas, resumo da anamnese e sugestão de cardápio, sem dados que identifiquem o paciente (sempre revisado pelo profissional) |
 | **Área do paciente** | Paciente | Plano alimentar, receitas, recomendações e PDFs (MVP); depois diário, hidratação, lista de compras e chat |
 
 Detalhes e prioridades em [docs/02-modulos.md](docs/02-modulos.md).
@@ -83,12 +93,21 @@ Detalhes e prioridades em [docs/02-modulos.md](docs/02-modulos.md).
 - **APPCC e rotulagem:** plano com árvore do Codex, PCC e PDF; rótulo nutricional da IN 75/2020 (vertical, horizontal e linear) com lupa e alergênicos.
 - **Contrato e implantação:** situação, faturas e modo leitura quando o contrato termina; administração da plataforma em `/app/admin` (contratos e faturas); importação de fornecedores, insumos e fichas por planilha ([roteiro](docs/guias/implantacao-enterprise.md)).
 
-Avisos ao paciente: Telegram para tudo (@RafanutriAvisosBot) e e-mail só no importante. **Assistente de IA** (modelos gratuitos do OpenRouter, sem dados que identifiquem o paciente) e módulo **materno-infantil** (curvas da OMS com alertas, ganho de peso na gestação pelas curvas brasileiras, adicional energético no plano, lactação, introdução alimentar com alergênicos e texturas, responsáveis legais com consentimento e acompanhamento no app do paciente). Módulo **Saúde pública** (por contrato) começou: triagens NRS-2002, MUST e ASG na ficha e painel de pacientes em risco. Assinatura dos planos pagos por Pix (confirmação pelo admin): Essencial até 100 pacientes ativos, Profissional sem limite, Clínica com equipe. Plano Gratuito com anúncios do Google só nas telas sem dado de paciente. Depende de definição externa: cobrança no gateway, IA e a revisão da RT dos textos-base e critérios marcados "a validar". Detalhes em [docs/plano/progresso.md](docs/plano/progresso.md) e [docs/modulos/uan.md](docs/modulos/uan.md).
+### Outros módulos em produção (22/11/2026)
+
+- **Avisos ao paciente:** Telegram para tudo (@RafanutriAvisosBot) e e-mail (Resend) só no importante.
+- **Assistente de IA:** modelos gratuitos do OpenRouter, sem dados que identifiquem o paciente; cota diária de 5 pedidos (Gratuito e Essencial) ou 200 (Profissional e Clínica).
+- **Materno-infantil** (Profissional e Clínica): curvas da OMS com alertas, ganho de peso na gestação pelas curvas brasileiras, adicional energético no plano, lactação, introdução alimentar com alergênicos e texturas, responsáveis legais com consentimento e acompanhamento no app do paciente. Página de entrada `/app/materno-infantil`.
+- **Esportivo:** página `/app/esportivo` com os atletas e ficha com visual próprio. O tipo de acompanhamento do paciente (automático, clínico, esportivo ou materno-infantil) define o visual da ficha.
+- **Saúde pública** (por contrato): triagens NRS-2002, MUST e ASG na ficha e painel de pacientes em risco.
+- **Planos:** Gratuito (R$ 0, 20 pacientes ativos, com anúncios do Google só nas telas sem dado de paciente), Essencial (R$ 49,90/mês, 100), Profissional (R$ 99,90/mês, sem limite) e Clínica (R$ 199,90/mês, equipe sem limite), pagos por Pix com confirmação do admin.
+
+Depende de definição externa: gateway com baixa automática (opcional), revisão da RT dos textos-base e critérios marcados "a validar" e licença da MNA. Detalhes em [docs/plano/progresso.md](docs/plano/progresso.md) e [docs/modulos/uan.md](docs/modulos/uan.md).
 
 ## Estratégia de lançamento
 
 1. **Plano gratuito** com até 20 pacientes ativos por nutricionista para atrair usuários no MVP.
-2. **Clínico + Gestão** como base dos planos pagos: assinatura mensal por nutricionista (referência de R$ 49 a R$ 119/mês), mercado grande e venda rápida.
+2. **Clínico + Gestão** como base dos planos pagos, por Pix: Essencial R$ 49,90/mês, Profissional R$ 99,90/mês e Clínica R$ 199,90/mês (por consultório, equipe sem limite).
 3. **Área do paciente** como mecanismo de retenção: quando os pacientes usam o app, trocar de sistema fica caro para o profissional.
 4. **UAN/Qualidade Enterprise** em seguida: contratos B2B por unidade produtora (referência de R$ 500 a R$ 2.000+/mês).
 
@@ -96,14 +115,14 @@ Ver [docs/01-visao-produto.md](docs/01-visao-produto.md).
 
 ## Roadmap
 
-| Fase | Entrega | Duração estimada* | Marco |
+| Fase | Entrega | Duração estimada* | Marco / situação |
 |---|---|---|---|
-| 0 | [Fundação](docs/plano/fase-0-fundacao.md): monorepo, auth, organizações, RLS, TACO, CI/CD | 3 semanas | Base pronta |
+| 0 | [Fundação](docs/plano/fase-0-fundacao.md): monorepo, auth, organizações, isolamento, TACO, CI/CD | 3 semanas | Base pronta |
 | 1 | [MVP Clínico](docs/plano/fase-1-mvp-clinico.md): pacientes, agenda, anamnese, avaliação, plano alimentar, PDF | 8 semanas | |
 | 1B | [Plano gratuito e área do paciente](docs/plano/fase-1b-freemium-area-paciente.md): até 20 pacientes grátis; paciente vê plano, receitas e recomendações | 3 semanas | **Beta com plano gratuito** |
-| 2 | [Gestão](docs/plano/fase-2-gestao.md): WhatsApp, financeiro, CRM, assinatura do SaaS | 4 semanas | **Lançamento pago** |
-| 3 | [App do paciente + IA](docs/plano/fase-3-app-paciente-ia.md) | 6 semanas | App em uso |
-| 4 | [Materno-infantil](docs/plano/fase-4-materno-infantil.md) | 4 semanas | |
+| 2 | [Gestão](docs/plano/fase-2-gestao.md): avisos por Telegram e e-mail, financeiro, CRM, assinatura por Pix | 4 semanas | **Lançamento pago** |
+| 3 | [App do paciente + IA](docs/plano/fase-3-app-paciente-ia.md) | 6 semanas | Entregue: área do paciente web e assistente de IA (app nativo, diário e chat ficam para depois) |
+| 4 | [Materno-infantil](docs/plano/fase-4-materno-infantil.md) | 4 semanas | Entregue (22/11/2026); faltam idade corrigida de prematuros e PDF das curvas |
 | 5 | [UAN e Qualidade](docs/plano/fase-5-uan-qualidade.md) (Enterprise) | 10 semanas | **Piloto Enterprise** |
 | 6 | [Saúde pública e avançados](docs/plano/fase-6-saude-publica-avancados.md) | contínuo | bloco A (triagens) em andamento |
 
@@ -113,22 +132,23 @@ Ver [docs/01-visao-produto.md](docs/01-visao-produto.md).
 
 | Camada | Tecnologia |
 |---|---|
-| Web | Next.js (App Router), TypeScript, Tailwind CSS, shadcn/ui, React Hook Form + Zod, TanStack Query, Recharts |
-| Backend | **Directus** sobre Postgres (com pgvector): autenticação, permissões por organização, API, arquivos, extensões e Flows ([ADR 0008](docs/adr/0008-backend-directus.md)) |
-| Automação | n8n (self-hosted): WhatsApp, e-mail, lembretes e rotinas |
-| IA | API de LLM com saída estruturada + RAG em pgvector |
-| App do paciente | PWA (primeira versão) → Expo/React Native |
-| Qualidade | Vitest, Playwright, pgTAP, ESLint, Prettier |
-| Infra | MVP inteiro na VPS existente (Oracle ARM + Coolify/Traefik): app web, Directus e n8n; backup diário externo; Sentry ([ADR 0004](docs/adr/0004-infraestrutura-hospedagem.md)) |
+| Web | Next.js 16 (App Router), React 19, TypeScript estrito, Tailwind CSS 4, shadcn/ui, React Hook Form + Zod, motion, react-markdown |
+| PDF | `@react-pdf/renderer` (plano alimentar, documentos, recibos, Manual de BPF, dossiê) |
+| Backend | **Directus 12** sobre Postgres 16: autenticação, permissões por organização, API e arquivos; regras de negócio na extensão `rafanutri` (endpoints) e em `rafanutri-hooks` ([ADR 0008](docs/adr/0008-backend-directus.md)) |
+| Avisos | Motor dentro da extensão: Telegram (bot) e e-mail pelo Resend |
+| IA | OpenRouter, só modelos gratuitos, chamado pela extensão; sem RAG |
+| Área do paciente | Web responsiva em `/p`, no mesmo app Next.js |
+| Qualidade | Vitest, Playwright, `node --test` (regras da extensão), testes SQL puros em `db/tests/*.test.sql`, ESLint |
+| Infra | VPS existente (vpsrafa, Oracle ARM64) com Coolify/Traefik: app web e Directus; backup diário na VPS ([ADR 0004](docs/adr/0004-infraestrutura-hospedagem.md)) |
 
 Decisões registradas em [docs/adr/](docs/adr/).
 
 ## Arquitetura
 
 ```
- Nutricionista ─▶ Web (Next.js) ─┐              ┌─▶ n8n ─▶ WhatsApp / e-mail
-                                 ├─▶ Directus ──┤
- Paciente ──────▶ PWA ───────────┘  (Postgres)  └─▶ LLM (sugestões, RAG)
+ Nutricionista ─▶ Web (Next.js) ─┐                       ┌─▶ Telegram (bot) / Resend (e-mail)
+                                 ├─▶ Directus + extensão ┤
+ Paciente ──────▶ Web /p ────────┘    (Postgres 16)      └─▶ OpenRouter (modelos gratuitos)
 ```
 
 - **Backend:** Directus sobre Postgres ([ADR 0008](docs/adr/0008-backend-directus.md)).
@@ -136,6 +156,7 @@ Decisões registradas em [docs/adr/](docs/adr/).
   - permissões do Directus filtradas pela organização do usuário;
   - ganchos que validam a organização na gravação;
   - gatilhos no banco para as regras invioláveis.
+- **Avisos e IA** rodam dentro da extensão do Directus (fila de avisos a cada minuto; chamada ao OpenRouter no servidor). Não há serviço de automação separado.
 - **Cálculos nutricionais** ficam no pacote `nutrition-core`, como funções puras testadas contra a literatura. O LLM nunca calcula nutrientes.
 - Detalhes em [docs/03-arquitetura.md](docs/03-arquitetura.md) e modelo de dados em [docs/04-modelo-dados.md](docs/04-modelo-dados.md).
 
@@ -150,9 +171,10 @@ apps/
       auth/               # login, sessão, consultórios do usuário e Server Actions (Directus)
       foods/              # base de alimentos (TACO, IBGE, Open Food Facts e USDA) pela API do Directus: busca e substitutos
       patients/           # pacientes: validação (CPF, telefone), leitura e Server Actions
-      modules/            # catálogo de módulos e acesso por plano
+      modules/            # catálogo de módulos, planos (plans.ts) e visual por módulo (theme.ts)
       demo/               # dados de exemplo do módulo clínico (pré-lançamento)
       pdf/                # dados do PDF do plano alimentar
+      …                   # uma pasta por área: agenda, financeiro, CRM, UAN, materno-infantil, saúde pública, IA…
     tests/  e2e/          # Vitest + Testing Library · Playwright
     Dockerfile            # imagem de produção (Next.js standalone, ARM64)
 packages/
@@ -160,19 +182,40 @@ packages/
   forms/                  # formato dos questionários e validador das respostas (app + extensão do Directus)
   config/                 # tsconfig base
 db/
-  migrations/             # SQL versionado e idempotente (0001 alimentos … 0018 acesso do paciente)
+  migrations/             # SQL versionado e idempotente (0001 alimentos … 0067 tipo de acompanhamento)
   seed/taco/              # TACO 4ª edição (CSV + importador + gerador a partir da planilha oficial)
   seed/ibge/              # IBGE POF 2008-2009 (CSV + importador + gerador a partir das planilhas oficiais)
   seed/off/ seed/usda/    # Open Food Facts (Brasil) e USDA SR Legacy (CSVs + geradores); importador comum seed/import_foods.sql
   seed/plan-library/      # biblioteca de 42 modelos de plano (gerador + SQL)
   seed/dev/               # seed de nutricionista de teste com consultório e pacientes
-  tests/                  # testes SQL das regras do banco + teste de isolamento pela API
+  tests/                  # testes SQL das regras do banco, regras da extensão (node --test) e isolamento pela API
+  scripts/                # isolation-test.sh (isolamento sem token) e metrics.sh (métricas do plano gratuito)
 directus/extensions/
-  rafanutri/              # endpoints próprios (/rafanutri/organizations, /rafanutri/me/organizations)
-  rafanutri-hooks/        # ganchos: gravação só no próprio consultório, limite do plano
+  rafanutri/              # endpoints próprios em /rafanutri (292 rotas; ver abaixo)
+  rafanutri-hooks/        # ganchos: gravação só no próprio consultório, limite do plano, e-mails em português
+  templates/              # modelos de e-mail (aviso e recuperação de senha)
 docs/                     # produto, arquitetura, plano, specs, runbooks e ADRs
 .github/workflows/        # CI: lint, typecheck, testes, build e e2e
 ```
+
+### Extensão `rafanutri` por arquivo
+
+Contagem de rotas por `router.get|post|put|patch|delete(` em 22/11/2026. Os arquivos sem rotas guardam regras puras, testadas em `db/tests/extension-*.test.mjs`.
+
+| Arquivo | Rotas | Conteúdo |
+|---|---|---|
+| `index.js` | 242 | Endpoints do núcleo: consultórios, pacientes, agenda, anamneses, planos, prontuário, área do paciente, financeiro, CRM, agendamento online, UAN, admin; carrega os demais arquivos |
+| `notify.js` | 17 | Motor dos avisos (0058): fila a cada minuto, Telegram e e-mail, webhook do bot, preferências |
+| `maternal.js` | 15 | Materno-infantil (0062, 0065): medidas, gestação, lactação, introdução alimentar, responsáveis, `/maternal/overview` |
+| `subscriptions.js` | 11 | Assinatura por Pix (0059): consultório e admin, ciclo de renovação |
+| `public-health.js` | 3 | Triagens (0066) e painel `/public-health/overview` |
+| `clinical-dashboard.js` | 2 | Painéis clínicos: `/clinical/patients-dashboard` e `/patients/:id/dashboard` |
+| `ai.js` | 2 | Assistente de IA (0063): `/ai/status` e `/ai/ask` |
+| `ai-core.js` | 0 | Regras da IA: modelos gratuitos, anonimização, cota |
+| `billing.js` | 0 | Código Pix (BR Code), períodos e valores |
+| `notifications.js` | 0 | Regras dos avisos: canal, janelas de lembrete, textos |
+| `foods.js`, `finance.js`, `crm.js`, `booking.js`, `documents.js` | 0 | Validações e cálculos de alimentos próprios, financeiro, CRM, agendamento online e documentos clínicos |
+| `forms.js` | 0 | Cópia de `packages/forms` (questionários) |
 
 Detalhes do banco, das permissões e de como aplicar migrações: [db/README.md](db/README.md).
 
@@ -206,16 +249,18 @@ O que está feito e o que falta: [docs/plano/progresso.md](docs/plano/progresso.
 | `pnpm lint` / `pnpm typecheck` | Qualidade de código (ESLint e TypeScript estrito) |
 | `pnpm test` | Testes unitários e de componente (Vitest + Testing Library) |
 | `pnpm test:e2e` | Testes end-to-end (Playwright). Com `E2E_USER_EMAIL` e `E2E_USER_PASSWORD` (usuário de teste com consultório) roda também o login real e o fluxo completo de consulta; `E2E_BASE_URL=https://rafanutri.brunokobi.tech` testa a produção (um navegador por vez, por causa do limite de requisições do Directus). No WSL Ubuntu 20.04, instale o navegador com `PLAYWRIGHT_HOST_PLATFORM_OVERRIDE=ubuntu22.04-x64 npx playwright install chromium` e use a mesma variável ao rodar |
-| `node --test db/tests/extension-foods.test.mjs` | Regras puras da extensão (conversão do rótulo, composição da preparação) |
+| `node --test db/tests/extension-*.test.mjs` | Regras puras da extensão do Directus (11 arquivos: alimentos, financeiro, CRM, agendamento, documentos, avisos, cobrança, IA, materno-infantil, saúde pública, painéis clínicos) |
 | `db/scripts/isolation-test.sh` | Isolamento entre consultórios pela API em produção (99 verificações; sem token de admin, limpa pelo banco via SSH). No CI: workflow `isolation.yml`, semanal, com o secret `ISOLATION_SSH_KEY` |
 
 ## Deploy
 
-- **App web:** aplicação `rafanutri-web` no Coolify da vpsrafa. Hoje o deploy é **disparado manualmente** após o push; o deploy automático a cada push depende do webhook do GitHub (pendente).
-- **Backend:** Directus 12 (licença gratuita Open Innovation Grant) + Postgres em `~/apps/rafanutri-directus/` na vpsrafa; migrações de `db/` e extensões de `directus/extensions/` aplicadas conforme o [db/README.md](db/README.md) e o [runbook do Directus](docs/runbooks/directus-vpsrafa.md).
+- **Deploy manual, sem staging:** só existe o ambiente de produção.
+- **App web:** aplicação `rafanutri-web` no Coolify da vpsrafa, com deploy **disparado manualmente** após o push (o deploy automático depende do webhook do GitHub, pendente).
+- **Backend:** Directus 12 (licença gratuita Open Innovation Grant) + Postgres em `~/apps/rafanutri-directus/` na vpsrafa. Migrações de `db/` aplicadas à mão com `psql` (com `pg_dump` antes); extensões de `directus/extensions/` copiadas para a VPS e `docker compose restart directus`. Ver o [db/README.md](db/README.md) e o [runbook do Directus](docs/runbooks/directus-vpsrafa.md).
+- **Backup:** diário na VPS (00h de Brasília, 14 dias). Falta uma cópia fora da VPS.
 - Imagem: `apps/web/Dockerfile` (multi-stage, `turbo prune`, Next.js `standalone`, ARM64).
 - Domínio: **https://rafanutri.brunokobi.tech**. Verificação de saúde: `/api/health`.
-- CI no GitHub Actions: lint, typecheck, testes, build e e2e em todo push e pull request.
+- CI no GitHub Actions (`ci.yml`): lint, typecheck, testes, build e e2e em todo push e pull request. `isolation.yml`: teste de isolamento semanal.
 - Passo a passo, variáveis e rollback: [docs/runbooks/deploy-web-coolify.md](docs/runbooks/deploy-web-coolify.md).
 
 ## Variáveis de ambiente
@@ -228,15 +273,17 @@ A lista completa, sem valores reais, fica nos arquivos `.env.example`. Principai
 | `NEXT_PUBLIC_SITE_URL` | App web (build e execução) | URL pública do app (`https://rafanutri.brunokobi.tech`) |
 | `NEXT_PUBLIC_LEGAL_NAME`, `NEXT_PUBLIC_LEGAL_CNPJ`, `NEXT_PUBLIC_LEGAL_EMAIL`, `NEXT_PUBLIC_LEGAL_DPO` | App web (build) | Razão social, CNPJ, e-mail de contato e encarregado de dados mostrados nos Termos e na Política de Privacidade (opcionais; sem eles, os textos apontam para o botão Feedback) |
 | `SIGNUP_OPEN` | Servidor do app web | `true` libera o cadastro e o onboarding no Directus; padrão `false` (pré-lançamento) |
-| `KEY` / `SECRET` | Directus | Chaves da instância |
+| `KEY` / `SECRET` | Directus | Chaves da instância; `SECRET` também assina o link de cancelar e-mails |
 | `LICENSE_KEY` | Directus | Licença Open Innovation Grant (libera permissões com filtro) |
 | `EMAIL_*` | Directus | SMTP do Resend (domínio `brunokobi.tech` verificado em 20/11/2026), remetente `nao-responda@brunokobi.tech`. `EMAIL_TEMPLATES_PATH=/directus/extensions/templates` (modelos em português) e `PASSWORD_RESET_URL_ALLOW_LIST=https://rafanutri.brunokobi.tech/redefinir-senha` |
 | `USER_REGISTER_URL_ALLOW_LIST` / `PASSWORD_RESET_URL_ALLOW_LIST` | Directus | URLs do app aceitas nos e-mails de cadastro e senha |
 | `DIRECTUS_ADMIN_EMAIL` / `DIRECTUS_ADMIN_PASSWORD` | Scripts de manutenção | Bootstrap e migrações; **nunca** no app web |
 | `DB_PASSWORD` | Directus e scripts | Senha do Postgres |
-| `LLM_API_KEY` | Servidor | Provedor de IA (Fase 3) |
-| `N8N_WEBHOOK_SECRET` | Servidor | Assinatura dos webhooks com o n8n (Fase 2) |
-| `SENTRY_DSN` | Ambos | Monitoramento de erros |
+| `NEXT_PUBLIC_ADSENSE_CLIENT`, `NEXT_PUBLIC_ADSENSE_SLOT` | App web (build) | Conta do AdSense (tem padrão) e bloco fixo opcional dos anúncios do plano Gratuito |
+| `OPENROUTER_API_KEY` | Directus | Chave do OpenRouter para o assistente de IA (só modelos gratuitos) |
+| `TELEGRAM_BOT_TOKEN` | Directus | Bot dos avisos; sem ela o Telegram fica desligado e só o e-mail importante sai |
+| `RAFANUTRI_SITE_URL` | Directus | URL do app nos links dos avisos (padrão `https://rafanutri.brunokobi.tech`) |
+| `PUBLIC_URL` | Directus | URL da API, usada para registrar o webhook do bot |
 
 Nunca versione arquivos `.env*` com valores reais.
 
@@ -247,19 +294,22 @@ Nunca versione arquivos `.env*` com valores reais.
 - Um item do backlog por pull request, com descrição, como testar e prints.
 - CI obrigatório: lint, typecheck, testes e build.
 - Toda tabela nova com `organization_id` precisa de permissões filtradas no Directus, gancho de gravação, gatilhos para as regras invioláveis e cenários no teste de isolamento (`db/tests/api-isolation.test.mjs`).
-- Merge em `main` publica em staging; produção por tag, com aprovação manual.
+- Não há staging: o deploy em produção é manual (Coolify para o web; cópia da extensão e restart do Directus; migrações com `pg_dump` antes).
 
 Critérios completos de pronto em [docs/plano/00-visao-geral.md](docs/plano/00-visao-geral.md).
 
 ## Segurança e LGPD
 
-A plataforma trata **dados sensíveis de saúde**. No MVP, a adequação à LGPD está adiada, mas valem sempre:
+A plataforma trata **dados sensíveis de saúde**. No MVP, a adequação completa à LGPD está adiada, mas já valem:
 
 - Isolamento por consultório (permissões do Directus + ganchos + gatilhos) com testes automatizados.
+- Auditoria de quem criou, alterou, abriu ou exportou dados clínicos e financeiros (0030).
+- Aceite registrado dos Termos e da Política de Privacidade, por versão (0057).
+- IA sem dados que identifiquem o paciente; nenhum texto enviado à IA é gravado.
 - Segredos fora do repositório.
-- Backup diário do banco fora da VPS, com teste de restauração.
+- Backup diário do banco na VPS. **Pendente:** cópia fora da VPS e teste de restauração periódico.
 
-O alvo pós-MVP inclui auditoria, consentimento do paciente, dados no Brasil e IA com dados pseudonimizados.
+O alvo pós-MVP inclui dados no Brasil e revisão jurídica dos textos legais.
 
 Ver [docs/05-seguranca-lgpd.md](docs/05-seguranca-lgpd.md).
 
@@ -281,6 +331,8 @@ Ver [docs/05-seguranca-lgpd.md](docs/05-seguranca-lgpd.md).
 | [docs/specs/](docs/specs/) | Specs das telas: módulos, cadastro e onboarding, módulo clínico em demonstração |
 | [db/README.md](db/README.md) | Banco: migrações, TACO, permissões do Directus, testes e seed |
 | [docs/runbooks/](docs/runbooks/) | Instalação do Directus e deploy no Coolify |
+| [docs/guias/implantacao-enterprise.md](docs/guias/implantacao-enterprise.md) | Roteiro de implantação de um cliente UAN |
+| [docs/seguranca/](docs/seguranca/) | Revisão de segurança da Fase 1 e auditoria |
 | [docs/adr/](docs/adr/) | Decisões de arquitetura |
 
 ---

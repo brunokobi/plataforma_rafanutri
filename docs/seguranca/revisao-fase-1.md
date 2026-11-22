@@ -2,7 +2,7 @@
 
 - **Data:** 12 e 13/11/2026
 - **Escopo:** tudo o que a Fase 1 criou na vpsrafa — app web (`rafanutri.brunokobi.tech`), Directus (`rafanutri-api.brunokobi.tech`), banco (migrações 0001 a 0018), extensões `rafanutri` e `rafanutri-hooks`.
-- **Resultado:** **nenhuma pendência crítica aberta no código.** Uma pendência crítica de **operação** continua aberta: o backup diário automático (ver o fim).
+- **Resultado:** **nenhuma pendência crítica aberta no código.** A pendência crítica de **operação** (backup diário automático) foi resolvida em parte em 21/11/2026: o backup diário roda na VPS; falta a cópia fora dela (ver o fim).
 
 ## 1. Isolamento entre consultórios (equivalente às políticas RLS)
 
@@ -49,15 +49,15 @@ Servidos pelo app em produção (`apps/web/next.config.ts`):
 
 - Procurados CPF e nomes de pacientes de teste nos logs do Directus e do app: **nenhuma ocorrência**. O app registra só status e código de erro do Directus.
 - **Corrigido:** o Directus registra a URL de cada requisição, e o token do link público da anamnese ia na URL. Os endpoints públicos passaram a receber o token no corpo (`POST /rafanutri/public/anamneses/open` e `/save`), e os logs antigos foram descartados ao recriar o contêiner. Verificado: o fluxo do paciente não grava mais o token.
-- Sentry ainda não está configurado (RN-017).
+- Sentry não foi adotado (RN-017); os erros ficam nos logs do Directus e do app no Coolify.
 
 ## 6. Pendências
 
 | Pendência | Gravidade | Situação |
 |---|---|---|
-| **Backup diário do banco fora da VPS + teste de restauração** | **Crítica (operação)** | Só existem cópias manuais (`pg_dump` antes de cada migração, em `~/backups/rafanutri/` na própria VPS). A configuração automática foi bloqueada pelo controle de permissões do Claude Code e precisa ser liberada pelo dev; a cópia para fora da VPS precisa de um bucket (R2 ou Object Storage) |
+| **Backup diário do banco fora da VPS + teste de restauração** | **Alta (operação)** | **Backup diário configurado em 21/11/2026** na própria VPS (`~/backups/rafanutri/backup-diario.sh`, 00h de Brasília, 14 dias, conferido com `pg_restore --list`), além do `pg_dump` antes de cada migração. Falta a cópia para fora da VPS (bucket R2 ou Object Storage) e o teste de restauração periódico |
 | Senha fraca do usuário de teste (`brunokobi2@hotmail.com`) | Média | Usuário só de teste; trocar antes de qualquer dado real |
-| Verificação de e-mail no cadastro e recuperação de senha | Média | Dependem dos registros DNS do Resend no Cloudflare |
+| Verificação de e-mail no cadastro | Média | O Resend está ativo desde 20/11/2026 e a recuperação de senha já funciona; falta a verificação no cadastro |
 | CSP com `'unsafe-inline'` em scripts | Baixa | Evoluir para nonce quando houver tempo |
 | Painel do Coolify com porta 8010 aberta além do HTTPS | Baixa | Fechar a porta no firewall e usar só `coolify.brunokobi.tech` |
 | 2FA para o administrador do Directus | Baixa | Recomendado antes de dados reais |

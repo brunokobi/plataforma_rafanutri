@@ -20,10 +20,10 @@ A Rafanutri trata **dados pessoais sensíveis de saúde** (LGPD, art. 5º, II, e
 | Minimização | CPF opcional; coletar só o que o atendimento usa |
 | Controle de acesso | RLS em todas as tabelas; papel `assistant` sem acesso a dados clínicos |
 | Rastreabilidade | `audit_logs` para leitura e alteração de prontuário, anamnese e avaliações |
-| Criptografia | TLS em trânsito; criptografia em repouso do Supabase; buckets privados com URLs assinadas de curta duração |
+| Criptografia | TLS em trânsito (Traefik com Let's Encrypt); arquivos no Directus servidos só por endpoints que conferem o acesso (sem link público) |
 | Direitos do titular | Exportar dados do paciente (JSON/PDF) e fluxo de exclusão/anonimização respeitando o prazo de guarda do prontuário |
-| Segredos | Chaves (Supabase service role, LLM, WhatsApp) só no servidor e em variáveis de ambiente; nunca no repositório nem no cliente |
-| Região dos dados | Projeto Supabase em São Paulo (sa-east-1) |
+| Segredos | Chaves (Directus, OpenRouter, Telegram, Resend) só no servidor, no `.env` de cada serviço; nunca no repositório nem no cliente |
+| Região dos dados | VPS Oracle Cloud em Frankfurt (vpsrafa); avaliar região no Brasil antes de escalar |
 | Backups | Backups diários com retenção definida e teste de restauração |
 | Incidentes | Procedimento de resposta e comunicação à ANPD e aos titulares |
 
@@ -55,8 +55,8 @@ Detalhes no [ADR 0004](adr/0004-infraestrutura-hospedagem.md).
 |---|---|---|
 | vpsrafa (Oracle Always Free, Frankfurt, compartilhada) | Hospeda tudo, inclusive dados reais | Migrar banco e app para serviços gerenciados no Brasil |
 | Modelos `:free` do OpenRouter | Permitidos | Provedor pago com contrato de não treinamento + pseudonimização (RN-081) |
-| Evolution API (WhatsApp não oficial) | Permitida, com número dedicado | API oficial (Cloud API da Meta) |
-| Backup externo diário | **Obrigatório** | Obrigatório |
+| Avisos ao paciente | Telegram (bot) e e-mail (Resend); WhatsApp automático descartado | Avaliar API oficial do WhatsApp (Cloud API da Meta) se houver demanda |
+| Backup diário | Feito na VPS; **cópia fora da VPS ainda pendente** (obrigatória) | Obrigatório, com cópia externa |
 | RLS e isolamento entre organizações | **Obrigatório** | Obrigatório |
 
 ## Práticas de desenvolvimento

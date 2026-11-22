@@ -1,6 +1,6 @@
 # Banco de dados da Rafanutri
 
-Postgres 16 (+ pgvector) do Directus da Rafanutri ([ADR 0008](../docs/adr/0008-backend-directus.md)). As tabelas de negócio são criadas por **migrações SQL versionadas aqui**; o Directus só espelha as tabelas e cuida de API, login e permissões.
+Postgres 16 do Directus da Rafanutri (imagem `pgvector/pgvector:pg16`; a extensão `vector` não é usada) ([ADR 0008](../docs/adr/0008-backend-directus.md)). As tabelas de negócio são criadas por **migrações SQL versionadas aqui**; o Directus só espelha as tabelas e cuida de API, login e permissões.
 
 ```
 db/
@@ -22,7 +22,56 @@ db/
 │   ├── 0015_clinical_notes.sql        # RN-023: evoluções do prontuário (assinatura e retificação)
 │   ├── 0016_clinical_notes_cascade.sql # RN-023: exclusão em cascata leva as evoluções
 │   ├── 0017_plan_waitlist.sql          # RN-200/202: lista de interesse no plano pago
-│   └── 0018_patient_app_access.sql     # RN-203/204: convite do paciente, vínculo da conta e papel Paciente
+│   ├── 0018_patient_app_access.sql     # RN-203/204: convite do paciente, vínculo da conta e papel Paciente
+│   ├── 0019_recipe_library.sql  # RN-206/207: biblioteca de receitas e envio ao paciente
+│   ├── 0020_patient_recommendations.sql  # RN-208: recomendações ao paciente
+│   ├── 0021_patient_share_settings.sql  # RN-210: o que o paciente vê (calorias, macros, peso)
+│   ├── 0022_product_events.sql  # RN-214: eventos de produto e métricas do plano gratuito
+│   ├── 0023_clinical_documents.sql  # RN-215: documentos clínicos com a marca e modelos
+│   ├── 0024_finance.sql  # RN-053: financeiro (categorias, lançamentos, fluxo de caixa)
+│   ├── 0025_receipts.sql  # RN-055: recibo numerado por consultório
+│   ├── 0026_packages.sql  # RN-054: pacotes de consultas e consumo das sessões
+│   ├── 0027_crm.sql  # RN-056: CRM (leads, etapa do paciente, retornos)
+│   ├── 0028_dashboard.sql  # RN-064: indicadores do painel inicial
+│   ├── 0029_public_booking.sql  # RN-068: página pública e agendamento online
+│   ├── 0030_audit.sql  # RN-009: auditoria e registro de leitura do prontuário
+│   ├── 0031_work_schedule.sql  # RN-022: expediente do consultório
+│   ├── 0032_feedback.sql  # RN-047: feedback do beta
+│   ├── 0033_uan_units.sql  # RN-121/122: módulos, contrato, unidades e equipe UAN
+│   ├── 0034_unit_invites.sql  # RN-220: convite da equipe da unidade por link
+│   ├── 0035_checklists.sql  # U1a: checklists de BPF e não conformidades
+│   ├── 0036_temperatures.sql  # RN-151: equipamentos e temperaturas
+│   ├── 0037_action_plans.sql  # RN-153/154: quadro de NCs e plano 5W2H
+│   ├── 0038_checklist_editor.sql  # RN-147/150: editor de modelos e agenda de checklists
+│   ├── 0039_compliance.sql  # RN-165: índice de conformidade por unidade
+│   ├── 0040_checklist_signature.sql  # RN-148: assinatura do checklist
+│   ├── 0041_offline_answers.sql  # RN-149: horário original da resposta offline
+│   ├── 0042_ingredients.sql  # U2a: insumos, fornecedores e preços
+│   ├── 0043_tech_sheets.sql  # U2b: fichas técnicas
+│   ├── 0044_menus.sql  # U2c: cardápio cíclico e aprovação
+│   ├── 0045_production.sql  # U3a: comensais e desperdício
+│   ├── 0046_stock.sql  # U4a: estoque por lote (FEFO) e inventário
+│   ├── 0047_purchasing.sql  # U4b: pedido de compra e recebimento
+│   ├── 0048_quality_docs.sql  # U6a: documentos de BPF e treinamentos
+│   ├── 0049_integrity.sql  # U6b: integridade (SHA-256) dos registros
+│   ├── 0050_haccp.sql  # U7: APPCC
+│   ├── 0051_labels.sql  # U7: rotulagem nutricional
+│   ├── 0052_menu_planning.sql  # U7: perfis de público e regras do cardápio
+│   ├── 0053_public_menu.sql  # U7: cardápio público e pesquisa de satisfação
+│   ├── 0054_dossier_contract.sql  # licenças, Manual, dossiê e faturas do contrato UAN
+│   ├── 0055_photos.sql  # fotos da ficha técnica e da recusa no recebimento
+│   ├── 0056_platform_admins.sql  # administrador da plataforma
+│   ├── 0057_terms_acceptances.sql  # aceite dos Termos e da Política de Privacidade
+│   ├── 0058_notifications.sql  # avisos ao paciente por Telegram e e-mail
+│   ├── 0059_subscriptions.sql  # assinatura da plataforma por Pix
+│   ├── 0060_plan_limits.sql  # Essencial até 100 pacientes ativos
+│   ├── 0061_food_source_ibge.sql  # base do IBGE (POF 2008-2009) e nutrientes extras
+│   ├── 0062_maternal.sql  # materno-infantil: medidas para as curvas da OMS e gestação
+│   ├── 0063_ai_requests.sql  # assistente de IA: registro de uso para a cota
+│   ├── 0064_food_sources_off_usda.sql  # fontes Open Food Facts e USDA
+│   ├── 0065_maternal_care.sql  # RN-113 a 118: lactação, introdução alimentar e responsáveis
+│   ├── 0066_public_health.sql  # RN-170 a 174: triagens nutricionais e módulos por contrato
+│   └── 0067_patient_care_profile.sql  # tipo de acompanhamento do paciente (visual da ficha)
 ├── tests/
 │   ├── 0002_organizations.test.sql  # regras do banco (transação desfeita no fim)
 │   ├── 0004_patients.test.sql       # limite de 20 ativos, CPF, responsável, formatos
@@ -38,13 +87,61 @@ db/
 │   ├── 0016_clinical_notes_cascade.test.sql # cascata apaga; DELETE/UPDATE direto de assinada barrado
 │   ├── 0017_plan_waitlist.test.sql          # só o owner registra, um por consultório
 │   ├── 0018_patient_app_access.test.sql     # vínculo só pelos endpoints, convite de uso único
-│   ├── extension-foods.test.mjs       # conversão porção → 100 g e composição da preparação (node --test)
-│   ├── extension-documents.test.mjs   # validação dos documentos clínicos (node --test)
-│   ├── extension-finance.test.mjs     # validação dos lançamentos e meses do gráfico (node --test)
-│   ├── extension-crm.test.mjs         # telefone E.164 e validação do lead (node --test)
-│   ├── extension-booking.test.mjs     # horários livres e validação do pedido online (node --test)
-│   ├── extension-maternal.test.mjs    # validação de medidas, lactação, introdução alimentar e responsáveis (node --test)
-│   ├── extension-public-health.test.mjs # validação da triagem e perda de peso pelo histórico (node --test)
+│   ├── 0019_recipe_library.test.sql  # biblioteca de receitas e envio ao paciente
+│   ├── 0020_patient_recommendations.test.sql  # recomendações ao paciente
+│   ├── 0021_patient_share_settings.test.sql  # o que o paciente vê
+│   ├── 0022_product_events.test.sql  # eventos de produto e métricas
+│   ├── 0023_clinical_documents.test.sql  # documentos clínicos e modelos
+│   ├── 0024_finance.test.sql  # financeiro
+│   ├── 0025_receipts.test.sql  # recibos
+│   ├── 0026_packages.test.sql  # pacotes de consultas
+│   ├── 0027_crm.test.sql  # CRM
+│   ├── 0028_dashboard.test.sql  # indicadores do painel
+│   ├── 0029_public_booking.test.sql  # página pública e agendamento online
+│   ├── 0030_audit.test.sql  # auditoria
+│   ├── 0031_work_schedule.test.sql  # expediente do consultório
+│   ├── 0032_feedback.test.sql  # tipo, tamanho da mensagem e página
+│   ├── 0033_uan_units.test.sql  # base do módulo UAN
+│   ├── 0034_unit_invites.test.sql  # convite da equipe da unidade
+│   ├── 0035_checklists.test.sql  # checklists e não conformidades
+│   ├── 0036_temperatures.test.sql  # equipamentos e temperaturas
+│   ├── 0037_action_plans.test.sql  # quadro de não conformidades e 5W2H
+│   ├── 0038_checklist_editor.test.sql  # editor de modelos e agenda de checklists
+│   ├── 0039_compliance.test.sql  # índice de conformidade
+│   ├── 0040_checklist_signature.test.sql  # assinatura do checklist
+│   ├── 0041_offline_answers.test.sql  # horário original da resposta
+│   ├── 0042_ingredients.test.sql  # insumos, fornecedores e preços
+│   ├── 0043_tech_sheets.test.sql  # fichas técnicas
+│   ├── 0044_menus.test.sql  # cardápio cíclico e aprovação
+│   ├── 0045_production.test.sql  # comensais e desperdício
+│   ├── 0046_stock.test.sql  # estoque, FEFO e inventário
+│   ├── 0047_purchasing.test.sql  # pedido de compra e recebimento
+│   ├── 0048_quality_docs.test.sql  # documentos de BPF e treinamentos
+│   ├── 0049_integrity.test.sql  # integridade dos registros de qualidade
+│   ├── 0050_haccp.test.sql  # APPCC
+│   ├── 0051_labels.test.sql  # rótulos nutricionais
+│   ├── 0052_menu_planning.test.sql  # perfis, regras e autonomia do cardápio
+│   ├── 0053_public_menu.test.sql  # cardápio público e pesquisa de satisfação
+│   ├── 0054_dossier_contract.test.sql  # licenças, emissões e contrato
+│   ├── 0055_photos.test.sql  # fotos da ficha e da recusa no recebimento
+│   ├── 0056_platform_admins.test.sql  # administrador da plataforma
+│   ├── 0057_terms_acceptances.test.sql  # aceite dos documentos legais
+│   ├── 0058_notifications.test.sql  # avisos por e-mail e Telegram
+│   ├── 0059_subscriptions.test.sql  # assinatura por Pix
+│   ├── 0062_maternal.test.sql  # gestação
+│   ├── 0065_maternal_care.test.sql  # lactação, introdução alimentar, responsáveis e convite ao responsável
+│   ├── 0066_public_health.test.sql  # triagens nutricionais e módulos por contrato
+│   ├── extension-ai.test.mjs  # IA: modelos gratuitos, anonimização, cota (node --test)
+│   ├── extension-billing.test.mjs  # código Pix (BR Code), períodos e valores (node --test)
+│   ├── extension-booking.test.mjs  # horários livres e validação do pedido online (node --test)
+│   ├── extension-clinical-dashboard.test.mjs  # regras de atenção dos painéis clínicos (node --test)
+│   ├── extension-crm.test.mjs  # telefone E.164 e validação do lead (node --test)
+│   ├── extension-documents.test.mjs  # validação dos documentos clínicos (node --test)
+│   ├── extension-finance.test.mjs  # validação dos lançamentos e meses do gráfico (node --test)
+│   ├── extension-foods.test.mjs  # conversão porção → 100 g e composição da preparação (node --test)
+│   ├── extension-maternal.test.mjs  # medidas, lactação, introdução alimentar e responsáveis (node --test)
+│   ├── extension-notifications.test.mjs  # canal, janelas de lembrete e textos dos avisos (node --test)
+│   ├── extension-public-health.test.mjs  # validação da triagem e perda de peso pelo histórico (node --test)
 │   └── api-isolation.test.mjs       # RN-008/RN-213: isolamento pela API (db/scripts/isolation-test.sh roda sem token)
 ├── directus/
 │   ├── 0005_anthropometric_assessments.mjs  # registra a coleção e as permissões no Directus (token de admin)
@@ -52,15 +149,24 @@ db/
 │   ├── 0007_appointments.mjs    # idem para a agenda
 │   ├── 0008_anamneses.mjs       # idem para questionários e anamneses
 │   └── 0009_meal_plan_templates.mjs  # idem para os modelos de plano
+├── scripts/
+│   ├── isolation-test.sh  # isolamento pela API sem token de admin (tabelas e limpeza pelo banco via SSH)
+│   └── metrics.sh         # RN-214: métricas do plano gratuito
 └── seed/
     ├── dev/
     │   ├── seed-nutricionista.mjs  # usuário de teste como nutricionista + consultório + 9 pacientes fictícios
     │   └── seed-demo.mjs           # RN-038: agenda, avaliações com evolução, planos publicados e anamneses
     ├── questionnaires/  # RN-024: modelos padrão de anamnese (JSON) + seed-sql.mjs
-    └── taco/            # RN-011: TACO 4ª edição
-        ├── taco-4ed.csv         # 597 alimentos × 29 nutrientes (gerado, versionado)
-        ├── import.sql           # importador idempotente (upsert)
-        └── build_taco_csv.py    # gera o CSV a partir da planilha oficial
+    ├── taco/            # RN-011: TACO 4ª edição
+    │   ├── taco-4ed.csv         # 597 alimentos × 29 nutrientes (gerado, versionado)
+    │   ├── import.sql           # importador idempotente (upsert)
+    │   └── build_taco_csv.py    # gera o CSV a partir da planilha oficial
+    ├── ibge/            # 0061: POF 2008-2009 (pof-2008-2009.csv, import.sql, build_pof_csv.py)
+    ├── off/             # 0064: Open Food Facts Brasil (off-brasil.csv, fetch_off.py, enrich_off.py, build_off_csv.py)
+    ├── usda/            # 0064: USDA SR Legacy (usda-sr-legacy.csv, usda-names-pt.json, build_usda_csv.py)
+    ├── plan-library/    # RN-035: biblioteca de 42 modelos de plano (build_library.py + library.sql)
+    ├── import_foods.sql # importador genérico (OFF, USDA): idempotente, confere a contagem
+    └── prune_source.sql # remove da fonte o que saiu do CSV, se nada aponta para o item
 ```
 
 Cada migração registra a própria versão em `schema_migrations`.
@@ -99,7 +205,7 @@ Já aplicada em 10/11/2026 para o usuário de teste `brunokobi2@hotmail.com`.
 
 | Tabela | Conteúdo |
 |---|---|
-| `plans` | Planos e limites (`free`: 20 pacientes ativos, 1 membro) |
+| `plans` | Planos e limites: `free` (Gratuito, 20 pacientes ativos, 1 membro), `essential` (Essencial, 100 ativos, 1 membro), `professional` (Profissional, sem limite, 1 membro) e `clinic` (Clínica, sem limite de pacientes nem de membros). Preços e venda em [Assinatura por Pix (0059)](#assinatura-por-pix-0059) |
 | `organizations` | Consultório: nome, `slug` único, tipo, cor, logo, plano |
 | `organization_members` | Usuário do Directus no consultório, com papel `owner`, `nutritionist` ou `assistant` |
 | `professional_profiles` | CRN e regional do usuário |
@@ -125,7 +231,7 @@ Já aplicada em 10/11/2026 para o usuário de teste `brunokobi2@hotmail.com`.
 
 **Gancho** (extensão `directus/extensions/rafanutri-hooks`, instalada do mesmo jeito): na criação de paciente, confere se o usuário é owner/nutricionista do consultório, fixa o responsável e antecipa o limite do plano com mensagem clara; na edição, impede trocar consultório e responsável. As mesmas regras estão nos gatilhos do banco.
 
-**Cadastro público:** ligado no Directus com o papel Profissional e **sem verificação por e-mail** (não há SMTP). `USER_REGISTER_URL_ALLOW_LIST` no `.env` lista as URLs de verificação aceitas.
+**Cadastro público:** ligado no Directus com o papel Profissional. O SMTP do Resend está ativo (recuperação de senha e avisos), mas a **verificação do e-mail no cadastro ainda não existe**. `USER_REGISTER_URL_ALLOW_LIST` no `.env` lista as URLs de verificação aceitas.
 
 ### Testes
 
@@ -156,7 +262,7 @@ Os códigos dos nutrientes são os mesmos usados pelo `@rafanutri/nutrition-core
 
 - **Pela API do Directus (o app usa assim):** normalize o termo (minúsculo, sem acento) e filtre `search_name` com `_contains` por palavra:
   `GET /items/foods?filter[_and][0][search_name][_contains]=feijao&filter[_and][1][search_name][_contains]=carioca`
-- **No banco:** `select * from search_foods('feijao carioca', <org_id>, 20)` — tolerante a erro de digitação (`pg_trgm`), prioriza a base da organização e a TACO. Vai virar endpoint de extensão do Directus.
+- **No banco:** `select * from search_foods('feijao carioca', <org_id>, 20)` — tolerante a erro de digitação (`pg_trgm`), prioriza a base da organização e a TACO. Já usada pela extensão em `GET /rafanutri/uan/foods` (vínculo do insumo) e na importação de insumos (`…/import/foods-match`).
 
 Composição de um alimento: `GET /items/foods/561?fields=name,nutrients.amount_per_100g,nutrients.is_trace,nutrients.nutrient_id.code`
 
@@ -449,9 +555,9 @@ Migração `0017_plan_waitlist.sql` (**aplicada na vpsrafa em 14/11/2026**), tes
 
 | Regra | Onde |
 |---|---|
-| Plano do consultório em `organizations.plan` (só `free` no MVP: 20 pacientes ativos, 1 profissional). A tabela `subscriptions` do plano original fica para a cobrança (RN-057) | `plans` (0002) |
+| Plano do consultório em `organizations.plan` (`free`, `essential`, `professional` ou `clinic`). Assinatura e cobrança em `subscriptions`: ver [Assinatura por Pix (0059)](#assinatura-por-pix-0059) | `plans` (0002, 0059, 0060) |
 | Limite de pacientes ativos no banco, com trava por consultório contra cadastros simultâneos; reativar ocupa vaga | gatilho `enforce_active_patient_limit` (0004) + gancho com a mensagem "Você atingiu o limite de 20 pacientes ativos do plano Gratuito" |
-| Interesse no plano pago: um por consultório, só o owner registra, guarda o plano desejado e o uso no momento | `plan_waitlist` + gatilho `plan_waitlist_guard` |
+| Interesse no plano pago: um por consultório, só o owner registra, guarda o plano desejado e o uso no momento. Substituída na prática pela assinatura por Pix (0059); a tabela fica para histórico | `plan_waitlist` + gatilho `plan_waitlist_guard` |
 | `GET /rafanutri/plan` (plano, uso e interesse do próprio consultório) e `POST /rafanutri/plan/waitlist` | extensão `rafanutri` |
 
 ## Recomendações ao paciente (RN-208)
@@ -952,7 +1058,7 @@ Migração `0018_patient_app_access.sql` (**aplicada na vpsrafa em 14/11/2026**)
 | Arquivar o paciente tira o acesso (a área só mostra registros ativos); revogar desfaz o vínculo e cancela o convite pendente | extensão |
 | `GET /rafanutri/patients/:id/app-access`, `POST …/app-invite`, `POST …/app-access/revoke`; públicos `POST /rafanutri/public/patient-invites/open` e `/accept` (token no corpo); `POST /rafanutri/patient-invites/accept` (conta já existente, logada); `GET /rafanutri/me/patient`; `GET /rafanutri/me/patient/plan?c=<paciente>` (RN-205: plano publicado com nomes, medidas caseiras, substituições e preparações resolvidos no servidor, só alimentos públicos ou do consultório do registro) | extensão `rafanutri` |
 
-Sem SMTP ainda: o convite é um link copiável (WhatsApp) e o paciente cria a senha no primeiro acesso. Convite por e-mail e entrada por link mágico entram com o Resend.
+O convite é um link copiável e também sai pela plataforma (aviso `patient_invite`: Telegram ou e-mail pelo Resend, ver [Avisos (0058)](#avisos-ao-paciente-0058)); o paciente cria a senha no primeiro acesso. Entrada por link mágico ainda não existe.
 
 Limpeza das contas de paciente criadas pelo e2e (usuário de teste):
 
@@ -970,10 +1076,54 @@ SEED_EMAIL=<responsável> SEED_PASSWORD=<senha> pnpm db:seed:uan
 
 Os valores são de demonstração; revisar com a RT antes de usar numa unidade real. O leite integral da TACO não tem energia analisada, então as preparações com leite mostram o aviso de valor não analisado.
 
+## Avisos ao paciente (0058)
+
 Migração `0058_notifications.sql` (**aplicada na vpsrafa em 21/11/2026**, backup `antes-0058-2026-11-21.dump`; testes em `db/tests/0058_notifications.test.sql` e regras em `db/tests/extension-notifications.test.mjs`): avisos ao paciente por Telegram e e-mail. `notification_settings` (por consultório: lembretes ligados, até 3 horários entre 1, 2, 3, 6, 12, 24, 48 e 72 h, aviso de consulta marcada, aviso de plano novo, recado do lembrete); `patient_contact_prefs` (por paciente: e-mail e Telegram ligados ou não, chat do Telegram, hash do link de ativação com validade; o chat só muda com `rafanutri.telegram_link = on`, isto é, pelo bot ou pelo desligar); `notification_outbox` (fila: tipo, canal, destinatário, texto, situação queued/sent/failed/skipped, tentativas, erro, `dedupe_key` única). O motor roda na extensão (`directus/extensions/rafanutri/notify.js`) a cada minuto: gera os avisos de consulta marcada/remarcada/cancelada e plano novo (mudanças dos últimos 30 min), os lembretes por janela, envia (Telegram primeiro; e-mail só no importante, com o modelo `templates/notification.liquid`) e apaga o histórico com mais de 180 dias. Variáveis no `.env` do Directus: `TELEGRAM_BOT_TOKEN` (o webhook `/rafanutri/public/telegram/webhook` é registrado sozinho ao subir, com segredo derivado do token), `RAFANUTRI_SITE_URL`, `PUBLIC_URL` e `SECRET` (assina o link de cancelar e-mails).
 
-Backup diário (21/11/2026): `~/backups/rafanutri/backup-diario.sh` na vpsrafa (cron `0 3 * * *` UTC), `pg_dump -Fc` conferido com `pg_restore --list`, 14 dias em `~/backups/rafanutri/diario/`. Restaurar: `docker exec -i rafanutri-postgres sh -c 'pg_restore --clean --if-exists -U $POSTGRES_USER -d $POSTGRES_DB' < arquivo.dump`.
+## Backup diário
+
+Desde 21/11/2026: `~/backups/rafanutri/backup-diario.sh` na vpsrafa (cron `0 3 * * *` UTC), `pg_dump -Fc` conferido com `pg_restore --list`, 14 dias em `~/backups/rafanutri/diario/`. Restaurar: `docker exec -i rafanutri-postgres sh -c 'pg_restore --clean --if-exists -U $POSTGRES_USER -d $POSTGRES_DB' < arquivo.dump`. **Pendente:** cópia fora da VPS.
+
+## Assinatura por Pix (0059)
 
 Migração `0059_subscriptions.sql` (**aplicada na vpsrafa em 21/11/2026**, backup `antes-0059-2026-11-21.dump`; testes em `db/tests/0059_subscriptions.test.sql` e regras em `db/tests/extension-billing.test.mjs`): assinatura da plataforma por Pix. `plans` ganha `sellable` e as linhas `essential`, `professional` e `clinic` (preço zero, fora de venda até o admin definir). `platform_billing` (linha única: chave Pix, nome e cidade do recebedor sem acento, e-mail de aviso, carência em dias). `subscriptions` (uma por consultório: plano, próximo plano, situação pending/active/canceled/ended, fim do período pago, cancelar no fim). `subscription_invoices` (valor, período mensal, vencimento, situação open/paid/void, `txid` e código Pix gravados na emissão, "já paguei", quem confirmou; auditada). Escrita só com `rafanutri.billing = on` (gatilho `billing_guard`); fatura paga não muda. `user_contact_prefs` guarda o Telegram de pessoas (owner, admin) e `notification_outbox` ganha `user_id` e os tipos da cobrança. Endpoints em `directus/extensions/rafanutri/subscriptions.js` (código Pix em `billing.js`); o ciclo roda junto com o dos avisos. Consultório com plano pago sem linha em `subscriptions` (cortesia por SQL) não é mexido pelo ciclo.
 
+## Limites dos planos (0060)
+
 Migração `0060_plan_limits.sql` (**aplicada na vpsrafa em 21/11/2026**, backup `antes-0060-2026-11-21.dump`): o Essencial passa a ir até **100 pacientes ativos** (o Profissional e o Clínica seguem sem limite). O gatilho `enforce_active_patient_limit` só barra novos ativos; a assinatura (`/billing/subscribe`) recusa um plano menor que o uso atual.
+
+Planos hoje (espelho de `apps/web/lib/modules/plans.ts`; preços definidos pelo admin em `/app/admin/assinaturas`):
+
+| Código | Plano | Preço | Pacientes ativos | Membros | Gestão | IA por dia | Materno-infantil |
+|---|---|---|---|---|---|---|---|
+| `free` | Gratuito | R$ 0 | 20 | 1 | não | 5 | não |
+| `essential` | Essencial | R$ 49,90/mês | 100 | 1 | sim | 5 | não |
+| `professional` | Profissional | R$ 99,90/mês | sem limite | 1 | sim | 200 | sim |
+| `clinic` | Clínica | R$ 199,90/mês | sem limite | sem limite | sim | 200 | sim |
+
+O módulo Gestão (financeiro, pacotes, CRM, agendamento online e lembretes) é barrado na API para o Gratuito (`PRACTICE_ROUTES` em `index.js`), salvo com o módulo `practice` em `organizations.modules`. Saúde pública e UAN só por contrato (`organizations.modules`).
+
+## Tipo de acompanhamento (0067)
+
+Migração `0067_patient_care_profile.sql`: `patients.care_profile` (`clinical`, `sport`, `maternal` ou nulo = automático, pela idade e pelo objetivo). Owner e nutricionista gravam o campo (a migração acrescenta `care_profile` às permissões de criação e edição de `patients`). Define o visual da ficha (`apps/web/lib/modules/theme.ts` e `app/globals.css`) e em qual página de módulo o paciente aparece (`/app/esportivo`, `/app/materno-infantil`). Sem teste SQL próprio (só um check constraint).
+
+## Painéis clínicos
+
+Sem migração. Endpoints em `directus/extensions/rafanutri/clinical-dashboard.js`, agregados em SQL (sem N+1), para owner e nutricionista do consultório:
+
+- `GET /rafanutri/clinical/patients-dashboard`: painel geral no topo de `/app/pacientes` (ativos, novos em 30 dias, com plano, na área do paciente, consultas, faltas, evolução de peso, IMC dos adultos (OMS; Lipschitz a partir de 60 anos), faixa etária, sexo, risco nutricional e lista de quem precisa de atenção).
+- `GET /rafanutri/patients/:id/dashboard`: painel do paciente no Resumo da ficha (consultas, peso, plano, prontuário, anamneses, área do paciente, evolução e histórico recente).
+
+Regras de atenção (`attentionReasons`, só pacientes ativos):
+
+| Motivo | Regra |
+|---|---|
+| `no_return` | Sem consulta futura e última consulta concluída + intervalo de retorno do paciente (padrão 30 dias) < hoje, em horário de Brasília. Mesma regra do CRM e dos indicadores |
+| `never_seen` | Sem consulta futura, nunca atendido e cadastrado há mais de 14 dias |
+| `plan_expired` / `plan_expiring` | Plano publicado vencido / vence em até 14 dias |
+| `no_plan` | Já atendido e sem plano publicado |
+| `no_assessment` | Já atendido e sem avaliação há mais de 90 dias |
+| `risk_high` | Risco alto na última triagem |
+| `pending_anamnesis` | Anamnese respondida aguardando revisão |
+
+Teste: `node --test db/tests/extension-clinical-dashboard.test.mjs`.

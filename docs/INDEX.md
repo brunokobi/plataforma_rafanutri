@@ -5,7 +5,8 @@
 - [02 — Módulos](02-modulos.md): os cinco módulos, os diferenciais (IA e app do paciente) e a prioridade de cada funcionalidade.
 
 ## Módulos
-- [UAN e Qualidade](modulos/uan.md): plano do módulo, entregas U0 a U7 e MVP do módulo (Qualidade BPF).
+- [UAN e Qualidade](modulos/uan.md): plano do módulo, entregas U0 a U9 e MVP do módulo (Qualidade BPF).
+- [Roteiro de implantação Enterprise](guias/implantacao-enterprise.md): passo a passo para colocar uma empresa cliente na UAN.
 
 ## Specs
 - [Tela principal com os módulos do usuário](specs/tela-principal-modulos.md)
@@ -14,9 +15,10 @@
 
 ## Pesquisa
 - [Benchmark clínico](pesquisa/benchmark-clinico.md): concorrentes, diferenciais e lacunas incorporadas ao plano.
+- [Descoberta da UAN](pesquisa/uan-discovery.md): levantamento do BPF Check e o que foi reaproveitado (RN-120).
 
 ## Técnica
-- [03 — Arquitetura](03-arquitetura.md): stack, visão de componentes, multi-tenant, integrações e ambientes.
+- [03 — Arquitetura](03-arquitetura.md): Directus + extensão + Postgres, web Next.js, Telegram/Resend, OpenRouter, Coolify; só produção.
 - [04 — Modelo de dados](04-modelo-dados.md): entidades do MVP e regras de acesso.
 - [05 — Segurança, LGPD e regulatório](05-seguranca-lgpd.md): dados sensíveis de saúde, prontuário, CFN, ANVISA.
 
@@ -40,16 +42,17 @@
 - [ADR 0003 — App do paciente como PWA primeiro](adr/0003-app-paciente-pwa.md)
 - [ADR 0004 — Infraestrutura do MVP na VPS existente](adr/0004-infraestrutura-hospedagem.md)
 - [ADR 0008 — Backend com Directus](adr/0008-backend-directus.md)
-- ADRs 0005 (provedor de WhatsApp), 0006 (provedor de LLM) e 0007 (estratégia offline do PWA) serão escritos nas Fases 2 e 3.
+- ADRs 0005 (provedor de WhatsApp), 0006 (provedor de LLM) e 0007 (estratégia offline do PWA) **não foram escritos**: o WhatsApp automático foi descartado (avisos por Telegram e e-mail), a IA usa o OpenRouter com modelos gratuitos e a área do paciente ficou web responsiva, sem PWA. As mudanças estão na nota do [ADR 0004](adr/0004-infraestrutura-hospedagem.md).
 
 ## Prompts
 - [Tela inicial e login com parallax + deploy no Coolify](prompts/telas-inicial-e-login.md)
 
 ## Banco de dados
-- [db/README.md](../db/README.md): migrações SQL, base de alimentos (TACO 4ª edição), busca e permissões no Directus.
+- [db/README.md](../db/README.md): migrações SQL (0001 a 0067), testes, base de alimentos (TACO, IBGE, Open Food Facts e USDA), busca, permissões no Directus, planos, avisos, backup e painéis clínicos.
 
 ## Segurança
 - [Revisão de segurança da Fase 1](seguranca/revisao-fase-1.md): isolamento, IDOR, cabeçalhos, logs e pendências.
+- [Auditoria](seguranca/auditoria.md): o que fica registrado, quem vê e por quanto tempo (RN-009).
 
 ## Qualidade
 - [Desempenho e acessibilidade da Fase 1](qualidade/revisao-desempenho-acessibilidade-fase-1.md)

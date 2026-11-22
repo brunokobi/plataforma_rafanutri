@@ -2,7 +2,7 @@
 
 Índice consolidado de todos os itens. O detalhe de cada item (descrição, tarefas técnicas, critérios de aceite e testes) está no documento da fase, no link do ID.
 
-Status: `todo`, `doing`, `done`, `adiado` (fora do MVP, ver [ADR 0004](adr/0004-infraestrutura-hospedagem.md)). Pontos: 1, 2, 3, 5, 8 (ver [plano/00-visao-geral.md](plano/00-visao-geral.md)).
+Status: `todo`, `doing`, `done`, `adiado` (fora do MVP ou aguardando definição externa, ver [ADR 0004](adr/0004-infraestrutura-hospedagem.md)), `cancelled` (descartado, com o motivo no item). Pontos: 1, 2, 3, 5, 8 (ver [plano/00-visao-geral.md](plano/00-visao-geral.md)).
 
 ## Resumo
 
@@ -14,16 +14,17 @@ Status: `todo`, `doing`, `done`, `adiado` (fora do MVP, ver [ADR 0004](adr/0004-
 | 2 | [Gestão do consultório](plano/fase-2-gestao.md) | 19 | 69 |
 | 3 | [App do paciente + IA](plano/fase-3-app-paciente-ia.md) | 20 | 63 |
 | 4 | [Materno-infantil](plano/fase-4-materno-infantil.md) | 20 | 65 |
-| 5 | [UAN e Qualidade (Enterprise)](plano/fase-5-uan-qualidade.md) | 50 | 209 |
+| 5 | [UAN e Qualidade (Enterprise)](plano/fase-5-uan-qualidade.md) | 70 | 283 |
 | 6 | [Saúde pública e avançados](plano/fase-6-saude-publica-avancados.md) | 30 | 134 |
+| **Total** | | **224** | **841** |
 
 ## Fase 0 — Fundação
 
 | ID | Item | Tipo | Pts | Depende de | Status |
 |---|---|---|---|---|---|
-| [RN-001](plano/fase-0-fundacao.md#rn-001--criar-monorepo-pnpm--turborepo) | Criar monorepo (pnpm + Turborepo) | infra | 3 | — | todo |
-| [RN-002](plano/fase-0-fundacao.md#rn-002--configurar-nextjs-com-typescript-tailwind-e-shadcnui) | Configurar Next.js com TypeScript, Tailwind e shadcn/ui | infra | 2 | RN-001 | todo |
-| [RN-003](plano/fase-0-fundacao.md#rn-003--configurar-supabase-local-e-na-vps) | Configurar Supabase local e na VPS | infra | 2 | RN-001 | todo |
+| [RN-001](plano/fase-0-fundacao.md#rn-001--criar-monorepo-pnpm--turborepo) | Criar monorepo (pnpm + Turborepo) | infra | 3 | — | done |
+| [RN-002](plano/fase-0-fundacao.md#rn-002--configurar-nextjs-com-typescript-tailwind-e-shadcnui) | Configurar Next.js com TypeScript, Tailwind e shadcn/ui | infra | 2 | RN-001 | done |
+| [RN-003](plano/fase-0-fundacao.md#rn-003--configurar-supabase-local-e-na-vps) | Configurar o backend (Directus + Postgres) local e na VPS | infra | 2 | RN-001 | doing |
 | [RN-004](plano/fase-0-fundacao.md#rn-004--migração-organizações-perfis-membros-e-auditoria) | Migração: organizações, perfis, membros e auditoria | feature | 3 | RN-003 | done |
 | [RN-005](plano/fase-0-fundacao.md#rn-005--autenticação-e-mailsenha-google-e-recuperação-de-senha) | Autenticação: e-mail/senha, Google e recuperação de senha | feature | 3 | RN-002, RN-004 | doing |
 | [RN-006](plano/fase-0-fundacao.md#rn-006--onboarding-criar-organização-no-primeiro-acesso) | Onboarding: criar organização no primeiro acesso | feature | 2 | RN-005 | doing |
@@ -33,13 +34,13 @@ Status: `todo`, `doing`, `done`, `adiado` (fora do MVP, ver [ADR 0004](adr/0004-
 | [RN-010](plano/fase-0-fundacao.md#rn-010--migração-da-base-de-alimentos) | Migração da base de alimentos | feature | 3 | RN-003 | doing |
 | [RN-011](plano/fase-0-fundacao.md#rn-011--importação-da-taco) | Importação da TACO | feature | 5 | RN-010, RN-015 | doing |
 | [RN-012](plano/fase-0-fundacao.md#rn-012--importação-da-tbca) | Importação da TBCA | feature | 5 | RN-010, RN-015 | todo |
-| [RN-013](plano/fase-0-fundacao.md#rn-013--layout-base-do-painel) | Layout base do painel | feature | 3 | RN-002, RN-019 | todo |
+| [RN-013](plano/fase-0-fundacao.md#rn-013--layout-base-do-painel) | Layout base do painel | feature | 3 | RN-002, RN-019 | done |
 | [RN-014](plano/fase-0-fundacao.md#rn-014--cicd) | CI/CD | infra | 3 | RN-001, RN-003 | todo |
 | [RN-015](plano/fase-0-fundacao.md#rn-015--validações-regulatórias-e-de-licenças) | Validações regulatórias e de licenças | pesquisa | 2 | — | todo |
-| [RN-016](plano/fase-0-fundacao.md#rn-016--termos-de-uso-política-de-privacidade-e-dpa) | Termos de Uso, Política de Privacidade e DPA | doc | 3 | RN-015 | adiado |
+| [RN-016](plano/fase-0-fundacao.md#rn-016--termos-de-uso-política-de-privacidade-e-dpa) | Termos de Uso, Política de Privacidade e DPA | doc | 3 | RN-015 | done |
 | [RN-017](plano/fase-0-fundacao.md#rn-017--observabilidade-e-tratamento-de-erros) | Observabilidade e tratamento de erros | infra | 2 | RN-002 | todo |
 | [RN-018](plano/fase-0-fundacao.md#rn-018--gestão-de-segredos-e-variáveis-de-ambiente) | Gestão de segredos e variáveis de ambiente | infra | 1 | RN-003 | todo |
-| [RN-019](plano/fase-0-fundacao.md#rn-019--identidade-visual-e-design-system-inicial) | Identidade visual e design system inicial | feature | 3 | RN-002 | todo |
+| [RN-019](plano/fase-0-fundacao.md#rn-019--identidade-visual-e-design-system-inicial) | Identidade visual e design system inicial | feature | 3 | RN-002 | done |
 
 ## Fase 1 — MVP Clínico
 
@@ -52,13 +53,13 @@ Status: `todo`, `doing`, `done`, `adiado` (fora do MVP, ver [ADR 0004](adr/0004-
 | [RN-024](plano/fase-1-mvp-clinico.md#rn-024--anamnese-modelos-padrão) | Anamnese: modelos padrão | feature | 3 | RN-025 | doing |
 | [RN-025](plano/fase-1-mvp-clinico.md#rn-025--editor-de-questionário-customizável) | Editor de questionário customizável | feature | 8 | RN-013 | doing |
 | [RN-026](plano/fase-1-mvp-clinico.md#rn-026--link-público-de-anamnese) | Link público de anamnese | feature | 5 | RN-025 (RN-021 adiado: no MVP o formulário não exige consentimento) | doing |
-| [RN-027](plano/fase-1-mvp-clinico.md#rn-027--nutrition-core-antropometria-e-composição-corporal) | `nutrition-core`: antropometria e composição corporal | feature | 5 | RN-001 | todo |
-| [RN-028](plano/fase-1-mvp-clinico.md#rn-028--avaliação-antropométrica-e-gráficos-de-evolução) | Avaliação antropométrica e gráficos de evolução | feature | 5 | RN-027, RN-020 | todo |
-| [RN-029](plano/fase-1-mvp-clinico.md#rn-029--nutrition-core-gasto-energético) | `nutrition-core`: gasto energético | feature | 3 | RN-001 | todo |
+| [RN-027](plano/fase-1-mvp-clinico.md#rn-027--nutrition-core-antropometria-e-composição-corporal) | `nutrition-core`: antropometria e composição corporal | feature | 5 | RN-001 | done |
+| [RN-028](plano/fase-1-mvp-clinico.md#rn-028--avaliação-antropométrica-e-gráficos-de-evolução) | Avaliação antropométrica e gráficos de evolução | feature | 5 | RN-027, RN-020 | done |
+| [RN-029](plano/fase-1-mvp-clinico.md#rn-029--nutrition-core-gasto-energético) | `nutrition-core`: gasto energético | feature | 3 | RN-001 | done |
 | [RN-030](plano/fase-1-mvp-clinico.md#rn-030--cálculo-energético-e-metas) | Cálculo energético e metas | feature | 3 | RN-029, RN-028 | doing |
-| [RN-031](plano/fase-1-mvp-clinico.md#rn-031--editor-de-plano-alimentar) | Editor de plano alimentar | feature | 8 | RN-030, RN-010 | todo |
+| [RN-031](plano/fase-1-mvp-clinico.md#rn-031--editor-de-plano-alimentar) | Editor de plano alimentar | feature | 8 | RN-030, RN-010 | done |
 | [RN-032](plano/fase-1-mvp-clinico.md#rn-032--cálculo-em-tempo-real-de-nutrientes) | Cálculo em tempo real de nutrientes | feature | 5 | RN-031, RN-044 | doing |
-| [RN-033](plano/fase-1-mvp-clinico.md#rn-033--medidas-caseiras) | Medidas caseiras | feature | 3 | RN-011 | todo |
+| [RN-033](plano/fase-1-mvp-clinico.md#rn-033--medidas-caseiras) | Medidas caseiras | feature | 3 | RN-011 | doing |
 | [RN-034](plano/fase-1-mvp-clinico.md#rn-034--substituições-por-equivalência) | Substituições por equivalência | feature | 5 | RN-032, RN-033 | doing |
 | [RN-035](plano/fase-1-mvp-clinico.md#rn-035--modelos-de-plano-e-duplicação) | Modelos de plano e duplicação | feature | 3 | RN-031 | doing |
 | [RN-036](plano/fase-1-mvp-clinico.md#rn-036--pdf-do-plano-alimentar) | PDF do plano alimentar | feature | 5 | RN-031, RN-034 | doing |
@@ -101,7 +102,7 @@ Status: `todo`, `doing`, `done`, `adiado` (fora do MVP, ver [ADR 0004](adr/0004-
 
 | ID | Item | Tipo | Pts | Depende de | Status |
 |---|---|---|---|---|---|
-| [RN-050](plano/fase-2-gestao.md#rn-050--subir-n8n-self-hosted-e-conectar-ao-supabase) | Subir n8n (self-hosted) e conectar ao Supabase | infra | 3 | RN-003, RN-014 | todo |
+| [RN-050](plano/fase-2-gestao.md#rn-050--subir-n8n-self-hosted-e-conectar-ao-supabase) | Subir n8n (self-hosted) e conectar ao Supabase | infra | 3 | RN-003, RN-014 | cancelled |
 | [RN-051](plano/fase-2-gestao.md#rn-051--lembrete-de-consulta-por-whatsapp-e-e-mail) | Lembrete de consulta por Telegram e e-mail (WhatsApp automático descartado em 21/11/2026) | feature | 5 | — | done |
 | [RN-052](plano/fase-2-gestao.md#rn-052--lembrete-de-retorno-e-envio-de-link-de-anamnese) | Lembrete de retorno e envio de link de anamnese | feature | 3 | RN-051, RN-026, RN-056 | todo |
 | [RN-053](plano/fase-2-gestao.md#rn-053--financeiro-recebimentos-e-fluxo-de-caixa) | Financeiro: recebimentos e fluxo de caixa | feature | 5 | RN-008, RN-009 | done |
@@ -110,14 +111,14 @@ Status: `todo`, `doing`, `done`, `adiado` (fora do MVP, ver [ADR 0004](adr/0004-
 | [RN-056](plano/fase-2-gestao.md#rn-056--crm-funil-e-retornos-atrasados) | CRM: funil e retornos atrasados | feature | 5 | RN-020, RN-022 | done |
 | [RN-057](plano/fase-2-gestao.md#rn-057--planos-pagos-do-saas-e-cobrança-recorrente) | Planos pagos do SaaS e cobrança recorrente (Pix direto com confirmação do admin, 21/11/2026; gateway com baixa automática fica para depois) | feature | 8 | RN-004, RN-062 | done |
 | [RN-058](plano/fase-2-gestao.md#rn-058--sincronização-com-google-calendar) | Sincronização com Google Calendar | feature | 5 | RN-022 | todo |
-| [RN-059](plano/fase-2-gestao.md#rn-059--preferências-de-comunicação-e-opt-out-lgpd) | Preferências de comunicação e opt-out (LGPD) | feature | 3 | RN-021 | adiado |
-| [RN-060](plano/fase-2-gestao.md#rn-060--log-de-mensagens-e-painel-de-entregas) | Log de mensagens e painel de entregas | feature | 3 | RN-050 | todo |
+| [RN-059](plano/fase-2-gestao.md#rn-059--preferências-de-comunicação-e-opt-out-lgpd) | Preferências de comunicação e opt-out (LGPD) | feature | 3 | RN-021 | done |
+| [RN-060](plano/fase-2-gestao.md#rn-060--log-de-mensagens-e-painel-de-entregas) | Log de mensagens e painel de entregas | feature | 3 | RN-050 | done |
 | [RN-061](plano/fase-2-gestao.md#rn-061--bloqueio-por-inadimplência-e-régua-de-cobrança) | Bloqueio por inadimplência e régua de cobrança | feature | 5 | RN-057, RN-062 | todo |
 | [RN-062](plano/fase-2-gestao.md#rn-062--webhooks-do-gateway-com-idempotência) | Webhooks do gateway com idempotência | infra | 3 | RN-057 (pode ser desenvolvido em paralelo) | todo |
 | [RN-063](plano/fase-2-gestao.md#rn-063--modelos-de-mensagem-e-aprovação-de-templates-whatsapp) | ~~Modelos de mensagem e aprovação de templates WhatsApp~~ — descartado: avisos por Telegram (gratuito) e e-mail | feature | 3 | RN-050 | cancelled |
 | [RN-064](plano/fase-2-gestao.md#rn-064--painel-financeiro-e-indicadores-do-consultório) | Painel financeiro e indicadores do consultório | feature | 3 | RN-053, RN-054, RN-056 | done |
 | [RN-065](plano/fase-2-gestao.md#rn-065--configurações-de-automação-por-organização) | Configurações de automação por organização (avisos: `/app/configuracoes/avisos`) | feature | 2 | RN-051 | done |
-| [RN-066](plano/fase-2-gestao.md#rn-066--operação-do-n8n-monitoramento-backup-e-runbook) | Operação do n8n: monitoramento, backup e runbook | infra | 2 | RN-050 | todo |
+| [RN-066](plano/fase-2-gestao.md#rn-066--operação-do-n8n-monitoramento-backup-e-runbook) | Operação do n8n: monitoramento, backup e runbook | infra | 2 | RN-050 | cancelled |
 | [RN-067](plano/fase-2-gestao.md#rn-067--documentação-da-fase-e-atualização-de-termos) | Documentação da fase e atualização de termos | doc | 1 | RN-057, RN-059 | todo |
 | [RN-068](plano/fase-2-gestao.md#rn-068--página-pública-do-nutricionista-e-agendamento-online) | Página pública do nutricionista e agendamento online | feature | 5 | RN-022, RN-051 | done |
 
@@ -130,9 +131,9 @@ Status: `todo`, `doing`, `done`, `adiado` (fora do MVP, ver [ADR 0004](adr/0004-
 | [RN-072](plano/fase-3-app-paciente-ia.md#rn-072--lista-de-compras) | Lista de compras | feature | 3 | RN-071 | todo |
 | [RN-073](plano/fase-3-app-paciente-ia.md#rn-073--diário-alimentar-e-hidratação) | Diário alimentar e hidratação | feature | 5 | RN-071, RN-078 | todo |
 | [RN-074](plano/fase-3-app-paciente-ia.md#rn-074--notificações-push) | Notificações push | feature | 3 | RN-078, RN-050 | todo |
-| [RN-075](plano/fase-3-app-paciente-ia.md#rn-075--sugestão-de-plano-alimentar-por-ia-alimentos-da-base-cálculo-pelo-nutrition-core) | Sugestão de plano alimentar por IA (alimentos da base, cálculo pelo `nutrition-core`) | feature | 8 | RN-081, RN-082, RN-083, RN-077, RN-087, RN-031 | todo |
-| [RN-076](plano/fase-3-app-paciente-ia.md#rn-076--resumo-de-anamnese-e-histórico-por-ia) | Resumo de anamnese e histórico por IA | feature | 3 | RN-081, RN-082, RN-083, RN-077 | todo |
-| [RN-077](plano/fase-3-app-paciente-ia.md#rn-077--registro-de-sugestões-e-limites-de-uso-por-plano) | Registro de sugestões e limites de uso por plano | feature | 3 | RN-057 | todo |
+| [RN-075](plano/fase-3-app-paciente-ia.md#rn-075--sugestão-de-plano-alimentar-por-ia-alimentos-da-base-cálculo-pelo-nutrition-core) | Sugestão de plano alimentar por IA (alimentos da base, cálculo pelo `nutrition-core`) | feature | 8 | RN-081, RN-082, RN-083, RN-077, RN-087, RN-031 | done |
+| [RN-076](plano/fase-3-app-paciente-ia.md#rn-076--resumo-de-anamnese-e-histórico-por-ia) | Resumo de anamnese e histórico por IA | feature | 3 | RN-081, RN-082, RN-083, RN-077 | done |
+| [RN-077](plano/fase-3-app-paciente-ia.md#rn-077--registro-de-sugestões-e-limites-de-uso-por-plano) | Registro de sugestões e limites de uso por plano | feature | 3 | RN-057 | done |
 | [RN-078](plano/fase-3-app-paciente-ia.md#rn-078--manifest-service-worker-e-cache-offline) | Manifest, service worker e cache offline | infra | 3 | RN-070 | todo |
 | [RN-079](plano/fase-3-app-paciente-ia.md#rn-079--marca-do-nutricionista-no-app) | Marca do nutricionista no app | feature | 2 | RN-078 | todo |
 | [RN-080](plano/fase-3-app-paciente-ia.md#rn-080--painel-de-adesão-para-o-nutricionista) | Painel de adesão para o nutricionista | feature | 5 | RN-073 | todo |
@@ -163,12 +164,12 @@ Status: `todo`, `doing`, `done`, `adiado` (fora do MVP, ver [ADR 0004](adr/0004-
 | [RN-110](plano/fase-4-materno-infantil.md#rn-110--migração-de-gestação-e-lactação) | Migração de gestação e lactação | infra | 2 | RN-101 | done |
 | [RN-111](plano/fase-4-materno-infantil.md#rn-111--nutrition-core-ganho-de-peso-gestacional) | `nutrition-core`: ganho de peso gestacional | feature | 5 | RN-110 | done |
 | [RN-112](plano/fase-4-materno-infantil.md#rn-112--tela-de-acompanhamento-da-gestante) | Tela de acompanhamento da gestante | feature | 5 | RN-111 | done |
-| [RN-113](plano/fase-4-materno-infantil.md#rn-113--adicional-energético-na-gestação-e-lactação) | Adicional energético na gestação e lactação | feature | 2 | RN-030, RN-111 | todo |
-| [RN-114](plano/fase-4-materno-infantil.md#rn-114--registro-de-lactação) | Registro de lactação | feature | 2 | RN-110 | todo |
+| [RN-113](plano/fase-4-materno-infantil.md#rn-113--adicional-energético-na-gestação-e-lactação) | Adicional energético na gestação e lactação | feature | 2 | RN-030, RN-111 | done |
+| [RN-114](plano/fase-4-materno-infantil.md#rn-114--registro-de-lactação) | Registro de lactação | feature | 2 | RN-110 | done |
 | [RN-115](plano/fase-4-materno-infantil.md#rn-115--conteúdos-de-introdução-alimentar) | Conteúdos de introdução alimentar | feature | 3 | RN-101 | done |
-| [RN-116](plano/fase-4-materno-infantil.md#rn-116--checklist-de-alergênicos-e-texturas) | Checklist de alergênicos e texturas | feature | 3 | RN-115 | todo |
-| [RN-117](plano/fase-4-materno-infantil.md#rn-117--visão-do-responsável-no-app-do-paciente) | Visão do responsável no app do paciente | feature | 3 | RN-107, RN-116, RN-118 | todo |
-| [RN-118](plano/fase-4-materno-infantil.md#rn-118--responsáveis-legais) | Responsáveis legais | feature | 3 | RN-101, RN-070 | todo |
+| [RN-116](plano/fase-4-materno-infantil.md#rn-116--checklist-de-alergênicos-e-texturas) | Checklist de alergênicos e texturas | feature | 3 | RN-115 | done |
+| [RN-117](plano/fase-4-materno-infantil.md#rn-117--visão-do-responsável-no-app-do-paciente) | Visão do responsável no app do paciente | feature | 3 | RN-107, RN-116, RN-118 | done |
+| [RN-118](plano/fase-4-materno-infantil.md#rn-118--responsáveis-legais) | Responsáveis legais | feature | 3 | RN-101, RN-070 | done |
 | [RN-119](plano/fase-4-materno-infantil.md#rn-119--validação-clínica-e-testes-e2e-da-fase) | Validação clínica e testes e2e da fase | doc | 3 | RN-100 a RN-118 | todo |
 
 ## Fase 5 — UAN e Qualidade (Enterprise)
@@ -250,11 +251,11 @@ Status: `todo`, `doing`, `done`, `adiado` (fora do MVP, ver [ADR 0004](adr/0004-
 
 | ID | Item | Tipo | Pts | Depende de | Status |
 |---|---|---|---|---|---|
-| [RN-170](plano/fase-6-saude-publica-avancados.md#rn-170--base-de-triagens-nutricionais) | Base de triagens nutricionais | infra | 3 | RN-008, RN-020 | todo |
-| [RN-171](plano/fase-6-saude-publica-avancados.md#rn-171--nrs-2002) | NRS-2002 | feature | 3 | RN-170 | todo |
-| [RN-172](plano/fase-6-saude-publica-avancados.md#rn-172--mna-completa-e-mna-sf) | MNA completa e MNA-SF | feature | 5 | RN-170 | todo |
-| [RN-173](plano/fase-6-saude-publica-avancados.md#rn-173--must) | MUST | feature | 2 | RN-170 | todo |
-| [RN-174](plano/fase-6-saude-publica-avancados.md#rn-174--avaliação-subjetiva-global-e-triagem-em-campanha) | Avaliação Subjetiva Global e triagem em campanha | feature | 5 | RN-171, RN-172, RN-173 | todo |
+| [RN-170](plano/fase-6-saude-publica-avancados.md#rn-170--base-de-triagens-nutricionais) | Base de triagens nutricionais | infra | 3 | RN-008, RN-020 | done |
+| [RN-171](plano/fase-6-saude-publica-avancados.md#rn-171--nrs-2002) | NRS-2002 | feature | 3 | RN-170 | done |
+| [RN-172](plano/fase-6-saude-publica-avancados.md#rn-172--mna-completa-e-mna-sf) | MNA completa e MNA-SF | feature | 5 | RN-170 | adiado |
+| [RN-173](plano/fase-6-saude-publica-avancados.md#rn-173--must) | MUST | feature | 2 | RN-170 | done |
+| [RN-174](plano/fase-6-saude-publica-avancados.md#rn-174--avaliação-subjetiva-global-e-triagem-em-campanha) | Avaliação Subjetiva Global e triagem em campanha | feature | 5 | RN-171, RN-172, RN-173 | doing |
 | [RN-175](plano/fase-6-saude-publica-avancados.md#rn-175--migração-de-territórios-e-programas) | Migração de territórios e programas | infra | 3 | RN-170 | todo |
 | [RN-176](plano/fase-6-saude-publica-avancados.md#rn-176--gestão-de-programas-e-grupos) | Gestão de programas e grupos | feature | 5 | RN-175 | todo |
 | [RN-177](plano/fase-6-saude-publica-avancados.md#rn-177--indicadores-coletivos) | Indicadores coletivos | feature | 5 | RN-176 | todo |

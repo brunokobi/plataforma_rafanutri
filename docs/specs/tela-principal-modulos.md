@@ -1,6 +1,6 @@
 # Spec — Tela principal com os módulos do usuário (`/app`)
 
-- **Status:** implementada em 10/11/2026 (`/app`). **18/11/2026:** a tela depois do login virou a **escolha de módulo** ("Escolha um módulo", com os publicados primeiro e o botão "Abrir"); o painel do dia e os indicadores do consultório passaram para `/app/clinico`, a entrada do módulo Clínico. Clínico, Área do paciente, Gestão do consultório e UAN estão publicados; módulo habilitado na organização (`organizations.modules`, ex.: UAN por contrato) conta como incluso em qualquer plano
+- **Status:** implementada em 10/11/2026 (`/app`). **18/11/2026:** a tela depois do login virou a **escolha de módulo** ("Escolha um módulo", com os publicados primeiro e o botão "Abrir"); o painel do dia e os indicadores do consultório passaram para `/app/clinico`, a entrada do módulo Clínico. **22/11/2026:** os sete módulos estão publicados (`availability: 'available'` em `apps/web/lib/modules/catalog.ts`): Clínico, Área do paciente, Gestão do consultório, Assistente de IA (`/app/assistente`), Materno-infantil (`/app/materno-infantil`), UAN e Saúde pública (`/app/saude-publica`); cada um com visual próprio (`lib/modules/theme.ts`); módulo habilitado na organização (`organizations.modules`, ex.: UAN por contrato) conta como incluso em qualquer plano
 - **Fontes:** [02-modulos.md](../02-modulos.md), [01-visao-produto.md](../01-visao-produto.md) (planos), [Fase 1B](../plano/fase-1b-freemium-area-paciente.md) (plano gratuito, `plans.features`), [Módulo UAN](../modulos/uan.md), [ADR 0008](../adr/0008-backend-directus.md)
 
 ## 1. Objetivo
@@ -18,11 +18,11 @@ Ela também mostra o **plano atual** e uma **comparação dos planos**.
 |---|---|---|---|
 | `clinical` | Clínico e Esportivo | Pacientes, agenda, anamnese, avaliação, gasto energético, plano alimentar com substituições, PDF | Fase 1 |
 | `patient_area` | Área do paciente | Plano publicado, receitas, recomendações e documentos no celular do paciente | Fase 1B |
-| `practice` | Gestão do consultório | Lembretes por WhatsApp, financeiro, pacotes, CRM, agendamento online | Fase 2 |
-| `ai` | Assistente de IA | Sugestão de plano alimentar, resumo da anamnese, assistente sobre diretrizes | Fase 3 |
+| `practice` | Gestão do consultório | Avisos e lembretes por Telegram e e-mail, financeiro, recibos, pacotes, CRM, agendamento online | Fase 2 |
+| `ai` | Assistente de IA | Pergunta livre, ideias de receitas, resumo da anamnese e sugestão de cardápio (modelos gratuitos do OpenRouter) | Fase 3 |
 | `maternal` | Materno-infantil | Curvas de crescimento da OMS, gestantes, introdução alimentar | Fase 4 |
 | `uan` | UAN e Qualidade | Checklists BPF, temperaturas, não conformidades, ficha técnica, cardápio, compras, estoque | Fase 5 |
-| `public_health` | Saúde pública | Triagens (NRS-2002, MNA, MUST), programas e indicadores coletivos | Fase 6 |
+| `public_health` | Saúde pública | Triagens (NRS-2002, MUST e ASG; MNA aguardando licença), painel de risco; depois programas e indicadores coletivos | Fase 6 |
 
 O núcleo comum (conta, equipe, pacientes, base de alimentos) não aparece como módulo: ele vem junto com qualquer módulo.
 
@@ -35,12 +35,12 @@ Legenda: **✓** incluso · **Cota** incluso com limite · **—** não incluso.
 | Clínico e Esportivo | ✓ (até 20 pacientes ativos) | ✓ | ✓ | ✓ | — |
 | Área do paciente | ✓ | ✓ | ✓ | ✓ | — |
 | Gestão do consultório | — | ✓ (lembretes e agendamento online) | ✓ (completo) | ✓ | — |
-| Assistente de IA | Cota (5 por dia) | Cota (5 por dia) | ✓ | ✓ | — |
+| Assistente de IA | Cota (5 por dia) | Cota (5 por dia) | ✓ (até 200 por dia) | ✓ (até 200 por dia) | — |
 | Materno-infantil | — | — | ✓ | ✓ | — |
 | UAN e Qualidade | — | — | — | — | ✓ |
 | Saúde pública | Contrato específico (prefeituras e programas); não é vendido por plano |
 
-**A validar:** a posição do Materno-infantil (Profissional e Clínica) e da cota de IA nos planos pagos é proposta desta spec. A tabela de planos de [01-visao-produto.md](../01-visao-produto.md) não define esses dois pontos. Ajustar quando a precificação for fechada (Fase 2, RN-057).
+Fonte da verdade: `apps/web/lib/modules/plans.ts`, conferido de novo na extensão do Directus (Gestão barrada na API para o Gratuito desde 22/11/2026; materno-infantil só no Profissional e na Clínica; Saúde pública e UAN por `organizations.modules`). Preços (Pix, mensal, por consultório): Essencial R$ 49,90, Profissional R$ 99,90 e Clínica R$ 199,90.
 
 ## 4. Estados de um card de módulo
 

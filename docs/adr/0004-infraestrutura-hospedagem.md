@@ -3,6 +3,17 @@
 - **Status:** aceito; a parte de banco e backend foi substituída pelo [ADR 0008](0008-backend-directus.md) (Directus no lugar do Supabase self-hosted)
 - **Data:** 2026-11-09
 
+> **Nota de substituição (22/11/2026).** Partes desta decisão mudaram na execução:
+>
+> - Banco e backend: **Directus + Postgres 16** ([ADR 0008](0008-backend-directus.md)), não Supabase.
+> - Avisos: **Telegram** (bot) e **e-mail pelo Resend**, por um motor dentro da extensão do Directus (migração 0058). Sem n8n e sem Evolution API; o envio automático por WhatsApp foi descartado.
+> - IA: OpenRouter só com modelos gratuitos, chamado pela extensão (mantido).
+> - Ambientes: **só produção**, sem staging; deploy manual.
+> - Monitoramento: **sem Sentry**; UptimeRobot ainda pendente.
+> - Backup: diário na VPS desde 21/11/2026 (`pg_dump`, 14 dias); a cópia fora da VPS continua pendente.
+>
+> O texto abaixo é o registro da decisão original.
+
 ## Contexto
 
 A Rafanutri começa como **MVP**. Já existe uma VPS em operação (a "vpsrafa"): Oracle Cloud no plano Always Free, ARM64 (Ampere A1), 2 OCPU e 12 GB de RAM, região Frankfurt, Ubuntu 24.04, com Coolify e Traefik (HTTPS automático por Let's Encrypt), DNS no Cloudflare, n8n, Evolution API disponível e acesso ao OpenRouter. A mesma máquina hospeda outros projetos, inclusive o backend do app **BPF Check**.

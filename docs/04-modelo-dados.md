@@ -1,6 +1,8 @@
 # 04 — Modelo de dados inicial (MVP)
 
 > **Backend: Directus** ([ADR 0008](adr/0008-backend-directus.md)). Onde este documento cita Supabase, RLS, `auth.uid()`, Storage ou Edge Functions, leia pela tabela de equivalência do ADR 0008.
+>
+> Este é o modelo **inicial**, de planejamento. O modelo real está nas 67 migrações de `db/migrations` (0001 a 0067), descritas no [db/README](../db/README.md). Alguns nomes mudaram (ex.: `professional_profiles` no lugar de `profiles`, `patients.app_user_id` no lugar de `auth_user_id`, `terms_acceptances` no lugar de `consent_records`).
 
 Escopo: núcleo comum + Módulo Clínico. Nomes de tabelas e colunas em inglês. Todas as tabelas têm `id uuid`, `created_at`, `updated_at`; as de negócio têm `organization_id`.
 
@@ -60,7 +62,7 @@ Valores calculados (IMC, % gordura) são calculados pelo `nutrition-core` e grav
 ### Alimentos
 | Tabela | Campos principais |
 |---|---|
-| `food_sources` | `code` (`TACO`, `TBCA`, `CUSTOM`), `version`, `license_notes` |
+| `food_sources` | `code` (`TACO`, `IBGE`, `OFF`, `USDA`, `CUSTOM`; `TBCA` só com licença), `version`, `citation`, licença |
 | `foods` | `source_id`, `organization_id` (nulo para bases públicas), `name`, `group`, `household_measures jsonb` |
 | `nutrients` | `code` (`energy_kcal`, `protein_g`, `carbohydrate_g`, `lipid_g`, `fiber_g`, `sodium_mg`...), `unit` |
 | `food_nutrients` | `food_id`, `nutrient_id`, `amount_per_100g` |
@@ -86,16 +88,16 @@ O paciente só enxerga `meal_plans` com `status = 'published'`.
 
 ## Fases seguintes (esboço)
 
-- **Gestão:** `payments`, `service_packages`, `leads`, `message_logs`.
+- **Gestão:** implementada como `financial_transactions`, `receipts`, `service_packages`/`patient_packages`, `leads`, `crm_events`, `public_profiles`, `booking_requests` (0024 a 0029) e avisos em `notification_settings`, `patient_contact_prefs` e `notification_outbox` (0058).
 - **App do paciente:** `food_diary_entries`, `hydration_logs`, `chat_messages`.
-- **Materno-infantil:** `growth_measurements`, `who_growth_references` (tabelas LMS), `pregnancy_records`.
+- **Materno-infantil:** implementado com medidas em `anthropometric_assessments` (perímetro cefálico e posição), `pregnancies`, `lactations`, `feeding_intro_progress` e `patient_guardians` (0062, 0065). As tabelas LMS da OMS ficam no `nutrition-core`, não no banco.
 - **UAN:** `production_units`, `recipes` (ficha técnica), `recipe_ingredients`, `menus`, `menu_days`, `purchase_orders`, `stock_movements`, `checklist_templates`, `checklist_runs`, `non_conformities`, `quality_documents`.
-- **IA:** `ai_suggestions` (entrada, saída, modelo, aceite pelo profissional), `knowledge_chunks` com `embedding vector`.
+- **IA:** implementada como `ai_requests` (0063): só consultório, usuário, tipo, modelo, tokens e resultado, para a cota diária. Nenhum texto enviado ou recebido é gravado; sem embeddings nem RAG.
 
 ## Plano gratuito e área do paciente (Fase 1B)
 
 - **Tenant:** `organizations` (o nutricionista autônomo é uma organização `solo`).
-- `plans` e `subscriptions`: toda organização nasce no plano `free`, que permite **20 pacientes ativos**. Um gatilho em `patients` aplica o limite no banco.
+- `plans` e `subscriptions`: toda organização nasce no plano `free`, que permite **20 pacientes ativos**. Um gatilho em `patients` aplica o limite no banco. Planos pagos (Essencial 100 ativos, Profissional e Clínica sem limite) assinados por Pix em `subscriptions` e `subscription_invoices` (0059, 0060).
 - O paciente acessa com login próprio (`patients.auth_user_id`). Uma pessoa atendida por dois nutricionistas tem um registro em cada organização.
 - `patient_app_invites`: convite com token de uso único.
 - `recipes` ganha foto, descrição, tempo, dificuldade e tags. `patient_recipes` registra as receitas enviadas ao paciente.
@@ -103,3 +105,9 @@ O paciente só enxerga `meal_plans` com `status = 'published'`.
 - `patients.share_settings` define o que o paciente vê (calorias, macros, histórico de peso).
 
 SQL completo e políticas RLS em [plano/fase-1b-freemium-area-paciente.md](plano/fase-1b-freemium-area-paciente.md).
+
+## Acréscimos recentes
+
+- `patients.care_profile` (0067): tipo de acompanhamento (`clinical`, `sport`, `maternal` ou nulo = automático). Define o visual da ficha e a página de módulo do paciente.
+- `nutrition_screenings` (0066): triagens NRS-2002, MUST e ASG, imutáveis e auditadas.
+- `audit_logs` (0030) e `terms_acceptances` (0057).

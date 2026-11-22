@@ -15,7 +15,7 @@ Ser a plataforma de trabalho do nutricionista em qualquer área de atuação: do
 | Segmento | Quem | Tipo de venda |
 |---|---|---|
 | Clínico e esportivo | Nutricionista autônomo, clínicas, academias, estética | B2C/profissional — assinatura mensal por nutricionista |
-| Clínicas multiprofissionais | Clínicas com vários nutricionistas | Assinatura por equipe |
+| Clínicas multiprofissionais | Clínicas com vários nutricionistas | Assinatura por consultório (plano Clínica, equipe sem limite) |
 | UAN e qualidade | Restaurantes industriais, hospitais, escolas, hotéis, catering, redes de alimentação | B2B Enterprise — contrato por unidade produtora |
 | Saúde pública | Prefeituras, UBS, ambulatórios, programas de saúde | B2G / projetos |
 | Paciente | Paciente do nutricionista | Gratuito (incluído na assinatura do profissional) |
@@ -31,9 +31,9 @@ Ser a plataforma de trabalho do nutricionista em qualquer área de atuação: do
 | Plano | Público | Faixa de preço de referência | Inclui |
 |---|---|---|---|
 | **Gratuito** | Todo nutricionista | R$ 0 (permanente) | Até **20 pacientes ativos**, 1 nutricionista, clínico completo, área do paciente com plano, receitas e recomendações |
-| Essencial | Nutricionista autônomo | R$ 49–59/mês (desconto no anual) | Tudo do Gratuito com até **100 pacientes ativos** e sem anúncios |
-| Profissional | Nutricionista com volume | R$ 89–119/mês | Tudo do Essencial com **pacientes sem limite** + IA sem limite e materno-infantil (quando saírem) |
-| Clínica | Equipes | Por profissional, com desconto por volume | Multiusuário, papéis e permissões, relatórios da clínica |
+| Essencial | Nutricionista autônomo | R$ 49,90/mês | Tudo do Gratuito com até **100 pacientes ativos**, módulo Gestão e sem anúncios |
+| Profissional | Nutricionista com volume | R$ 99,90/mês | Tudo do Essencial com **pacientes sem limite**, IA até 200 pedidos por dia e materno-infantil |
+| Clínica | Equipes | R$ 199,90/mês por consultório (não por profissional) | Tudo do Profissional com equipe sem limite, papéis e permissões |
 | Enterprise UAN | Empresas de alimentação | R$ 500 a R$ 2.000+/mês por contrato | Módulo UAN/Qualidade por unidade produtora |
 
 Preços em vigor desde 21/11/2026 (Pix, mensal): Essencial R$ 49,90, Profissional R$ 99,90 e Clínica R$ 199,90 (valor único por consultório). Os valores seguem em validação com entrevistas e testes de preço. Concorrentes cobram de R$ 40 a R$ 60/mês no plano básico (ver [benchmark](pesquisa/benchmark-clinico.md)).

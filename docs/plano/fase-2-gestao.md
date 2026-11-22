@@ -1,5 +1,7 @@
 # Fase 2 — Gestão do consultório
 
+> **O que mudou na execução (21/11/2026):** o envio automático por WhatsApp foi **descartado** (a API oficial exige aprovação de modelos e custo por conversa; a Evolution API não é oficial). Os avisos saem pelo **Telegram** (bot @RafanutriAvisosBot, gratuito) e por **e-mail** (Resend) só no importante, por um motor dentro da extensão do Directus (`directus/extensions/rafanutri/notify.js`, migração 0058). Não há n8n nem Supabase. A assinatura do SaaS é paga por **Pix** com confirmação do admin (0059), sem gateway. O texto abaixo é o plano original; onde cita WhatsApp, n8n, Supabase ou gateway, vale a seção [Arquitetura de mensagens](#arquitetura-de-mensagens). Situação de cada item no [progresso](progresso.md).
+
 ## Objetivo
 
 Transformar o MVP clínico em um produto vendável e com baixo trabalho manual: a plataforma lembra o paciente das consultas, envia o link de anamnese, controla o dinheiro do consultório, mostra quem precisa voltar e **cobra a própria assinatura do SaaS** sem intervenção humana.
@@ -363,21 +365,38 @@ $$;
 
 ### Arquitetura de mensagens
 
+**Como foi implementado (0058):**
+
+```
+Directus (extensão rafanutri, notify.js, a cada minuto)
+  ├─ gera avisos: consulta marcada/remarcada/cancelada, lembretes por janela, plano novo, convite, cobrança
+  ├─ fila notification_outbox (dedupe_key única, até 5 tentativas)
+  └─ envia: Telegram (bot) primeiro ──▶ e-mail pelo Resend só no importante, se não houver Telegram ou o envio falhar
+```
+
+- Regras puras (canal, janelas, textos) em `notifications.js`, testadas em `db/tests/extension-notifications.test.mjs`.
+- Configuração por consultório em `/app/configuracoes/avisos` (até 3 lembretes entre 1 h e 72 h antes, histórico e envio de teste).
+- O paciente liga o Telegram por link ou QR (uso único, 7 dias) na ficha ou em `/p/avisos`; `/parar` no bot pausa; o e-mail tem link assinado para cancelar.
+- WhatsApp fica só como link manual (`wa.me`) para o nutricionista enviar do próprio celular.
+
+**Plano original (não implementado):**
+
 ```
 Supabase (pg_cron / trigger) ──webhook assinado (HMAC)──▶ n8n ──▶ provedor WhatsApp / e-mail
             ▲                                               │
             └──────── Edge Function `message-callback` ◀────┘ (status, ids)
 ```
 
-- O **Supabase decide o que enviar** (consulta SQL em função `due_messages()`), o **n8n só executa** o envio. Assim a regra de negócio fica versionada em SQL e testável.
-- O n8n acessa o Supabase com uma chave de serviço restrita a uma Edge Function (`messaging-gateway`), nunca com `service_role` direto no banco.
-- Todo envio passa por `message_logs` com `idempotency_key` única: um reenvio do mesmo evento é descartado pelo `unique`.
+- O **Supabase decide o que enviar** (consulta SQL em função `due_messages()`), o **n8n só executa** o envio.
+- Todo envio passa por `message_logs` com `idempotency_key` única.
 
 ### Provedor de WhatsApp
 
-> **No MVP:** usar a **Evolution API** já disponível na VPS, com um número dedicado à Rafanutri (ver [ADR 0004](../adr/0004-infraestrutura-hospedagem.md)). Os workflows do n8n ficam atrás de uma interface `send_whatsapp` para trocar de provedor sem reescrevê-los. O texto abaixo vale para a migração pós-MVP.
+> **Descartado em 21/11/2026:** nem Evolution API nem API oficial. Os avisos automáticos saem pelo Telegram e por e-mail (ver acima). O texto abaixo fica como registro da análise.
 
 Usar a **WhatsApp Business Platform (Cloud API da Meta)** via provedor/BSP brasileiro (ex.: Z-API não é oficial — **evitar**; preferir BSP oficial como Twilio, Gupshup, 360dialog ou Blip). Decisão final no item RN-050 após comparar custo por conversa e facilidade de aprovação de templates. Mensagens iniciadas pela empresa exigem **templates aprovados** pela Meta (categoria *utility*).
+
+> Os fluxos WF-01 a WF-09 abaixo são o desenho original. WF-01 virou o motor de avisos da extensão (Telegram e e-mail); WF-03, WF-04 e WF-09 seguem pendentes; WF-07 e WF-08 foram trocados pela assinatura por Pix (0059).
 
 ### WF-01 — Lembrete de consulta
 
@@ -449,6 +468,9 @@ Usar a **WhatsApp Business Platform (Cloud API da Meta)** via provedor/BSP brasi
 ## Itens do backlog
 
 ### RN-050 — Subir n8n (self-hosted) e conectar ao Supabase
+
+> **Não será feito:** o motor de avisos roda dentro da extensão do Directus; não há n8n.
+
 - **Tipo:** infra
 - **Pontos:** 3
 - **Depende de:** RN-003, RN-014
@@ -471,6 +493,9 @@ Usar a **WhatsApp Business Platform (Cloud API da Meta)** via provedor/BSP brasi
 - **Testes:** integração da Edge Function (assinatura válida/inválida); smoke test do n8n no deploy.
 
 ### RN-051 — Lembrete de consulta por WhatsApp e e-mail
+
+> **Feito em 21/11/2026 por Telegram e e-mail** (migração 0058), sem WhatsApp nem n8n.
+
 - **Tipo:** feature
 - **Pontos:** 5
 - **Depende de:** RN-050, RN-059, RN-060, RN-063
@@ -691,7 +716,7 @@ Usar a **WhatsApp Business Platform (Cloud API da Meta)** via provedor/BSP brasi
 - **Testes:** unidade da máquina de estados (todas as transições); integração com payloads reais do sandbox.
 
 ### RN-063 — Modelos de mensagem e aprovação de templates WhatsApp
-> **No MVP:** só os modelos de mensagem internos (texto com variáveis). A aprovação de templates pela Meta fica para quando migrar para a API oficial.
+> **Cancelado (21/11/2026):** sem WhatsApp automático, não há templates da Meta. Os textos dos avisos ficam em `directus/extensions/rafanutri/notifications.js`.
 
 - **Tipo:** feature
 - **Pontos:** 3
@@ -737,6 +762,9 @@ Usar a **WhatsApp Business Platform (Cloud API da Meta)** via provedor/BSP brasi
 - **Testes:** unidade da validação; pgTAP de `due_messages` respeitando settings.
 
 ### RN-066 — Operação do n8n: monitoramento, backup e runbook
+
+> **Não se aplica:** não há n8n. A fila de avisos tem histórico em `/app/configuracoes/avisos` e o backup do banco cobre a fila.
+
 - **Tipo:** infra
 - **Pontos:** 2
 - **Depende de:** RN-050

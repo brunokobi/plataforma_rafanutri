@@ -1,5 +1,5 @@
 -- Diferença entre Essencial e Profissional: o Essencial vai até 100 pacientes ativos; o Profissional não tem limite
--- (e recebe IA sem limite e o módulo materno-infantil quando saírem). Quem já passa de 100 mantém os pacientes;
+-- e inclui IA com até 200 pedidos por dia (Essencial: 5) e o módulo materno-infantil. Quem já passa de 100 mantém os pacientes;
 -- o gatilho enforce_active_patient_limit (0004) só barra novos ativos. Espelha apps/web/lib/modules/plans.ts.
 
 begin;

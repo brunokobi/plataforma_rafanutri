@@ -1,6 +1,6 @@
 -- RN-200/RN-202 — Lista de interesse no plano pago. Idempotente.
--- O plano da organização continua em organizations.plan (só 'free' no MVP); a tabela de assinaturas
--- (subscriptions) entra com a cobrança (RN-057). Lida e gravada pelos endpoints /rafanutri/plan.
+-- Histórico: a 0059 (assinatura por Pix) substituiu esta lista na prática; os planos pagos agora são assinados em
+-- subscriptions. O plano do consultório fica em organizations.plan. Lida e gravada pelos endpoints /rafanutri/plan.
 -- Regras no banco: um registro por consultório; só o owner registra; o interesse não muda de consultório.
 
 begin;

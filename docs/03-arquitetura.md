@@ -1,109 +1,119 @@
 # 03 — Arquitetura
 
-> **Backend: Directus** ([ADR 0008](adr/0008-backend-directus.md)). Onde este documento cita Supabase, RLS, `auth.uid()`, Storage ou Edge Functions, leia pela tabela de equivalência do ADR 0008.
+Arquitetura em produção em 22/11/2026. Decisões em [ADR 0008](adr/0008-backend-directus.md) (backend) e [ADR 0004](adr/0004-infraestrutura-hospedagem.md) (hospedagem).
 
 ## Visão geral
 
 ```
-                ┌────────────────────────┐      ┌──────────────────────┐
- Nutricionista →│  Web App (Next.js)     │      │  App do paciente     │← Paciente
-                │  painel profissional   │      │  (PWA → Expo depois) │
-                └──────────┬─────────────┘      └──────────┬───────────┘
-                           │  supabase-js / Server Actions │
-                           ▼                               ▼
-                ┌──────────────────────────────────────────────────────┐
-                │                     Supabase                         │
-                │  Auth · Postgres (RLS) · Storage · Edge Functions    │
-                │  pgvector (RAG) · Realtime (chat) · pg_cron          │
-                └──────────┬──────────────────────────────┬────────────┘
-                           │ webhooks / DB triggers       │ API
-                           ▼                              ▼
-                ┌──────────────────────┐       ┌──────────────────────┐
-                │        n8n           │       │   Provedor de LLM    │
-                │ lembretes, WhatsApp, │       │ (sugestões, resumos, │
-                │ e-mails, rotinas     │       │  embeddings)         │
-                └──────────────────────┘       └──────────────────────┘
+                ┌──────────────────────────────────────────────┐
+ Nutricionista →│  Web (Next.js 16) — rafanutri.brunokobi.tech │← Paciente (área /p, web responsiva)
+                │  páginas, Server Actions, PDFs               │← Público (/n/[slug], /r/[token], /cardapio/[token])
+                └──────────────────────┬───────────────────────┘
+                                       │ @directus/sdk e fetch (servidor)
+                                       ▼
+                ┌──────────────────────────────────────────────┐
+                │  Directus 12 — rafanutri-api.brunokobi.tech  │
+                │  login, permissões, API de itens, arquivos   │
+                │  extensão rafanutri (/rafanutri/*)           │
+                │  rafanutri-hooks (ganchos de gravação)       │
+                └───────┬──────────────────┬───────────────┬───┘
+                        │                  │               │
+                        ▼                  ▼               ▼
+                 ┌────────────┐   ┌─────────────────┐  ┌──────────────────────┐
+                 │ Postgres 16│   │ Telegram (bot)  │  │ OpenRouter           │
+                 │ 67 migr.   │   │ Resend (e-mail) │  │ (só modelos gratuitos)│
+                 └────────────┘   └─────────────────┘  └──────────────────────┘
 ```
+
+Não há serviço de automação separado: avisos, lembretes e o ciclo de cobrança rodam dentro da extensão do Directus.
 
 ## Stack
 
 | Camada | Tecnologia | Observação |
 |---|---|---|
-| Frontend web | Next.js (App Router), TypeScript, Tailwind CSS, shadcn/ui | Painel do nutricionista e PWA do paciente no mesmo projeto |
-| Formulários e validação | React Hook Form + Zod | Schemas Zod compartilhados entre front e Edge Functions |
-| Gráficos | Recharts | Evolução antropométrica, curvas OMS |
-| PDF | Geração no servidor (React PDF ou Playwright) | Plano alimentar, recibos, relatórios |
-| Banco | Supabase Postgres (self-hosted no MVP) | Migrações versionadas com Supabase CLI |
-| Autenticação | Supabase Auth | E-mail/senha, Google, magic link para paciente |
-| Arquivos | Supabase Storage | Buckets privados com URLs assinadas |
-| Lógica de servidor | Server Actions do Next.js + Edge Functions | Cálculos sensíveis e integrações com IA ficam no servidor |
-| Automação | n8n (self-hosted) | WhatsApp, e-mail, lembretes, rotinas |
-| IA | API de LLM + pgvector | Chave de API somente no servidor |
-| Testes | Vitest (unidade), Playwright (e2e) | Cálculos nutricionais com cobertura alta |
-| CI/CD | GitHub Actions; deploy de staging e produção na vpsrafa via Coolify | Ver [ADR 0004](adr/0004-infraestrutura-hospedagem.md) |
-| Observabilidade | Sentry + logs do Supabase | |
+| Web | Next.js 16 (App Router), React 19, TypeScript estrito, Tailwind CSS 4, shadcn/ui | Painel do nutricionista, área do paciente (`/p`) e páginas públicas no mesmo app |
+| Formulários | React Hook Form + Zod | Validação no app; o banco e a extensão repetem as regras |
+| Visual | motion (animações), react-markdown, tema por módulo | `lib/modules/theme.ts` e `app/globals.css` |
+| PDF | `@react-pdf/renderer` | Plano alimentar, documentos clínicos, recibos, Manual de BPF, dossiê, certificados |
+| Gráficos | SVG próprio | Sem biblioteca de gráficos; curvas da OMS e evolução com tabela ao lado |
+| Backend | Directus 12.6.1 (licença Open Innovation Grant) | Login, permissões filtradas por organização, API de itens e arquivos |
+| Regras de negócio | Extensão `rafanutri` (endpoints em `/rafanutri`, 292 rotas) e `rafanutri-hooks` | JavaScript puro, sem build. Operações atômicas viram endpoint com transação |
+| Banco | Postgres 16 (imagem `pgvector/pgvector:pg16`; a extensão `vector` não é usada) | Migrações SQL em `db/migrations` (0001 a 0067), gatilhos para as regras invioláveis |
+| Cálculos | `@rafanutri/nutrition-core` | Funções puras: antropometria, gasto energético, curvas da OMS, triagens, ficha técnica, rotulagem, custos |
+| Avisos | Motor em `notify.js` (a cada minuto) | Telegram primeiro; e-mail pelo Resend só no importante |
+| IA | OpenRouter, só modelos gratuitos | Chave no `.env` do Directus; contexto sem dados que identifiquem o paciente; sem RAG |
+| Testes | Vitest, Playwright, `node --test`, SQL puro | Ver [db/README](../db/README.md) |
+| CI | GitHub Actions | `ci.yml` (lint, typecheck, testes, build, e2e) e `isolation.yml` (semanal) |
 
-## Organização do código (monorepo proposto)
+## Organização do código
 
 ```
-apps/
-  web/                 # Next.js: painel profissional + PWA do paciente
+apps/web/              # Next.js: páginas, componentes, lib/<área>/ (leitura e Server Actions)
 packages/
-  nutrition-core/      # cálculos puros em TS: GET, antropometria, composição, nutrientes, OMS
-  db/                  # tipos gerados do Supabase e helpers de acesso
-  ui/                  # componentes compartilhados
-supabase/
-  migrations/          # SQL versionado
-  functions/           # Edge Functions
-  seed/                # TACO/TBCA, dados de demonstração
-n8n/
-  workflows/           # exportações JSON dos fluxos
+  nutrition-core/      # cálculos puros em TS
+  forms/               # formato dos questionários (copiado para a extensão)
+  config/              # tsconfig base
+db/
+  migrations/          # SQL versionado e idempotente
+  tests/               # testes SQL, regras da extensão e isolamento pela API
+  seed/                # TACO, IBGE, Open Food Facts, USDA, questionários, biblioteca de modelos, demo
+  scripts/             # isolation-test.sh, metrics.sh
+directus/extensions/
+  rafanutri/           # endpoints (index.js carrega notify, maternal, subscriptions, public-health,
+                       #   clinical-dashboard e ai; os demais arquivos são regras puras)
+  rafanutri-hooks/     # ganchos de gravação e e-mails em português
+  templates/           # modelos de e-mail (Liquid)
 docs/
 ```
 
 Gerenciador: pnpm workspaces + Turborepo.
 
-O pacote `nutrition-core` concentra toda fórmula nutricional como funções puras, sem dependência de banco ou UI. Isso permite testar cada fórmula contra exemplos da literatura e reaproveitar no app nativo depois.
-
 ## Multi-tenant
 
 - Toda tabela de negócio tem `organization_id`.
-- Acesso controlado por **Row Level Security** no Postgres, a partir da associação do usuário à organização (`organization_members`) e do seu papel.
-- Papéis iniciais: `owner`, `nutritionist`, `assistant` (recepção, sem acesso clínico), `patient`.
-- Pacientes acessam somente os próprios dados publicados pelo nutricionista.
+- Três camadas: permissões do Directus filtradas pela organização do usuário, ganchos e endpoints que conferem papel e organização, gatilhos no banco para as regras invioláveis.
+- Papéis no consultório: `owner`, `nutritionist`, `assistant` (sem acesso clínico). Na UAN, papéis por unidade (RT, gestor, cozinheiro, estoquista, auditor), fora de `organization_members`.
+- O paciente não lê coleção nenhuma: tudo passa por `/rafanutri/me/patient/*`, filtrado pelo registro ligado à conta.
+- Módulos por plano (`apps/web/lib/modules/plans.ts`) e por contrato (`organizations.modules`); a extensão confere de novo (ex.: Gestão barrada no Gratuito, materno-infantil só no Profissional e na Clínica).
+- Teste: `db/tests/api-isolation.test.mjs` (ou `db/scripts/isolation-test.sh`, sem token de admin).
 
-Ver [ADR 0002](adr/0002-multi-tenant-rls.md).
+Ver [ADR 0002](adr/0002-multi-tenant-rls.md) e [ADR 0008](adr/0008-backend-directus.md).
 
 ## Integrações
 
-| Integração | Uso | Fase |
+| Integração | Uso | Situação |
 |---|---|---|
-| WhatsApp (API oficial do WhatsApp Business via provedor, orquestrada no n8n) | Lembretes, envio de link de anamnese | 2 |
-| E-mail transacional (Resend ou similar) | Convites, recuperação de senha, lembretes | 0 |
-| Google Calendar | Sincronizar agenda do profissional | 2 |
-| Gateway de pagamento (Asaas, Mercado Pago ou Stripe) | Assinatura do SaaS e cobrança de pacientes | 2 |
-| LLM | Sugestão de cardápio, resumos, RAG | 3 |
+| Telegram (bot @RafanutriAvisosBot) | Avisos e lembretes ao paciente, cobrança para o owner e o admin | No ar (21/11/2026). Webhook registrado pela extensão |
+| Resend (SMTP, domínio `brunokobi.tech`) | Recuperação de senha, convite e avisos importantes | No ar (20/11/2026) |
+| OpenRouter | Assistente de IA (pergunta livre, ideias de receitas, resumo da anamnese, sugestão de cardápio) | No ar, só modelos gratuitos; cota diária por plano |
+| Pix (BR Code) | Assinatura da plataforma, sem gateway: o admin confirma o pagamento | No ar (21/11/2026) |
+| Google AdSense | Anúncios não personalizados no plano Gratuito, só em telas sem dado de paciente | No ar |
+| WhatsApp | Só links manuais (`wa.me`) para o nutricionista enviar; envio automático descartado | — |
+| Gateway de pagamento | Baixa automática | Não planejado no MVP |
+| Google Calendar | Sincronizar agenda | Pendente (RN-058) |
 
 ## Ambientes
 
-Decisão completa em [ADR 0004](adr/0004-infraestrutura-hospedagem.md). No MVP, tudo roda na VPS existente (vpsrafa).
+Só existe **produção**. Não há staging.
 
-| Ambiente | Supabase | Web | n8n | Dados |
-|---|---|---|---|---|
-| Local | Supabase CLI (Docker) | `pnpm dev` | Container local opcional | Seed sintético |
-| Staging | Self-hosted na vpsrafa | Coolify na vpsrafa (deploy de `main`) | Instância dedicada da Rafanutri | Seed sintético |
-| Produção (MVP) | Self-hosted na vpsrafa, banco separado do staging | Coolify na vpsrafa (deploy por tag) | Mesma instância dedicada | Reais |
+| Ambiente | Web | Backend | Dados |
+|---|---|---|---|
+| Local | `pnpm dev` | Directus de produção (`rafanutri-api.brunokobi.tech`) | Usuário de teste e seed de demonstração |
+| Produção | Coolify na vpsrafa (`rafanutri-web`) | Directus + Postgres em `~/apps/rafanutri-directus/` na vpsrafa | Reais |
 
-Migrações e deploy em produção só por pipeline, com aprovação manual. Backup diário do Postgres para um bucket fora da VPS.
+Deploy manual:
 
-## Infraestrutura do MVP (vpsrafa)
+- **Web:** push no GitHub e deploy disparado no Coolify (o webhook automático está pendente). Ver [runbook](runbooks/deploy-web-coolify.md).
+- **Extensões:** cópia de `directus/extensions/` para a VPS (`chmod -R a+rX`) e `docker compose restart directus`.
+- **Migrações:** `pg_dump` antes e `psql` dentro do contêiner. Ver [db/README](../db/README.md).
+
+## Infraestrutura (vpsrafa)
 
 VPS Oracle Cloud Always Free (ARM64, 2 OCPU, 12 GB, Frankfurt) com Coolify e Traefik, compartilhada com outros projetos.
 
-- **Supabase self-hosted** pelo template do Coolify; Studio e Postgres sem acesso público.
-- **n8n dedicado** da Rafanutri, separado do n8n pessoal.
-- **WhatsApp** pela Evolution API; **IA** pelo OpenRouter com fallback entre modelos `:free`.
-- Containers da Rafanutri em rede Docker própria; só o Traefik é compartilhado.
-- Imagens com build **ARM64** (ex.: `pgvector/pgvector:pg16`).
-- Monitor externo de disponibilidade obrigatório, para evitar que a Oracle reclame a instância por ociosidade.
+- Containers `rafanutri-directus` e `rafanutri-postgres`; o Postgres não tem porta publicada.
+- Traefik do Coolify na frente do web e do Directus; DNS no Cloudflare.
+- Imagens com build **ARM64**.
+- Backup diário do Postgres na VPS (00h de Brasília, 14 dias, conferido com `pg_restore --list`). **Falta a cópia fora da VPS.**
+- Monitor externo de disponibilidade (UptimeRobot) pendente; ele também evita que a Oracle reclame a instância por ociosidade.
 - A migração para serviços gerenciados no Brasil acontece quando um dos gatilhos do ADR 0004 ocorrer.

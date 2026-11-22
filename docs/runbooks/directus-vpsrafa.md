@@ -16,7 +16,7 @@ Instalação feita pelo dev, seguindo o [ADR 0008](../adr/0008-backend-directus.
 | Extensões | Pasta `extensions/` montada e vazia |
 | Consumo | ~205 MB (Directus) + ~31 MB (Postgres); a VPS tem ~6,8 GB disponíveis |
 | `.env` | Permissão 600 |
-| Pendências | `ADMIN_PASSWORD` já removido do `.env` (10/11/2026); **backup diário ainda não configurado**; incluir no UptimeRobot; confirmar o rate limiter ligado |
+| Pendências | `ADMIN_PASSWORD` já removido do `.env` (10/11/2026); backup diário configurado em 21/11/2026 (ver seção 4), falta a cópia fora da VPS; incluir no UptimeRobot; confirmar o rate limiter ligado |
 
 **Particularidade da linha 12:** `GET /server/health` responde `403` para requisição anônima. Para monitor externo, use `GET /server/ping` (responde `pong`). Já `GET /server/info` responde `200` sem login.
 
@@ -119,7 +119,8 @@ Observações:
 
 ## 4. Proteções mínimas (ADR 0004)
 
-- [ ] **Backup diário** fora da VPS: `pg_dump` do banco `rafanutri` e cópia do volume `uploads` para o bucket externo (Object Storage da Oracle ou Cloudflare R2), com retenção de 14 dias.
+- [x] **Backup diário na VPS** (21/11/2026): `~/backups/rafanutri/backup-diario.sh`, cron `0 3 * * *` UTC (00h de Brasília), `pg_dump -Fc` conferido com `pg_restore --list`, 14 dias em `~/backups/rafanutri/diario/`, log em `backup.log`. Restauração no [db/README](../../db/README.md#backup-diário).
+- [ ] **Cópia fora da VPS**: enviar o dump diário e o volume `uploads` para um bucket externo (Object Storage da Oracle ou Cloudflare R2), com retenção de 14 dias.
 - [ ] **Teste de restauração** do backup num Postgres limpo, uma vez por mês.
 - [ ] **Monitor externo**: incluir `https://rafanutri-api.brunokobi.tech/server/ping` no UptimeRobot. Isso também ajuda a evitar que a Oracle marque a instância como ociosa.
 - [ ] Registrar o serviço no README do repositório de infraestrutura (URL, diretório e onde está o `.env`).
