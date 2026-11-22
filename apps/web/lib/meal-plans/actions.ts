@@ -1,7 +1,7 @@
 'use server';
 
 import { computePlanTotals } from '@rafanutri/nutrition-core';
-import { createItem, deleteItem, isDirectusError, updateItem, withToken } from '@directus/sdk';
+import { createItem, deleteItem, isDirectusError, readItems, updateItem, withToken } from '@directus/sdk';
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 import { ACCESS_COOKIE } from '@/lib/auth/cookies';
@@ -67,6 +67,14 @@ function validate(content: PlanContent) {
   return parsed.success ? { data: parsed.data, message: null } : { data: null, message: parsed.error.issues[0]?.message ?? 'Plano inválido.' };
 }
 
+/** O plano é deste paciente? (a extensão e o banco conferem o consultório; aqui, que o id do plano bate com o paciente). */
+async function planBelongs(t: string, patientId: string, planId: string): Promise<boolean> {
+  const rows = await directus().request<Array<{ id: string }>>(
+    withToken(t, readItems('meal_plans' as never, { fields: ['id'], filter: { _and: [{ id: { _eq: planId } }, { patient_id: { _eq: patientId } }] }, limit: 1 } as never)),
+  );
+  return rows.length === 1;
+}
+
 /** Salva o rascunho (o banco recusa se o plano já foi publicado). */
 export async function saveMealPlan(patientId: string, planId: string, content: PlanContent): Promise<PlanActionResult> {
   if (!isUuid(patientId) || !isUuid(planId)) return { ok: false, message: 'Pedido inválido.' };
@@ -75,6 +83,7 @@ export async function saveMealPlan(patientId: string, planId: string, content: P
   const t = await authToken();
   if (!t) return { ok: false, message: 'Sua sessão expirou. Entre novamente.' };
   try {
+    if (!(await planBelongs(t, patientId, planId))) return { ok: false, message: 'Plano não encontrado para este paciente.' };
     await directus().request(withToken(t, updateItem('meal_plans' as never, planId, v.data as never)));
     revalidate(patientId);
     return { ok: true };
@@ -95,17 +104,22 @@ export async function publishMealPlan(patientId: string, planId: string, content
   const foods = await foodsByIdsRepo(planFoodIds(v.data.meals));
   if (!foods) return { ok: false, message: 'Não foi possível carregar a composição dos alimentos agora.' };
   const byId = new Map(foods.map((f) => [f.id, f]));
+  // Alimento que não veio do banco (apagado ou de outro consultório) não pode entrar com zero nos totais publicados
+  const missing = planFoodIds(v.data.meals).filter((id) => !byId.has(id));
+  if (missing.length) return { ok: false, message: 'Algum alimento do plano não foi encontrado na base. Remova ou troque o item e publique de novo.' };
   const totals = computePlanTotals(
     v.data.meals.map((m) => ({ id: m.id, items: m.items.map((i) => ({ quantityG: i.quantityG, per100g: byId.get(i.foodId)?.per100g ?? {} })) })),
   ).day.totals;
   const round = (n?: number) => Math.round((n ?? 0) * 10) / 10;
 
   try {
-    await directus().request(withToken(t, updateItem('meal_plans' as never, planId, v.data as never)));
+    if (!(await planBelongs(t, patientId, planId))) return { ok: false, message: 'Plano não encontrado para este paciente.' };
+    // Uma gravação só: conteúdo, status e totais juntos (antes eram duas; se a segunda falhasse, ficava salvo e não publicado)
     await directus().request(
       withToken(
         t,
         updateItem('meal_plans' as never, planId, {
+          ...v.data,
           status: 'published',
           totals: { energy_kcal: round(totals.energy_kcal), protein_g: round(totals.protein_g), carbohydrate_g: round(totals.carbohydrate_g), lipid_g: round(totals.lipid_g), fiber_g: round(totals.fiber_g) },
         } as never),

@@ -1617,10 +1617,13 @@ export default {
     });
 
     // ── Plano do consultório e lista de interesse no plano pago (RN-200, RN-202) ────────────
+    // Mesmo consultório que clinicalOrg quando a pessoa é owner/nutricionista em algum (antes, com dois vínculos,
+    // financeiro/CRM e clínico podiam cair em consultórios diferentes). Seletor de consultório explícito: pendente.
     async function memberOrg(userId) {
       return database('organization_members as m')
         .join('organizations as o', 'o.id', 'm.organization_id')
         .where('m.user_id', userId)
+        .orderByRaw("case when m.role in ('owner', 'nutritionist') then 0 else 1 end")
         .orderBy('o.created_at')
         .first('o.id', 'o.plan', 'm.role');
     }
