@@ -172,6 +172,19 @@ Começou em 15/11/2026 pela entrega **U0** do [plano do módulo](../modulos/uan.
 | RN-229 Planejado × realizado e curva ABC | 🟡 | `/app/uan/unidades/[id]/custos` (período de até 31 dias): custo por refeição planejado (cardápio aprovado × comensais previstos × adesão × fichas, pelo preço vigente) × realizado (retiradas para produção pelo custo do lote; sem custo, preço vigente sinalizado), diferença (R$ 12,00 × R$ 13,10 = +9,2%), refeições previstas × servidas, os 5 insumos que mais explicam o desvio, dia a dia e curva ABC por insumo e por fornecedor (`nutrition-core/costs.ts`). Falta: visão da rede (várias unidades), CMV clássico, meta de custo com trava no cardápio (o teto por refeição já exige justificativa no envio) |
 | RN-124 Contrato Enterprise | ⏳ | Contrato já existe no banco (habilitado pelo admin por SQL); a cobrança depende do gateway (RN-057) |
 
+## Fase 6 — Saúde pública (bloco A: triagens)
+
+Começou em 22/11/2026. Módulo **por contrato** (`organizations.modules` com `public_health`; a migração 0066 abriu a lista para todos os módulos do catálogo). O consultório de teste tem todos os módulos habilitados.
+
+| Item | Status | Observação |
+|---|---|---|
+| RN-170 Base de triagens | ✅ | Migração 0066 (`nutrition_screenings`, imutável e auditada). Ferramentas no `nutrition-core` (`screening.ts`: `validate` e `evaluate` por ferramenta, versão gravada); endpoints em `directus/extensions/rafanutri/public-health.js`. Aba **Triagens** na ficha com formulário guiado, resultado na hora e histórico |
+| RN-171 NRS-2002 | ✅ | Triagem inicial e final (Kondrup, 2003), +1 com 70 anos ou mais; IMC e perda de peso em 3 meses vêm das avaliações |
+| RN-172 MNA | ⏸️ | Aguardando validar a licença do formulário (marca da Nestlé) antes de publicar |
+| RN-173 MUST | ✅ | Três passos (BAPEN, 2011) com a perda de peso em 3 a 6 meses calculada pelas avaliações; conduta por risco |
+| RN-174 ASG e campanha | 🟡 | ASG (Detsky, 1987) com sugestão de classe e decisão do profissional. **Painel** `/app/saude-publica`: pacientes ativos, triados, triagens em 30 dias, contagem por risco e lista de quem está em risco (última triagem). Falta a triagem em lote de campanha |
+| RN-175 a RN-179 Programas, indicadores e território | ⬜ | Próxima entrega do módulo |
+
 ## Navegação
 
 | Item | Status | Observação |

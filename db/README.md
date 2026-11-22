@@ -44,6 +44,7 @@ db/
 │   ├── extension-crm.test.mjs         # telefone E.164 e validação do lead (node --test)
 │   ├── extension-booking.test.mjs     # horários livres e validação do pedido online (node --test)
 │   ├── extension-maternal.test.mjs    # validação de medidas, lactação, introdução alimentar e responsáveis (node --test)
+│   ├── extension-public-health.test.mjs # validação da triagem e perda de peso pelo histórico (node --test)
 │   └── api-isolation.test.mjs       # RN-008/RN-213: isolamento pela API (db/scripts/isolation-test.sh roda sem token)
 ├── directus/
 │   ├── 0005_anthropometric_assessments.mjs  # registra a coleção e as permissões no Directus (token de admin)
@@ -230,6 +231,13 @@ Migração `0065_maternal_care.sql` (**aplicada na vpsrafa em 22/11/2026**, back
 - `patient_guardians`: responsáveis e consentimento (`consent_at` e `consent_method` juntos). Convite do app de paciente menor de 18 anos exige `guardian_id` com consentimento (`patient_app_invites.guardian_id`, conferido por trigger); o índice único conta × consultório virou índice comum (um responsável, vários filhos).
 - `patient_share` ganha `show_maternal` (desligado por padrão): libera `GET /me/patient/maternal` no app.
 - Aviso `feeding_reaction` na fila: reação moderada ou grave registrada pelo responsável avisa o nutricionista do paciente (ou os owners).
+
+## Saúde pública: triagens (0066)
+
+Migração `0066_public_health.sql` (**aplicada na vpsrafa em 22/11/2026**, backup `antes-0066-2026-11-22.dump`; testes em `db/tests/0066_public_health.test.sql` e `db/tests/extension-public-health.test.mjs`):
+
+- `organizations_modules_check` aceita todos os módulos do catálogo (`clinical`, `patient_area`, `practice`, `ai`, `maternal`, `uan`, `public_health`), para habilitar por contrato.
+- `nutrition_screenings`: ferramenta e versão (`nrs_2002@kondrup2003`, `must@bapen2011`, `sga@detsky1987`; `mna_*` reservadas), respostas, pontuação, classificação e risco (baixo, médio, alto). Não muda depois de gravada; auditada. Calculada no app pelo `nutrition-core`; endpoints `GET/POST /rafanutri/patients/:id/screenings` e `GET /rafanutri/public-health/overview`.
 
 ## Assistente de IA (0063)
 

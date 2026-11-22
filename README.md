@@ -83,7 +83,7 @@ Detalhes e prioridades em [docs/02-modulos.md](docs/02-modulos.md).
 - **APPCC e rotulagem:** plano com árvore do Codex, PCC e PDF; rótulo nutricional da IN 75/2020 (vertical, horizontal e linear) com lupa e alergênicos.
 - **Contrato e implantação:** situação, faturas e modo leitura quando o contrato termina; administração da plataforma em `/app/admin` (contratos e faturas); importação de fornecedores, insumos e fichas por planilha ([roteiro](docs/guias/implantacao-enterprise.md)).
 
-Avisos ao paciente: Telegram para tudo (@RafanutriAvisosBot) e e-mail só no importante. **Assistente de IA** (modelos gratuitos do OpenRouter, sem dados que identifiquem o paciente) e módulo **materno-infantil** (curvas da OMS com alertas, ganho de peso na gestação pelas curvas brasileiras, adicional energético no plano, lactação, introdução alimentar com alergênicos e texturas, responsáveis legais com consentimento e acompanhamento no app do paciente). Assinatura dos planos pagos por Pix (confirmação pelo admin): Essencial até 100 pacientes ativos, Profissional sem limite, Clínica com equipe. Plano Gratuito com anúncios do Google só nas telas sem dado de paciente. Depende de definição externa: cobrança no gateway, IA e a revisão da RT dos textos-base e critérios marcados "a validar". Detalhes em [docs/plano/progresso.md](docs/plano/progresso.md) e [docs/modulos/uan.md](docs/modulos/uan.md).
+Avisos ao paciente: Telegram para tudo (@RafanutriAvisosBot) e e-mail só no importante. **Assistente de IA** (modelos gratuitos do OpenRouter, sem dados que identifiquem o paciente) e módulo **materno-infantil** (curvas da OMS com alertas, ganho de peso na gestação pelas curvas brasileiras, adicional energético no plano, lactação, introdução alimentar com alergênicos e texturas, responsáveis legais com consentimento e acompanhamento no app do paciente). Módulo **Saúde pública** (por contrato) começou: triagens NRS-2002, MUST e ASG na ficha e painel de pacientes em risco. Assinatura dos planos pagos por Pix (confirmação pelo admin): Essencial até 100 pacientes ativos, Profissional sem limite, Clínica com equipe. Plano Gratuito com anúncios do Google só nas telas sem dado de paciente. Depende de definição externa: cobrança no gateway, IA e a revisão da RT dos textos-base e critérios marcados "a validar". Detalhes em [docs/plano/progresso.md](docs/plano/progresso.md) e [docs/modulos/uan.md](docs/modulos/uan.md).
 
 ## Estratégia de lançamento
 
@@ -105,7 +105,7 @@ Ver [docs/01-visao-produto.md](docs/01-visao-produto.md).
 | 3 | [App do paciente + IA](docs/plano/fase-3-app-paciente-ia.md) | 6 semanas | App em uso |
 | 4 | [Materno-infantil](docs/plano/fase-4-materno-infantil.md) | 4 semanas | |
 | 5 | [UAN e Qualidade](docs/plano/fase-5-uan-qualidade.md) (Enterprise) | 10 semanas | **Piloto Enterprise** |
-| 6 | [Saúde pública e avançados](docs/plano/fase-6-saude-publica-avancados.md) | contínuo | |
+| 6 | [Saúde pública e avançados](docs/plano/fase-6-saude-publica-avancados.md) | contínuo | bloco A (triagens) em andamento |
 
 \* Com 2 desenvolvedores full-stack. Cronograma, marcos e regras de trabalho em [docs/plano/00-visao-geral.md](docs/plano/00-visao-geral.md).
 

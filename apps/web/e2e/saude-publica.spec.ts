@@ -23,6 +23,7 @@ test('triagem nutricional e painel de risco', async ({ page }, info) => {
     await form.getByLabel('Data de nascimento (opcional)').fill('1950-05-10');
     await form.getByRole('button', { name: 'Salvar paciente' }).click();
     await page.getByRole('link', { name }).first().click();
+    await expect(page.getByRole('heading', { level: 1, name })).toBeVisible();
     patientUrl = page.url();
 
     await page.getByRole('navigation', { name: 'Seções do paciente' }).getByRole('link', { name: 'Triagens' }).click();
