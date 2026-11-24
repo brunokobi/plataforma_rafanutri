@@ -27,6 +27,8 @@ import { getPatient, listPatients } from '@/lib/patients/repository';
 import { listPatientRecipes, listRecipes } from '@/lib/recipes/actions';
 import { isUuid } from '@/lib/patients/schema';
 import { pickClinicalOrg } from '@/lib/auth/clinical-org';
+import { PlanSuggestions } from '@/components/meal-plans/plan-suggestions';
+import { patientSuggestions } from '@/lib/meal-plans/suggestions-data';
 
 export const metadata: Metadata = { title: 'Ficha do paciente', robots: { index: false } };
 
@@ -58,6 +60,7 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
     getPatientDashboard(id),
   ]);
   if (patient === undefined) notFound();
+  const suggestions = patient && patient.status === 'active' ? await patientSuggestions(patient, { assessments, anamneses, plans }).catch(() => null) : null;
 
   const limit = getPlan(getUserPlan(organizations)).maxActivePatients;
   const activeCount = (all ?? []).filter((p) => p.status === 'active').length;
@@ -79,6 +82,11 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
             publishedPlan={Array.isArray(plans) ? (plans.find((p) => p.status === 'published') ?? null) : null}
             dashboard={dashboard}
           />
+        )}
+        {patient && suggestions && (
+          <div className="mt-6">
+            <PlanSuggestions patientId={patient.id} suggestions={suggestions.suggestions} target={suggestions.target} />
+          </div>
         )}
         {patient && (
           <div className="mt-6">

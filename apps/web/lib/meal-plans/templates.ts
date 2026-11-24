@@ -20,6 +20,23 @@ export interface MealPlanTemplate {
 
 const FIELDS = ['id', 'organization_id', 'name', 'description', 'tags', 'mode', 'targets', 'meals', 'guidelines', 'energy_kcal', 'date_created'];
 
+export type PlanTemplateSummary = Pick<MealPlanTemplate, 'id' | 'organization_id' | 'name' | 'tags' | 'mode' | 'energy_kcal'>;
+
+/** Só o resumo dos modelos (sem refeições), para as sugestões da ficha. */
+export async function listPlanTemplateSummaries(): Promise<PlanTemplateSummary[] | null> {
+  const token = (await cookies()).get(ACCESS_COOKIE)?.value;
+  if (!token) return null;
+  try {
+    const rows = await directus().request<PlanTemplateSummary[]>(
+      withToken(token, readItems('meal_plan_templates' as never, { fields: ['id', 'organization_id', 'name', 'tags', 'mode', 'energy_kcal'], sort: ['name'], limit: 500 } as never)),
+    );
+    return rows.map((r) => ({ ...r, energy_kcal: r.energy_kcal === null ? null : Number(r.energy_kcal) }));
+  } catch (error) {
+    console.error('meal_plan_templates: falha ao listar o resumo', directusErrorInfo(error));
+    return null;
+  }
+}
+
 /** Modelos de plano do consultório + biblioteca da plataforma. `unavailable` enquanto a coleção não estiver liberada. */
 export async function listPlanTemplates(): Promise<MealPlanTemplate[] | null | 'unavailable'> {
   const token = (await cookies()).get(ACCESS_COOKIE)?.value;

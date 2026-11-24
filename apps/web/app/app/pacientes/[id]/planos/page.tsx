@@ -17,6 +17,9 @@ import { getUserPlan } from '@/lib/modules/user-plan';
 import { getPatient, listPatients } from '@/lib/patients/repository';
 import { isUuid } from '@/lib/patients/schema';
 import { pickClinicalOrg } from '@/lib/auth/clinical-org';
+import { PlanSuggestions } from '@/components/meal-plans/plan-suggestions';
+import { listAssessments } from '@/lib/assessments/repository';
+import { patientSuggestions } from '@/lib/meal-plans/suggestions-data';
 
 export const metadata: Metadata = { title: 'Planos alimentares', robots: { index: false } };
 
@@ -31,10 +34,11 @@ export default async function PatientPlansPage({ params }: { params: Promise<{ i
   if (target) redirect(target);
   const organization = pickClinicalOrg(organizations);
 
-  const [patient, all, plans, templates, anamneses] = await Promise.all([getPatient(id), organization ? listPatients(organization.id) : null, listMealPlans(id), listPlanTemplates(), listAnamneses(id)]);
+  const [patient, all, plans, templates, anamneses, assessments] = await Promise.all([getPatient(id), organization ? listPatients(organization.id) : null, listMealPlans(id), listPlanTemplates(), listAnamneses(id), listAssessments(id)]);
   const templateOptions = Array.isArray(templates) ? templates.map((t) => ({ id: t.id, name: t.name, energy_kcal: t.energy_kcal, own: Boolean(t.organization_id) })) : [];
   if (patient === undefined) notFound();
   const alerts = extractHealthAlerts(anamneses);
+  const suggestions = patient && patient.status === 'active' ? await patientSuggestions(patient, { assessments, anamneses, plans }).catch(() => null) : null;
   const limit = getPlan(getUserPlan(organizations)).maxActivePatients;
   const activeLimitReached = limit !== null && (all ?? []).filter((p) => p.status === 'active').length >= limit;
 
@@ -50,6 +54,7 @@ export default async function PatientPlansPage({ params }: { params: Promise<{ i
         ) : (
           <>
             <PatientHeader patient={patient} activeLimitReached={activeLimitReached} active="planos" alerts={alerts} />
+            {suggestions && <PlanSuggestions patientId={patient.id} suggestions={suggestions.suggestions} target={suggestions.target} />}
             <PatientPlans patientId={patient.id} plans={plans} templates={templateOptions} />
           </>
         )}

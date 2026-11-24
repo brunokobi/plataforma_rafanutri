@@ -33,3 +33,27 @@ export function extractHealthAlerts(anamneses: Anamnesis[] | null | undefined): 
   if (items.length === 0) return null;
   return { items, source: { title: latest.title ?? 'Anamnese', answeredAt: latest.answered_at, reviewed: latest.status === 'reviewed' } };
 }
+
+/**
+ * Texto das respostas da anamnese mais recente para as sugestões de plano: respostas abertas e listas
+ * marcadas entram como estão; pergunta de sim/não só entra (pelo enunciado) quando a resposta é "sim".
+ * Respostas "não"/"nenhuma" ficam de fora, para não sugerir pelo que o paciente negou.
+ */
+export function anamnesisSignalText(anamneses: Anamnesis[] | null | undefined): string {
+  const latest = (anamneses ?? [])
+    .filter((a) => a.status === 'answered' || a.status === 'reviewed')
+    .sort((a, b) => (b.answered_at ?? '').localeCompare(a.answered_at ?? ''))[0];
+  if (!latest) return '';
+  const parts: string[] = [];
+  for (const q of allQuestions(latest.schema_snapshot)) {
+    if (!isVisible(q, latest.answers)) continue;
+    const value = latest.answers[q.id];
+    if (value === undefined || value === null || value === false || value === '' || (Array.isArray(value) && value.length === 0)) continue;
+    if (value === true) { parts.push(q.label); continue; }
+    const text = formatAnswer(q, value).trim();
+    if (!text || NOTHING.test(norm(text))) continue;
+    if (/^sim\.?$/.test(norm(text))) parts.push(q.label);
+    else parts.push(text);
+  }
+  return parts.join(' | ').slice(0, 8000);
+}

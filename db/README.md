@@ -167,7 +167,7 @@ db/
     ├── ibge/            # 0061: POF 2008-2009 (pof-2008-2009.csv, import.sql, build_pof_csv.py)
     ├── off/             # 0064: Open Food Facts Brasil (off-brasil.csv, fetch_off.py, enrich_off.py, build_off_csv.py)
     ├── usda/            # 0064: USDA SR Legacy (usda-sr-legacy.csv, usda-names-pt.json, build_usda_csv.py)
-    ├── plan-library/    # RN-035: biblioteca de 42 modelos de plano (build_library.py + library.sql)
+    ├── plan-library/    # RN-035: biblioteca de 79 modelos de plano (build_library.py + library.sql)
     ├── import_foods.sql # importador genérico (OFF, USDA): idempotente, confere a contagem
     └── prune_source.sql # remove da fonte o que saiu do CSV, se nada aponta para o item
 ```
@@ -469,7 +469,16 @@ Migrações `0009_meal_plan_templates.sql` e `0010_meal_plan_templates_tags_json
 
 ### Biblioteca de modelos da plataforma
 
-`db/seed/plan-library/build_library.py` gera `library.sql` (aplicado na vpsrafa em 21/11/2026, backup `antes-biblioteca-2026-11-21.dump`): **42 modelos** sem consultório, em 9 padrões (tradicional brasileiro, ovolactovegetariano, vegano, mediterrâneo adaptado, DASH, controle glicêmico, gestante, pessoa idosa e criança escolar) e faixas de 1.200 a 2.600 kcal.
+`db/seed/plan-library/build_library.py` gera `library.sql`. **79 modelos** sem consultório, em 22 padrões. Aplicado na vpsrafa em 21/11/2026 (42 modelos, backup `antes-biblioteca-2026-11-21.dump`) e em 23/11/2026 (79 modelos, backup `antes-biblioteca-79-202611240003.dump`).
+
+| Grupo | Padrões | Faixas |
+|---|---|---|
+| Geral e clínico | Tradicional brasileiro, ovolactovegetariano, vegano, mediterrâneo adaptado, DASH, controle glicêmico, pessoa idosa, emagrecimento, gastrite e refluxo, intestino preso, colesterol e triglicerídeos | 1.200 a 2.500 kcal |
+| Esportivo | Hipertrofia, endurance (corrida, ciclismo) e definição, com pré e pós-treino | 1.600 a 3.200 kcal |
+| Materno-infantil | Gestante, lactante, criança de 1 a 3 anos, pré-escolar (4 a 5), escolar (6 a 10) e adolescente | 1.000 a 2.800 kcal |
+| Transtornos alimentares | Alimentação regular (anorexia e bulimia) e compulsão alimentar | **Qualitativos**: sem calorias nem gramas para o paciente, sem `energy_kcal` (não escalam) |
+
+Todos dependem da validação da RT ("Modelo base — revisar antes de prescrever").
 
 - Cada padrão tem uma refeição-base de ~2.000 kcal; para cada faixa o gerador acha o fator que leva o dia à meta, escalando por classe (verduras fixas; frutas, laticínios e proteínas pouco; cereais, tubérculos e gorduras na proporção) e arredondando como o app.
 - Até 3 **substituições de mesma energia** por item; orientações escritas para a Rafanutri (base: Guia Alimentar, DASH, padrões do USDA).
