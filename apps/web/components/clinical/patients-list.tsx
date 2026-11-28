@@ -178,7 +178,7 @@ export function PatientsList({ patients, limit, planName, demoHref, initialQuery
               <li key={p.id} className="flex items-center gap-4 px-5 py-4">
                 <span className="grid size-10 shrink-0 place-items-center rounded-full bg-primary/10 text-sm font-semibold text-primary">{initials}</span>
                 <div className="min-w-0 flex-1">
-                  <Link href={`/app/pacientes/${p.id}`} className="block truncate font-medium hover:text-primary hover:underline">
+                  <Link href={`/app/pacientes/${p.id}`} className="block truncate py-1 font-medium hover:text-primary hover:underline sm:py-0">
                     {p.full_name}
                   </Link>
                   <p className="truncate text-sm text-muted-foreground">{details || 'Sem dados complementares'}</p>
@@ -188,8 +188,8 @@ export function PatientsList({ patients, limit, planName, demoHref, initialQuery
                     {busyId === p.id ? <Loader2 className="size-4 animate-spin" /> : <RotateCcw className="size-4" />} Reativar
                   </Button>
                 ) : (
-                  <Button type="button" variant="ghost" size="sm" disabled={busyId === p.id} onClick={() => changeStatus(p, 'archived')} aria-label={`Arquivar ${p.full_name}`}>
-                    {busyId === p.id ? <Loader2 className="size-4 animate-spin" /> : <Archive className="size-4" />} Arquivar
+                  <Button type="button" variant="ghost" size="sm" disabled={busyId === p.id} onClick={() => changeStatus(p, 'archived')} aria-label={`Arquivar ${p.full_name}`} title="Arquivar" className="size-11 shrink-0 text-muted-foreground sm:h-8 sm:w-auto sm:text-foreground">
+                    {busyId === p.id ? <Loader2 className="size-4 animate-spin" /> : <Archive className="size-4" />}<span className="hidden sm:inline">Arquivar</span>
                   </Button>
                 )}
               </li>

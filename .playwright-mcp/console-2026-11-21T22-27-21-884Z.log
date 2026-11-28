@@ -1,1 +1,0 @@
-[   97270ms] [ERROR] WebSocket connection to 'ws://localhost:3100/_next/hmr?id=hyn09WAo6Oa4Paut_wXv0' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3100/_next/static/chunks/1cxu_next_dist_client_135uiqsd-1mbf._.js:16257
