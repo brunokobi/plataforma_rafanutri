@@ -1156,6 +1156,17 @@ Migração `0071_patient_messages.sql` (**aplicada na vpsrafa em 28/11/2026**, b
 - `notification_outbox.kind` ganha `message_to_patient` e `message_to_professional`. O ciclo do avisador (a cada minuto) avisa pelo Telegram ou e-mail quando uma mensagem fica 5 minutos sem leitura, no máximo uma vez a cada 3 horas por conversa, **sem o texto da mensagem**.
 - Endpoints (`directus/extensions/rafanutri/messages.js`): paciente `GET/POST /me/patient/messages` (`?c=`, `?after=`, `?before=`) e `GET /me/patient/messages/unread`; nutricionista `GET /messages/conversations`, `GET /messages/unread`, `GET/POST /messages/settings`, `GET/POST /patients/:id/messages`. Abrir a conversa marca como lidas as do outro lado. Limite de 30 mensagens por minuto por pessoa.
 
+## Acompanhamento em casa (0072)
+
+Migração `0072_patient_tracking.sql` (**aplicada na vpsrafa em 28/11/2026**, backup `antes-0072-2026-11-28.dump`; testes em `db/tests/0072_patient_tracking.test.sql` e `db/tests/extension-tracking.test.mjs`).
+
+- `patient_weight_logs`: peso registrado pelo paciente, com `measured_at` (dia e horário da pesagem, até 60 dias atrás e nunca no futuro) e observação. Fica separado de `anthropometric_assessments`, que continua sendo a referência clínica.
+- `patient_water_logs`: água bebida (20 a 3.000 ml por registro). `patient_habit_settings`: meta de água do nutricionista (nula = 35 ml/kg, entre 1,5 e 4 L) e lembretes do paciente (intervalo de 60 a 240 min, janela do dia). O ciclo do avisador manda `water_reminder` pelo Telegram dentro da janela, no intervalo escolhido, e para quando a meta do dia é batida.
+- `patient_goals` (hábito diário ou semanal, ou peso-meta) e `patient_goal_checks` (um por meta e dia). `patient_meal_checks`: refeição do plano publicado feita no dia.
+- "O que o paciente vê" ganha `show_body`, `self_weight`, `water`, `goals`, `meal_checks` (ligados por padrão) e `weight_neutral`. Sem escolha explícita, `weight_neutral` liga sozinho quando o objetivo ou a anamnese indicam transtorno alimentar: o paciente não vê peso nem IMC e não registra peso.
+- Painel clínico: motivo de atenção `home_idle` (tem o app há mais de 7 dias e não registra nada em casa há 7 dias).
+- Endpoints (`directus/extensions/rafanutri/tracking.js`): paciente `GET /me/patient/tracking`, `POST/DELETE /me/patient/weight`, `POST/DELETE /me/patient/water`, `PUT /me/patient/water/settings`, `POST /me/patient/goals/:id/check`, `POST /me/patient/meals/check`; nutricionista `GET /patients/:id/tracking`, `POST/DELETE /patients/:id/goals`, `PUT /patients/:id/water-goal`.
+
 ## Catálogos compartilhados (`packages/catalogs`)
 
 Planos com Gestão, materno-infantil e pagos, cota de IA, versões dos termos, chaves do que o paciente vê, tipos de aviso e horários de lembrete, motivos de atenção do painel, alergênicos, texturas, reações, aleitamento, parentesco, consentimento e versões das triagens ficam num só arquivo: `packages/catalogs/src/catalogs.js`.

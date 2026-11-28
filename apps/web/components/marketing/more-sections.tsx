@@ -23,13 +23,6 @@ import { PhoneMock } from '@/components/art/product-cards';
 import { Badge } from '@/components/ui/badge';
 import { Reveal } from './reveal';
 
-function SoonBadge({ label = 'Em breve' }: { label?: string }) {
-  return (
-    <Badge variant="outline" className="ml-2 align-middle text-[10px] font-medium">
-      {label}
-    </Badge>
-  );
-}
 
 // ---------------------------------------------------------------------------
 // Áreas de atuação
@@ -71,16 +64,17 @@ export function Specialties() {
 // ---------------------------------------------------------------------------
 // Muito mais para o seu consultório (grade de recursos)
 // ---------------------------------------------------------------------------
-const toolkit: Array<{ icon: typeof Apple; title: string; text: string; soon?: boolean }> = [
+const toolkit: Array<{ icon: typeof Apple; title: string; text: string }> = [
   { icon: ClipboardCheck, title: 'Anamnese completa', text: 'Use nossos modelos ou crie os seus, com perguntas condicionais. Nenhum detalhe se perde.' },
   { icon: FileHeart, title: 'Questionários pré-consulta', text: 'Envie por link antes da consulta e chegue com o histórico do paciente já organizado.' },
   { icon: Apple, title: 'Base de alimentos brasileira', text: 'TACO, IBGE, USDA e produtos de rótulo (Open Food Facts): cerca de 17 mil itens com medidas caseiras, além dos seus alimentos e preparações.' },
   { icon: Scale, title: 'Avaliação física completa', text: 'Dobras, circunferências, protocolos clássicos e perfil ISAK, com gráficos de evolução.' },
-  { icon: Target, title: 'Metas e check-ins', text: 'Defina metas para cada paciente e acompanhe a adesão pela área do paciente.', soon: true },
+  { icon: Target, title: 'Metas, água e peso em casa', text: 'O paciente marca as metas, registra o peso com dia e horário e bate a meta de água com lembrete. Você acompanha tudo na ficha.' },
   { icon: Baby, title: 'Materno-infantil', text: 'Curvas de crescimento da OMS, ganho de peso gestacional, amamentação e introdução alimentar.' },
   { icon: Wallet, title: 'Financeiro do consultório', text: 'Recebimentos, pacotes de consultas e recibos com a sua marca.' },
   { icon: BellRing, title: 'Lembretes automáticos', text: 'Consultas lembradas pelo Telegram e por e-mail, para reduzir faltas.' },
-  { icon: Palette, title: 'Materiais com a sua marca', text: 'Orientações e conteúdos educativos prontos para entregar ou postar.', soon: true },
+  { icon: MessageCircle, title: 'Mensagens com o paciente', text: 'Conversa direta pelo app, com confirmação de leitura e aviso no Telegram ou e-mail quando há mensagem nova.' },
+  { icon: Palette, title: 'Materiais com a sua marca', text: 'Orientações, pedidos de exame, prescrições e planos em PDF com o seu logo e as suas cores.' },
 ];
 
 export function Toolkit() {
@@ -91,11 +85,11 @@ export function Toolkit() {
           <p className="text-sm font-semibold uppercase tracking-wider text-primary">Funcionalidades</p>
           <h2 className="mt-2 font-display text-3xl font-semibold tracking-tight sm:text-4xl">Muito mais para você e o seu consultório</h2>
           <p className="mt-4 text-muted-foreground">
-            Lançamento em etapas: os itens marcados como &ldquo;em breve&rdquo; chegam nas próximas versões.
+            Do consultório ao app do paciente, tudo conectado.
           </p>
         </Reveal>
         <div className="mt-14 grid gap-x-10 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
-          {toolkit.map(({ icon: Icon, title, text, soon }, i) => (
+          {toolkit.map(({ icon: Icon, title, text }, i) => (
             <Reveal key={title} delay={(i % 3) * 0.06}>
               <article className="flex gap-4">
                 <span className="grid size-14 shrink-0 place-items-center rounded-2xl bg-primary/10 text-primary">
@@ -104,7 +98,6 @@ export function Toolkit() {
                 <div>
                   <h3 className="text-lg font-semibold">
                     {title}
-                    {soon && <SoonBadge />}
                   </h3>
                   <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{text}</p>
                 </div>
@@ -183,7 +176,7 @@ function PrescriptionMock() {
   );
 }
 
-const showcaseItems: Array<{ title: string; text: string; soon?: string }> = [
+const showcaseItems: Array<{ title: string; text: string }> = [
   {
     title: 'Prescrição do seu jeito',
     text: 'Por alimentos, com substituições por equivalência, ou no modo qualitativo, sem números, para a nutrição comportamental.',
@@ -193,9 +186,8 @@ const showcaseItems: Array<{ title: string; text: string; soon?: string }> = [
     text: 'Energia, macros e micronutrientes contra as metas do paciente enquanto você monta cada refeição.',
   },
   {
-    title: 'Agenda do Google',
-    text: 'Consultas sincronizadas com o Google Agenda.',
-    soon: 'Em breve',
+    title: 'Planos sugeridos para cada paciente',
+    text: 'Pelo perfil, idade, gestação, objetivo e anamnese, a ficha sugere modelos da biblioteca já ajustados à meta de energia.',
   },
 ];
 
@@ -216,7 +208,6 @@ export function Showcase() {
                 <div>
                   <h3 className="text-lg font-semibold">
                     {it.title}
-                    {it.soon && <SoonBadge label={it.soon} />}
                   </h3>
                   <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{it.text}</p>
                 </div>
@@ -275,34 +266,33 @@ export function AiSection() {
 // ---------------------------------------------------------------------------
 // Benefícios (nutricionista e paciente)
 // ---------------------------------------------------------------------------
-const forNutritionist: Array<{ text: string; soon?: boolean }> = [
+const forNutritionist: Array<{ text: string }> = [
   { text: 'Pacientes, prontuário, avaliações e planos no mesmo lugar' },
   { text: 'Plano alimentar pronto em minutos, com PDF da sua marca' },
   { text: 'Atendimento presencial, online ou híbrido' },
   { text: 'Menos faltas com lembretes automáticos' },
   { text: 'Página pública com agendamento online' },
+  { text: 'Mensagens dos pacientes num lugar só, junto da ficha' },
   { text: 'Comece grátis com até 20 pacientes ativos' },
 ];
 
-const forPatient: Array<{ text: string; soon?: boolean }> = [
+const forPatient: Array<{ text: string }> = [
   { text: 'Plano alimentar na palma da mão, com substituições' },
+  { text: 'Meu progresso: peso, IMC, medidas e peso-meta' },
+  { text: 'Registro de peso com dia e horário, direto do celular' },
+  { text: 'Meta de água com um toque e lembretes no Telegram' },
+  { text: 'Metas do nutricionista para marcar no dia a dia' },
+  { text: 'Conversa direta com o nutricionista' },
   { text: 'Receitas, recomendações e documentos do nutricionista' },
-  { text: 'Lista de compras gerada a partir do plano', soon: true },
-  { text: 'Diário alimentar e meta de hidratação', soon: true },
-  { text: 'Lembretes de refeição e de água', soon: true },
-  { text: 'Acompanhamento da evolução' },
 ];
 
-function BenefitList({ items }: { items: Array<{ text: string; soon?: boolean }> }) {
+function BenefitList({ items }: { items: Array<{ text: string }> }) {
   return (
     <ul className="mt-5 divide-y divide-border">
       {items.map((b) => (
         <li key={b.text} className="flex items-start gap-3 py-3 text-sm">
           <ListChecks className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
-          <span>
-            {b.text}
-            {b.soon && <SoonBadge />}
-          </span>
+          <span>{b.text}</span>
         </li>
       ))}
     </ul>

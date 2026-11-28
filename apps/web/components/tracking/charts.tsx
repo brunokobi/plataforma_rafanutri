@@ -30,7 +30,7 @@ export function WeightTrend({ series, target, className }: { series: SeriesPoint
         {g.home.map((p) => (
           <g key={`h${p.day}`}>
             <circle cx={p.x} cy={p.y} r={10} fill="transparent"><title>{`${dayShort(p.day)} (em casa): ${kg(p.kg)}`}</title></circle>
-            <circle cx={p.x} cy={p.y} r={3.5} fill="currentColor" className="stroke-card" strokeWidth={2} pointerEvents="none" />
+            <circle cx={p.x} cy={p.y} r={g.home.length > 8 ? 2.5 : 3.5} fill="currentColor" className="stroke-card" strokeWidth={g.home.length > 8 ? 1 : 2} pointerEvents="none" />
           </g>
         ))}
         {g.clinic.map((p) => (
@@ -71,7 +71,7 @@ export function WaterBars({ days, goal, className }: { days: Array<{ day: string
             <rect x={b.x - 2} y={0} width={b.w + 4} height={g.height - 20} fill="transparent"><title>{`${dayShort(b.day)}: ${liters(b.ml)}`}</title></rect>
             <rect x={b.x} y={b.y} width={b.w} height={b.h} rx={Math.min(4, b.w / 2)} className={b.hit ? 'fill-sky-500' : 'fill-sky-500/35'} pointerEvents="none" />
             {(i === 0 || i === g.bars.length - 1 || (g.bars.length <= 7)) && (
-              <text x={b.x + b.w / 2} y={g.height - 6} textAnchor="middle" className="fill-muted-foreground text-[10px]">
+              <text x={g.bars.length <= 7 ? b.x + b.w / 2 : i === 0 ? b.x : b.x + b.w} y={g.height - 6} textAnchor={g.bars.length <= 7 ? 'middle' : i === 0 ? 'start' : 'end'} className="fill-muted-foreground text-[10px]">
                 {g.bars.length <= 7 ? new Date(`${b.day}T12:00:00Z`).toLocaleDateString('pt-BR', { weekday: 'short', timeZone: 'UTC' }).replace('.', '') : dayShort(b.day)}
               </text>
             )}

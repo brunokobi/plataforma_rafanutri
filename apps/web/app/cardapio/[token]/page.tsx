@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { SERVICE_LABEL } from '@/lib/uan/menus';
 import { groupByService, longDate } from '@/lib/uan/public-menu';
 import { getPublicMenu } from '@/lib/uan/public-menu-actions';
+import { PoweredBy } from '@/components/brand/powered-by';
 
 export const dynamic = 'force-dynamic';
 const HEX = /^#[0-9a-f]{6}$/i;
@@ -63,6 +64,7 @@ export default async function PublicMenuPage({ params, searchParams }: { params:
         ))}
         <p className="text-xs text-muted-foreground">Os alergênicos e nutrientes vêm das fichas técnicas da cozinha. Em caso de alergia, confirme com a equipe antes de consumir.</p>
       </main>
+      <PoweredBy />
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { getPublicPractice, getPublicSlots } from '@/lib/booking/actions';
 import { formatCents } from '@/lib/finance/money';
 import { JsonLd } from '@/components/seo/json-ld';
 import { absoluteUrl, pageMetadata } from '@/lib/seo/site';
+import { PoweredBy } from '@/components/brand/powered-by';
 
 export const dynamic = 'force-dynamic';
 
@@ -93,7 +94,7 @@ export default async function PublicPracticePage({ params }: { params: Promise<{
             )}
           </section>
         )}
-        <footer className="pt-6 text-center text-xs text-muted-foreground">Página feita com Rafanutri</footer>
+        <PoweredBy className="pt-6" />
       </main>
     </div>
   );

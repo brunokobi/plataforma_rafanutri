@@ -32,6 +32,7 @@ export default async function PatientMessagesPage({ searchParams }: { searchPara
       subtitle={subtitle}
       avatar={record?.practice.has_logo && record.practice.id ? { src: `/api/consultorio/${record.practice.id}/logo` } : { initials: title }}
       color={record?.practice.brand_color ?? null}
+      brand
     />
   );
 

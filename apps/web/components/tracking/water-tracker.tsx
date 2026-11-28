@@ -79,13 +79,13 @@ export function WaterTracker({ c, water, compact = false }: { c: string | null; 
       </div>
       {!compact && (
         <div className="mt-3 flex items-center gap-2">
-          <label className="flex min-h-11 flex-1 items-center gap-2 rounded-xl border border-border px-3">
+          <label className="flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-xl border border-border px-3">
             <span className="sr-only">Outra quantidade em ml</span>
             <input inputMode="numeric" value={custom} onChange={(e) => setCustom(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="Outra quantidade" className="min-w-0 flex-1 bg-transparent text-base outline-none" />
             <span className="text-sm text-muted-foreground">ml</span>
           </label>
-          <Button type="button" variant="outline" className="h-11" disabled={busy || !custom} onClick={() => { void add(Number(custom)); setCustom(''); }}>Adicionar</Button>
-          <Button type="button" variant="ghost" className="h-11" disabled={busy || !stack.length} onClick={() => void undo()} aria-label="Desfazer o último registro">
+          <Button type="button" variant="outline" className="h-11 shrink-0 px-3" disabled={busy || !custom} onClick={() => { void add(Number(custom)); setCustom(''); }}>Adicionar</Button>
+          <Button type="button" variant="ghost" className="h-11 shrink-0 px-3" disabled={busy || !stack.length} onClick={() => void undo()} aria-label="Desfazer o último registro">
             <Undo2 className="size-4" /><span className="hidden sm:inline">Desfazer</span>
           </Button>
         </div>
@@ -123,8 +123,8 @@ export function WaterReminders({ c, initial, telegramHref }: { c: string | null;
         </button>
       </div>
       {s.on && (
-        <div className="mt-3 grid grid-cols-3 gap-2 text-sm">
-          <label>
+        <div className="mt-3 grid grid-cols-2 gap-2 text-sm sm:grid-cols-3">
+          <label className="col-span-2 sm:col-span-1">
             <span className="text-xs text-muted-foreground">A cada</span>
             <select value={s.every_min} onChange={(e) => save({ ...s, every_min: Number(e.target.value) })} className="mt-1 h-11 w-full rounded-xl border border-border bg-background px-2">
               {EVERY.map((m) => <option key={m} value={m}>{everyLabel(m)}</option>)}
@@ -138,7 +138,7 @@ export function WaterReminders({ c, initial, telegramHref }: { c: string | null;
             <span className="text-xs text-muted-foreground">Até</span>
             <input type="time" value={s.end} onChange={(e) => e.target.value && e.target.value > s.start && save({ ...s, end: e.target.value })} className="mt-1 h-11 w-full rounded-xl border border-border bg-background px-2" />
           </label>
-          <p className="col-span-3 text-xs text-muted-foreground">O lembrete chega no Telegram e para sozinho quando você bate a meta do dia.</p>
+          <p className="col-span-2 text-xs text-muted-foreground sm:col-span-3">O lembrete chega no Telegram e para sozinho quando você bate a meta do dia.</p>
         </div>
       )}
       {needsTelegram && (

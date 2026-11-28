@@ -2,6 +2,7 @@ import { ArrowLeftRight, LogOut } from 'lucide-react';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { TermsGate } from '@/components/legal/terms-gate';
+import { PoweredBy } from '@/components/brand/powered-by';
 import { Button } from '@/components/ui/button';
 import { signOut } from '@/lib/auth/actions';
 import { PatientBottomNav } from './patient-bottom-nav';
@@ -30,7 +31,7 @@ export function PatientShell({ practice, professional, canSwitch = false, childr
           </form>
         </div>
       </header>
-      <main data-patient-shell className="mx-auto max-w-2xl space-y-6 px-4 pb-28 pt-6">{children}</main>
+      <main data-patient-shell className="mx-auto max-w-2xl space-y-6 px-4 pb-28 pt-6">{children}<PoweredBy className="pt-2" /></main>
       <PatientBottomNav color={color} />
     </div>
   );

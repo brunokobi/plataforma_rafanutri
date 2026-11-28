@@ -29,7 +29,7 @@ export function IndicatorsPanel({ data }: { data: Indicators }) {
   return (
     <section aria-labelledby="indicadores" className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
-        <h2 id="indicadores" className="font-display text-xl font-semibold">Indicadores de <span className="capitalize">{monthLong(ym)}</span></h2>
+        <h2 id="indicadores" className="font-display text-xl font-semibold">Indicadores de {monthLong(ym).replace(/^./, (c) => c.toUpperCase())}</h2>
         {data.nutritionists.length > 0 && (
           <nav aria-label="Filtrar por nutricionista" className="ml-auto flex flex-wrap gap-1">
             <Link href="/app/clinico" aria-current={data.nutritionist ? undefined : 'page'} className={cn('rounded-md px-3 py-1.5 text-sm', !data.nutritionist ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted')}>Todos</Link>

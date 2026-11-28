@@ -1,6 +1,7 @@
 import { AiSection, Benefits, Principles, Showcase, Specialties, Toolkit } from '@/components/marketing/more-sections';
 import { Faq, FinalCta, Hero, Pricing, SiteFooter, TrustBar } from '@/components/marketing/sections';
 import { SiteHeader } from '@/components/marketing/site-header';
+import { ModulesSection } from '@/components/marketing/modules-section';
 import { faq } from '@/components/marketing/sections';
 import { JsonLd } from '@/components/seo/json-ld';
 import { faqLd, organizationLd, softwareLd, websiteLd } from '@/lib/seo/json-ld';
@@ -25,6 +26,7 @@ export default function HomePage() {
         <TrustBar />
         <Specialties />
         <Toolkit />
+        <ModulesSection />
         <Showcase />
         <AiSection />
         <Benefits />

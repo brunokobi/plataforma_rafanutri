@@ -4,6 +4,7 @@ import { AcceptLoggedIn, CreatePasswordForm } from '@/components/patient-area/in
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { getCurrentUser } from '@/lib/auth/session';
 import { openInvite } from '@/lib/patient-area/actions';
+import { PoweredBy } from '@/components/brand/powered-by';
 
 // Página pública: o token do link é a credencial do convite. Não indexar nem guardar em cache.
 export const metadata: Metadata = { title: 'Convite para a área do paciente', robots: { index: false, follow: false } };
@@ -54,6 +55,7 @@ export default async function PatientInvitePage({ params }: { params: Promise<{ 
           </>
         )}
       </main>
+      <PoweredBy />
     </div>
   );
 }

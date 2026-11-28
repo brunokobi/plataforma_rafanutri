@@ -15,6 +15,12 @@ describe('SEO', () => {
     expect(softwareLd([])).not.toHaveProperty('offers');
   });
 
+  it('créditos: criadora e desenvolvedor no JSON-LD', () => {
+    const sw = softwareLd();
+    expect(sw.creator).toMatchObject({ '@type': 'Person', name: 'Rafaela Soares Souza Kobi', jobTitle: 'Nutricionista' });
+    expect(sw.author).toMatchObject({ '@type': 'Person', name: 'Bruno Kobi' });
+  });
+
   it('FAQ e trilha no formato do schema.org', () => {
     expect(faqLd([{ q: 'P?', a: 'R.' }]).mainEntity).toEqual([{ '@type': 'Question', name: 'P?', acceptedAnswer: { '@type': 'Answer', text: 'R.' } }]);
     const b = breadcrumbLd([{ name: 'Início', path: '/' }, { name: 'Soluções', path: '/solucoes' }]).itemListElement as Array<{ position: number; item: string }>;

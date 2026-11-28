@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { PublicAnamnesisForm } from '@/components/forms/public-anamnesis';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { loadPublicAnamnesis } from '@/lib/anamneses/public';
+import { PoweredBy } from '@/components/brand/powered-by';
 
 // Página pública (sem login): o token do link é a única credencial. Não indexar nem guardar em cache.
 export const metadata: Metadata = { title: 'Anamnese', robots: { index: false, follow: false } };
@@ -58,6 +59,7 @@ export default async function PublicAnamnesisPage({ params }: { params: Promise<
           </>
         )}
       </main>
+      <PoweredBy />
     </div>
   );
 }

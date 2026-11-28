@@ -7,6 +7,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/co
 
 const links = [
   { href: '/#funcionalidades', label: 'Funcionalidades' },
+  { href: '/recursos', label: 'Módulos' },
   { href: '/solucoes', label: 'Soluções' },
   { href: '/#planos', label: 'Planos' },
   { href: '/#perguntas', label: 'Perguntas frequentes' },

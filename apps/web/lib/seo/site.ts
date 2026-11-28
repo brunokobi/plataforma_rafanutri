@@ -3,6 +3,10 @@ import type { Metadata } from 'next';
 export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://rafanutri.brunokobi.tech').replace(/\/$/, '');
 export const SITE_NAME = 'Rafanutri';
 
+/** Quem criou a plataforma (a nutricionista) e quem desenvolveu o software. */
+export const CREATOR = { name: 'Rafaela Soares Souza Kobi', jobTitle: 'Nutricionista', description: 'Nutricionista com pós-graduação na área' } as const;
+export const DEVELOPER = { name: 'Bruno Kobi', jobTitle: 'Desenvolvedor', url: 'https://brunokobi.tech' } as const;
+
 /** URL absoluta de um caminho do site ("" ou "/" = início). */
 export const absoluteUrl = (path = '') => `${SITE_URL}${path === '/' ? '' : path}`;
 

@@ -19,6 +19,8 @@ export const metadata: Metadata = {
   description:
     'Anamnese, avaliação, cálculo energético e plano alimentar em minutos, com área do paciente. Comece grátis com até 20 pacientes.',
   applicationName: 'Rafanutri',
+  creator: 'Rafaela Soares Souza Kobi',
+  authors: [{ name: 'Rafaela Soares Souza Kobi' }, { name: 'Bruno Kobi', url: 'https://brunokobi.tech' }],
   openGraph: {
     type: 'website',
     locale: 'pt_BR',

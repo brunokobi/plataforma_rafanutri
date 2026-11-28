@@ -1,10 +1,13 @@
 import { PLANS, type PlanCode } from '@/lib/modules/plans';
-import { SITE_NAME, SITE_URL, absoluteUrl } from './site';
+import { CREATOR, DEVELOPER, SITE_NAME, SITE_URL, absoluteUrl } from './site';
 
 type Thing = Record<string, unknown>;
 
 /** Serializa para <script type="application/ld+json"> sem permitir fechar a tag (</script>). */
 export const jsonLdString = (data: Thing | Thing[]) => JSON.stringify(data).replace(/</g, '\\u003c');
+
+export const creatorLd = (): Thing => ({ '@type': 'Person', '@id': `${SITE_URL}/#criadora`, ...CREATOR });
+export const developerLd = (): Thing => ({ '@type': 'Person', '@id': `${SITE_URL}/#desenvolvedor`, ...DEVELOPER });
 
 export const organizationLd = (): Thing => ({
   '@context': 'https://schema.org',
@@ -13,6 +16,7 @@ export const organizationLd = (): Thing => ({
   name: SITE_NAME,
   url: SITE_URL,
   logo: absoluteUrl('/icon.svg'),
+  founder: creatorLd(),
 });
 
 export const websiteLd = (): Thing => ({
@@ -42,6 +46,8 @@ export function softwareLd(codes: PlanCode[] = ['free', 'essential', 'profession
     inLanguage: 'pt-BR',
     description: description ?? 'Software para nutricionistas: anamnese, avaliação, cálculo energético, plano alimentar, área do paciente e gestão do consultório.',
     publisher: { '@id': `${SITE_URL}/#organization` },
+    creator: creatorLd(),
+    author: developerLd(),
     ...(offers.length ? { offers } : {}),
   };
 }

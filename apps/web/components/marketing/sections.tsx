@@ -1,6 +1,8 @@
 import { ArrowRight, Ruler, ShieldCheck, Smartphone, Sparkles, Table2, Users } from 'lucide-react';
 import Link from 'next/link';
 import { SOLUTIONS } from '@/lib/marketing/solutions';
+import { MODULES } from '@/lib/marketing/modules';
+import { CREATOR, DEVELOPER } from '@/lib/seo/site';
 import { Logo } from '@/components/brand/logo';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
@@ -149,6 +151,9 @@ export function SiteFooter() {
         <ul className="flex flex-wrap justify-center gap-x-5 gap-y-2 sm:justify-start">
           {SOLUTIONS.map((s) => <li key={s.slug}><Link href={`/solucoes/${s.slug}`} className="hover:text-foreground">{s.name}</Link></li>)}
         </ul>
+        <ul aria-label="Módulos" className="mt-3 flex flex-wrap justify-center gap-x-5 gap-y-2 sm:justify-start">
+          {MODULES.map((m) => <li key={m.slug}><Link href={`/recursos/${m.slug}`} className="hover:text-foreground">{m.name}</Link></li>)}
+        </ul>
       </nav>
       <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-5 py-8 text-sm text-muted-foreground sm:flex-row">
         <Logo />
@@ -159,6 +164,10 @@ export function SiteFooter() {
         </nav>
         <p>© {new Date().getFullYear()} Rafanutri</p>
       </div>
+      <p className="mx-auto max-w-6xl px-5 pb-8 text-center text-xs text-muted-foreground sm:text-left">
+        Criado por {CREATOR.name}, nutricionista com pós-graduação na área. Desenvolvido por{' '}
+        <a href={DEVELOPER.url} target="_blank" rel="noopener" className="underline-offset-4 hover:text-foreground hover:underline">{DEVELOPER.name}</a>.
+      </p>
     </footer>
   );
 }
