@@ -17,13 +17,13 @@ describe('@rafanutri/catalogs', () => {
     expect(c.PRACTICE_PLANS.every((p) => p in c.AI_DAILY_LIMIT)).toBe(true);
   });
   it('tipos de aviso iguais ao CHECK do banco (migração mais recente que o define)', () => {
-    const sql = readFileSync(resolve(__dirname, '../../../db/migrations/0065_maternal_care.sql'), 'utf8');
+    const sql = readFileSync(resolve(__dirname, '../../../db/migrations/0072_patient_tracking.sql'), 'utf8');
     const check = sql.match(/notification_outbox_kind_check check \(kind in \(([\s\S]*?)\)\)/)?.[1] ?? '';
     const kinds = [...check.matchAll(/'(\w+)'/g)].map((m) => m[1]).sort();
     expect(Object.keys(c.NOTIFICATION_KINDS).sort()).toEqual(kinds);
   });
   it('chaves do que o paciente vê iguais às aceitas pelo banco', () => {
-    const sql = readFileSync(resolve(__dirname, '../../../db/migrations/0065_maternal_care.sql'), 'utf8');
+    const sql = readFileSync(resolve(__dirname, '../../../db/migrations/0072_patient_tracking.sql'), 'utf8');
     const keys = sql.match(/k not in \(([^)]*)\)/)?.[1] ?? '';
     expect([...keys.matchAll(/'(\w+)'/g)].map((m) => m[1]).sort()).toEqual([...c.SHARE_KEYS].sort());
   });

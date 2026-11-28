@@ -47,6 +47,9 @@ export function attentionReasons(r, now = new Date()) {
   if (last && (!la || t - la > ATTENTION_RULES.noAssessmentDays * DAY)) out.push('no_assessment');
   if (r.risk_level === 'high') out.push('risk_high');
   if (n(r.pending_anamneses) > 0) out.push('pending_anamnesis');
+  // Tem o app há mais de 7 dias e não registra nada em casa (peso, água, metas ou refeições) há 7 dias.
+  const act = ts(r.app_activated_at);
+  if (r.app_user_id && act && t - act > ATTENTION_RULES.homeIdleDays * DAY && (!ts(r.home_last_at) || t - ts(r.home_last_at) > ATTENTION_RULES.homeIdleDays * DAY)) out.push('home_idle');
   return out;
 }
 
@@ -117,7 +120,7 @@ export function setupClinicalDashboard({ router, database, logger, h }) {
     try {
       const [rowsQ, visitsQ] = await Promise.all([
         database.raw(`
-          with p as (select id, full_name, sex, birth_date, created_at, status, app_user_id, return_interval_days from patients where organization_id = :org),
+          with p as (select id, full_name, sex, birth_date, created_at, status, app_user_id, app_activated_at, return_interval_days from patients where organization_id = :org),
           lv as (select patient_id, max(starts_at) at from appointments where organization_id = :org and status = 'completed' group by 1),
           nv as (select patient_id, min(starts_at) at from appointments where organization_id = :org and status in ('scheduled', 'confirmed') and starts_at > now() group by 1),
           pl as (select patient_id, published_at, valid_until from meal_plans where organization_id = :org and status = 'published'),
@@ -129,10 +132,15 @@ export function setupClinicalDashboard({ router, database, logger, h }) {
             from anthropometric_assessments where organization_id = :org and weight_kg is not null),
           la as (select patient_id, max(assessed_at) at from anthropometric_assessments where organization_id = :org group by 1),
           sc as (select distinct on (patient_id) patient_id, risk_level from nutrition_screenings where organization_id = :org order by patient_id, screened_at desc),
-          an as (select patient_id, count(*) cnt from anamneses where organization_id = :org and status = 'answered' group by 1)
+          an as (select patient_id, count(*) cnt from anamneses where organization_id = :org and status = 'answered' group by 1),
+          hm as (select patient_id, max(at) at from (
+            select patient_id, created_at at from patient_weight_logs where organization_id = :org
+            union all select patient_id, logged_at from patient_water_logs where organization_id = :org
+            union all select g.patient_id, c.created_at from patient_goal_checks c join patient_goals g on g.id = c.goal_id where g.organization_id = :org
+            union all select mc.patient_id, mc.created_at from patient_meal_checks mc join p on p.id = mc.patient_id) x group by 1)
           select p.*, lv.at last_visit_at, nv.at next_visit_at, pl.published_at plan_published_at, pl.valid_until plan_valid_until,
             wf.weight_kg first_weight, wl.weight_kg last_weight, wl.cnt weight_count, (wl.results ->> 'bmi')::numeric last_bmi,
-            la.at last_assessment_on, sc.risk_level, an.cnt pending_anamneses
+            la.at last_assessment_on, sc.risk_level, an.cnt pending_anamneses, hm.at home_last_at
           from p
           left join lv on lv.patient_id = p.id
           left join nv on nv.patient_id = p.id
@@ -141,7 +149,8 @@ export function setupClinicalDashboard({ router, database, logger, h }) {
           left join w wl on wl.patient_id = p.id and wl.rd = 1
           left join la on la.patient_id = p.id
           left join sc on sc.patient_id = p.id
-          left join an on an.patient_id = p.id`, { org }),
+          left join an on an.patient_id = p.id
+          left join hm on hm.patient_id = p.id`, { org }),
         database.raw(`
           select
             count(*) filter (where status = 'completed' and starts_at > now() - interval '30 days') completed_30d,

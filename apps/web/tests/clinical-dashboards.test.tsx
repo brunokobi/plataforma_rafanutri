@@ -19,7 +19,7 @@ const general: GD = {
     { patient_id: '1', full_name: 'Ana', reasons: ['no_return', 'no_plan'], last_visit_at: '2026-09-01T12:00:00Z', next_visit_at: null },
     { patient_id: '2', full_name: 'Bia', reasons: ['plan_expiring'], last_visit_at: null, next_visit_at: '2026-11-30T12:00:00Z' },
   ],
-  by_reason: { no_return: 1, never_seen: 0, plan_expired: 0, plan_expiring: 1, no_plan: 1, no_assessment: 0, risk_high: 0, pending_anamnesis: 0 },
+  by_reason: { no_return: 1, never_seen: 0, plan_expired: 0, plan_expiring: 1, no_plan: 1, no_assessment: 0, risk_high: 0, pending_anamnesis: 0, home_idle: 0 },
 };
 
 describe('painel geral dos pacientes', () => {

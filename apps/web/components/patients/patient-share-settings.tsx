@@ -5,13 +5,14 @@ import Link from 'next/link';
 import { useState, useTransition } from 'react';
 import { Button } from '@/components/ui/button';
 import { saveShareSettings, type ShareConfig } from '@/lib/patient-area/actions';
-import { SHARE_LABEL, type ShareSettings } from '@/lib/patient-area/types';
+import { SHARE_DEFAULTS, SHARE_LABEL, type ShareSettings } from '@/lib/patient-area/types';
 
 const KEYS = Object.keys(SHARE_LABEL) as Array<keyof ShareSettings>;
 
 /** RN-210 — O que este paciente vê na área do paciente (com padrão do consultório). */
-export function PatientShareSettings({ patientId, config }: { patientId: string; config: ShareConfig | null }) {
-  const [values, setValues] = useState<ShareSettings>({ show_kcal: false, show_macros: false, show_weight_history: false, show_maternal: false, ...config?.effective });
+export function PatientShareSettings({ patientId, config, edDetected = false }: { patientId: string; config: ShareConfig | null; edDetected?: boolean }) {
+  const explicitNeutral = typeof config?.overrides?.weight_neutral === 'boolean';
+  const [values, setValues] = useState<ShareSettings>({ ...SHARE_DEFAULTS, ...config?.effective, ...(edDetected && !explicitNeutral ? { weight_neutral: true } : {}) });
   const [asDefault, setAsDefault] = useState(false);
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
   const [pending, start] = useTransition();
@@ -36,9 +37,12 @@ export function PatientShareSettings({ patientId, config }: { patientId: string;
       <form onSubmit={save} aria-label="O que o paciente vê" className="mt-3 space-y-2">
         {KEYS.map((k) => (
           <label key={k} className="flex min-h-11 items-center gap-3 text-sm">
-            <input type="checkbox" role="switch" aria-checked={values[k]} checked={values[k]} onChange={(e) => setValues((v) => ({ ...v, [k]: e.target.checked }))} className="size-4" />
-            {SHARE_LABEL[k]}
-            {!config.overrides && <span className="text-xs text-muted-foreground">(padrão)</span>}
+            <input type="checkbox" role="switch" aria-checked={values[k] === true} checked={values[k] === true} onChange={(e) => setValues((v) => ({ ...v, [k]: e.target.checked }))} className="size-4" />
+            <span>
+              {SHARE_LABEL[k]}
+              {!config.overrides && <span className="ml-1 text-xs text-muted-foreground">(padrão)</span>}
+              {k === 'weight_neutral' && edDetected && <span className="mt-0.5 block text-xs text-amber-700 dark:text-amber-400">A anamnese ou o objetivo indicam transtorno alimentar: ligado automaticamente até você escolher.</span>}
+            </span>
           </label>
         ))}
         {config.can_edit_defaults && (

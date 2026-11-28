@@ -17,7 +17,7 @@ export const AI_DAILY_LIMIT = { free: 5, essential: 20, professional: 200, clini
 /** Versões vigentes dos termos e da política (aceite registrado em terms_acceptances). */
 export const LEGAL_VERSIONS = { professional_terms: '2026-11-20', patient_terms: '2026-11-20', privacy: '2026-11-21' };
 /** Chaves de "O que o paciente vê" (patient_share no banco). */
-export const SHARE_KEYS = ['show_kcal', 'show_macros', 'show_weight_history', 'show_maternal'];
+export const SHARE_KEYS = ['show_kcal', 'show_macros', 'show_weight_history', 'show_maternal', 'show_body', 'self_weight', 'water', 'goals', 'meal_checks', 'weight_neutral'];
 
 // ── Avisos ───────────────────────────────────────────────────────────────────────────────────
 /** Tipos de aviso (mesma lista do CHECK de notification_outbox.kind) e se merecem e-mail sem Telegram. */
@@ -37,6 +37,7 @@ export const NOTIFICATION_KINDS = {
   feeding_reaction: { label: 'Reação na introdução alimentar', important: true },
   message_to_patient: { label: 'Mensagem do nutricionista', important: true },
   message_to_professional: { label: 'Mensagem de paciente', important: true },
+  water_reminder: { label: 'Lembrete de água', important: false },
 };
 /** Horários de lembrete permitidos (horas antes da consulta), do maior para o menor. */
 export const REMINDER_HOURS = [72, 48, 24, 12, 6, 3, 2, 1];
@@ -49,11 +50,12 @@ export const ATTENTION_REASONS = {
   plan_expiring: 'Plano alimentar vence em até 14 dias',
   no_plan: 'Atendido e sem plano publicado',
   no_assessment: 'Sem avaliação há mais de 90 dias',
+  home_idle: 'Tem o app e não registra nada em casa (peso, água, metas ou refeições) há mais de 7 dias',
   risk_high: 'Risco nutricional alto na última triagem',
   pending_anamnesis: 'Anamnese respondida aguardando revisão',
 };
 /** Limites das regras de atenção (dias). */
-export const ATTENTION_RULES = { defaultReturnDays: 30, neverSeenGraceDays: 14, planExpiringDays: 14, noAssessmentDays: 90 };
+export const ATTENTION_RULES = { defaultReturnDays: 30, neverSeenGraceDays: 14, planExpiringDays: 14, noAssessmentDays: 90, homeIdleDays: 7 };
 
 // ── Materno-infantil ─────────────────────────────────────────────────────────────────────────
 /** Alergênicos da introdução alimentar, com a idade de referência (meses) e a orientação. */

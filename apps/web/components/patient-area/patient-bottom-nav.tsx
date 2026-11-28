@@ -1,6 +1,6 @@
 'use client';
 
-import { BookOpen, Home, Lightbulb, MessageCircle, UtensilsCrossed } from 'lucide-react';
+import { Activity, BookOpen, Home, MessageCircle, UtensilsCrossed } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useUnreadCount } from '@/components/messages/use-unread';
@@ -10,9 +10,9 @@ import { cn } from '@/lib/utils';
 const ITEMS = [
   { href: '/p', label: 'Início', icon: Home, match: (p: string) => p === '/p' },
   { href: '/p/plano', label: 'Plano', icon: UtensilsCrossed, match: (p: string) => p.startsWith('/p/plano') },
+  { href: '/p/acompanhar', label: 'Progresso', icon: Activity, match: (p: string) => p.startsWith('/p/acompanhar') },
   { href: '/p/mensagens', label: 'Mensagens', icon: MessageCircle, match: (p: string) => p.startsWith('/p/mensagens') },
   { href: '/p/receitas', label: 'Receitas', icon: BookOpen, match: (p: string) => p.startsWith('/p/receitas') },
-  { href: '/p/recomendacoes', label: 'Orientações', icon: Lightbulb, match: (p: string) => p.startsWith('/p/recomendacoes') },
 ] as const;
 
 /** RN-204 — Navegação inferior da área do paciente (alvos de 56 px, respeita a área segura do iPhone). */

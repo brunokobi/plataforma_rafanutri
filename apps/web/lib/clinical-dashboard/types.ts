@@ -6,7 +6,7 @@ export type { AttentionReason };
 export const REASON_LABEL: Record<AttentionReason, string> = ATTENTION_REASONS;
 export const REASON_SHORT: Record<AttentionReason, string> = {
   no_return: 'Retorno atrasado', never_seen: 'Sem consulta', plan_expired: 'Plano vencido', plan_expiring: 'Plano vencendo',
-  no_plan: 'Sem plano', no_assessment: 'Sem avaliação', risk_high: 'Risco alto', pending_anamnesis: 'Anamnese',
+  no_plan: 'Sem plano', no_assessment: 'Sem avaliação', risk_high: 'Risco alto', pending_anamnesis: 'Anamnese', home_idle: 'Parado no app',
 };
 export const REASONS = Object.keys(REASON_LABEL) as AttentionReason[];
 

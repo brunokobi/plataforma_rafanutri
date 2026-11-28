@@ -3,6 +3,7 @@
 import { describe, expect, it } from 'vitest';
 import { REASON_LABEL } from '@/lib/clinical-dashboard/types';
 import { LEGAL_VERSIONS } from '@/lib/legal/info';
+import { SHARE_DEFAULTS } from '@/lib/patient-area/types';
 import { ALLERGENS, CONSENT_LABEL, FEEDING_TYPE_LABEL, REACTION_LABEL, RELATIONSHIP_LABEL, TEXTURES } from '@/lib/maternal/feeding';
 import { KIND_LABEL, REMINDER_HOURS } from '@/lib/notifications/types';
 import { SCREENING_TOOLS } from '@rafanutri/nutrition-core';
@@ -35,6 +36,6 @@ describe('catálogos web × extensão', () => {
   });
   it('a extensão usa a mesma cópia do catálogo que o app (versões dos termos e chaves do que o paciente vê)', () => {
     expect(extCatalogs.LEGAL_VERSIONS).toEqual(LEGAL_VERSIONS);
-    expect(sorted(extCatalogs.SHARE_KEYS)).toEqual(['show_kcal', 'show_macros', 'show_maternal', 'show_weight_history']);
+    expect(sorted(extCatalogs.SHARE_KEYS)).toEqual(Object.keys(SHARE_DEFAULTS).sort());
   });
 });

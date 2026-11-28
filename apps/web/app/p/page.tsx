@@ -12,6 +12,9 @@ import { WeightChart } from '@/components/patient-area/weight-chart';
 import { getMyMaternal } from '@/lib/maternal/actions';
 import { getMyWeight, getPatientArea } from '@/lib/patient-area/actions';
 import { mealOfTheMoment } from '@/lib/patient-area/meal-now';
+import { WaterTracker } from '@/components/tracking/water-tracker';
+import { getMyTracking } from '@/lib/tracking/actions';
+import { goalProgress } from '@/lib/tracking/types';
 
 export const metadata: Metadata = { title: 'Área do paciente', robots: { index: false } };
 export const dynamic = 'force-dynamic';
@@ -48,7 +51,7 @@ export default async function PatientHome({ searchParams }: { searchParams: Prom
   }
 
   const q = records.length > 1 ? `?c=${record.patient_id}` : '';
-  const [weight, maternal] = await Promise.all([getMyWeight(record.patient_id), getMyMaternal(record.patient_id)]);
+  const [weight, maternal, tracking] = await Promise.all([getMyWeight(record.patient_id), getMyMaternal(record.patient_id), getMyTracking(record.patient_id)]);
   const moment = record.plan ? mealOfTheMoment(record.plan.meals, new Date()) : null;
   return (
     <PatientShell practice={record.practice} professional={record.professional} canSwitch={records.length > 1}>
@@ -65,7 +68,22 @@ export default async function PatientHome({ searchParams }: { searchParams: Prom
           <span className="grid min-w-6 place-items-center rounded-full bg-destructive px-1.5 text-xs font-bold leading-6 text-white">{record.messages_unread}</span>
         ) : <span aria-hidden="true" className="text-muted-foreground">→</span>}
       </Link>
-      {weight?.share?.show_weight_history && weight.weight.length > 0 && <WeightChart data={weight.weight} />}
+      {tracking && (tracking.water || tracking.goals.length > 0) && (
+        <section aria-labelledby="hoje" className="rounded-3xl border border-border bg-card p-5 shadow-sm">
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <h2 id="hoje" className="font-semibold">Hoje</h2>
+            <Link href={`/p/acompanhar${q}`} className="inline-flex min-h-11 items-center text-sm font-medium text-primary">Meu progresso →</Link>
+          </div>
+          {tracking.water && <WaterTracker c={record.patient_id} water={tracking.water} compact />}
+          {tracking.goals.some((g) => g.kind === 'habit') && (
+            <p className="mt-4 text-sm text-muted-foreground">
+              Metas: {tracking.goals.filter((g) => g.kind === 'habit' && g.done_today).length} de {tracking.goals.filter((g) => g.kind === 'habit').length} feitas hoje
+              {' · '}{Math.round(tracking.goals.filter((g) => g.kind === 'habit').reduce((s, g) => s + goalProgress(g).pct, 0) / Math.max(1, tracking.goals.filter((g) => g.kind === 'habit').length))}% na semana
+            </p>
+          )}
+        </section>
+      )}
+      {weight?.share?.show_weight_history && weight.weight.length > 0 && !tracking && <WeightChart data={weight.weight} />}
       {maternal?.visible && (
         <Link href={`/p/acompanhamento${q}`} className="flex min-h-11 items-center justify-between gap-3 rounded-2xl border border-border bg-card px-5 py-4 font-medium">
           <span>Acompanhamento: crescimento, gestação e introdução alimentar</span><span aria-hidden="true">→</span>

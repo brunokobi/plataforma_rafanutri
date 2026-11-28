@@ -97,6 +97,11 @@ export function buildMessage(kind, ctx) {
       const n = Number(ctx.count) || 1;
       return { subject: `${n === 1 ? 'Nova mensagem' : `${n} mensagens novas`} de ${ctx.fromPatient}`, lines: [`Olá, ${name}!`, `${ctx.fromPatient} mandou ${n === 1 ? 'uma mensagem' : `${n} mensagens`} pela área do paciente e ainda não foi respondido.`, 'Abra as Mensagens na Rafanutri para responder.'], link: ctx.link ?? null };
     }
+    case 'water_reminder': {
+      const left = Math.max(0, (Number(ctx.goalMl) || 0) - (Number(ctx.todayMl) || 0));
+      const l = (ml) => `${(ml / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} L`;
+      return { subject: 'Hora de beber água 💧', lines: [`${name}, hora de um copo de água!`, `Hoje: ${l(Number(ctx.todayMl) || 0)} de ${l(Number(ctx.goalMl) || 0)}. Faltam ${l(left)}.`, 'Registre no app depois de beber.'], link: ctx.link ?? null };
+    }
     case 'test':
       return { subject: 'Teste de aviso da Rafanutri', lines: [`Olá, ${name}!`, `Este é um teste dos avisos de ${practice}. Se você recebeu, está tudo certo.`], link: ctx.link ?? null };
     default:

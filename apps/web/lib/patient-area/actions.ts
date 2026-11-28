@@ -7,6 +7,7 @@ import { redirect } from 'next/navigation';
 import { sessionCookies } from '@/lib/auth/cookies';
 import { directus } from '@/lib/auth/directus';
 import { env } from '@/lib/env';
+import { SHARE_DEFAULTS } from './types';
 import type { ActionResult, AppAccess, InvitePreview, PatientArea, PatientPlanDocument, PatientPlanPayload, ShareSettings, WeightPoint } from './types';
 import { call } from '@/lib/directus/rafanutri';
 import { isUuid as isId } from '@/lib/validation/ids';
@@ -123,7 +124,8 @@ export async function getShareConfig(patientId: string): Promise<ShareConfig | n
 export async function saveShareSettings(patientId: string, settings: ShareSettings, asDefault: boolean): Promise<ActionResult> {
   if (!isId(patientId)) return { ok: false, message: 'Pedido inválido.' };
   try {
-    const body = { show_kcal: settings.show_kcal === true, show_macros: settings.show_macros === true, show_weight_history: settings.show_weight_history === true, show_maternal: settings.show_maternal === true, as_default: asDefault === true };
+    const full = { ...SHARE_DEFAULTS, ...settings };
+    const body = { ...Object.fromEntries(Object.keys(SHARE_DEFAULTS).map((k) => [k, full[k as keyof ShareSettings] === true])), as_default: asDefault === true };
     const r = await call(`/patients/${patientId}/share`, 'PUT', body);
     if (r.status === 200) {
       revalidatePath(`/app/pacientes/${patientId}`);

@@ -41,12 +41,26 @@ export type ActionResult<T = undefined> = { ok: true; data?: T } | { ok: false; 
 import type { Guardian } from '@/lib/maternal/types';
 
 /** O que o paciente vê (RN-210). */
-export interface ShareSettings { show_kcal: boolean; show_macros: boolean; show_weight_history: boolean; show_maternal: boolean }
+export interface ShareSettings {
+  show_kcal: boolean; show_macros: boolean; show_weight_history: boolean; show_maternal: boolean;
+  /** Acompanhamento em casa (0072): ligados por padrão; weight_neutral desligado (liga sozinho com sinal de transtorno alimentar). */
+  show_body?: boolean; self_weight?: boolean; water?: boolean; goals?: boolean; meal_checks?: boolean; weight_neutral?: boolean;
+}
+export const SHARE_DEFAULTS: Required<ShareSettings> = {
+  show_kcal: false, show_macros: false, show_weight_history: false, show_maternal: false,
+  show_body: true, self_weight: true, water: true, goals: true, meal_checks: true, weight_neutral: false,
+};
 export const SHARE_LABEL: Record<keyof ShareSettings, string> = {
   show_kcal: 'Calorias do plano',
   show_macros: 'Macronutrientes (proteínas, carboidratos e gorduras)',
-  show_weight_history: 'Histórico de peso (gráfico)',
+  show_weight_history: 'Peso das avaliações do consultório (gráfico)',
   show_maternal: 'Materno-infantil: curvas de crescimento, gestação, lactação e introdução alimentar',
+  show_body: 'Meu perfil: altura, peso atual, IMC e medidas da última avaliação',
+  self_weight: 'Registrar o próprio peso em casa (com dia e horário)',
+  water: 'Água: meta do dia, registro e lembretes',
+  goals: 'Metas: marcar como feitas e ver o progresso',
+  meal_checks: 'Marcar as refeições do plano como feitas',
+  weight_neutral: 'Sem números de peso (recomendado em transtorno alimentar): esconde peso, IMC e registro de peso',
 };
 export interface WeightPoint { date: string; weight_kg: number }
 

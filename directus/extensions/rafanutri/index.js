@@ -16,6 +16,7 @@ import { setupSubscriptions } from './subscriptions.js';
 import { setupMaternal } from './maternal.js';
 import { setupAI } from './ai.js';
 import { setupMessages } from './messages.js';
+import { setupTracking } from './tracking.js';
 import { setupGoogleAuth } from './google-auth.js';
 import { setupPatientArea } from './patient-area.js';
 import { setupPractice } from './practice.js';
@@ -1159,6 +1160,9 @@ export default {
 
     // ── Mensagens entre paciente e nutricionista (0071) ────────────────────────────────────────
     setupMessages({ router, database, logger, notifier, h: { requireUser, bad, conflict, isUuid, clinicalOrg, myPatientRecord } });
+
+    // ── Acompanhamento em casa: peso, água, metas e refeições (0072) ─────────────────────────
+    setupTracking({ router, database, logger, notifier, h: { requireUser, bad, conflict, isUuid, clinicalOrg, myPatientRecord, withActor } });
 
     // ── Painéis clínicos: todos os pacientes e cada paciente ─────────────────────────────────
     setupClinicalDashboard({ router, database, logger, h: { requireUser, isUuid, clinicalOrg } });

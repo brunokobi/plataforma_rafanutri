@@ -29,6 +29,8 @@ import { isUuid } from '@/lib/patients/schema';
 import { pickClinicalOrg } from '@/lib/auth/clinical-org';
 import { PlanSuggestions } from '@/components/meal-plans/plan-suggestions';
 import { patientSuggestions } from '@/lib/meal-plans/suggestions-data';
+import { PatientTrackingPanel } from '@/components/tracking/patient-tracking-panel';
+import { getPatientTracking } from '@/lib/tracking/actions';
 
 export const metadata: Metadata = { title: 'Ficha do paciente', robots: { index: false } };
 
@@ -43,7 +45,7 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
   if (target) redirect(target);
 
   const organization = pickClinicalOrg(organizations);
-  const [patient, all, assessments, plans, anamneses, nextAppointment, appAccess, patientRecipes, library, shareConfig, patientPackages, packageCatalog, contactPrefs, dashboard] = await Promise.all([
+  const [patient, all, assessments, plans, anamneses, nextAppointment, appAccess, patientRecipes, library, shareConfig, patientPackages, packageCatalog, contactPrefs, dashboard, tracking] = await Promise.all([
     getPatient(id),
     organization ? listPatients(organization.id) : null,
     listAssessments(id),
@@ -58,6 +60,7 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
     listPackages(),
     getPatientContactPrefs(id),
     getPatientDashboard(id),
+    getPatientTracking(id),
   ]);
   if (patient === undefined) notFound();
   const suggestions = patient && patient.status === 'active' ? await patientSuggestions(patient, { assessments, anamneses, plans }).catch(() => null) : null;
@@ -88,6 +91,11 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
             <PlanSuggestions patientId={patient.id} suggestions={suggestions.suggestions} target={suggestions.target} />
           </div>
         )}
+        {patient && tracking && (
+          <div className="mt-6">
+            <PatientTrackingPanel t={tracking} linked={Boolean(appAccess?.linked)} />
+          </div>
+        )}
         {patient && (
           <div className="mt-6">
             <PatientAppAccess patientId={patient.id} access={appAccess} firstName={patient.full_name.split(/\s+/)[0] ?? patient.full_name} phone={patient.phone} />
@@ -105,7 +113,7 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
         )}
         {patient && (
           <div className="mt-6">
-            <PatientShareSettings patientId={patient.id} config={shareConfig} />
+            <PatientShareSettings patientId={patient.id} config={shareConfig} edDetected={tracking?.share.ed_detected ?? false} />
           </div>
         )}
         {patient && patient.status === 'active' && (
