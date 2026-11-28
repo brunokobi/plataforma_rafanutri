@@ -81,7 +81,7 @@ export function WaterTracker({ c, water, compact = false }: { c: string | null; 
         <div className="mt-3 flex items-center gap-2">
           <label className="flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-xl border border-border px-3">
             <span className="sr-only">Outra quantidade em ml</span>
-            <input inputMode="numeric" value={custom} onChange={(e) => setCustom(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="Outra quantidade" className="min-w-0 flex-1 bg-transparent text-base outline-none" />
+            <input inputMode="numeric" value={custom} onChange={(e) => setCustom(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="Outro valor" className="min-w-0 flex-1 bg-transparent text-base outline-none" />
             <span className="text-sm text-muted-foreground">ml</span>
           </label>
           <Button type="button" variant="outline" className="h-11 shrink-0 px-3" disabled={busy || !custom} onClick={() => { void add(Number(custom)); setCustom(''); }}>Adicionar</Button>

@@ -9,7 +9,11 @@ export function ShotFrame({ shot, priority = false, className }: { shot: Shot; p
       <figure className={cn('relative mx-auto w-[min(100%,300px)]', className)}>
         <div className="rounded-[2.6rem] bg-neutral-900 p-2.5 shadow-2xl shadow-primary/20 ring-1 ring-black/10 dark:bg-neutral-800">
           <div className="relative overflow-hidden rounded-[2.1rem] bg-background">
-            <span aria-hidden="true" className="absolute left-1/2 top-2 z-10 h-5 w-24 -translate-x-1/2 rounded-full bg-neutral-900" />
+            <div aria-hidden="true" className="relative flex h-7 items-center justify-between bg-background px-6 text-[10px] font-semibold text-foreground/80">
+              <span>9:41</span>
+              <span className="absolute left-1/2 top-1.5 h-4 w-20 -translate-x-1/2 rounded-full bg-neutral-900" />
+              <span className="flex items-center gap-1"><span className="h-2 w-3 rounded-[2px] border border-current" /></span>
+            </div>
             <Image src={shot.src} alt={shot.alt} width={780} height={1688} priority={priority} sizes="300px" className="h-auto w-full" />
           </div>
         </div>
