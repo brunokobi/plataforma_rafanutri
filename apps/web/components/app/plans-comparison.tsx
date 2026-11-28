@@ -37,7 +37,7 @@ export function PlansComparison({ currentPlan, codes, cycle = 'monthly', footer 
 }) {
   const plans = codes ? PLANS.filter((p) => codes.includes(p.code)) : PLANS;
   return (
-    <div className="overflow-x-auto rounded-2xl border border-border bg-card">
+    <div className="relative overflow-x-auto rounded-2xl border border-border bg-card">
       <table className="w-full min-w-[760px] border-collapse text-sm">
         <caption className="sr-only">Comparação de preços, limites e módulos por plano</caption>
         <thead>

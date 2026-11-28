@@ -9,7 +9,7 @@ const day = (iso: string) => new Date(iso).toLocaleDateString('pt-BR', { day: '2
 
 function Kpi({ label, value, hint, icon }: { label: string; value: ReactNode; hint?: ReactNode; icon: ReactNode }) {
   return (
-    <div className="rounded-xl border border-border bg-card p-3">
+    <div className="w-[44%] shrink-0 snap-start rounded-xl border border-border bg-card p-3 sm:w-auto">
       <dt className="flex items-center gap-1.5 text-xs text-muted-foreground"><span aria-hidden="true" className="text-primary">{icon}</span>{label}</dt>
       <dd className="mt-1 font-display text-2xl font-semibold tabular-nums">{value}</dd>
       {hint && <dd className="text-xs text-muted-foreground">{hint}</dd>}
@@ -51,7 +51,7 @@ export function PatientsDashboard({ data, reason }: { data: Data; reason: Attent
   return (
     <section aria-labelledby="dash-geral" className="space-y-5">
       <h2 id="dash-geral" className="sr-only">Painel geral dos pacientes</h2>
-      <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      <dl className="-mx-5 flex snap-x gap-3 overflow-x-auto px-5 pb-1 [scrollbar-width:none] sm:mx-0 sm:grid sm:grid-cols-3 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-6">
         <Kpi label="Pacientes ativos" icon={<Users className="size-4" />} value={num(c.active)} hint={`${num(c.inactive + c.archived)} inativos ou arquivados`} />
         <Kpi label="Novos em 30 dias" icon={<UserPlus className="size-4" />} value={num(c.new_30d)} />
         <Kpi label="Com plano publicado" icon={<Utensils className="size-4" />} value={`${pct(c.with_plan, c.active)}%`} hint={`${num(c.with_plan)} de ${num(c.active)}`} />

@@ -275,7 +275,7 @@ export function ChatThread({ me, initial, fetchPage, send, header, blocked = nul
               placeholder={placeholder}
               enterKeyHint="send"
               autoComplete="off"
-              className="max-h-40 min-h-11 flex-1 resize-none rounded-3xl border border-border bg-card px-4 py-[11px] text-base leading-snug outline-none placeholder:text-muted-foreground focus:border-primary/60 sm:text-[15px]"
+              className="max-h-40 min-h-11 flex-1 resize-none overflow-y-auto rounded-3xl [scrollbar-width:none] border border-border bg-card px-4 py-[11px] text-base leading-snug outline-none placeholder:text-muted-foreground focus:border-primary/60 sm:text-[15px]"
             />
             <button
               type="submit"

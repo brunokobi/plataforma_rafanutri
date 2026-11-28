@@ -21,7 +21,7 @@ export function MessagesToggle({ enabled: initial }: { enabled: boolean }) {
       className="flex min-h-11 items-center gap-2.5 rounded-full px-2 text-xs font-medium text-muted-foreground hover:text-foreground disabled:opacity-60">
       <span>{enabled ? 'Recebendo' : 'Pausado'}</span>
       <span aria-hidden="true" className={cn('relative h-6 w-10 rounded-full transition-colors', enabled ? 'bg-primary' : 'bg-muted-foreground/30')}>
-        <span className={cn('absolute top-0.5 size-5 rounded-full bg-white shadow transition-transform', enabled ? 'translate-x-[18px]' : 'translate-x-0.5')} />
+        <span className={cn('absolute left-0.5 top-0.5 size-5 rounded-full bg-white shadow transition-transform', enabled ? 'translate-x-4' : 'translate-x-0')} />
       </span>
       <span className="sr-only">Receber mensagens dos pacientes</span>
     </button>

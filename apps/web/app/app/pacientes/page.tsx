@@ -37,14 +37,19 @@ export default async function PatientsPage({ searchParams }: { searchParams: Pro
       <main className="mx-auto max-w-7xl px-5 py-10">
         <h1 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">Pacientes</h1>
         {organization && <p className="mt-1 text-sm text-muted-foreground">{organization.name}</p>}
-        {dashboard && (
-          <div className="mt-6">
-            <PatientsDashboard data={dashboard} reason={reason} />
+        {/* No celular, a lista vem primeiro; o painel fica embaixo. No computador, painel e depois a lista. */}
+        <div className="mt-6 flex flex-col">
+          {dashboard && (
+            <div className="order-2 mt-10 lg:order-1 lg:mt-0">
+              <PatientsDashboard data={dashboard} reason={reason} />
+            </div>
+          )}
+          <div className="order-1 lg:order-2 lg:mt-10">
+            <h2 className="font-display text-2xl font-semibold tracking-tight">Todos os pacientes</h2>
+            <div className="mt-4">
+              <PatientsList patients={patients} limit={plan.maxActivePatients} planName={plan.name} demoHref="/app/pacientes/exemplo" key={q} initialQuery={q} />
+            </div>
           </div>
-        )}
-        <h2 className="mt-10 font-display text-2xl font-semibold tracking-tight">Todos os pacientes</h2>
-        <div className="mt-4">
-          <PatientsList patients={patients} limit={plan.maxActivePatients} planName={plan.name} demoHref="/app/pacientes/exemplo" key={q} initialQuery={q} />
         </div>
       </main>
     </div>

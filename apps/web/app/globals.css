@@ -334,8 +334,9 @@ html:has([data-patient-shell]) {
 .dark .module-seal { background: color-mix(in oklch, var(--primary) 18%, transparent); }
 
 /* Fundo da conversa (mensagens): textura leve de pontos sobre o tom do módulo, como nos apps de mensagem */
+.dark .chat-wallpaper { background-color: color-mix(in oklch, var(--background) 92%, oklch(0.5 0.03 85)); }
 .chat-wallpaper {
-  background-color: color-mix(in oklch, var(--muted) 70%, var(--background));
+  background-color: color-mix(in oklch, var(--background) 86%, oklch(0.88 0.035 85));
   background-image: radial-gradient(color-mix(in oklch, var(--primary) 10%, transparent) 1px, transparent 1.3px);
   background-size: 18px 18px;
 }

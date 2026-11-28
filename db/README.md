@@ -1147,6 +1147,15 @@ Migração `0070_infinitepay.sql` (**aplicada na vpsrafa em 22/11/2026**, backup
 - `INFINITEPAY_API_KEY` no `.env` do Directus é opcional. Se estiver definida, o link é de pagamento único e expira 30 dias depois do vencimento.
 - Não existe sandbox: o primeiro teste é uma compra real de R$ 1,00, estornada depois pelo app da InfinitePay.
 
+## Mensagens entre paciente e nutricionista (0071)
+
+Migração `0071_patient_messages.sql` (**aplicada na vpsrafa em 28/11/2026**, backup `antes-0071-2026-11-28.dump`; testes em `db/tests/0071_patient_messages.test.sql` e `db/tests/extension-messages.test.mjs`).
+
+- `patient_messages`: uma linha por mensagem da conversa do paciente com o consultório. `sender` é `patient` (a conta ligada em `patients.app_user_id`) ou `professional` (owner ou nutricionista do consultório), conferido pelo gatilho `patient_messages_guard`. O texto (1 a 4.000 caracteres) não muda depois de enviado; só `read_at` (lida pelo outro lado) e `notified_at` (aviso de não lida já enviado). Apagar o paciente apaga a conversa.
+- `organizations.patient_messages` (padrão `true`): o consultório pausa o recebimento; o paciente vê o aviso e o nutricionista ainda pode escrever.
+- `notification_outbox.kind` ganha `message_to_patient` e `message_to_professional`. O ciclo do avisador (a cada minuto) avisa pelo Telegram ou e-mail quando uma mensagem fica 5 minutos sem leitura, no máximo uma vez a cada 3 horas por conversa, **sem o texto da mensagem**.
+- Endpoints (`directus/extensions/rafanutri/messages.js`): paciente `GET/POST /me/patient/messages` (`?c=`, `?after=`, `?before=`) e `GET /me/patient/messages/unread`; nutricionista `GET /messages/conversations`, `GET /messages/unread`, `GET/POST /messages/settings`, `GET/POST /patients/:id/messages`. Abrir a conversa marca como lidas as do outro lado. Limite de 30 mensagens por minuto por pessoa.
+
 ## Catálogos compartilhados (`packages/catalogs`)
 
 Planos com Gestão, materno-infantil e pagos, cota de IA, versões dos termos, chaves do que o paciente vê, tipos de aviso e horários de lembrete, motivos de atenção do painel, alergênicos, texturas, reações, aleitamento, parentesco, consentimento e versões das triagens ficam num só arquivo: `packages/catalogs/src/catalogs.js`.

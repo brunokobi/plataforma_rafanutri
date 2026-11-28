@@ -7,7 +7,10 @@ import type { Dashboard } from '@/lib/dashboard-data';
 import { cn } from '@/lib/utils';
 
 const dateBR = (d: string) => new Date(`${d}T12:00:00Z`).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', timeZone: 'UTC' });
-const weekday = (d: string) => new Date(`${d}T12:00:00Z`).toLocaleDateString('pt-BR', { weekday: 'long', timeZone: 'UTC' });
+const weekday = (d: string) => {
+  const w = new Date(`${d}T12:00:00Z`).toLocaleDateString('pt-BR', { weekday: 'long', timeZone: 'UTC' });
+  return w.charAt(0).toUpperCase() + w.slice(1);
+};
 
 function Card({ title, icon: Icon, count, children, className }: { title: string; icon: typeof Users; count?: number | null; children: React.ReactNode; className?: string }) {
   return (
@@ -30,7 +33,7 @@ export function TodayPanel({ data }: { data: Dashboard }) {
     <div className="space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 className="font-display text-2xl font-semibold tracking-tight capitalize">{weekday(data.todayDate)}, {dateBR(data.todayDate)}</h2>
+          <h2 className="font-display text-2xl font-semibold tracking-tight">{weekday(data.todayDate)}, {dateBR(data.todayDate)}</h2>
           {data.activePatients !== null && <p className="text-sm text-muted-foreground">{data.activePatients} pacientes ativos</p>}
         </div>
         <div className="flex flex-wrap gap-2" aria-label="Atalhos">
