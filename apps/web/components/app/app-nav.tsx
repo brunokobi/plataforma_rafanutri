@@ -3,7 +3,7 @@
 export type NavIcon =
   | 'home' | 'dashboard' | 'patients' | 'calendar' | 'sparkles' | 'funnel' | 'wallet' | 'chef'
   | 'templates' | 'apple' | 'recipes' | 'questionnaires' | 'guidelines' | 'building' | 'bell' | 'crown'
-  | 'units' | 'sheet' | 'check' | 'network' | 'box' | 'truck' | 'rules' | 'upload' | 'landmark' | 'baby' | 'sport';
+  | 'units' | 'sheet' | 'check' | 'network' | 'box' | 'truck' | 'rules' | 'upload' | 'landmark' | 'baby' | 'sport' | 'messages';
 
 export type NavLink = { href: string; label: string; icon: NavIcon };
 export type NavGroup = { title: string | null; links: NavLink[] };
@@ -48,6 +48,7 @@ export function navModel(pathname: string, opts: { homeHref?: string; patientsHr
       title: 'Atendimento',
       links: [
         { href: opts.patientsHref ?? '/app/pacientes', label: 'Pacientes', icon: 'patients' },
+        { href: '/app/mensagens', label: 'Mensagens', icon: 'messages' },
         { href: '/app/esportivo', label: 'Esportivo', icon: 'sport' },
         ...(opts.maternal ? [{ href: '/app/materno-infantil', label: 'Materno-infantil', icon: 'baby' as const }] : []),
         { href: '/app/agenda', label: 'Agenda', icon: 'calendar' },

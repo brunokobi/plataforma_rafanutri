@@ -235,6 +235,11 @@ export function setupPatientArea(ctx) {
           .groupBy('patient_id').select('patient_id').count({ n: '*' })
         : [];
       const unreadOf = new Map(unread.map((u) => [u.patient_id, Number(u.n)]));
+      const msgs = rows.length
+        ? await database('patient_messages').whereIn('patient_id', rows.map((r) => r.id)).where('sender', 'professional').whereNull('read_at')
+          .groupBy('patient_id').select('patient_id').count({ n: '*' })
+        : [];
+      const msgsOf = new Map(msgs.map((u) => [u.patient_id, Number(u.n)]));
       res.json({
         data: { patient_account: await isPatientAccount(user), records: rows.map((r) => {
           const pl = planOf.get(r.id);
@@ -244,6 +249,7 @@ export function setupPatientArea(ctx) {
             practice: { id: r.org_id, name: r.org_name, brand_color: r.brand_color, has_logo: Boolean(r.logo) },
             professional: { name: [r.first_name, r.last_name].filter(Boolean).join(' ') || null, crn: r.crn ? `${r.crn_region ?? 'CRN'} ${r.crn}` : null },
             recommendations_unread: unreadOf.get(r.id) ?? 0,
+            messages_unread: msgsOf.get(r.id) ?? 0,
             plan: pl
               ? { id: pl.id, title: pl.title, published_at: pl.published_at, meals: (pl.meals ?? []).map((m) => ({ id: m.id, name: m.name, time: m.time ?? null, items: (m.items ?? []).length })) }
               : null,

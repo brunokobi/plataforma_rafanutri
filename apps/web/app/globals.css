@@ -332,3 +332,22 @@ html:has([data-patient-shell]) {
 /* Selo do módulo no menu lateral */
 .module-seal { background: color-mix(in oklch, var(--primary) 12%, transparent); color: var(--primary); }
 .dark .module-seal { background: color-mix(in oklch, var(--primary) 18%, transparent); }
+
+/* Fundo da conversa (mensagens): textura leve de pontos sobre o tom do módulo, como nos apps de mensagem */
+.chat-wallpaper {
+  background-color: color-mix(in oklch, var(--muted) 70%, var(--background));
+  background-image: radial-gradient(color-mix(in oklch, var(--primary) 10%, transparent) 1px, transparent 1.3px);
+  background-size: 18px 18px;
+}
+/* Tela de conversa ocupa a altura toda e não rola a página (só a lista de mensagens) */
+html:has([data-chat-screen]), html:has([data-chat-screen]) body { height: 100dvh; overflow: hidden; overscroll-behavior: none; }
+/* No celular, a conversa do nutricionista é tela cheia: some a barra do topo e a barra inferior */
+@media (max-width: 1023.98px) {
+  html:has([data-chat-screen]) [data-app-topbar], html:has([data-chat-screen]) [data-app-tabbar] { display: none; }
+}
+/* Barra inferior do app no celular: o conteúdo termina acima dela */
+@media (max-width: 1023.98px) {
+  body:has([data-app-tabbar]) { padding-bottom: calc(4rem + env(safe-area-inset-bottom)); }
+  html:has([data-app-tabbar]) { scroll-padding-bottom: calc(4.5rem + env(safe-area-inset-bottom)); }
+  html:has([data-chat-screen]) body { padding-bottom: 0; }
+}

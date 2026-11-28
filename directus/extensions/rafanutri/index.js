@@ -15,6 +15,7 @@ import { setupClinicalDashboard } from './clinical-dashboard.js';
 import { setupSubscriptions } from './subscriptions.js';
 import { setupMaternal } from './maternal.js';
 import { setupAI } from './ai.js';
+import { setupMessages } from './messages.js';
 import { setupGoogleAuth } from './google-auth.js';
 import { setupPatientArea } from './patient-area.js';
 import { setupPractice } from './practice.js';
@@ -1155,6 +1156,9 @@ export default {
 
     // ── Materno-infantil: curvas da OMS e gestação (0062) ─────────────────────────────────────
     setupMaternal({ router, database, logger, notifier, h: { requireUser, bad, conflict, isUuid, clinicalOrg, withActor } });
+
+    // ── Mensagens entre paciente e nutricionista (0071) ────────────────────────────────────────
+    setupMessages({ router, database, logger, notifier, h: { requireUser, bad, conflict, isUuid, clinicalOrg, myPatientRecord } });
 
     // ── Painéis clínicos: todos os pacientes e cada paciente ─────────────────────────────────
     setupClinicalDashboard({ router, database, logger, h: { requireUser, isUuid, clinicalOrg } });

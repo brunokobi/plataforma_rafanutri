@@ -10,7 +10,8 @@ export declare const SHARE_KEYS: readonly ShareKey[];
 
 export type NotificationKind =
   | 'appointment_reminder' | 'appointment_scheduled' | 'appointment_changed' | 'appointment_cancelled' | 'plan_published' | 'patient_invite' | 'test'
-  | 'invoice_created' | 'invoice_due' | 'payment_reported' | 'payment_confirmed' | 'subscription_ended' | 'feeding_reaction';
+  | 'invoice_created' | 'invoice_due' | 'payment_reported' | 'payment_confirmed' | 'subscription_ended' | 'feeding_reaction'
+  | 'message_to_patient' | 'message_to_professional';
 export declare const NOTIFICATION_KINDS: Readonly<Record<NotificationKind, { label: string; important: boolean }>>;
 export declare const REMINDER_HOURS: readonly (72 | 48 | 24 | 12 | 6 | 3 | 2 | 1)[];
 

@@ -91,6 +91,12 @@ export function buildMessage(kind, ctx) {
       const level = ctx.reaction === 'severe' ? 'grave' : 'moderada';
       return { subject: `Reação ${level} na introdução alimentar — ${ctx.childName}`, lines: [`Olá, ${name}!`, `O responsável por ${ctx.childName} registrou no app uma reação ${level} a ${item}.`, 'Veja os detalhes na aba Materno-infantil da ficha e oriente a família.'], link: ctx.link ?? null };
     }
+    case 'message_to_patient':
+      return { subject: `Nova mensagem de ${ctx.from || practice}`, lines: [`Olá, ${name}!`, `${ctx.from || practice} respondeu você na área do paciente.`, 'Abra o app para ler e responder.'], link: ctx.link ?? null };
+    case 'message_to_professional': {
+      const n = Number(ctx.count) || 1;
+      return { subject: `${n === 1 ? 'Nova mensagem' : `${n} mensagens novas`} de ${ctx.fromPatient}`, lines: [`Olá, ${name}!`, `${ctx.fromPatient} mandou ${n === 1 ? 'uma mensagem' : `${n} mensagens`} pela área do paciente e ainda não foi respondido.`, 'Abra as Mensagens na Rafanutri para responder.'], link: ctx.link ?? null };
+    }
     case 'test':
       return { subject: 'Teste de aviso da Rafanutri', lines: [`Olá, ${name}!`, `Este é um teste dos avisos de ${practice}. Se você recebeu, está tudo certo.`], link: ctx.link ?? null };
     default:

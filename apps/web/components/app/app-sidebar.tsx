@@ -2,7 +2,7 @@
 
 import {
   Apple, Baby, Stethoscope, Bell, Briefcase, Dumbbell, Landmark, BookOpen, Box, Building2, CalendarDays, ChefHat, ClipboardCheck, ClipboardList, Crown, FileSpreadsheet, Filter, Home,
-  LayoutGrid, ListChecks, LogOut, Menu, Network, Salad, Search, Sparkles, Truck, Upload, Users, Wallet, Warehouse, type LucideIcon,
+  LayoutGrid, ListChecks, LogOut, Menu, MessageCircle, Network, Salad, Search, Sparkles, Truck, Upload, Users, Wallet, Warehouse, type LucideIcon,
 } from 'lucide-react';
 import Form from 'next/form';
 import Link from 'next/link';
@@ -15,13 +15,15 @@ import { Logo } from '@/components/brand/logo';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 import { signOut } from '@/lib/auth/actions';
+import { useUnreadCount } from '@/components/messages/use-unread';
+import { getProUnread } from '@/lib/messages/actions';
 import { cn } from '@/lib/utils';
 
 const ICONS: Record<NavIcon, LucideIcon> = {
   home: Home, dashboard: LayoutGrid, patients: Users, calendar: CalendarDays, sparkles: Sparkles, funnel: Filter, wallet: Wallet,
   chef: ChefHat, templates: ClipboardList, apple: Apple, recipes: Salad, questionnaires: ListChecks, guidelines: BookOpen,
   building: Building2, bell: Bell, crown: Crown, units: Warehouse, sheet: FileSpreadsheet, check: ClipboardCheck, network: Network,
-  box: Box, truck: Truck, rules: ClipboardList, upload: Upload, landmark: Landmark, baby: Baby, sport: Dumbbell,
+  box: Box, truck: Truck, rules: ClipboardList, upload: Upload, landmark: Landmark, baby: Baby, sport: Dumbbell, messages: MessageCircle,
 };
 
 const THEME_ICON: Record<ModuleTheme, LucideIcon> = { clinical: Stethoscope, sport: Dumbbell, maternal: Baby, practice: Briefcase, ai: Sparkles, uan: ChefHat, public_health: Landmark };
@@ -37,7 +39,7 @@ export interface SidebarProps {
   withSignOut: boolean;
 }
 
-function SidebarBody({ homeHref = '/app', patientsHref = '/app/pacientes', org, user, uan, publicHealth = false, maternal = false, withSignOut, onNavigate }: SidebarProps & { onNavigate?: () => void }) {
+function SidebarBody({ homeHref = '/app', patientsHref = '/app/pacientes', org, user, uan, publicHealth = false, maternal = false, withSignOut, onNavigate, unread = 0 }: SidebarProps & { onNavigate?: () => void; unread?: number }) {
   const pathname = usePathname() ?? '';
   const groups = navModel(pathname, { homeHref, patientsHref, uan, publicHealth, maternal });
   const active = activeHref(pathname, groups.flatMap((g) => g.links.map((l) => l.href)));
@@ -105,7 +107,10 @@ function SidebarBody({ homeHref = '/app', patientsHref = '/app/pacientes', org, 
                   )}
                 >
                   <Icon className="size-[18px] shrink-0" aria-hidden="true" />
-                  {l.label}
+                  <span className="flex-1">{l.label}</span>
+                  {l.icon === 'messages' && unread > 0 && (
+                    <span className="grid min-w-5 place-items-center rounded-full bg-primary px-1.5 text-[11px] font-bold leading-5 text-primary-foreground" aria-label={`${unread} não lidas`}>{unread > 99 ? '99+' : unread}</span>
+                  )}
                 </Link>
               );
             })}
@@ -157,24 +162,65 @@ function ModuleSeal({ theme }: { theme: ModuleTheme }) {
  */
 export function AppSidebar(props: SidebarProps) {
   const [open, setOpen] = useState(false);
+  const unread = useUnreadCount(props.withSignOut ? getProUnread : noUnread);
+  const pathname = usePathname() ?? '';
   return (
     <>
       <aside data-app-sidebar aria-label="Menu principal" className="fixed inset-y-0 left-0 z-30 hidden w-[264px] border-r border-border bg-card/60 backdrop-blur-sm lg:block">
-        <SidebarBody {...props} />
+        <SidebarBody {...props} unread={unread} />
       </aside>
 
-      <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-border/60 bg-background/85 px-3 backdrop-blur-lg lg:hidden">
+      <header data-app-topbar className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-border/60 bg-background/85 px-3 pt-[env(safe-area-inset-top)] backdrop-blur-lg lg:hidden">
         <button type="button" onClick={() => setOpen(true)} aria-label="Abrir menu" className="grid size-11 place-items-center rounded-[10px] hover:bg-muted">
           <Menu className="size-5" />
         </button>
         <Logo href={props.homeHref ?? '/app'} />
       </header>
+      {!pathname.startsWith('/app/uan') && <MobileTabBar pathname={pathname} patientsHref={props.patientsHref ?? '/app/pacientes'} homeHref={props.homeHref ?? '/app'} unread={unread} onMenu={() => setOpen(true)} />}
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent side="left" className="h-dvh max-h-dvh w-[288px] max-w-[85vw] gap-0 overflow-hidden p-0">
           <SheetTitle className="sr-only">Menu</SheetTitle>
-          <SidebarBody {...props} onNavigate={() => setOpen(false)} />
+          <SidebarBody {...props} unread={unread} onNavigate={() => setOpen(false)} />
         </SheetContent>
       </Sheet>
     </>
+  );
+}
+
+const noUnread = async () => 0;
+
+/** Barra inferior do celular (estilo app): os atalhos do dia a dia do atendimento e o menu completo. */
+function MobileTabBar({ pathname, homeHref, patientsHref, unread, onMenu }: { pathname: string; homeHref: string; patientsHref: string; unread: number; onMenu: () => void }) {
+  const tabs = [
+    { href: homeHref, label: 'Início', icon: Home, on: pathname === homeHref || pathname === '/app/clinico' },
+    { href: patientsHref, label: 'Pacientes', icon: Users, on: pathname.startsWith('/app/pacientes') },
+    { href: '/app/agenda', label: 'Agenda', icon: CalendarDays, on: pathname.startsWith('/app/agenda') },
+    { href: '/app/mensagens', label: 'Mensagens', icon: MessageCircle, on: pathname.startsWith('/app/mensagens'), badge: unread },
+  ];
+  return (
+    <nav data-app-tabbar aria-label="Atalhos" className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-lg lg:hidden print:hidden">
+      <ul className="mx-auto grid max-w-xl grid-cols-5">
+        {tabs.map(({ href, label, icon: Icon, on, badge }) => (
+          <li key={label}>
+            <Link href={href} aria-current={on ? 'page' : undefined} aria-label={badge ? `${label}, ${badge} não lidas` : undefined}
+              className={cn('flex min-h-14 flex-col items-center justify-center gap-0.5 text-[11px] font-medium transition-colors', on ? 'text-primary' : 'text-muted-foreground hover:text-foreground')}>
+              <span className={cn('relative grid h-7 w-12 place-items-center rounded-full transition-colors', on && 'bg-primary/12')}>
+                <Icon className="size-5" aria-hidden="true" />
+                {badge ? (
+                  <span aria-hidden="true" className="absolute -right-0.5 -top-1 grid min-w-[18px] place-items-center rounded-full bg-destructive px-1 text-[10px] font-bold leading-[18px] text-white ring-2 ring-background">{badge > 99 ? '99+' : badge}</span>
+                ) : null}
+              </span>
+              {label}
+            </Link>
+          </li>
+        ))}
+        <li>
+          <button type="button" onClick={onMenu} className="flex min-h-14 w-full flex-col items-center justify-center gap-0.5 text-[11px] font-medium text-muted-foreground hover:text-foreground">
+            <span className="grid h-7 w-12 place-items-center"><Menu className="size-5" aria-hidden="true" /></span>
+            Menu
+          </button>
+        </li>
+      </ul>
+    </nav>
   );
 }

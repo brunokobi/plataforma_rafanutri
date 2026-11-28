@@ -35,6 +35,8 @@ export const NOTIFICATION_KINDS = {
   payment_confirmed: { label: 'Pagamento confirmado', important: true },
   subscription_ended: { label: 'Assinatura encerrada', important: true },
   feeding_reaction: { label: 'Reação na introdução alimentar', important: true },
+  message_to_patient: { label: 'Mensagem do nutricionista', important: true },
+  message_to_professional: { label: 'Mensagem de paciente', important: true },
 };
 /** Horários de lembrete permitidos (horas antes da consulta), do maior para o menor. */
 export const REMINDER_HOURS = [72, 48, 24, 12, 6, 3, 2, 1];

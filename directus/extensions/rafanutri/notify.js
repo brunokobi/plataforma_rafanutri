@@ -554,6 +554,8 @@ export function setupNotifications({ router, database, logger, services, getSche
 
   return {
     enqueueUser, notifyOwners, notifyAdmins, tick, site: SITE,
+    /** Aviso ao paciente pelo canal dele (Telegram ligado ou e-mail, se importante). */
+    enqueuePatient: (args) => enqueue(args),
     addCycle: (fn) => extraCycles.push(fn),
     /** Convite da área do paciente pelo canal do paciente (Telegram ligado ou e-mail do convite). */
     async sendInvite({ orgId, patientId, email, link, inviteId }) {

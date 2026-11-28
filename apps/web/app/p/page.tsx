@@ -1,4 +1,4 @@
-import { AlertCircle, Clock, Utensils } from 'lucide-react';
+import { AlertCircle, Clock, MessageCircle, Utensils } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
@@ -53,6 +53,18 @@ export default async function PatientHome({ searchParams }: { searchParams: Prom
   return (
     <PatientShell practice={record.practice} professional={record.professional} canSwitch={records.length > 1}>
       <h1 className="font-display text-2xl font-semibold tracking-tight">{record.first_name ? `Olá, ${record.first_name}!` : 'Olá!'}</h1>
+      <Link href={`/p/mensagens${q}`} className="flex min-h-16 items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3 shadow-sm transition-colors hover:border-primary/40">
+        <span className="grid size-11 shrink-0 place-items-center rounded-full bg-primary/10 text-primary" style={record.practice.brand_color ? { backgroundColor: `${record.practice.brand_color}1f`, color: record.practice.brand_color } : undefined}>
+          <MessageCircle className="size-5" aria-hidden="true" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block font-semibold">Fale com {record.professional.name?.split(' ')[0] ?? 'seu nutricionista'}</span>
+          <span className="block truncate text-sm text-muted-foreground">{(record.messages_unread ?? 0) > 0 ? 'Você tem resposta nova' : 'Tire dúvidas sobre o seu plano por mensagem'}</span>
+        </span>
+        {(record.messages_unread ?? 0) > 0 ? (
+          <span className="grid min-w-6 place-items-center rounded-full bg-destructive px-1.5 text-xs font-bold leading-6 text-white">{record.messages_unread}</span>
+        ) : <span aria-hidden="true" className="text-muted-foreground">→</span>}
+      </Link>
       {weight?.share?.show_weight_history && weight.weight.length > 0 && <WeightChart data={weight.weight} />}
       {maternal?.visible && (
         <Link href={`/p/acompanhamento${q}`} className="flex min-h-11 items-center justify-between gap-3 rounded-2xl border border-border bg-card px-5 py-4 font-medium">

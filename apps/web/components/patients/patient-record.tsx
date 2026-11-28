@@ -110,9 +110,9 @@ export function PatientHeader({ patient, activeLimitReached, active, alerts = nu
       </Link>
 
       <div className="flex flex-wrap items-center gap-4">
-        <span className="grid size-14 place-items-center rounded-full bg-primary/15 text-lg font-semibold text-primary">{initials}</span>
+        <span className="grid size-12 shrink-0 place-items-center rounded-full bg-primary/15 text-lg font-semibold text-primary sm:size-14">{initials}</span>
         <div className="min-w-0 flex-1">
-          <h1 className="font-display text-3xl font-semibold tracking-tight">{patient.full_name}</h1>
+          <h1 className="font-display text-2xl font-semibold tracking-tight sm:text-3xl">{patient.full_name}</h1>
           <p className="text-sm text-muted-foreground">
             {subtitle || 'Sem idade e sexo informados'}
             {theme && <span data-module-page={theme} className="module-seal ml-2 rounded-full px-2 py-0.5 text-xs font-semibold">{theme === 'sport' ? 'Perfil esportivo' : 'Perfil infantil'}</span>}
@@ -121,7 +121,14 @@ export function PatientHeader({ patient, activeLimitReached, active, alerts = nu
         <Badge variant={archived ? 'outline' : 'secondary'} data-testid="patient-status">
           {STATUS_LABEL[patient.status]}
         </Badge>
-        <div className="flex flex-wrap gap-2">
+        <div className="-mx-5 flex w-[calc(100%+2.5rem)] gap-2 overflow-x-auto px-5 pb-1 [scrollbar-width:none] sm:mx-0 sm:w-auto sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0 [&>*]:shrink-0">
+          {!archived && (
+            <Button asChild>
+              <Link href={`/app/mensagens/${patient.id}`}>
+                <MessageCircle className="size-4" /> Mensagem
+              </Link>
+            </Button>
+          )}
           {!archived && (
             <Button asChild variant="outline">
               <Link href={`/app/agenda?paciente=${patient.id}`}>
@@ -172,7 +179,7 @@ export function PatientHeader({ patient, activeLimitReached, active, alerts = nu
       )}
 
       <PatientAlerts alerts={alerts} patientId={patient.id} />
-      <nav aria-label="Seções do paciente" className="-mx-5 flex gap-1 overflow-x-auto whitespace-nowrap border-b border-border px-5 sm:mx-0 sm:px-0">
+      <nav aria-label="Seções do paciente" className="sticky top-14 z-20 -mx-5 flex gap-1 overflow-x-auto whitespace-nowrap border-b border-border bg-background/95 px-5 backdrop-blur [scrollbar-width:none] sm:mx-0 sm:px-0 lg:static lg:bg-transparent lg:backdrop-blur-none">
         {(
           [
             ['resumo', 'Resumo', `/app/pacientes/${patient.id}`],

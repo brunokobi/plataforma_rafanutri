@@ -8,6 +8,8 @@ export interface PatientRecordView {
   professional: { name: string | null; crn: string | null };
   plan: { id: string; title: string; published_at: string | null; meals: PatientMealSummary[] } | null;
   recommendations_unread?: number;
+  /** Mensagens do nutricionista ainda não lidas (0071). */
+  messages_unread?: number;
 }
 
 export interface PatientArea { patient_account: boolean; records: PatientRecordView[] }
